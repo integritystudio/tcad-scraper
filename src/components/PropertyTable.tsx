@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Property } from '../lib/supabase';
+import { Property } from '../types';
 import './PropertyTable.css';
 
 interface PropertyTableProps {

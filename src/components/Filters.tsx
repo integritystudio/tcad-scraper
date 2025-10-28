@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Property } from '../lib/supabase';
+import { Property } from '../types';
 import './Filters.css';
 
 interface FiltersProps {

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Property } from '../lib/supabase';
+import { Property } from '../types';
 import './Analytics.css';
 
 interface AnalyticsProps {

@@ -1,10 +1,62 @@
 import { useState, useEffect } from 'react';
-import { supabase, Property } from './lib/supabase';
+import { Property } from './types';
 import PropertyTable from './components/PropertyTable';
 import Analytics from './components/Analytics';
 import Filters from './components/Filters';
 import Charts from './components/Charts';
 import './App.css';
+
+// Mock data for demonstration
+const mockProperties: Property[] = [
+  {
+    id: '1',
+    property_id: 'R123456',
+    name: 'John Smith',
+    prop_type: 'Single Family',
+    city: 'Austin',
+    property_address: '123 Main St',
+    assessed_value: 450000,
+    appraised_value: 475000,
+    geo_id: 'GEO001',
+    description: 'Residential property',
+    search_term: null,
+    scraped_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    property_id: 'R234567',
+    name: 'Jane Doe',
+    prop_type: 'Condo',
+    city: 'Austin',
+    property_address: '456 Oak Ave',
+    assessed_value: 325000,
+    appraised_value: 340000,
+    geo_id: 'GEO002',
+    description: 'Condominium unit',
+    search_term: null,
+    scraped_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    property_id: 'R345678',
+    name: 'Bob Johnson',
+    prop_type: 'Townhouse',
+    city: 'Round Rock',
+    property_address: '789 Elm St',
+    assessed_value: 280000,
+    appraised_value: 295000,
+    geo_id: 'GEO003',
+    description: 'Townhouse property',
+    search_term: null,
+    scraped_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
 function App() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -19,15 +71,12 @@ function App() {
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .order('appraised_value', { ascending: false });
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (error) throw error;
-
-      setProperties(data || []);
-      setFilteredProperties(data || []);
+      // Use mock data instead of Supabase
+      setProperties(mockProperties);
+      setFilteredProperties(mockProperties);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
