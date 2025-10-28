@@ -3,11 +3,9 @@
     "postgres": {
       "command": "node",
       "args": [
-        "/Users/johnskelton/.mcp-servers/postgres/index.js"
-      ],
-      "env": {
-        "DATABASE_URL": "postgresql://localhost:5432/testdb"
-      }
+        "/Users/alyshialedlie/.mcp-servers/postgres/index.js",
+        "postgresql://localhost:5432/tcad_scraper"
+      ]
     }
   }
 }
