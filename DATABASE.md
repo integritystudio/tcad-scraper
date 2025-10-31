@@ -11,7 +11,9 @@ This TCAD scraper now includes PostgreSQL integration for persistent storage of 
 
 ## Database Configuration
 
-**Connection String:** `postgresql://localhost:5432/tcad_scraper`
+**Connection String:** `postgresql:///tcad_scraper?host=/var/run/postgresql&port=5433`
+
+**Note:** PostgreSQL is running on port **5433** (not the default 5432) using Unix socket authentication.
 
 The database connection is configured in:
 - `.mcp.json` - MCP server configuration for Claude Code
@@ -205,12 +207,22 @@ brew services start postgresql@14
 
 1. Check if PostgreSQL is running:
    ```bash
-   pg_isready
+   pg_isready -p 5433
    ```
 
-2. Verify MCP server path in `.mcp.json`
+2. Verify MCP server path in `.mcp.json` (should be):
+   ```
+   /home/aledlie/.mcp-servers/postgres/node_modules/@modelcontextprotocol/server-postgres/dist/index.js
+   ```
 
-3. Restart Claude Code to reconnect to MCP servers
+3. Verify the connection string in `.mcp.json`:
+   ```
+   postgresql:///tcad_scraper?host=/var/run/postgresql&port=5433
+   ```
+
+4. Restart Claude Code to reconnect to MCP servers
+
+**Note:** The MCP server package `@modelcontextprotocol/server-postgres` is deprecated but still functional for read-only database access.
 
 ### Connection Errors
 

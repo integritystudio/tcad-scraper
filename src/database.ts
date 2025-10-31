@@ -2,7 +2,7 @@ import { Pool } from 'pg';
 
 // Database connection configuration
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/tcad_scraper'
+  connectionString: process.env.DATABASE_URL || 'postgresql:///tcad_scraper?host=/var/run/postgresql&port=5433'
 });
 
 export interface Property {

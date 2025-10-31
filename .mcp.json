@@ -3,8 +3,8 @@
     "postgres": {
       "command": "node",
       "args": [
-        "/Users/alyshialedlie/.mcp-servers/postgres/index.js",
-        "postgresql://localhost:5432/tcad_scraper"
+        "/home/aledlie/.mcp-servers/postgres/node_modules/@modelcontextprotocol/server-postgres/dist/index.js",
+        "postgresql:///tcad_scraper?host=/var/run/postgresql&port=5433"
       ]
     }
   }
