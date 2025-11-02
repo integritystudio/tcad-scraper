@@ -8,10 +8,14 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "scrape": "tsx scraper.ts",
-    "scrape:db": "tsx scraper-with-db.ts",
-    "db:query": "tsx src/query-db.ts",
-    "db:stats": "psql tcad_scraper -c 'SELECT COUNT(*) as total_properties, COUNT(DISTINCT city) as cities FROM properties;'"
+    "scrape": "doppler run -- tsx scraper.ts",
+    "scrape:db": "doppler run -- tsx scraper-with-db.ts",
+    "scrape:batch": "cd server && doppler run -- npm run scrape:batch",
+    "scrape:batch:cities": "cd server && doppler run -- npm run scrape:batch:cities",
+    "scrape:batch:zipcodes": "cd server && doppler run -- npm run scrape:batch:zipcodes",
+    "scrape:batch:comprehensive": "cd server && doppler run -- npm run scrape:batch:comprehensive",
+    "db:query": "doppler run -- tsx src/query-db.ts",
+    "db:stats": "doppler run -- psql tcad_scraper -c 'SELECT COUNT(*) as total_properties, COUNT(DISTINCT city) as cities FROM properties;'"
   },
   "keywords": [],
   "author": "",

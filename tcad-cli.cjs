@@ -5,7 +5,7 @@ const {
   processSearchTermsFromFile,
   getQueueStats,
   scrapingQueue,
-} = require('./tcad-scraper');
+} = require('./tcad-scraper.cjs');
 
 const readline = require('readline');
 const fs = require('fs').promises;

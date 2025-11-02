@@ -170,10 +170,10 @@ npm run dev
 npm run prisma:studio
 
 # Create new migration
-npx prisma migrate dev --name your_migration_name
+doppler run -- npx prisma migrate dev --name your_migration_name
 
 # Reset database (WARNING: deletes all data)
-npx prisma migrate reset
+doppler run -- npx prisma migrate reset
 ```
 
 ### Logs

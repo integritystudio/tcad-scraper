@@ -361,7 +361,7 @@ curl http://localhost:3001/api/properties/monitor
 ```bash
 # Reset database
 cd server
-npx prisma migrate reset
+doppler run -- npx prisma migrate reset
 
 # View database
 psql tcad_scraper

@@ -42,6 +42,10 @@ const app = express();
 // Security middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  hsts: false, // Disable HSTS for HTTP access
+  crossOriginOpenerPolicy: false, // Disable COOP for IP-based access
+  contentSecurityPolicy: false, // Disable CSP for IP-based access
+  originAgentCluster: false, // Disable Origin-Agent-Cluster for IP-based access
 }));
 
 // CORS configuration
