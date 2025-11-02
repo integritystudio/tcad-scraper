@@ -1,13 +1,22 @@
-# TCAD Scraper Backend Server
+# TCAD Scraper
 
-Modern Express + TypeScript backend for the TCAD property scraper with Playwright, Bull queue, and PostgreSQL.
+Production web scraper for Travis Central Appraisal District property data. Uses Playwright for browser automation, BullMQ for job queue management, and PostgreSQL for data storage.
+
+## Current Status
+
+- **Properties Collected**: 17,352
+- **Job Success Rate**: 98.1%
+- **Cities Covered**: 35
+- **Queue Status**: ~500-600 waiting jobs
+- **Scraper**: Running 24/7 with optimized search term generation
 
 ## Prerequisites
 
-- Node.js 18+ and npm
-- PostgreSQL database
-- Redis server (for Bull queue)
-- Chrome/Chromium browser (automatically installed by Playwright)
+- **Node.js 18+** and npm
+- **PostgreSQL 15+** (via Docker)
+- **Redis 7+** (via Docker)
+- **Chromium browser** (installed by Playwright)
+- **Doppler CLI** (for secrets management)
 
 ## Setup Instructions
 
@@ -17,264 +26,263 @@ Modern Express + TypeScript backend for the TCAD property scraper with Playwrigh
 cd server
 npm install
 
-# Install Playwright browsers
+# Install Playwright browsers and system dependencies
 npx playwright install chromium
+npx playwright install-deps chromium
 ```
 
-### 2. Configure Environment Variables
-
-Create a `.env` file in the server directory:
-
-```env
-# Server Configuration
-NODE_ENV=development
-PORT=3001
-HOST=localhost
-
-# Database Configuration
-DATABASE_URL=postgresql://username:password@localhost:5432/tcad_scraper
-
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# Scraper Configuration
-SCRAPER_CONCURRENCY=2
-SCRAPER_TIMEOUT=30000
-SCRAPER_RETRY_ATTEMPTS=3
-SCRAPER_RATE_LIMIT_DELAY=5000
-
-# Frontend URL (for CORS)
-FRONTEND_URL=http://localhost:5173
-
-# Logging
-LOG_LEVEL=info
-```
-
-### 3. Setup Database
+### 2. Start Infrastructure
 
 ```bash
-# Generate Prisma client
-npm run prisma:generate
+# From project root
+cd /home/aledlie/tcad-scraper
+docker-compose up -d
 
-# Run migrations to create database tables
-npm run prisma:migrate
-
-# (Optional) Open Prisma Studio to view database
-npm run prisma:studio
+# Verify services are running
+docker ps
+# Should see: tcad-postgres and bullmq-redis
 ```
 
-### 4. Start Services
-
-#### Start Redis (using Docker):
-```bash
-docker run -d -p 6379:6379 redis:alpine
-```
-
-#### Or install Redis locally:
-```bash
-# macOS
-brew install redis
-brew services start redis
-
-# Ubuntu/Debian
-sudo apt-get install redis-server
-sudo systemctl start redis
-```
-
-### 5. Run the Server
+### 3. Initialize Database
 
 ```bash
-# Development mode with hot reload
-npm run dev
+cd server
 
-# Production build
-npm run build
-npm start
+# Push schema to database (creates tables)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" npx prisma db push
+
+# Verify database
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "\dt"
 ```
 
-## API Endpoints
+### 4. Configure Doppler (Production)
 
-### Scraping Operations
-
-- `POST /api/properties/scrape` - Trigger a new scrape job
-- `GET /api/properties/jobs/:jobId` - Get job status
-- `GET /api/properties` - Get properties with filters
-- `GET /api/properties/history` - Get scrape job history
-- `GET /api/properties/stats` - Get statistics
-
-### Monitoring
-
-- `POST /api/properties/monitor` - Add search term for scheduled scraping
-- `GET /api/properties/monitor` - Get monitored search terms
-
-### Health Checks
-
-- `GET /health` - Server health check
-- `GET /health/queue` - Queue health check
-
-### Admin
-
-- `GET /admin/queues` - Bull Dashboard (visual queue monitoring)
-
-## Queue Monitoring
-
-Access the Bull Dashboard at `http://localhost:3001/admin/queues` to monitor:
-- Active jobs
-- Completed jobs
-- Failed jobs
-- Job progress
-- Queue statistics
-
-## Scheduled Jobs
-
-The server automatically runs scheduled scrapes for monitored search terms:
-- **Daily**: 2:00 AM CST
-- **Weekly**: Sundays at 3:00 AM CST
-- **Monthly**: 1st of each month at 4:00 AM CST
-
-## Testing the Scraper
-
-### 1. Test Connection
 ```bash
-curl http://localhost:3001/health
+doppler login
+doppler setup
+# Select: tcad-scraper project, dev config
 ```
 
-### 2. Trigger a Scrape
+### 5. Run the Continuous Scraper
+
 ```bash
-curl -X POST http://localhost:3001/api/properties/scrape \
-  -H "Content-Type: application/json" \
-  -d '{"searchTerm": "test"}'
+cd server
+
+# Production mode (with Doppler)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
+
+# Save PID for later
+echo $! > continuous-scraper.pid
 ```
 
-### 3. Check Job Status
+### 6. Monitor the Scraper
+
 ```bash
-curl http://localhost:3001/api/properties/jobs/{jobId}
+# View live logs
+tail -f continuous-scraper.log
+
+# Check if running
+ps aux | grep continuous-batch-scraper
+
+# Check queue status
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:wait"
+
+# Check database growth
+watch -n 60 'docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT COUNT(*) FROM properties;"'
 ```
 
-### 4. Get Properties
+## Database Operations
+
+### View Data in Prisma Studio
 ```bash
-curl http://localhost:3001/api/properties
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" npx prisma studio
+# Opens at http://localhost:5555
 ```
 
-## Development Tools
-
-### TypeScript Watch Mode
+### Query Database Directly
 ```bash
-npm run dev
+# Count properties
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT COUNT(*) FROM properties;"
+
+# View recent scrape jobs
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT search_term, status, result_count, started_at FROM scrape_jobs ORDER BY started_at DESC LIMIT 20;"
+
+# Get job statistics
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT status, COUNT(*) FROM scrape_jobs GROUP BY status;"
+
+# View property type distribution
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT prop_type, COUNT(*) FROM properties GROUP BY prop_type ORDER BY COUNT(*) DESC;"
+
+# View cities
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT city, COUNT(*) FROM properties WHERE city IS NOT NULL GROUP BY city ORDER BY COUNT(*) DESC;"
 ```
 
-### Database Management
+### Queue Management
 ```bash
-# View and edit database
-npm run prisma:studio
+# Check queue sizes
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:wait"
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:active"
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:completed"
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:failed"
 
-# Create new migration
-doppler run -- npx prisma migrate dev --name your_migration_name
+# Clear all waiting jobs (use with caution)
+docker exec bullmq-redis redis-cli DEL "bull:scraper-queue:wait"
 
-# Reset database (WARNING: deletes all data)
-doppler run -- npx prisma migrate reset
+# View all Redis keys
+docker exec bullmq-redis redis-cli KEYS "*"
 ```
 
-### Logs
-Logs are written to:
-- Console (colored output in development)
-- `logs/error.log` - Error logs only
-- `logs/combined.log` - All logs
+### Clean Up Operations
+```bash
+# Remove failed jobs with specific patterns (e.g., ZIP codes)
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "DELETE FROM scrape_jobs WHERE status = 'failed' AND search_term ~ '^\d{5}$';"
+
+# Update stuck processing jobs to failed
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "UPDATE scrape_jobs SET status = 'failed', error = 'Timeout - stuck in processing' WHERE status = 'processing' AND started_at < NOW() - INTERVAL '1 hour';"
+
+# View duplicate properties (should be none due to unique constraint)
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT property_id, COUNT(*) FROM properties GROUP BY property_id HAVING COUNT(*) > 1;"
+```
 
 ## Troubleshooting
 
+### Scraper Not Running
+```bash
+# Check if process exists
+ps aux | grep continuous-batch-scraper
+
+# Check recent logs for errors
+tail -50 continuous-scraper.log | grep -i error
+
+# Restart scraper
+pkill -f "continuous-batch-scraper"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
+```
+
 ### Redis Connection Issues
 ```bash
-# Check if Redis is running
-redis-cli ping
+# Check if Redis container is running
+docker ps | grep bullmq-redis
+
+# Test Redis connection
+docker exec bullmq-redis redis-cli ping
 # Should return: PONG
+
+# Restart Redis
+docker restart bullmq-redis
 ```
 
 ### PostgreSQL Connection Issues
 ```bash
+# Check if PostgreSQL container is running
+docker ps | grep tcad-postgres
+
 # Test database connection
-psql postgresql://username:password@localhost:5432/tcad_scraper
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT 1;"
+
+# View PostgreSQL logs
+docker logs tcad-postgres
+
+# Restart PostgreSQL
+docker restart tcad-postgres
 ```
 
-### Playwright Issues
+### Playwright/Browser Issues
 ```bash
-# Reinstall browsers
+# Reinstall Chromium browser
 npx playwright install chromium
+npx playwright install-deps chromium
 
-# Run with headed mode for debugging
-# Set headless: false in scraper config
+# Check for missing system dependencies (Linux)
+ldd $(which chromium) | grep "not found"
+
+# Test browser launch
+npx playwright open https://travis.prodigycad.com/property-search
 ```
 
-### Rate Limiting
-The API implements rate limiting:
-- General API: 100 requests per 15 minutes per IP
-- Scrape endpoint: 5 requests per minute per IP
-- Same search term: 5 second delay between requests
-
-## Production Deployment
-
-### 1. Build the Application
+### Queue Not Processing
 ```bash
-npm run build
+# Check queue sizes
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:wait"
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:active"
+
+# Check for stuck jobs
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT COUNT(*) FROM scrape_jobs WHERE status = 'processing' AND started_at < NOW() - INTERVAL '1 hour';"
+
+# Clear stuck jobs
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "UPDATE scrape_jobs SET status = 'failed' WHERE status = 'processing' AND started_at < NOW() - INTERVAL '1 hour';"
 ```
 
-### 2. Set Production Environment Variables
+### High Failure Rate
 ```bash
-NODE_ENV=production
-# Use production database and Redis URLs
+# Check recent failures
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT search_term, error, started_at FROM scrape_jobs WHERE status = 'failed' ORDER BY started_at DESC LIMIT 10;"
+
+# Common errors and solutions:
+# - "browser is not defined" -> Fixed in commit a8812a4
+# - "Timeout waiting for text input" -> Fixed in commit a8812a4
+# - "Element is not visible" (pagination) -> Known limitation, not a bug
 ```
 
-### 3. Use Process Manager (PM2)
-```bash
-npm install -g pm2
-pm2 start dist/index.js --name tcad-scraper-api
-pm2 save
-pm2 startup
-```
-
-### 4. Configure Reverse Proxy (Nginx)
-```nginx
-server {
-    listen 80;
-    server_name api.yourdomain.com;
-
-    location / {
-        proxy_pass http://localhost:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-## Security Considerations
-
-1. **Environment Variables**: Never commit `.env` file
-2. **Database**: Use strong passwords and SSL connections
-3. **API Keys**: Implement authentication for production
-4. **CORS**: Configure allowed origins properly
-5. **Rate Limiting**: Adjust limits based on your needs
-6. **Input Validation**: All inputs are validated with Zod
-7. **SQL Injection**: Protected by Prisma's parameterized queries
-
-## Architecture Overview
+## Architecture
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   React UI  │────▶│ Express API │────▶│   Bull      │
-└─────────────┘     └─────────────┘     │   Queue     │
-                            │            └─────────────┘
-                            │                    │
-                            ▼                    ▼
-                    ┌─────────────┐      ┌─────────────┐
-                    │ PostgreSQL  │      │ Playwright  │
-                    └─────────────┘      │  Scraper    │
-                                         └─────────────┘
+┌──────────────────────────────────┐
+│  Continuous Batch Scraper        │
+│  - Generates search terms        │
+│  - Queues jobs to BullMQ         │
+│  - Maintains 100-500 queue size  │
+└──────────────┬───────────────────┘
+               │
+               ▼
+┌──────────────────────────────────┐
+│  BullMQ Queue (Redis)            │
+│  - Job state management          │
+│  - Retry logic                   │
+│  - 2-4 concurrent workers        │
+└──────────────┬───────────────────┘
+               │
+               ▼
+┌──────────────────────────────────┐
+│  Scraper Workers (Playwright)    │
+│  - Launch headless browsers      │
+│  - Navigate to TCAD website      │
+│  - Extract AG Grid data          │
+│  - Save to PostgreSQL            │
+└──────────────┬───────────────────┘
+               │
+               ▼
+┌──────────────────────────────────┐
+│  PostgreSQL Database             │
+│  - properties (17,352 records)   │
+│  - scrape_jobs (13,380 records)  │
+│  - Unique constraint on PID      │
+└──────────────────────────────────┘
 ```
 
-## License
+## Search Term Strategy
 
-MIT
+The scraper uses weighted random search to maximize property discovery:
+
+- **20%** Full Names (e.g., "John Smith")
+- **18%** Street Addresses (e.g., "1234 Main")
+- **15%** Last Names (e.g., "Johnson")
+- **12%** Business Names (e.g., "Smith LLC")
+- **12%** Street Numbers (e.g., "4567")
+- **10%** Compound Names (e.g., "Brown Trust", "Smith & Johnson")
+- **7%** Neighborhoods (e.g., "Hyde Park", "Zilker")
+- **6%** Other patterns (property types, letter combos, etc.)
+
+## Known Limitations
+
+1. **20 Results Per Search**: TCAD's AG Grid pagination is hidden and inaccessible
+2. **No API Access**: Direct scraping only, no official API available
+3. **Rate Limiting**: Compensated by diverse search term generation
+4. **Search Misses**: ~40-50% of searches return 0 results (expected with random terms)
+
+## Project Goals
+
+- **Target**: 400,000 properties (estimated total for Travis County)
+- **Current Progress**: 17,352 properties (4.3%)
+- **Strategy**: Exhaustive search term generation with intelligent pattern weighting
+- **Completion**: Ongoing (depends on term diversity and result overlap)

@@ -1,108 +1,93 @@
 # TCAD Scraper
 
-A modern, full-stack web scraping and data analytics platform for extracting property tax information from the Travis Central Appraisal District (TCAD) website. Built with TypeScript, React, Express, and PostgreSQL with a distributed queue-based architecture for scalable data collection.
+A production web scraping system for automated collection of property tax information from the Travis Central Appraisal District (TCAD) website. Built with TypeScript, Express, Playwright, and PostgreSQL with a distributed queue-based architecture for scalable data collection.
 
 ## Overview
 
-TCAD Scraper is a production-ready application that automates the collection and analysis of property tax data. It features a React-based frontend for data exploration, an Express backend API, background job processing with BullMQ, and comprehensive monitoring via Prometheus and Grafana.
+TCAD Scraper is a production application that automates the collection and storage of property tax data from travis.prodigycad.com. The system uses continuous batch scraping with intelligent search term generation to discover and catalog properties across Travis County. Currently managing **17,352 properties** across **35 cities** with a **98.1% job success rate**.
 
 ## Key Features
 
-- **Full-Stack Architecture**: Modern React frontend with Express.js REST API backend
-- **Background Job Processing**: BullMQ queue system with Redis for scalable scraping operations
+- **Continuous Batch Scraping**: Automated 24/7 scraping with intelligent, weighted search term generation
+- **Background Job Processing**: BullMQ queue system with Redis managing 500+ concurrent jobs
 - **Persistent Storage**: PostgreSQL database with Prisma ORM for type-safe data access
-- **Real-Time Monitoring**: Prometheus metrics collection with Grafana dashboards
-- **Scheduled Scraping**: Automated recurring scrapes via node-cron
+- **Optimized Search Strategies**:
+  - Weighted pattern distribution (street addresses, full names, businesses, neighborhoods)
+  - 72 street names, 34 property types, 30 Austin neighborhoods
+  - Compound names (trusts, estates, partnerships)
+  - Duplicate detection and deduplication
 - **Comprehensive Data Extraction**:
-  - Owner name
-  - Property type
-  - City and property address
+  - Owner name and property type
+  - City and full property address
   - Assessed and appraised values
-  - Property ID and Geographic ID
+  - Property ID (PID) and Geographic ID
   - Legal descriptions
-- **Web Scraping Technologies**: Puppeteer and Playwright for headless browser automation
-- **API-Driven**: RESTful API with rate limiting, security middleware, and health checks
-- **Containerized Deployment**: Docker Compose orchestration for all services
+- **Production Infrastructure**:
+  - Playwright-based headless browser automation
+  - Docker Compose orchestration for PostgreSQL and Redis
+  - Remote Linux environment (Ubuntu)
+  - Doppler secrets management
+- **Known Limitations**: TCAD website pagination is hidden, limiting results to 20 properties per search (compensated by diverse search term generation)
 
 ## Technology Stack
 
-### Frontend
-- React 19.2.0 with TypeScript
-- Vite 7.1.11 for fast builds
-- Custom components for tables, charts, and analytics
-
-### Backend
-- Node.js with Express.js 4.18.2
-- TypeScript 5.3.3
-- Prisma 5.8.0 ORM
-- BullMQ 5.62.0 for job queues
-- Puppeteer 24.27.0 & Playwright 1.41.0 for web scraping
-- Cheerio 1.1.2 for HTML parsing
+### Core Application
+- **Node.js** with **TypeScript** for type safety
+- **Playwright 1.41+** for headless browser automation (production environment)
+- **Prisma ORM** for type-safe database access
+- **BullMQ** for distributed job queue management
+- **Winston** for structured logging
 
 ### Infrastructure
-- PostgreSQL 15-alpine (primary database)
-- Redis 7-alpine (message broker)
-- Prometheus (metrics collection)
-- Grafana (visualization)
-- Docker & Docker Compose
+- **PostgreSQL 15** (Docker container `tcad-postgres`)
+  - Database: `tcad_scraper`
+  - Current dataset: 17,352 properties
+- **Redis 7** (Docker container `bullmq-redis`)
+  - Job queue and state management
+  - Port: 6379
+- **Docker Compose** for service orchestration
+- **Doppler** for environment variable and secrets management
 
-### Security & Utilities
-- Helmet 7.1.0 (HTTP security headers)
-- express-rate-limit 7.1.5
-- Zod 3.22.0 (validation)
-- Winston 3.11.0 (logging)
+### Deployment Environment
+- **Ubuntu Linux** (remote server)
+- **Systemd** process management (planned)
+- **Tailscale** for secure remote access
 
 ## Project Structure
 
 ```
 tcad-scraper/
-├── src/                          # Frontend React application
-│   ├── components/               # UI components
-│   │   ├── PropertyTable.tsx     # Property data display
-│   │   ├── Analytics.tsx         # Analytics dashboard
-│   │   ├── ScrapeManager.tsx     # Job management UI
-│   │   ├── Filters.tsx           # Property filtering
-│   │   └── Charts.tsx            # Data visualization
-│   ├── services/
-│   │   └── api.service.ts        # API communication
-│   ├── types/                    # TypeScript definitions
-│   ├── App.tsx                   # Main React component
-│   └── main.tsx                  # React entry point
-├── server/                       # Express backend
+├── server/                       # Main application directory
 │   ├── src/
-│   │   ├── index.ts              # Express server setup
-│   │   ├── routes/
-│   │   │   └── property.routes.ts # API endpoints
-│   │   ├── queues/
-│   │   │   └── scraper.queue.ts  # BullMQ configuration
-│   │   ├── schedulers/
-│   │   │   └── scrape-scheduler.ts # Cron jobs
 │   │   ├── lib/
-│   │   │   ├── tcad-scraper.ts   # Scraper implementation
-│   │   │   └── prisma.ts         # Prisma client
-│   │   └── types/                # Type definitions
+│   │   │   ├── tcad-scraper.ts   # Core Playwright scraper with pagination handling
+│   │   │   └── prisma.ts         # Prisma database client
+│   │   ├── queues/
+│   │   │   └── scraper.queue.ts  # BullMQ job queue configuration
+│   │   ├── scripts/
+│   │   │   ├── continuous-batch-scraper.ts  # Main production scraper (currently running)
+│   │   │   ├── test-optimized-search.ts     # Search pattern validation
+│   │   │   ├── test-pagination.ts           # Pagination testing
+│   │   │   └── diagnose-pagination.ts       # AG Grid investigation
+│   │   └── types/                # TypeScript type definitions
 │   ├── prisma/
-│   │   └── schema.prisma         # Database schema
+│   │   └── schema.prisma         # Database schema (Property, ScrapeJob, MonitoredSearch)
+│   ├── continuous-scraper.log    # Live scraper output log
+│   ├── continuous-scraper.pid    # Process ID file
 │   ├── package.json
 │   └── tsconfig.json
-├── bullmq-exporter/              # Metrics exporter for Bull queues
-├── grafana/                      # Monitoring dashboards
-│   └── provisioning/             # Pre-configured dashboards
-├── docs/                         # Project documentation
-│   ├── MODERNIZATION_REPORT.md
-│   ├── SCRAPER_DEBUG_SESSION.md
-│   └── CLAUDE.md
-├── scraper.ts                    # Standalone scraper (legacy)
-├── scraper2.ts                   # Alternative implementation
-├── scraper-with-db.ts            # Scraper with direct DB integration
-├── test-database.ts              # Database testing utilities
-├── docker-compose.yml            # Service orchestration
-├── docker-compose.override.yml   # Development overrides
-├── Dockerfile                    # Container image
-├── DATABASE.md                   # Database setup guide
-├── MODERNIZATION_SETUP.md        # Architecture documentation
-└── prometheus.yml                # Prometheus configuration
+├── docker-compose.yml            # PostgreSQL and Redis orchestration
+└── README.md                     # This file
 ```
+
+**Active Scripts:**
+- `continuous-batch-scraper.ts` - Running 24/7 with optimized search term generation
+- `tcad-scraper.ts` - Core scraper library with AG Grid data extraction
+
+**Database Tables:**
+- `properties` - 17,352 property records with deduplication by propertyId
+- `scrape_jobs` - 13,380 job records tracking all scraping operations
+- `monitored_searches` - Scheduled recurring search terms (not currently used)
 
 ## Database Schema
 
@@ -131,76 +116,73 @@ Enables automated recurring scrapes with configurable frequency (daily/weekly/mo
 
 ### Prerequisites
 
-- Node.js 18+
-- Docker and Docker Compose
-- PostgreSQL 15+
-- Redis 7+
+- **Node.js 18+** and npm
+- **Docker and Docker Compose**
+- **Doppler CLI** (for secrets management)
+- **Playwright** with Chromium browser
+- **Ubuntu/Linux environment** (for production deployment)
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
-cd tcad-scraper
+cd tcad-scraper/server
 ```
 
-2. Install frontend dependencies:
+2. **Install dependencies:**
 ```bash
 npm install
+npx playwright install chromium
+npx playwright install-deps chromium  # Install system dependencies
 ```
 
-3. Install backend dependencies:
+3. **Set up Doppler (production):**
+```bash
+doppler login
+doppler setup  # Select project and config
+```
+
+4. **Start infrastructure services:**
+```bash
+cd /path/to/tcad-scraper
+docker-compose up -d  # Starts PostgreSQL and Redis
+```
+
+5. **Initialize database:**
 ```bash
 cd server
-npm install
-cd ..
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" npx prisma db push
 ```
 
-4. Set up environment variables:
-```bash
-cp server/.env.example server/.env
-# Edit server/.env with your database credentials
-```
+### Running the Scraper
 
-5. Start infrastructure services:
-```bash
-docker-compose up -d
-```
-
-6. Run database migrations:
+**Production continuous scraper (recommended):**
 ```bash
 cd server
-npm run prisma:migrate
-npm run prisma:generate
-cd ..
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
 ```
 
-### Development
-
-**Start the frontend (Vite dev server):**
+**Monitor scraper logs:**
 ```bash
-npm run dev
+tail -f continuous-scraper.log
 ```
 
-**Start the backend server:**
+**Check scraper status:**
 ```bash
-cd server
-npm run dev
+ps aux | grep continuous-batch-scraper
 ```
 
-**Run standalone scraper:**
+**Stop the scraper:**
 ```bash
-npm run scrape
+pkill -f "continuous-batch-scraper"
 ```
 
-**Run scraper with database storage:**
-```bash
-npm run scrape:db
-```
+### Database Operations
 
-**Query database:**
+**Query the database:**
 ```bash
-npm run db:query
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT COUNT(*) FROM properties;"
 ```
 
 **View database statistics:**
@@ -208,148 +190,206 @@ npm run db:query
 npm run db:stats
 ```
 
-### Production Build
-
-**Build frontend:**
+**Check queue status:**
 ```bash
-npm run build
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:wait"
 ```
-
-**Build backend:**
-```bash
-cd server
-npm run build
-npm run start
-```
-
-## API Endpoints
-
-### Health & Monitoring
-- `GET /health` - Server health check
-- `GET /health/queue` - Queue status check
-- `GET /admin/queues` - Bull Board dashboard (queue visualization)
-
-### Properties API
-- `GET /api/properties` - List all properties with pagination and filtering
-- `GET /api/properties/:id` - Get property by ID
-- `POST /api/properties/scrape` - Trigger new scraping job
-- `GET /api/properties/stats` - Get database statistics
-
-### Rate Limits
-- API endpoints: 100 requests per 15 minutes
-- Scrape endpoints: 5 requests per minute
 
 ## Docker Services
 
-The application uses Docker Compose with the following services:
+The application uses Docker Compose for infrastructure:
 
-**Primary Services (docker-compose.yml):**
-- **Redis** (port 6379) - Message broker for BullMQ
-- **Prometheus** (port 9090) - Metrics collection
-- **Grafana** (port 3001) - Visualization dashboards
-- **BullMQ Exporter** (port 3000) - Custom metrics endpoint
+**Active Services:**
+- **PostgreSQL** (container: `tcad-postgres`, port: 5432)
+  - Database: `tcad_scraper`
+  - User: `postgres`
+  - Data volume: `postgres_data`
 
-**Development Services (docker-compose.override.yml):**
-- **PostgreSQL** (port 5432) - Property database
-- **TCAD Worker** - Containerized scraper service
+- **Redis** (container: `bullmq-redis`, port: 6379)
+  - BullMQ job queue
+  - Job state management
+  - Data volume: `redis_data`
 
-## Monitoring & Observability
-
-Access monitoring tools:
-- **Grafana**: http://localhost:3001
-- **Prometheus**: http://localhost:9090
-- **Bull Board**: http://localhost:3000/admin/queues
-- **Metrics Endpoint**: http://localhost:3000/metrics
-
-## Project Scripts
-
-### Frontend
+**Service Management:**
 ```bash
-npm run dev          # Start Vite dev server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run scrape       # Run standalone scraper
-npm run scrape:db    # Run scraper with DB storage
-npm run db:query     # Execute database queries
-npm run db:stats     # Show database statistics
+# Start services
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs
+docker logs tcad-postgres
+docker logs bullmq-redis
+
+# Stop services
+docker-compose down
+
+# Stop and remove volumes (WARNING: deletes all data)
+docker-compose down -v
 ```
 
-### Backend (in /server directory)
-```bash
-npm run dev              # Start dev server (watch mode)
-npm run build            # Compile TypeScript
-npm run start            # Run compiled server
-npm run prisma:generate  # Generate Prisma client
-npm run prisma:migrate   # Run database migrations
-npm run prisma:studio    # Open Prisma Studio GUI
-```
+## Current System Status
+
+**Database Statistics:**
+- Total Properties: 17,352
+- Unique Cities: 35
+- Property Types: 3
+- Job Success Rate: 98.1%
+
+**Job Queue Statistics:**
+- Completed Jobs: 13,115
+- Failed Jobs: 261
+- Waiting Jobs: ~500-600
+- Processing Jobs: 2-4 (concurrent workers)
+
+**Search Strategy Distribution:**
+- Full Names: 20%
+- Street Addresses: 18%
+- Last Names: 15%
+- Business Names: 12%
+- Street Numbers: 12%
+- Compound Names: 10%
+- Other patterns: 13%
 
 ## Architecture
 
-### Core Workflow
+### System Workflow
 
-1. **Frontend UI** allows users to manage scraping jobs and view property data
-2. **Backend API** receives requests and validates input with Zod schemas
-3. **Queue System** (BullMQ + Redis) manages background scraping jobs
-4. **Scraper Service** uses Puppeteer/Playwright to:
-   - Navigate TCAD website
-   - Perform property searches
-   - Parse HTML with Cheerio
-   - Extract comprehensive property details
-5. **Database** persists results via Prisma ORM
-6. **Monitoring Stack** tracks performance with Prometheus/Grafana
-7. **Scheduled Tasks** automatically run recurring scrapes
+1. **Continuous Batch Scraper** (`continuous-batch-scraper.ts`)
+   - Generates diverse search terms using weighted strategies
+   - Queues batches of 50 search jobs to BullMQ
+   - Maintains queue size between 100-500 pending jobs
+   - Runs continuously 24/7 in background
 
-### Security Features
+2. **BullMQ Job Queue** (Redis-backed)
+   - Receives search term jobs from batch scraper
+   - Manages 2-4 concurrent worker processes
+   - Handles retries with exponential backoff
+   - Tracks job state (waiting, active, completed, failed)
 
-- Helmet.js for secure HTTP headers
-- CORS configuration
-- Rate limiting on all API endpoints
-- Input validation with Zod
-- Error handling middleware
-- Winston logging for audit trails
+3. **Scraper Workers** (`tcad-scraper.ts` via queue)
+   - Launch Playwright headless browsers
+   - Navigate to travis.prodigycad.com
+   - Search for properties using generated terms
+   - Extract data from AG Grid results (limited to 20 per search)
+   - Handle "no results" gracefully with screenshot logging
 
-## Documentation
+4. **Data Extraction**
+   - Parse AG Grid DOM elements for property data
+   - Extract: propertyId, name, address, city, propType, assessedValue, appraisedValue
+   - Attempt pagination (currently blocked by hidden controls)
+   - Store results in PostgreSQL with duplicate prevention
 
-Additional documentation is available in the following files:
+5. **Database Layer** (Prisma ORM)
+   - Upsert properties by unique propertyId
+   - Log all scrape jobs with status and timing
+   - Track search terms and result counts
 
-- **DATABASE.md** - Database setup and configuration guide
-- **MODERNIZATION_SETUP.md** - Architecture migration documentation
-- **docs/MODERNIZATION_REPORT.md** - Detailed modernization report
-- **docs/SCRAPER_DEBUG_SESSION.md** - Debugging and troubleshooting guide
-- **docs/CLAUDE.md** - Claude AI integration notes
+### Key Design Decisions
 
-## Legacy Files
+- **No API Server**: Direct scraper-to-database architecture for simplicity
+- **Weighted Search**: Prioritizes high-yield patterns (addresses, names)
+- **Duplicate Handling**: Database-level uniqueness on propertyId
+- **Error Recovery**: Screenshots + logging for "no results" debugging
+- **Queue Management**: Auto-fill queue to maintain constant scraping
+- **Rate Limiting**: 20 results per search (TCAD limitation), compensated by search diversity
 
-The following files contain earlier scraper implementations:
-- `scraper.ts` - Original Puppeteer implementation for TCAD staging
-- `scraper2.ts` - Alternative experimental implementation
-- `scraper-with-db.ts` - Standalone scraper with PostgreSQL integration
-- `test-database.ts` - Database connectivity testing
+## Troubleshooting
 
-These are maintained for reference and fallback purposes.
+### Scraper Issues
 
-## Contributing
+**Check if scraper is running:**
+```bash
+ps aux | grep continuous-batch-scraper
+```
 
-This project uses:
-- TypeScript for type safety
-- ESLint for code quality
-- Prettier for code formatting (if configured)
-- Conventional Commits for commit messages
+**View recent logs:**
+```bash
+tail -100 continuous-scraper.log
+```
+
+**Check for browser errors:**
+```bash
+grep -i "error\|failed" continuous-scraper.log | tail -20
+```
+
+**Restart scraper:**
+```bash
+pkill -f "continuous-batch-scraper"
+cd server
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
+```
+
+### Database Issues
+
+**Check PostgreSQL container:**
+```bash
+docker ps | grep tcad-postgres
+docker logs tcad-postgres
+```
+
+**Test database connection:**
+```bash
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT 1;"
+```
+
+**View recent scrape jobs:**
+```bash
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT search_term, status, result_count, started_at FROM scrape_jobs ORDER BY started_at DESC LIMIT 20;"
+```
+
+### Queue Issues
+
+**Check Redis container:**
+```bash
+docker ps | grep bullmq-redis
+redis-cli ping  # Should return PONG
+```
+
+**View queue status:**
+```bash
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:wait"
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:active"
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:completed"
+docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:failed"
+```
+
+**Clear stuck jobs:**
+```bash
+docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "UPDATE scrape_jobs SET status = 'failed' WHERE status = 'processing' AND started_at < NOW() - INTERVAL '1 hour';"
+```
+
+## Known Issues and Limitations
+
+1. **Pagination Limitation**: TCAD's AG Grid pagination controls are hidden (CSS class `ag-hidden`), limiting each search to 20 results maximum. This is mitigated by using diverse search term generation.
+
+2. **Search Result Cap**: No way to programmatically change page size or navigate pagination. Attempted solutions:
+   - AG Grid API access (gridOptions not exposed)
+   - Page size input manipulation (pagination panel hidden)
+   - Pagination button clicking (buttons not accessible)
+
+3. **No Results Handling**: Many random search terms return 0 results (expected behavior). Screenshots are saved for debugging.
 
 ## Recent Updates
 
+**November 2, 2025:**
+- Implemented optimized search term generation with weighted strategies
+- Added 30 Austin neighborhoods, expanded street names (72), property types (34)
+- Added 5 new search strategies: neighborhoods, compound names, street numbers, property descriptors, partial addresses
+- Successfully running on remote Linux environment
+- Database grew to 17,352 properties with 98.1% job success rate
+
+**November 1, 2025:**
+- Fixed race condition in browser initialization (commit a8812a4)
+- Added batch scraping capabilities
 - Migrated to remote Linux environment
-- Added comprehensive database utilities and documentation
-- Implemented modern web scraping architecture with backend API
-- Integrated queue system for background processing
-- Removed Supabase dependency in favor of self-managed PostgreSQL
-- Added Prometheus/Grafana monitoring stack
+- Configured Docker Compose for PostgreSQL and Redis
+- Implemented Doppler for secrets management
 
-## License
+## Development Notes
 
-[Your License Here]
-
-## Contact
-
-[Your Contact Information]
+- Target: 400,000 properties (Travis County estimate)
+- Current coverage: 17,352 properties (4.3% of target)
+- Average scraping rate: ~1 property per search term
+- Estimated time to complete: Depends on search term diversity and TCAD result overlap
