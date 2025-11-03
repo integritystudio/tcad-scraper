@@ -225,6 +225,7 @@ class SearchPatternGenerator {
 
     let attempts = 0;
     let duplicatesSkipped = 0;
+    let containmentSkipped = 0;
     const maxAttempts = batchSize * 10;
 
     while (batch.length < batchSize && attempts < maxAttempts) {
@@ -234,18 +235,46 @@ class SearchPatternGenerator {
 
       // Check if term is valid and not a duplicate
       if (term && term.length >= 4) {
-        if (!this.usedTerms.has(term)) {
-          this.usedTerms.add(term);
-          batch.push(term);
-        } else {
+        // Check exact duplicate
+        if (this.usedTerms.has(term)) {
           duplicatesSkipped++;
+          continue;
         }
+
+        // Check if term contains any previously used term
+        // This prevents searching "Smith Properties" if we already searched "Smith"
+        const containsUsedTerm = Array.from(this.usedTerms).some(usedTerm => {
+          // Only check for meaningful containment (ignore very short terms)
+          if (usedTerm.length < 4) return false;
+
+          // Case-insensitive containment check
+          const termLower = term.toLowerCase();
+          const usedTermLower = usedTerm.toLowerCase();
+
+          // Skip if same term (already handled above)
+          if (termLower === usedTermLower) return false;
+
+          // Check if new term contains the used term
+          return termLower.includes(usedTermLower);
+        });
+
+        if (containsUsedTerm) {
+          containmentSkipped++;
+          continue;
+        }
+
+        // Term is unique and doesn't contain previous terms
+        this.usedTerms.add(term);
+        batch.push(term);
       }
     }
 
-    // Log statistics about duplicates
+    // Log statistics about duplicates and containment
     if (duplicatesSkipped > 0) {
-      logger.info(`   ⚠️  Skipped ${duplicatesSkipped} duplicates (e.g., already used terms)`);
+      logger.info(`   ⚠️  Skipped ${duplicatesSkipped} exact duplicates`);
+    }
+    if (containmentSkipped > 0) {
+      logger.info(`   🔍 Skipped ${containmentSkipped} terms containing previous search terms`);
     }
 
     return batch;
