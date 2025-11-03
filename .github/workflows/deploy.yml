@@ -53,9 +53,7 @@ jobs:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
         run: |
             cd server
-            docker container run -e DOPPLER_TOKEN tcad-scraper
-            docker-compse up
-            npm run dev
+            docker-compse up --build
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
