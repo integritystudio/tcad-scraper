@@ -34,15 +34,7 @@
   docker-compose.yml          🐋 Main Docker Compose config
   docker-compose.override.yml 🔧 Optional worker container
   prometheus.yml              📈 Prometheus configuration
-  
-  grafana/
-    provisioning/
-      datasources/
-        prometheus.yml        🔌 Grafana datasource config
-      dashboards/
-        dashboard.yml         📊 Dashboard provisioning
-        bullmq-dashboard.json 📉 BullMQ dashboard definition
-  
+
   bullmq-exporter/
     Dockerfile                🐳 Metrics exporter container
     index.js                  📊 Metrics endpoint server
@@ -75,9 +67,6 @@
   │   ├── prometheus.yml             - Prometheus config
   │   ├── bullmq-exporter/           - Metrics exporter
   │   └── tcad-worker/               - Worker container
-  │
-  ├── 📊 Grafana
-  │   └── grafana/provisioning/      - Dashboard configs
   │
   ├── 📦 Configuration
   │   ├── tcad-package.json          - Dependencies
@@ -112,14 +101,13 @@ MIGRATION:
 
 MONITORING:
   1. Read: README.md (monitoring setup)
-  2. View: http://localhost:3001 (Grafana)
-  3. Check: http://localhost:3000/metrics
+  2. Check: http://localhost:3000/metrics
+  3. View Prometheus: http://localhost:9090
 
 📋 FILE SIZE REFERENCE
 ═══════════════════════════════════════════════════════════════════════════════
   Large files (>10KB):
     - tcad-scraper.js           (~8KB)
-    - grafana/dashboard.json    (~5KB)
     - TCAD-README.md            (~15KB)
     - MIGRATION-GUIDE.md        (~8KB)
   
@@ -141,7 +129,7 @@ MONITORING:
   Set up from scratch                 setup-tcad.sh
   Add search terms                    tcad-cli.js, example-search-terms.txt
   Configure workers                   tcad-scraper.js (CONFIG section)
-  View metrics                        http://localhost:3001
+  View metrics                        http://localhost:9090
   Export results                      npm run cli → Option 9
   Debug issues                        TCAD-README.md (Troubleshooting)
   Migrate from old version            MIGRATION-GUIDE.md
@@ -152,16 +140,15 @@ MONITORING:
 ═══════════════════════════════════════════════════════════════════════════════
   Day 1:  Read PROJECT-SUMMARY.md → Run setup-tcad.sh → Run npm test
   Day 2:  Read TCAD-README.md → Try CLI with small batch
-  Day 3:  Read ARCHITECTURE.txt → View Grafana dashboard
+  Day 3:  Read ARCHITECTURE.txt → View metrics in Prometheus
   Week 2: Scale up, optimize settings, read MIGRATION-GUIDE.md
 
 💡 TIPS
 ═══════════════════════════════════════════════════════════════════════════════
   • Keep QUICK-REFERENCE.txt handy for commands
-  • Bookmark http://localhost:3001 for monitoring
+  • Bookmark http://localhost:9090 for Prometheus monitoring
   • Check logs with: docker-compose logs -f
   • Export results regularly via CLI
-  • Read tooltips in Grafana dashboard
 
 ═══════════════════════════════════════════════════════════════════════════════
                               Happy Scraping! 🏠📊

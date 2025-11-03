@@ -55,7 +55,7 @@ fi
 echo ""
 
 # Step 2: Start monitoring stack
-echo "📦 Step 2: Starting monitoring stack (Redis, Prometheus, Grafana, PostgreSQL)..."
+echo "📦 Step 2: Starting monitoring stack (Redis, Prometheus, PostgreSQL)..."
 $USE_SUDO docker-compose up -d
 
 if [ $? -ne 0 ]; then
@@ -130,7 +130,6 @@ echo "║           🎉 Setup Complete! 🎉                       ║"
 echo "╚═══════════════════════════════════════════════════════╝"
 echo ""
 echo "🌐 Services:"
-echo "   - Grafana:     http://localhost:3001 (admin/admin)"
 echo "   - Prometheus:  http://localhost:9090"
 echo "   - Metrics:     http://localhost:3000/metrics"
 echo "   - Redis:       localhost:6379"

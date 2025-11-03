@@ -326,6 +326,6 @@ if (require.main === module) {
   console.log(`   - Batch size: ${CONFIG.BATCH_SIZE}`);
   console.log(`   - Redis: ${connection.host}:${connection.port}`);
   console.log('\n👂 Listening for jobs...');
-  console.log('   Monitor at: http://localhost:3001 (Grafana)');
+  console.log('   Prometheus: http://localhost:9090');
   console.log('   Metrics at: http://localhost:3000/metrics\n');
 }

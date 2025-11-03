@@ -27,21 +27,6 @@ services:
     depends_on:
       - bullmq-metrics
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    ports:
-      - "3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_INSTALL_PLUGINS=redis-datasource
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-    depends_on:
-      - prometheus
-
   bullmq-metrics:
     build: ./bullmq-exporter
     container_name: bullmq-metrics
@@ -57,4 +42,3 @@ services:
 volumes:
   redis-data:
   prometheus-data:
-  grafana-data:
