@@ -280,18 +280,18 @@ class SearchPatternGenerator {
     //   - Full Names: 4.4 avg properties (INEFFICIENT - removed)
     //   - Street Addresses: 2.1 avg properties (WORST - removed)
     const strategies = [
-      { fn: () => this.generateLastNameOnly(), weight: 60 },          // 70.3 avg props - BEST PERFORMER (increased)
-      { fn: () => this.generateStreetNameOnly(), weight: 35 },        // 24.4 avg props - GREAT (increased)
-      { fn: () => this.generateBusinessName(), weight: 20 },          // 6.7 avg props - DECENT
-      { fn: () => this.generateNeighborhood(), weight: 15 },          // Good for area coverage (increased)
+      { fn: () => this.generateLastNameOnly(), weight: 70 },          // 70.3 avg props - BEST PERFORMER (increased from 60)
+      { fn: () => this.generateStreetNameOnly(), weight: 40 },        // 24.4 avg props - GREAT (increased from 35)
+      { fn: () => this.generateNeighborhood(), weight: 20 },          // Good for area coverage (increased from 15)
+      { fn: () => this.generateBusinessName(), weight: 8 },           // 6.7 avg props but 26% zero-result rate (reduced from 20)
       { fn: () => this.generatePropertyType(), weight: 5 },           // Moderate yield
-      { fn: () => this.generatePropertyWithDescriptor(), weight: 2 }, // Low priority
-      // REMOVED inefficient strategies based on zero-result analysis (26.1% success rate):
+      // REMOVED inefficient strategies based on monitor analysis (500 recent zero-results):
+      // - generatePropertyWithDescriptor() - 26% zero-result rate, creates patterns like "Landing Space"
       // - generateTwoLetterCombo() - 73.9% failure rate, alphanumeric codes return zero
       // - generateThreeLetterCombo() - 73.9% failure rate, alphanumeric codes return zero
       // - generateFourLetterWord() - 73.9% failure rate, random short codes return zero
-      // - generateFullName() - only 4.4 avg props (16x worse than last names)
-      // - generateStreetAddress() - only 2.1 avg props (33x worse than last names)
+      // - generateFullName() - only 4.4 avg props (16x worse than last names), 26% zero-result rate
+      // - generateStreetAddress() - 44.8% zero-result rate, too specific (number + street)
       // - generatePartialAddress() - still has numbers, inefficient
       // - generateStreetNumber() - pure numbers removed as inefficient
       // - generateNumberPattern() - pure numbers removed as inefficient
