@@ -159,7 +159,7 @@ export class TCADScraper {
           }
 
           // Step 2: Make direct API calls to get all results with adaptive page sizing
-          const allProperties = await page.evaluate(async ({ token, term }: { token: string; term: string }) => {
+          const allProperties = await page.evaluate(async ({ token, term }) => {
             const apiUrl = 'https://prod-container.trueprodigyapi.com/public/property/searchfulltext';
 
             const requestBody = {
