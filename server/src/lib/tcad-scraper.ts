@@ -159,7 +159,7 @@ export class TCADScraper {
           }
 
           // Step 2: Make direct API calls to get all results with adaptive page sizing
-          const allProperties = await page.evaluate(async (args) => {
+          const allProperties = await page.evaluate(async function(args) {
             const token = args.token;
             const term = args.term;
             const apiUrl = 'https://prod-container.trueprodigyapi.com/public/property/searchfulltext';
@@ -175,12 +175,12 @@ export class TCADScraper {
             let lastError = null;
 
             // Helper function to fetch a single page with a given page size
-            const fetchPage = async (pageNum, pageSize) => {
+            async function fetchPage(pageNum, pageSize) {
               const controller = new AbortController();
-              const timeout = setTimeout(() => controller.abort(), 60000);
+              const timeout = setTimeout(function() { controller.abort(); }, 60000);
 
               try {
-                const res = await fetch(`${apiUrl}?page=${pageNum}&pageSize=${pageSize}`, {
+                const res = await fetch(apiUrl + '?page=' + pageNum + '&pageSize=' + pageSize, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
@@ -195,7 +195,7 @@ export class TCADScraper {
 
                 if (!res.ok) {
                   const errorText = await res.text();
-                  throw new Error(`API ${res.status}: ${errorText}`);
+                  throw new Error('API ' + res.status + ': ' + errorText);
                 }
 
                 // Parse JSON with truncation detection
@@ -216,21 +216,24 @@ export class TCADScraper {
                 }
                 throw error;
               }
-            };
+            }
 
             // Try to find a working page size by testing page 1
-            for (const testPageSize of pageSizes) {
+            for (let i = 0; i < pageSizes.length; i++) {
+              const testPageSize = pageSizes[i];
               try {
                 const testData = await fetchPage(1, testPageSize);
                 workingPageSize = testPageSize;
 
                 // Successfully got page 1, now fetch all pages with this size
                 const allResults = [];
-                const totalCount = testData.totalProperty?.propertyCount || 0;
+                const totalCount = testData.totalProperty && testData.totalProperty.propertyCount || 0;
                 let currentPage = 1;
 
                 // Add first page results
-                allResults.push(...(testData.results || []));
+                if (testData.results) {
+                  allResults.push.apply(allResults, testData.results);
+                }
 
                 // Fetch remaining pages
                 while (allResults.length < totalCount && currentPage < 100) {
@@ -238,7 +241,9 @@ export class TCADScraper {
 
                   const pageData = await fetchPage(currentPage, workingPageSize);
                   const pageResults = pageData.results || [];
-                  allResults.push(...pageResults);
+                  if (pageResults.length > 0) {
+                    allResults.push.apply(allResults, pageResults);
+                  }
 
                   // If we got fewer results than page size, we're done
                   if (pageResults.length < workingPageSize) {
@@ -247,10 +252,10 @@ export class TCADScraper {
                 }
 
                 return {
-                  totalCount,
+                  totalCount: totalCount,
                   results: allResults,
                   pageSize: workingPageSize,
-                  message: workingPageSize < 1000 ? `Used smaller page size (${workingPageSize}) due to truncation` : undefined
+                  message: workingPageSize < 1000 ? 'Used smaller page size (' + workingPageSize + ') due to truncation' : undefined
                 };
 
               } catch (error) {
@@ -268,7 +273,7 @@ export class TCADScraper {
             }
 
             // All page sizes failed
-            throw new Error(`Failed with all page sizes (${pageSizes.join(', ')}). Last error: ${lastError}`);
+            throw new Error('Failed with all page sizes (' + pageSizes.join(', ') + '). Last error: ' + lastError);
           }, { token: authToken, term: searchTerm });
 
           if (allProperties.message) {
