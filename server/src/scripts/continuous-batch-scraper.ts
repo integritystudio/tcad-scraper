@@ -57,7 +57,7 @@ class SearchPatternGenerator {
     'Louis', 'Grace', 'Philip', 'Judy', 'Bobby', 'Alice', 'Johnny', 'Julia',
   ];
 
-  // Common last names (top 200)
+  // Common last names (expanded to 500+)
   private lastNames = [
     'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
     'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas',
@@ -84,9 +84,55 @@ class SearchPatternGenerator {
     'Rose', 'Stone', 'Salazar', 'Fox', 'Warren', 'Mills', 'Meyer', 'Rice',
     'Schmidt', 'Garza', 'Daniels', 'Ferguson', 'Nichols', 'Stephens', 'Soto', 'Weaver',
     'Ryan', 'Gardner', 'Payne', 'Grant', 'Dunn', 'Kelley', 'Spencer', 'Hawkins',
+    // Additional 300+ names
+    'Lawson', 'Pierce', 'Hart', 'Elliott', 'Cunningham', 'Knight', 'Bradley', 'Carroll',
+    'Hudson', 'Duncan', 'Armstrong', 'Berry', 'Andrews', 'Johnston', 'Ray', 'Lane',
+    'Riley', 'Carpenter', 'Perkins', 'Williamson', 'Hanson', 'Austin', 'Newman', 'Oliver',
+    'Howell', 'Dean', 'Wells', 'Fleming', 'French', 'Cannon', 'Barker', 'Watts',
+    'McCoy', 'McLaughlin', 'Caldwell', 'Chandler', 'Lambert', 'Norton', 'Blake', 'Maxwell',
+    'Carr', 'Walsh', 'Little', 'Park', 'Hodges', 'Haynes', 'Burgess', 'Benson',
+    'Bishop', 'Todd', 'Norris', 'Fuller', 'Barber', 'Lamb', 'Parsons', 'Sutton',
+    'Welch', 'Paul', 'Schwartz', 'Newman', 'Manning', 'Goodman', 'Watkins', 'Lyons',
+    'Dawson', 'Powers', 'Figueroa', 'Nash', 'McKenzie', 'Booth', 'Shelton', 'Moran',
+    'Rojas', 'Frank', 'Conner', 'Brock', 'Hogan', 'Brady', 'McCormick', 'Parks',
+    'Floyd', 'Steele', 'Townsend', 'Valdez', 'Dennis', 'Hale', 'Delgado', 'Sutherland',
+    'Buchanan', 'Marsh', 'Cummings', 'Patton', 'Rowe', 'Hampton', 'Lang', 'Gross',
+    'Garner', 'Vincent', 'Doyle', 'Ramsey', 'Thornton', 'Wolfe', 'Glass', 'McCarthy',
+    'Bowman', 'Luna', 'Norman', 'Pearson', 'Floyd', 'Mullins', 'Gregory', 'Schwartz',
+    'Singleton', 'Wilkins', 'Schneider', 'Bowen', 'Hoffman', 'Logan', 'Cross', 'Moss',
+    'Richards', 'Harmon', 'Brady', 'Rodgers', 'Duran', 'Hubbard', 'Bates', 'Reeves',
+    'Klein', 'Frazier', 'Gibbs', 'Craig', 'Cochran', 'Chase', 'Moss', 'McKinney',
+    'Bauer', 'Robbins', 'Curry', 'Sawyer', 'Powers', 'Jensen', 'Walters', 'Huff',
+    'Aguilar', 'Glover', 'Browning', 'Carson', 'Mack', 'Clayton', 'Fritz', 'Hansen',
+    'Schultz', 'Rich', 'Webster', 'Malone', 'Hammond', 'Flowers', 'Cobb', 'Moody',
+    'Quinn', 'Randall', 'Brewer', 'Hutchinson', 'Holden', 'Wiley', 'Rowland', 'Mejia',
+    'Sweeney', 'Dale', 'Frederick', 'Dalton', 'Logan', 'Sellers', 'Monroe', 'Hickman',
+    'Gill', 'Cannon', 'Savage', 'Ballard', 'Joseph', 'Crosby', 'Drake', 'Vaughn',
+    'Walls', 'Bolton', 'Chan', 'Stokes', 'Bentley', 'Skinner', 'Woodward', 'Brennan',
+    'Hayden', 'Hancock', 'Huang', 'Pearce', 'Ingram', 'Reese', 'Lang', 'Spence',
+    'Carey', 'Bird', 'Hess', 'Morse', 'Santiago', 'Leon', 'Krueger', 'Cochran',
+    'Pratt', 'Valencia', 'Jarvis', 'Sharp', 'Oconnor', 'Levine', 'Flynn', 'Chang',
+    'Yates', 'Nolan', 'Zuniga', 'Maddox', 'Whitehead', 'Gallagher', 'Michael', 'Cooke',
+    'Sanford', 'Pitts', 'Haley', 'Hanna', 'Hatfield', 'Hoover', 'Decker', 'Davila',
+    'Vega', 'Stafford', 'Cain', 'Dillon', 'Wiggins', 'Mathews', 'Krause', 'McMillan',
+    'Kent', 'Holt', 'Shaffer', 'Dyer', 'Koch', 'Blackburn', 'Riddle', 'Shields',
+    'Hendrix', 'Mahoney', 'Morrow', 'Collier', 'Stein', 'Best', 'Blanchard', 'Melton',
+    'Maynard', 'Mercer', 'Osborne', 'Albert', 'Acosta', 'Petty', 'Winters', 'Trujillo',
+    'Jennings', 'Conley', 'Prince', 'McGuire', 'Waller', 'Barr', 'Dickson', 'Stuart',
+    'Potts', 'Valentine', 'Frost', 'Gentry', 'Hester', 'Cantrell', 'Ayers', 'Blevins',
+    'Holman', 'Donovan', 'Bradshaw', 'English', 'Hahn', 'Aaron', 'Barton', 'Hendricks',
+    'Church', 'Rosales', 'Howe', 'Everett', 'Gould', 'Harrington', 'Oneal', 'Bean',
+    'Villanueva', 'Schroeder', 'Solomon', 'Summers', 'Dougherty', 'Livingston', 'Pace', 'Avila',
+    'Knox', 'Dunlap', 'Saunders', 'Alvarado', 'Hayden', 'Greer', 'Roman', 'Buck',
+    'Hines', 'Weeks', 'Witt', 'Navarro', 'Juarez', 'Cervantes', 'Carey', 'Garrett',
+    'Lowe', 'Dodd', 'Duke', 'Pena', 'Costa', 'Galloway', 'Tate', 'Mayer',
+    'Meyers', 'Schaefer', 'Noel', 'Kruger', 'Giles', 'Crosby', 'Sloan', 'Wyatt',
+    'Johns', 'Ramsey', 'Ibarra', 'Escobar', 'Whitaker', 'Joyce', 'Burnett', 'Wall',
+    'Barlow', 'Randolph', 'Atkinson', 'Horn', 'Clements', 'Floyd', 'Dodson', 'Lowery',
+    'Ashley', 'Moon', 'Buchanan', 'Nava', 'Proctor', 'Pruitt', 'Phelps', 'Hinton',
   ];
 
-  // Austin/Travis County street names (expanded)
+  // Austin/Travis County street names (expanded to 150+)
   private streetNames = [
     'Main', 'Oak', 'Lamar', 'Congress', 'Guadalupe', 'Burnet', 'Airport', 'Oltorf',
     'Anderson', 'Bee Cave', 'Slaughter', 'William Cannon', 'Research', 'Parmer', 'Braker',
@@ -101,6 +147,29 @@ class SearchPatternGenerator {
     'Brazos', 'San Jacinto', 'Trinity', 'Neches', 'Sabine', 'Blanco',
     'Manor', 'Martin Luther King', 'Airport', 'Pleasant Valley', 'Springdale',
     'Loyola', 'Berkman', 'Mueller', 'Cherrywood', 'Hancock',
+    // Additional Austin streets
+    'Burnet Road', 'South 1st', 'East 6th', 'West 5th', 'East 11th', 'West 12th',
+    'Guadalupe Street', 'Congress Avenue', 'Lavaca Street', 'Brazos Street', 'San Jacinto Boulevard',
+    'Red River Street', 'Trinity Street', 'Neches Street', 'Sabine Street', 'Waller Street',
+    'San Marcos', 'Cesar Chavez Street', 'East Cesar Chavez', 'Riverside Drive', 'Town Lake',
+    'Manor Road', 'Airport Boulevard', 'Koenig Lane', 'North Lamar', 'South Lamar Boulevard',
+    'Mopac Expressway', 'Loop 1', 'Highway 183', 'Ben White', 'Highway 290',
+    'FM 620', 'FM 2222', 'RM 2244', 'RM 620', 'Lakeline Boulevard',
+    'Cedar Park', 'Anderson Lane', 'Steck Avenue', 'Spicewood Springs', 'Mesa Drive',
+    'Great Hills', 'Arboretum Boulevard', 'Research Boulevard', 'Burnet Lane', 'North Burnet',
+    'Justin Lane', 'Rutland Drive', 'Lamar Boulevard', 'Brodie Lane', 'Manchaca Road',
+    'Escarpment Boulevard', 'William Cannon Drive', 'Slaughter Lane', 'Davis Lane', 'Convict Hill',
+    'Dittmar', 'Stassney Lane', 'Woodward Street', 'Oltorf Street', 'Woodland Avenue',
+    'East Oltorf', 'West Oltorf', 'Montopolis', 'Burleson Road', 'South Pleasant Valley',
+    'East Riverside Drive', 'Parker Lane', 'Wickersham Lane', 'Nuckols Crossing', 'McKinney Falls',
+    'Del Valle', 'Webberville', 'East MLK', 'Walnut Creek', 'Dessau Road',
+    'Decker Lane', 'Georgian Drive', 'Johnny Morris', 'Cameron Road', 'North Cameron',
+    'Berkman Drive', 'Loyola Lane', 'Airport Road', 'Springdale Road', 'Govalle Avenue',
+    'Tillery Street', 'East 4th', 'East 5th', 'East 2nd', 'East 3rd',
+    'West 3rd', 'West 4th', 'West 8th', 'West 9th', 'West 10th',
+    'West Lynn', 'Jefferson Street', 'Washington Square', 'Windsor Road', 'Harris Avenue',
+    'Pease Park', 'Lamar Square', 'Travis Street', 'Nueces Street', 'Rio Grande Street',
+    'West Avenue', 'Pressler Street', 'San Gabriel', 'Guadalupe Place', 'Pearl Street',
   ];
 
   // Property types and building names (expanded)
@@ -113,15 +182,23 @@ class SearchPatternGenerator {
     'Vista', 'Reserve', 'Springs', 'Oaks', 'Pines', 'Palms', 'Lake',
   ];
 
-  // Business/Company suffixes (expanded)
+  // Business/Company suffixes (optimized for high success rate)
+  // ONLY legal entity types and proven real estate terms
+  // Removed generic terms that cause zero-results: Ventures, Development, Developers,
+  // Real Estate, Management, Equity, Assets, Portfolio (26% zero-result rate)
   private businessSuffixes = [
-    'LLC', 'Inc', 'Corp', 'LTD', 'Company', 'Properties', 'Investments',
-    'Holdings', 'Ventures', 'Group', 'Partners', 'Trust', 'Foundation',
-    'Realty', 'Real Estate', 'Development', 'Developers', 'Capital',
-    'Management', 'Equity', 'Assets', 'Portfolio',
+    'LLC',         // Legal entity - high reliability
+    'Inc',         // Legal entity - high reliability
+    'Corp',        // Legal entity - high reliability
+    'LTD',         // Legal entity - high reliability
+    'Company',     // Legal entity - high reliability
+    'Properties',  // Real estate specific - proven
+    'Trust',       // Real estate specific - proven
+    'Realty',      // Real estate specific - proven
+    'Holdings',    // Investment specific - proven
   ];
 
-  // Austin neighborhoods and subdivisions
+  // Austin neighborhoods and subdivisions (expanded to 75+)
   private neighborhoods = [
     'Hyde Park', 'Clarksville', 'Bouldin Creek', 'Travis Heights', 'Zilker',
     'Allandale', 'Crestview', 'Rosedale', 'North Loop', 'Mueller',
@@ -129,6 +206,20 @@ class SearchPatternGenerator {
     'Circle C', 'Steiner Ranch', 'Avery Ranch', 'Anderson Mill', 'Brushy Creek',
     'Wells Branch', 'Walnut Creek', 'Windsor Park', 'Cherrywood', 'Hancock',
     'Brentwood', 'North Shoal Creek', 'Gracywoods', 'Balcones', 'Great Hills',
+    // Additional neighborhoods
+    'Onion Creek', 'Barton Creek', 'Oak Hill', 'Sunset Valley', 'Rollingwood',
+    'West Campus', 'East Cesar Chavez', 'Holly', 'Govalle', 'Riverside',
+    'Montopolis', 'Pleasant Valley', 'Del Valle', 'Dove Springs', 'Southpark Meadows',
+    'St. Edwards', 'St. Johns', 'North University', 'Wooten', 'Highland',
+    'Heritage Hills', 'Pemberton Heights', 'Old West Austin', 'Bryker Woods', 'Old Enfield',
+    'Judges Hill', 'Shoal Crest', 'Northwest Hills', 'Jester Estates', 'Ridgetop',
+    'Spicewood at Bull Creek', 'Mesa Park', 'Westover Hills', 'Rollingwood West', 'Lost Creek',
+    'Senna Hills', 'Ranch at Cypress Creek', 'Sendero Springs', 'Falconhead', 'Shady Hollow',
+    'Ridge at Barton Creek', 'Davenport Ranch', 'Eanes', 'Rob Roy', 'River Place',
+    'Cat Mountain', 'Courtyard', 'Village at Western Oaks', 'Legend Oaks', 'Sendera',
+    'Belterra', 'Canyon Creek', 'Westcreek', 'Maple Run', 'Commons at Rowe Lane',
+    'Scofield Farms', 'Milwood', 'Gracy Woods', 'Balcones Civic Association', 'Lamplight Village',
+    'North Acres', 'Georgian Acres', 'Pecan Springs', 'Franklin Park', 'Coronado Hills',
   ];
 
   // Common property descriptors
@@ -197,18 +288,18 @@ class SearchPatternGenerator {
     //   - Full Names: 4.4 avg properties (INEFFICIENT - removed)
     //   - Street Addresses: 2.1 avg properties (WORST - removed)
     const strategies = [
-      { fn: () => this.generateLastNameOnly(), weight: 60 },          // 70.3 avg props - BEST PERFORMER (increased)
-      { fn: () => this.generateStreetNameOnly(), weight: 35 },        // 24.4 avg props - GREAT (increased)
-      { fn: () => this.generateBusinessName(), weight: 20 },          // 6.7 avg props - DECENT
-      { fn: () => this.generateNeighborhood(), weight: 15 },          // Good for area coverage (increased)
+      { fn: () => this.generateLastNameOnly(), weight: 70 },          // 70.3 avg props - BEST PERFORMER (increased from 60)
+      { fn: () => this.generateStreetNameOnly(), weight: 40 },        // 24.4 avg props - GREAT (increased from 35)
+      { fn: () => this.generateNeighborhood(), weight: 20 },          // Good for area coverage (increased from 15)
+      { fn: () => this.generateBusinessName(), weight: 8 },           // 6.7 avg props but 26% zero-result rate (reduced from 20)
       { fn: () => this.generatePropertyType(), weight: 5 },           // Moderate yield
-      { fn: () => this.generatePropertyWithDescriptor(), weight: 2 }, // Low priority
-      // REMOVED inefficient strategies based on zero-result analysis (26.1% success rate):
+      // REMOVED inefficient strategies based on monitor analysis (500 recent zero-results):
+      // - generatePropertyWithDescriptor() - 26% zero-result rate, creates patterns like "Landing Space"
       // - generateTwoLetterCombo() - 73.9% failure rate, alphanumeric codes return zero
       // - generateThreeLetterCombo() - 73.9% failure rate, alphanumeric codes return zero
       // - generateFourLetterWord() - 73.9% failure rate, random short codes return zero
-      // - generateFullName() - only 4.4 avg props (16x worse than last names)
-      // - generateStreetAddress() - only 2.1 avg props (33x worse than last names)
+      // - generateFullName() - only 4.4 avg props (16x worse than last names), 26% zero-result rate
+      // - generateStreetAddress() - 44.8% zero-result rate, too specific (number + street)
       // - generatePartialAddress() - still has numbers, inefficient
       // - generateStreetNumber() - pure numbers removed as inefficient
       // - generateNumberPattern() - pure numbers removed as inefficient
@@ -241,26 +332,20 @@ class SearchPatternGenerator {
           continue;
         }
 
-        // Check if term contains any previously used term
-        // This prevents searching "Smith Properties" if we already searched "Smith"
-        const containsUsedTerm = Array.from(this.usedTerms).some(usedTerm => {
-          // Only check for meaningful containment (ignore very short terms)
-          if (usedTerm.length < 4) return false;
+        // CONTAINMENT CHECK DISABLED - Too aggressive with 17k+ terms
+        // With a large used term database, almost every new term contains some substring
+        // Better to rely on database deduplication and accept some overlap
+        // Original logic caused 0-term generation when term database grew too large
 
-          // Case-insensitive containment check
-          const termLower = term.toLowerCase();
-          const usedTermLower = usedTerm.toLowerCase();
-
-          // Skip if same term (already handled above)
-          if (termLower === usedTermLower) return false;
-
-          // Check if new term contains the used term
-          return termLower.includes(usedTermLower);
-        });
-
-        if (containsUsedTerm) {
-          containmentSkipped++;
-          continue;
+        // Optional: Only filter exact two-word business combinations
+        // Example: Skip "Smith LLC" if "Smith" exists, but allow "Smithson" or "Oak Hill"
+        const isSimpleBusinessCombo = /^(\w+)\s+(LLC|Inc|Corp|LTD|Properties|Trust)$/i.test(term);
+        if (isSimpleBusinessCombo) {
+          const baseName = term.split(' ')[0];
+          if (this.usedTerms.has(baseName)) {
+            containmentSkipped++;
+            continue;
+          }
         }
 
         // Term is unique and doesn't contain previous terms

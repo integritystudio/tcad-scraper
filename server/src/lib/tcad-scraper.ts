@@ -158,90 +158,134 @@ export class TCADScraper {
             logger.info('Auth token captured from browser');
           }
 
-          // Step 2: Make direct API calls to get all results (use the working pattern)
-          const allProperties = await page.evaluate(async ({ token, term }: { token: string; term: string }) => {
-            const apiUrl = 'https://prod-container.trueprodigyapi.com/public/property/searchfulltext';
-            const pageSize = 1000; // Use 1000 for optimal performance
+          // Step 2: Make direct API calls from Node.js using captured auth token
+          const apiUrl = 'https://prod-container.trueprodigyapi.com/public/property/searchfulltext';
+          const requestBody = {
+            pYear: { operator: '=', value: '2025' },
+            fullTextSearch: { operator: 'match', value: searchTerm }
+          };
 
-            const requestBody = {
-              pYear: { operator: '=', value: '2025' },
-              fullTextSearch: { operator: 'match', value: term }
-            };
+          // Adaptive page sizing: try larger sizes first, fall back to smaller if truncation occurs
+          const pageSizes = [1000, 500, 100, 50];
+          let workingPageSize: number | null = null;
+          let lastError: string | null = null;
 
-            const allResults: any[] = [];
-            let currentPage = 1;
-            let totalCount = 0;
+          // Helper function to fetch a single page with a given page size
+          const fetchPage = async (pageNum: number, pageSize: number): Promise<any> => {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 60000);
 
-            // Fetch pages until we get all results
-            while (true) {
-              // Use AbortController for timeout on large responses
-              const controller = new AbortController();
-              const timeout = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+            try {
+              const res = await fetch(`${apiUrl}?page=${pageNum}&pageSize=${pageSize}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                  'Authorization': authToken,
+                },
+                body: JSON.stringify(requestBody),
+                signal: controller.signal
+              });
+
+              clearTimeout(timeout);
+
+              if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`API ${res.status}: ${errorText}`);
+              }
+
+              // Parse JSON with truncation detection
+              const text = await res.text();
+              const trimmed = text.trim();
+
+              // Check if response looks truncated (incomplete JSON)
+              if (trimmed.length > 0 && !trimmed.endsWith('}') && !trimmed.endsWith(']')) {
+                logger.error(`Truncation detected: length=${trimmed.length}, ends with: ...${trimmed.slice(-50)}`);
+                throw new Error('TRUNCATED_RESPONSE');
+              }
 
               try {
-                const res = await fetch(`${apiUrl}?page=${currentPage}&pageSize=${pageSize}`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'Authorization': token,
-                  },
-                  body: JSON.stringify(requestBody),
-                  signal: controller.signal
-                });
-
-                clearTimeout(timeout);
-
-                if (!res.ok) {
-                  const errorText = await res.text();
-                  throw new Error(`API request failed on page ${currentPage}: ${res.status} - ${errorText}`);
+                const data = JSON.parse(trimmed);
+                return data;
+              } catch (parseError: any) {
+                // If JSON parse fails, it's likely truncation
+                if (parseError.message.includes('JSON') || parseError.message.includes('Unexpected')) {
+                  logger.error(`JSON parse failed: ${parseError.message}, response length=${trimmed.length}, last 100 chars: ...${trimmed.slice(-100)}`);
+                  throw new Error('TRUNCATED_RESPONSE');
                 }
+                throw parseError;
+              }
 
-                // Handle JSON parsing with better error handling for large responses
-                let data;
-                try {
-                  const text = await res.text();
-                  data = JSON.parse(text);
-                } catch (jsonError) {
-                  throw new Error(`JSON parse error on page ${currentPage}: ${(jsonError as Error).message}. Response may be truncated for large result sets.`);
-                }
+            } catch (error: any) {
+              clearTimeout(timeout);
+              if (error.name === 'AbortError') {
+                throw new Error('TIMEOUT');
+              }
+              throw error;
+            }
+          };
 
-                if (currentPage === 1) {
-                  totalCount = data.totalProperty?.propertyCount || 0;
-                }
+          // Try to find a working page size by testing page 1
+          let allProperties: { totalCount: number; results: any[]; pageSize: number; message?: string } | null = null;
 
-                const pageResults = data.results || [];
+          for (const testPageSize of pageSizes) {
+            try {
+              const testData = await fetchPage(1, testPageSize);
+              workingPageSize = testPageSize;
+
+              // Successfully got page 1, now fetch all pages with this size
+              const allResults: any[] = [];
+              const totalCount = testData.totalProperty?.propertyCount || 0;
+              let currentPage = 1;
+
+              // Add first page results
+              allResults.push(...(testData.results || []));
+
+              // Fetch remaining pages
+              while (allResults.length < totalCount && currentPage < 100) {
+                currentPage++;
+
+                const pageData = await fetchPage(currentPage, workingPageSize);
+                const pageResults = pageData.results || [];
                 allResults.push(...pageResults);
 
                 // If we got fewer results than page size, we're done
-                if (pageResults.length < pageSize) {
+                if (pageResults.length < workingPageSize) {
                   break;
                 }
-
-                // Safety check: don't loop forever
-                if (currentPage >= 100) {
-                  break;
-                }
-
-                currentPage++;
-
-              } catch (fetchError: any) {
-                clearTimeout(timeout);
-
-                // Handle abort/timeout errors
-                if (fetchError.name === 'AbortError') {
-                  throw new Error(`Request timeout on page ${currentPage} after 60 seconds. Result set may be too large.`);
-                }
-
-                // Re-throw other errors
-                throw fetchError;
               }
+
+              allProperties = {
+                totalCount,
+                results: allResults,
+                pageSize: workingPageSize,
+                message: workingPageSize < 1000 ? `Used smaller page size (${workingPageSize}) due to truncation` : undefined
+              };
+              break; // Success! Exit the for loop
+
+            } catch (error: any) {
+              lastError = error.message;
+
+              // If this is a truncation or JSON parse error, try next smaller page size
+              if (error.message.includes('JSON') || error.message.includes('TRUNCATED') ||
+                  error.message.includes('Unexpected') || error.message.includes('parse')) {
+                continue; // Try next smaller page size
+              }
+
+              // For other errors (auth, network, etc), fail immediately
+              throw error;
             }
+          }
 
-            return { totalCount, results: allResults };
-          }, { token: authToken, term: searchTerm });
+          // Check if we got results
+          if (!allProperties) {
+            throw new Error(`Failed with all page sizes (${pageSizes.join(', ')}). Last error: ${lastError}`);
+          }
 
-          logger.info(`API returned ${allProperties.totalCount} total properties, fetched ${allProperties.results.length} results`);
+          if (allProperties.message) {
+            logger.info(`⚠️  ${allProperties.message}`);
+          }
+          logger.info(`API returned ${allProperties.totalCount} total properties, fetched ${allProperties.results.length} results (pageSize: ${allProperties.pageSize})`);
 
           // Step 3: Transform API response to PropertyData format
           const properties: PropertyData[] = allProperties.results.map((r: any) => ({
