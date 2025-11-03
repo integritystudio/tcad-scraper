@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import { stdin, stdout } from 'process';
 import * as readline from 'readline';
 
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/tcad_scraper'
 });

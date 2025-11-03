@@ -1,0 +1,667 @@
+{
+  "1901": {
+    "resultCount": 645,
+    "lastScraped": "2025-11-03T02:03:56.917Z",
+    "status": "completed"
+  },
+  "2006": {
+    "resultCount": 263,
+    "lastScraped": "2025-11-03T00:47:36.542Z",
+    "status": "completed"
+  },
+  "2120": {
+    "resultCount": 372,
+    "lastScraped": "2025-11-03T00:46:34.718Z",
+    "status": "completed"
+  },
+  "Family": {
+    "resultCount": 6703,
+    "lastScraped": "2025-11-03T02:02:36.574Z",
+    "status": "completed"
+  },
+  "Estate": {
+    "resultCount": 5713,
+    "lastScraped": "2025-11-03T02:02:32.776Z",
+    "status": "completed"
+  },
+  "Hills": {
+    "resultCount": 4529,
+    "lastScraped": "2025-11-03T00:47:59.861Z",
+    "status": "completed"
+  },
+  "Del Valle": {
+    "resultCount": 3651,
+    "lastScraped": "2025-11-03T06:18:47.137Z",
+    "status": "completed"
+  },
+  "Martinez": {
+    "resultCount": 3129,
+    "lastScraped": "2025-11-03T00:46:38.956Z",
+    "status": "completed"
+  },
+  "Johns": {
+    "resultCount": 3018,
+    "lastScraped": "2025-11-03T06:19:25.538Z",
+    "status": "completed"
+  },
+  "Green": {
+    "resultCount": 2871,
+    "lastScraped": "2025-11-03T00:47:43.915Z",
+    "status": "completed"
+  },
+  "Davis": {
+    "resultCount": 2561,
+    "lastScraped": "2025-11-03T00:46:25.908Z",
+    "status": "completed"
+  },
+  "Frank": {
+    "resultCount": 2014,
+    "lastScraped": "2025-11-03T06:20:15.693Z",
+    "status": "completed"
+  },
+  "Barr": {
+    "resultCount": 2009,
+    "lastScraped": "2025-11-03T06:18:25.278Z",
+    "status": "completed"
+  },
+  "Kelly": {
+    "resultCount": 1899,
+    "lastScraped": "2025-11-03T00:47:09.874Z",
+    "status": "completed"
+  },
+  "Leon": {
+    "resultCount": 1685,
+    "lastScraped": "2025-11-03T06:18:39.613Z",
+    "status": "completed"
+  },
+  "Gregory": {
+    "resultCount": 1587,
+    "lastScraped": "2025-11-03T06:18:20.199Z",
+    "status": "completed"
+  },
+  "Marsh": {
+    "resultCount": 1141,
+    "lastScraped": "2025-11-03T06:18:28.534Z",
+    "status": "completed"
+  },
+  "Highland": {
+    "resultCount": 1087,
+    "lastScraped": "2025-11-03T06:18:05.750Z",
+    "status": "completed"
+  },
+  "Holly": {
+    "resultCount": 1048,
+    "lastScraped": "2025-11-03T06:18:25.838Z",
+    "status": "completed"
+  },
+  "Little": {
+    "resultCount": 1042,
+    "lastScraped": "2025-11-03T06:18:04.354Z",
+    "status": "completed"
+  },
+  "Bradley": {
+    "resultCount": 947,
+    "lastScraped": "2025-11-03T06:19:29.592Z",
+    "status": "completed"
+  },
+  "Nelson": {
+    "resultCount": 944,
+    "lastScraped": "2025-11-03T00:47:27.787Z",
+    "status": "completed"
+  },
+  "Moon": {
+    "resultCount": 877,
+    "lastScraped": "2025-11-03T06:20:00.385Z",
+    "status": "completed"
+  },
+  "Dennis": {
+    "resultCount": 873,
+    "lastScraped": "2025-11-03T06:18:33.022Z",
+    "status": "completed"
+  },
+  "Nueces": {
+    "resultCount": 850,
+    "lastScraped": "2025-11-03T00:46:27.747Z",
+    "status": "completed"
+  },
+  "William Cannon": {
+    "resultCount": 844,
+    "lastScraped": "2025-11-03T00:46:50.857Z",
+    "status": "completed"
+  },
+  "Webb": {
+    "resultCount": 833,
+    "lastScraped": "2025-11-03T00:46:41.908Z",
+    "status": "completed"
+  },
+  "Lang": {
+    "resultCount": 753,
+    "lastScraped": "2025-11-03T06:20:09.953Z",
+    "status": "completed"
+  },
+  "Vasquez": {
+    "resultCount": 736,
+    "lastScraped": "2025-11-03T02:03:27.185Z",
+    "status": "completed"
+  },
+  "Horn": {
+    "resultCount": 735,
+    "lastScraped": "2025-11-03T06:18:01.780Z",
+    "status": "completed"
+  },
+  "Adams": {
+    "resultCount": 730,
+    "lastScraped": "2025-11-03T02:03:27.576Z",
+    "status": "completed"
+  },
+  "Bird": {
+    "resultCount": 691,
+    "lastScraped": "2025-11-03T06:19:33.805Z",
+    "status": "completed"
+  },
+  "Pace": {
+    "resultCount": 634,
+    "lastScraped": "2025-11-03T06:18:54.480Z",
+    "status": "completed"
+  },
+  "Harrison": {
+    "resultCount": 627,
+    "lastScraped": "2025-11-03T00:48:10.809Z",
+    "status": "completed"
+  },
+  "Hale": {
+    "resultCount": 607,
+    "lastScraped": "2025-11-03T06:17:53.444Z",
+    "status": "completed"
+  },
+  "Berry": {
+    "resultCount": 602,
+    "lastScraped": "2025-11-03T06:18:08.451Z",
+    "status": "completed"
+  },
+  "Grant": {
+    "resultCount": 587,
+    "lastScraped": "2025-11-03T00:46:18.828Z",
+    "status": "completed"
+  },
+  "Chang": {
+    "resultCount": 566,
+    "lastScraped": "2025-11-03T06:18:29.769Z",
+    "status": "completed"
+  },
+  "Clayton": {
+    "resultCount": 560,
+    "lastScraped": "2025-11-03T06:18:50.297Z",
+    "status": "completed"
+  },
+  "Vargas": {
+    "resultCount": 538,
+    "lastScraped": "2025-11-03T00:48:01.221Z",
+    "status": "completed"
+  },
+  "Richards": {
+    "resultCount": 535,
+    "lastScraped": "2025-11-03T06:18:36.049Z",
+    "status": "completed"
+  },
+  "Hines": {
+    "resultCount": 532,
+    "lastScraped": "2025-11-03T06:17:55.620Z",
+    "status": "completed"
+  },
+  "Garrett": {
+    "resultCount": 514,
+    "lastScraped": "2025-11-03T06:18:06.007Z",
+    "status": "completed"
+  },
+  "Springdale": {
+    "resultCount": 495,
+    "lastScraped": "2025-11-03T02:28:50.107Z",
+    "status": "completed"
+  },
+  "Lamb": {
+    "resultCount": 487,
+    "lastScraped": "2025-11-03T06:17:45.489Z",
+    "status": "completed"
+  },
+  "Bailey": {
+    "resultCount": 460,
+    "lastScraped": "2025-11-03T00:47:32.540Z",
+    "status": "completed"
+  },
+  "Valdez": {
+    "resultCount": 429,
+    "lastScraped": "2025-11-03T06:20:17.056Z",
+    "status": "completed"
+  },
+  "Noel": {
+    "resultCount": 416,
+    "lastScraped": "2025-11-03T06:18:48.194Z",
+    "status": "completed"
+  },
+  "Berkman": {
+    "resultCount": 391,
+    "lastScraped": "2025-11-03T02:25:07.087Z",
+    "status": "completed"
+  },
+  "Sanders": {
+    "resultCount": 384,
+    "lastScraped": "2025-11-03T00:46:11.875Z",
+    "status": "completed"
+  },
+  "Logan": {
+    "resultCount": 379,
+    "lastScraped": "2025-11-03T06:18:34.624Z",
+    "status": "completed"
+  },
+  "Moss": {
+    "resultCount": 377,
+    "lastScraped": "2025-11-03T06:19:26.563Z",
+    "status": "completed"
+  },
+  "Steck Avenue": {
+    "resultCount": 370,
+    "lastScraped": "2025-11-03T06:20:03.915Z",
+    "status": "completed"
+  },
+  "Boyd": {
+    "resultCount": 366,
+    "lastScraped": "2025-11-03T00:47:34.462Z",
+    "status": "completed"
+  },
+  "Delgado": {
+    "resultCount": 353,
+    "lastScraped": "2025-11-03T06:17:40.690Z",
+    "status": "completed"
+  },
+  "Meyer": {
+    "resultCount": 351,
+    "lastScraped": "2025-11-03T00:46:29.391Z",
+    "status": "completed"
+  },
+  "Elliott": {
+    "resultCount": 346,
+    "lastScraped": "2025-11-03T06:18:55.407Z",
+    "status": "completed"
+  },
+  "Riley": {
+    "resultCount": 321,
+    "lastScraped": "2025-11-03T06:17:58.009Z",
+    "status": "completed"
+  },
+  "Maxwell": {
+    "resultCount": 313,
+    "lastScraped": "2025-11-03T06:18:23.038Z",
+    "status": "completed"
+  },
+  "Decker": {
+    "resultCount": 305,
+    "lastScraped": "2025-11-03T06:17:52.065Z",
+    "status": "completed"
+  },
+  "Acosta": {
+    "resultCount": 298,
+    "lastScraped": "2025-11-03T06:17:37.455Z",
+    "status": "completed"
+  },
+  "Ramsey": {
+    "resultCount": 291,
+    "lastScraped": "2025-11-03T06:20:18.234Z",
+    "status": "completed"
+  },
+  "Pearson": {
+    "resultCount": 285,
+    "lastScraped": "2025-11-03T06:19:35.311Z",
+    "status": "completed"
+  },
+  "Hoffman": {
+    "resultCount": 274,
+    "lastScraped": "2025-11-03T06:18:36.961Z",
+    "status": "completed"
+  },
+  "Harmon": {
+    "resultCount": 271,
+    "lastScraped": "2025-11-03T06:19:38.246Z",
+    "status": "completed"
+  },
+  "Caldwell": {
+    "resultCount": 265,
+    "lastScraped": "2025-11-03T06:20:20.570Z",
+    "status": "completed"
+  },
+  "Best": {
+    "resultCount": 264,
+    "lastScraped": "2025-11-03T06:18:20.221Z",
+    "status": "completed"
+  },
+  "Montopolis": {
+    "resultCount": 263,
+    "lastScraped": "2025-11-03T06:17:44.153Z",
+    "status": "completed"
+  },
+  "Nash": {
+    "resultCount": 246,
+    "lastScraped": "2025-11-03T06:19:49.789Z",
+    "status": "completed"
+  },
+  "Brady": {
+    "resultCount": 244,
+    "lastScraped": "2025-11-03T06:19:40.931Z",
+    "status": "completed"
+  },
+  "Armstrong": {
+    "resultCount": 241,
+    "lastScraped": "2025-11-03T06:18:56.780Z",
+    "status": "completed"
+  },
+  "Zuniga": {
+    "resultCount": 240,
+    "lastScraped": "2025-11-03T06:20:28.082Z",
+    "status": "completed"
+  },
+  "Klein": {
+    "resultCount": 235,
+    "lastScraped": "2025-11-03T06:18:35.546Z",
+    "status": "completed"
+  },
+  "Welch": {
+    "resultCount": 230,
+    "lastScraped": "2025-11-03T06:19:58.903Z",
+    "status": "completed"
+  },
+  "San Gabriel": {
+    "resultCount": 229,
+    "lastScraped": "2025-11-03T06:18:16.326Z",
+    "status": "completed"
+  },
+  "Booth": {
+    "resultCount": 218,
+    "lastScraped": "2025-11-03T06:18:07.113Z",
+    "status": "completed"
+  },
+  "Hampton": {
+    "resultCount": 215,
+    "lastScraped": "2025-11-03T06:17:56.469Z",
+    "status": "completed"
+  },
+  "Bowman": {
+    "resultCount": 209,
+    "lastScraped": "2025-11-03T06:20:26.320Z",
+    "status": "completed"
+  },
+  "Cunningham": {
+    "resultCount": 204,
+    "lastScraped": "2025-11-03T06:19:16.274Z",
+    "status": "completed"
+  },
+  "Cobb": {
+    "resultCount": 204,
+    "lastScraped": "2025-11-03T06:18:01.444Z",
+    "status": "completed"
+  },
+  "Holmes": {
+    "resultCount": 203,
+    "lastScraped": "2025-11-03T00:46:50.992Z",
+    "status": "completed"
+  },
+  "Jennings": {
+    "resultCount": 202,
+    "lastScraped": "2025-11-03T06:18:14.064Z",
+    "status": "completed"
+  },
+  "Lyons": {
+    "resultCount": 197,
+    "lastScraped": "2025-11-03T06:18:18.426Z",
+    "status": "completed"
+  },
+  "Tillery Street": {
+    "resultCount": 195,
+    "lastScraped": "2025-11-03T06:20:05.364Z",
+    "status": "completed"
+  },
+  "Figueroa": {
+    "resultCount": 195,
+    "lastScraped": "2025-11-03T06:18:20.975Z",
+    "status": "completed"
+  },
+  "Mejia": {
+    "resultCount": 190,
+    "lastScraped": "2025-11-03T06:19:30.345Z",
+    "status": "completed"
+  },
+  "Conner": {
+    "resultCount": 190,
+    "lastScraped": "2025-11-03T06:17:43.992Z",
+    "status": "completed"
+  },
+  "French": {
+    "resultCount": 189,
+    "lastScraped": "2025-11-03T06:19:36.029Z",
+    "status": "completed"
+  },
+  "Hogan": {
+    "resultCount": 186,
+    "lastScraped": "2025-11-03T06:20:00.385Z",
+    "status": "completed"
+  },
+  "Justin Lane": {
+    "resultCount": 185,
+    "lastScraped": "2025-11-03T06:19:14.084Z",
+    "status": "completed"
+  },
+  "Rosales": {
+    "resultCount": 184,
+    "lastScraped": "2025-11-03T06:17:35.426Z",
+    "status": "completed"
+  },
+  "Carey": {
+    "resultCount": 174,
+    "lastScraped": "2025-11-03T06:18:02.498Z",
+    "status": "completed"
+  },
+  "Brewer": {
+    "resultCount": 171,
+    "lastScraped": "2025-11-03T06:18:22.079Z",
+    "status": "completed"
+  },
+  "Hayden": {
+    "resultCount": 167,
+    "lastScraped": "2025-11-03T06:18:03.171Z",
+    "status": "completed"
+  },
+  "Hansen": {
+    "resultCount": 165,
+    "lastScraped": "2025-11-03T06:17:47.418Z",
+    "status": "completed"
+  },
+  "Wickersham Lane": {
+    "resultCount": 160,
+    "lastScraped": "2025-11-03T06:18:14.845Z",
+    "status": "completed"
+  },
+  "Donovan": {
+    "resultCount": 159,
+    "lastScraped": "2025-11-03T06:18:17.711Z",
+    "status": "completed"
+  },
+  "Summers": {
+    "resultCount": 152,
+    "lastScraped": "2025-11-03T06:19:36.715Z",
+    "status": "completed"
+  },
+  "Reeves": {
+    "resultCount": 152,
+    "lastScraped": "2025-11-03T06:19:17.003Z",
+    "status": "completed"
+  },
+  "Huff": {
+    "resultCount": 152,
+    "lastScraped": "2025-11-03T06:18:58.866Z",
+    "status": "completed"
+  },
+  "Jensen": {
+    "resultCount": 151,
+    "lastScraped": "2025-11-03T06:19:58.037Z",
+    "status": "completed"
+  },
+  "Rutland Drive": {
+    "resultCount": 149,
+    "lastScraped": "2025-11-03T06:19:11.553Z",
+    "status": "completed"
+  },
+  "Villanueva": {
+    "resultCount": 148,
+    "lastScraped": "2025-11-03T06:17:34.715Z",
+    "status": "completed"
+  },
+  "Dickson": {
+    "resultCount": 147,
+    "lastScraped": "2025-11-03T06:20:27.612Z",
+    "status": "completed"
+  },
+  "Benson": {
+    "resultCount": 147,
+    "lastScraped": "2025-11-03T06:17:50.343Z",
+    "status": "completed"
+  },
+  "Wooten": {
+    "resultCount": 143,
+    "lastScraped": "2025-11-03T06:18:33.656Z",
+    "status": "completed"
+  },
+  "Sawyer": {
+    "resultCount": 142,
+    "lastScraped": "2025-11-03T06:17:39.421Z",
+    "status": "completed"
+  },
+  "Hanson": {
+    "resultCount": 139,
+    "lastScraped": "2025-11-03T06:17:36.561Z",
+    "status": "completed"
+  },
+  "McCoy": {
+    "resultCount": 136,
+    "lastScraped": "2025-11-03T06:17:51.127Z",
+    "status": "completed"
+  },
+  "Trujillo": {
+    "resultCount": 133,
+    "lastScraped": "2025-11-03T06:18:31.012Z",
+    "status": "completed"
+  },
+  "Johnson Trust": {
+    "resultCount": 133,
+    "lastScraped": "2025-11-03T00:47:18.959Z",
+    "status": "completed"
+  },
+  "Schroeder": {
+    "resultCount": 132,
+    "lastScraped": "2025-11-03T06:18:55.995Z",
+    "status": "completed"
+  },
+  "McKenzie": {
+    "resultCount": 129,
+    "lastScraped": "2025-11-03T06:19:56.474Z",
+    "status": "completed"
+  },
+  "Giles": {
+    "resultCount": 129,
+    "lastScraped": "2025-11-03T06:19:55.816Z",
+    "status": "completed"
+  },
+  "Knox": {
+    "resultCount": 129,
+    "lastScraped": "2025-11-03T06:19:27.173Z",
+    "status": "completed"
+  },
+  "Dittmar": {
+    "resultCount": 128,
+    "lastScraped": "2025-11-03T06:18:09.095Z",
+    "status": "completed"
+  },
+  "Curry": {
+    "resultCount": 128,
+    "lastScraped": "2025-11-03T06:17:58.609Z",
+    "status": "completed"
+  },
+  "Stokes": {
+    "resultCount": 127,
+    "lastScraped": "2025-11-03T06:19:15.139Z",
+    "status": "completed"
+  },
+  "Frazier": {
+    "resultCount": 124,
+    "lastScraped": "2025-11-03T06:19:30.984Z",
+    "status": "completed"
+  },
+  "Gentry": {
+    "resultCount": 124,
+    "lastScraped": "2025-11-03T06:18:26.503Z",
+    "status": "completed"
+  },
+  "Ballard": {
+    "resultCount": 120,
+    "lastScraped": "2025-11-03T06:18:17.032Z",
+    "status": "completed"
+  },
+  "Krause": {
+    "resultCount": 119,
+    "lastScraped": "2025-11-03T06:19:27.781Z",
+    "status": "completed"
+  },
+  "Moody": {
+    "resultCount": 118,
+    "lastScraped": "2025-11-03T06:19:39.500Z",
+    "status": "completed"
+  },
+  "Goodman": {
+    "resultCount": 118,
+    "lastScraped": "2025-11-03T06:19:38.879Z",
+    "status": "completed"
+  },
+  "Sweeney": {
+    "resultCount": 117,
+    "lastScraped": "2025-11-03T06:17:48.564Z",
+    "status": "completed"
+  },
+  "Rodgers": {
+    "resultCount": 115,
+    "lastScraped": "2025-11-03T06:18:15.991Z",
+    "status": "completed"
+  },
+  "Hammond": {
+    "resultCount": 114,
+    "lastScraped": "2025-11-03T06:19:57.761Z",
+    "status": "completed"
+  },
+  "Pratt": {
+    "resultCount": 109,
+    "lastScraped": "2025-11-03T06:18:58.242Z",
+    "status": "completed"
+  },
+  "Koch": {
+    "resultCount": 107,
+    "lastScraped": "2025-11-03T06:19:32.038Z",
+    "status": "completed"
+  },
+  "McLaughlin": {
+    "resultCount": 107,
+    "lastScraped": "2025-11-03T06:18:50.914Z",
+    "status": "completed"
+  },
+  "Hendricks": {
+    "resultCount": 101,
+    "lastScraped": "2025-11-03T06:19:37.335Z",
+    "status": "completed"
+  },
+  "Phelps": {
+    "resultCount": 101,
+    "lastScraped": "2025-11-03T06:18:37.595Z",
+    "status": "completed"
+  },
+  "Valencia": {
+    "resultCount": 100,
+    "lastScraped": "2025-11-03T06:18:09.740Z",
+    "status": "completed"
+  }
+}
