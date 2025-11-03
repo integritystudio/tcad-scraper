@@ -24,6 +24,9 @@ const CHECK_INTERVAL = 60000; // Check every minute
 // Generate diverse search patterns
 class SearchPatternGenerator {
   private usedTerms = new Set<string>();
+  private dbTermsLoaded = false;
+  private lastDbRefresh = 0;
+  private readonly DB_REFRESH_INTERVAL = 60 * 60 * 1000; // Refresh every hour
 
   // Common first names (top 200)
   private firstNames = [
@@ -134,7 +137,55 @@ class SearchPatternGenerator {
     'Residence', 'Unit', 'Suite', 'Space', 'Commercial', 'Residential',
   ];
 
-  getNextBatch(batchSize: number): string[] {
+  // Load all previously used search terms from database to avoid duplicates
+  async loadUsedTermsFromDatabase(forceRefresh = false): Promise<void> {
+    const now = Date.now();
+
+    // Check if we need to refresh
+    if (!forceRefresh && this.dbTermsLoaded && (now - this.lastDbRefresh) < this.DB_REFRESH_INTERVAL) {
+      return; // Already loaded and not time to refresh yet
+    }
+
+    const isRefresh = this.dbTermsLoaded;
+    logger.info(isRefresh ? '🔄 Refreshing search terms from database...' : '📚 Loading previously used search terms from database...');
+
+    try {
+      const previousCount = this.usedTerms.size;
+
+      // Get all unique search terms from scrape jobs
+      const existingTerms = await prisma.scrapeJob.findMany({
+        select: {
+          searchTerm: true,
+        },
+        distinct: ['searchTerm'],
+      });
+
+      // Add all terms to the set (Set automatically handles duplicates)
+      existingTerms.forEach(job => {
+        this.usedTerms.add(job.searchTerm);
+      });
+
+      const currentCount = this.usedTerms.size;
+      const newTermsFound = currentCount - previousCount;
+
+      if (isRefresh) {
+        logger.info(`✅ Refreshed: ${currentCount.toLocaleString()} total terms (${newTermsFound} new since last check)`);
+      } else {
+        logger.info(`✅ Loaded ${currentCount.toLocaleString()} previously used search terms`);
+        logger.info(`   Will avoid duplicates like: "Estate", "Family", "Trust", etc.`);
+      }
+
+      this.dbTermsLoaded = true;
+      this.lastDbRefresh = now;
+    } catch (error) {
+      logger.error('❌ Failed to load used terms from database:', error);
+      throw error;
+    }
+  }
+
+  async getNextBatch(batchSize: number): Promise<string[]> {
+    // Load or refresh database terms (automatic hourly refresh)
+    await this.loadUsedTermsFromDatabase();
     const batch: string[] = [];
 
     // Weighted strategies - OPTIMIZED FOR VOLUME based on actual performance data:
@@ -173,6 +224,7 @@ class SearchPatternGenerator {
     });
 
     let attempts = 0;
+    let duplicatesSkipped = 0;
     const maxAttempts = batchSize * 10;
 
     while (batch.length < batchSize && attempts < maxAttempts) {
@@ -180,10 +232,20 @@ class SearchPatternGenerator {
       const strategy = weightedStrategies[Math.floor(Math.random() * weightedStrategies.length)];
       const term = strategy();
 
-      if (term && term.length >= 4 && !this.usedTerms.has(term)) {
-        this.usedTerms.add(term);
-        batch.push(term);
+      // Check if term is valid and not a duplicate
+      if (term && term.length >= 4) {
+        if (!this.usedTerms.has(term)) {
+          this.usedTerms.add(term);
+          batch.push(term);
+        } else {
+          duplicatesSkipped++;
+        }
       }
+    }
+
+    // Log statistics about duplicates
+    if (duplicatesSkipped > 0) {
+      logger.info(`   ⚠️  Skipped ${duplicatesSkipped} duplicates (e.g., already used terms)`);
     }
 
     return batch;
@@ -357,7 +419,7 @@ class ContinuousBatchScraper {
   }
 
   private async queueBatch() {
-    const searchTerms = this.generator.getNextBatch(BATCH_SIZE);
+    const searchTerms = await this.generator.getNextBatch(BATCH_SIZE);
     this.stats.batchesProcessed++;
 
     logger.info(`\n📦 Batch #${this.stats.batchesProcessed} (${searchTerms.length} terms)`);
