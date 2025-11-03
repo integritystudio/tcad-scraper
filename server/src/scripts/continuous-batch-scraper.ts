@@ -197,11 +197,10 @@ class SearchPatternGenerator {
     //   - Full Names: 4.4 avg properties (INEFFICIENT - removed)
     //   - Street Addresses: 2.1 avg properties (WORST - removed)
     const strategies = [
-      { fn: () => this.generateLastNameOnly(), weight: 45 },          // 70.3 avg props - BEST PERFORMER
-      { fn: () => this.generateStreetNameOnly(), weight: 25 },        // 24.4 avg props - GREAT
-      { fn: () => this.generateCompoundName(), weight: 15 },          // Trusts/Families/Estates - HIGH YIELD
-      { fn: () => this.generateBusinessName(), weight: 15 },          // 6.7 avg props - DECENT
-      { fn: () => this.generateNeighborhood(), weight: 8 },           // Good for area coverage
+      { fn: () => this.generateLastNameOnly(), weight: 50 },          // 70.3 avg props - BEST PERFORMER
+      { fn: () => this.generateStreetNameOnly(), weight: 30 },        // 24.4 avg props - GREAT
+      { fn: () => this.generateBusinessName(), weight: 20 },          // 6.7 avg props - DECENT
+      { fn: () => this.generateNeighborhood(), weight: 10 },          // Good for area coverage
       { fn: () => this.generatePropertyType(), weight: 5 },           // Moderate yield
       { fn: () => this.generateFourLetterWord(), weight: 3 },         // Short terms work well
       { fn: () => this.generatePropertyWithDescriptor(), weight: 2 }, // Low priority
@@ -213,6 +212,7 @@ class SearchPatternGenerator {
       // - generatePartialAddress() - still has numbers, inefficient
       // - generateStreetNumber() - pure numbers removed as inefficient
       // - generateNumberPattern() - pure numbers removed as inefficient
+      // - generateCompoundName() - causes JSON parse errors for high-volume results (Estate, Family, Trust)
     ];
 
     // Create weighted array
