@@ -33,8 +33,8 @@ async function monitorAndOptimize() {
   const totalZeroResults = recentZeroResults.length;
   console.log(`📊 Recent zero-result jobs: ${totalZeroResults}\n`);
 
-  if (totalZeroResults < 40) {
-    console.log(`✅ Zero results (${totalZeroResults}) below threshold (40)`);
+  if (totalZeroResults < 20) {
+    console.log(`✅ Zero results (${totalZeroResults}) below threshold (20)`);
     console.log('   No optimization needed at this time.\n');
     console.log('='.repeat(60));
     return {
@@ -43,7 +43,7 @@ async function monitorAndOptimize() {
     };
   }
 
-  console.log(`⚠️  Zero results (${totalZeroResults}) ABOVE threshold (40)`);
+  console.log(`⚠️  Zero results (${totalZeroResults}) ABOVE threshold (20)`);
   console.log('   Analyzing patterns for optimization...\n');
 
   // Analyze patterns in zero-result terms
@@ -280,7 +280,7 @@ async function monitorAndOptimize() {
   const report = {
     timestamp: new Date().toISOString(),
     totalZeroResults,
-    threshold: 40,
+    threshold: 20,
     needsOptimization: true,
     patterns: Object.fromEntries(
       Object.entries(patterns)
