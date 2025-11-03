@@ -200,6 +200,7 @@ export class TCADScraper {
 
               // Check if response looks truncated (incomplete JSON)
               if (trimmed.length > 0 && !trimmed.endsWith('}') && !trimmed.endsWith(']')) {
+                logger.error(`Truncation detected: length=${trimmed.length}, ends with: ...${trimmed.slice(-50)}`);
                 throw new Error('TRUNCATED_RESPONSE');
               }
 
@@ -209,6 +210,7 @@ export class TCADScraper {
               } catch (parseError: any) {
                 // If JSON parse fails, it's likely truncation
                 if (parseError.message.includes('JSON') || parseError.message.includes('Unexpected')) {
+                  logger.error(`JSON parse failed: ${parseError.message}, response length=${trimmed.length}, last 100 chars: ...${trimmed.slice(-100)}`);
                   throw new Error('TRUNCATED_RESPONSE');
                 }
                 throw parseError;
