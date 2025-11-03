@@ -8,7 +8,7 @@ const router = Router();
 
 // Validation schemas
 const scrapeRequestSchema = z.object({
-  searchTerm: z.string().min(1).max(100),
+  searchTerm: z.string().min(4, 'Search term must be at least 4 characters').max(100),
   userId: z.string().optional(),
 });
 
