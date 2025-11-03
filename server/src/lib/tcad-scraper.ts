@@ -158,28 +158,27 @@ export class TCADScraper {
             logger.info('Auth token captured from browser');
           }
 
-          // Step 2: Make direct API calls to get all results (use the working pattern)
+          // Step 2: Make direct API calls to get all results with adaptive page sizing
           const allProperties = await page.evaluate(async ({ token, term }: { token: string; term: string }) => {
             const apiUrl = 'https://prod-container.trueprodigyapi.com/public/property/searchfulltext';
-            const pageSize = 1000; // Use 1000 for optimal performance
 
             const requestBody = {
               pYear: { operator: '=', value: '2025' },
               fullTextSearch: { operator: 'match', value: term }
             };
 
-            const allResults: any[] = [];
-            let currentPage = 1;
-            let totalCount = 0;
+            // Adaptive page sizing: try larger sizes first, fall back to smaller if truncation occurs
+            const pageSizes = [1000, 500, 100, 50];
+            let workingPageSize: number | null = null;
+            let lastError: string | null = null;
 
-            // Fetch pages until we get all results
-            while (true) {
-              // Use AbortController for timeout on large responses
+            // Helper function to fetch a single page with a given page size
+            const fetchPage = async (pageNum: number, pageSize: number): Promise<any> => {
               const controller = new AbortController();
-              const timeout = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+              const timeout = setTimeout(() => controller.abort(), 60000);
 
               try {
-                const res = await fetch(`${apiUrl}?page=${currentPage}&pageSize=${pageSize}`, {
+                const res = await fetch(`${apiUrl}?page=${pageNum}&pageSize=${pageSize}`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
@@ -194,54 +193,86 @@ export class TCADScraper {
 
                 if (!res.ok) {
                   const errorText = await res.text();
-                  throw new Error(`API request failed on page ${currentPage}: ${res.status} - ${errorText}`);
+                  throw new Error(`API ${res.status}: ${errorText}`);
                 }
 
-                // Handle JSON parsing with better error handling for large responses
-                let data;
-                try {
-                  const text = await res.text();
-                  data = JSON.parse(text);
-                } catch (jsonError) {
-                  throw new Error(`JSON parse error on page ${currentPage}: ${(jsonError as Error).message}. Response may be truncated for large result sets.`);
+                // Parse JSON with truncation detection
+                const text = await res.text();
+
+                // Check if response looks truncated (incomplete JSON)
+                if (text.length > 0 && !text.endsWith('}') && !text.endsWith(']')) {
+                  throw new Error('TRUNCATED_RESPONSE');
                 }
 
-                if (currentPage === 1) {
-                  totalCount = data.totalProperty?.propertyCount || 0;
-                }
+                const data = JSON.parse(text);
+                return data;
 
-                const pageResults = data.results || [];
-                allResults.push(...pageResults);
-
-                // If we got fewer results than page size, we're done
-                if (pageResults.length < pageSize) {
-                  break;
-                }
-
-                // Safety check: don't loop forever
-                if (currentPage >= 100) {
-                  break;
-                }
-
-                currentPage++;
-
-              } catch (fetchError: any) {
+              } catch (error: any) {
                 clearTimeout(timeout);
+                if (error.name === 'AbortError') {
+                  throw new Error('TIMEOUT');
+                }
+                throw error;
+              }
+            };
 
-                // Handle abort/timeout errors
-                if (fetchError.name === 'AbortError') {
-                  throw new Error(`Request timeout on page ${currentPage} after 60 seconds. Result set may be too large.`);
+            // Try to find a working page size by testing page 1
+            for (const testPageSize of pageSizes) {
+              try {
+                const testData = await fetchPage(1, testPageSize);
+                workingPageSize = testPageSize;
+
+                // Successfully got page 1, now fetch all pages with this size
+                const allResults: any[] = [];
+                const totalCount = testData.totalProperty?.propertyCount || 0;
+                let currentPage = 1;
+
+                // Add first page results
+                allResults.push(...(testData.results || []));
+
+                // Fetch remaining pages
+                while (allResults.length < totalCount && currentPage < 100) {
+                  currentPage++;
+
+                  const pageData = await fetchPage(currentPage, workingPageSize);
+                  const pageResults = pageData.results || [];
+                  allResults.push(...pageResults);
+
+                  // If we got fewer results than page size, we're done
+                  if (pageResults.length < workingPageSize) {
+                    break;
+                  }
                 }
 
-                // Re-throw other errors
-                throw fetchError;
+                return {
+                  totalCount,
+                  results: allResults,
+                  pageSize: workingPageSize,
+                  message: workingPageSize < 1000 ? `Used smaller page size (${workingPageSize}) due to truncation` : undefined
+                };
+
+              } catch (error: any) {
+                lastError = error.message;
+
+                // If this is a truncation or JSON parse error, try next smaller page size
+                if (error.message.includes('JSON') || error.message.includes('TRUNCATED') ||
+                    error.message.includes('Unexpected') || error.message.includes('parse')) {
+                  continue; // Try next smaller page size
+                }
+
+                // For other errors (auth, network, etc), fail immediately
+                throw error;
               }
             }
 
-            return { totalCount, results: allResults };
+            // All page sizes failed
+            throw new Error(`Failed with all page sizes (${pageSizes.join(', ')}). Last error: ${lastError}`);
           }, { token: authToken, term: searchTerm });
 
-          logger.info(`API returned ${allProperties.totalCount} total properties, fetched ${allProperties.results.length} results`);
+          if (allProperties.message) {
+            logger.info(`⚠️  ${allProperties.message}`);
+          }
+          logger.info(`API returned ${allProperties.totalCount} total properties, fetched ${allProperties.results.length} results (pageSize: ${allProperties.pageSize})`);
 
           // Step 3: Transform API response to PropertyData format
           const properties: PropertyData[] = allProperties.results.map((r: any) => ({
