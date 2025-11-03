@@ -10,8 +10,8 @@ RESPONSE=$(curl -s -X POST 'https://prod-container.trueprodigyapi.com/trueprodig
   -H 'Content-Type: application/json' \
   -d '{"office":"Travis"}')
 
-# Extract token from JSON response
-NEW_TOKEN=$(echo "$RESPONSE" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+# Extract token from JSON response using jq
+NEW_TOKEN=$(echo "$RESPONSE" | jq -r '.user.token // empty')
 
 if [ -z "$NEW_TOKEN" ]; then
   echo "❌ Failed to fetch new token"
