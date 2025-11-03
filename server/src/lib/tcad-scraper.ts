@@ -159,7 +159,7 @@ export class TCADScraper {
           }
 
           // Step 2: Make direct API calls to get all results with adaptive page sizing
-          const allProperties = await page.evaluate(async ({ token, term }) => {
+          const allProperties = await page.evaluate(async (token, term) => {
             const apiUrl = 'https://prod-container.trueprodigyapi.com/public/property/searchfulltext';
 
             const requestBody = {
@@ -267,7 +267,7 @@ export class TCADScraper {
 
             // All page sizes failed
             throw new Error(`Failed with all page sizes (${pageSizes.join(', ')}). Last error: ${lastError}`);
-          }, { token: authToken, term: searchTerm });
+          }, authToken, searchTerm);
 
           if (allProperties.message) {
             logger.info(`⚠️  ${allProperties.message}`);
