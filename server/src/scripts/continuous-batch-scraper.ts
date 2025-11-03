@@ -324,26 +324,20 @@ class SearchPatternGenerator {
           continue;
         }
 
-        // Check if term contains any previously used term
-        // This prevents searching "Smith Properties" if we already searched "Smith"
-        const containsUsedTerm = Array.from(this.usedTerms).some(usedTerm => {
-          // Only check for meaningful containment (ignore very short terms)
-          if (usedTerm.length < 4) return false;
+        // CONTAINMENT CHECK DISABLED - Too aggressive with 17k+ terms
+        // With a large used term database, almost every new term contains some substring
+        // Better to rely on database deduplication and accept some overlap
+        // Original logic caused 0-term generation when term database grew too large
 
-          // Case-insensitive containment check
-          const termLower = term.toLowerCase();
-          const usedTermLower = usedTerm.toLowerCase();
-
-          // Skip if same term (already handled above)
-          if (termLower === usedTermLower) return false;
-
-          // Check if new term contains the used term
-          return termLower.includes(usedTermLower);
-        });
-
-        if (containsUsedTerm) {
-          containmentSkipped++;
-          continue;
+        // Optional: Only filter exact two-word business combinations
+        // Example: Skip "Smith LLC" if "Smith" exists, but allow "Smithson" or "Oak Hill"
+        const isSimpleBusinessCombo = /^(\w+)\s+(LLC|Inc|Corp|LTD|Properties|Trust)$/i.test(term);
+        if (isSimpleBusinessCombo) {
+          const baseName = term.split(' ')[0];
+          if (this.usedTerms.has(baseName)) {
+            containmentSkipped++;
+            continue;
+          }
         }
 
         // Term is unique and doesn't contain previous terms
