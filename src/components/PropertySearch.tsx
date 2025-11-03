@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Property } from '../types';
 import './PropertySearch.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.DATABASE_URL || 'http://localhost:3001/api';
 
 interface SearchResult {
   data: Property[];

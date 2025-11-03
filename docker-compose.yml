@@ -1,6 +1,12 @@
 version: '3.8'
 
 services:
+  tcad-postgres:
+    build: ./server
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
   redis:
     image: redis:7-alpine
     container_name: bullmq-redis

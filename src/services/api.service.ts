@@ -13,6 +13,8 @@ const apiClient: AxiosInstance = axios.create({
   timeout: 30000,
 });
 
+
+
 // Request interceptor for auth token (if needed in future)
 apiClient.interceptors.request.use(
   (config) => {
