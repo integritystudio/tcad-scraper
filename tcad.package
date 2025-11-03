@@ -1,0 +1,33 @@
+{
+  "name": "tcad-scraper-bullmq",
+  "version": "2.0.0",
+  "description": "TCAD property scraper with BullMQ job queue and monitoring",
+  "main": "tcad-scraper.js",
+  "scripts": {
+    "start": "node tcad-scraper.js",
+    "cli": "node tcad-cli.js",
+    "monitor": "./start.sh",
+    "test": "node test-scraper.js"
+  },
+  "keywords": [
+    "tcad",
+    "scraper",
+    "bullmq",
+    "puppeteer",
+    "property-data"
+  ],
+  "author": "aledlie",
+  "license": "MIT",
+  "dependencies": {
+    "bullmq": "^5.0.0",
+    "puppeteer": "^21.0.0",
+    "cheerio": "^1.0.0-rc.12",
+    "ioredis": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

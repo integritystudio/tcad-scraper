@@ -56,8 +56,9 @@ scraperQueue.process('scrape-properties', 2, async (job) => {
     await scraper.initialize();
 
     // Update progress: Scraping
+    // Using API-based scraping for better results (up to 1000x more properties)
     await job.progress(30);
-    const properties = await scraper.scrapeProperties(searchTerm);
+    const properties = await scraper.scrapePropertiesViaAPI(searchTerm);
 
     // Update progress: Saving to database
     await job.progress(70);

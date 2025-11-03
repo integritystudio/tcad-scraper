@@ -6,6 +6,9 @@ export interface ScraperConfig {
   retryDelay: number;
   userAgents: string[];
   viewports: Array<{ width: number; height: number }>;
+  proxyServer?: string;
+  proxyUsername?: string;
+  proxyPassword?: string;
 }
 
 // Property data structure matching database schema

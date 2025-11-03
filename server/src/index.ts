@@ -11,9 +11,16 @@ import winston from 'winston';
 import { scraperQueue } from './queues/scraper.queue';
 import { propertyRouter } from './routes/property.routes';
 import { scheduledJobs } from './schedulers/scrape-scheduler';
+import { optionalAuth } from './middleware/auth';
 
-// Load environment variables
+// Load environment variables from .env or Doppler
 dotenv.config();
+
+// Log Doppler usage
+if (process.env.DOPPLER_PROJECT) {
+  console.log(`Using Doppler project: ${process.env.DOPPLER_PROJECT}`);
+  console.log(`Doppler config: ${process.env.DOPPLER_CONFIG}`);
+}
 
 // Configure logger
 const logger = winston.createLogger({
@@ -42,6 +49,10 @@ const app = express();
 // Security middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  hsts: false, // Disable HSTS for HTTP access
+  crossOriginOpenerPolicy: false, // Disable COOP for IP-based access
+  contentSecurityPolicy: false, // Disable CSP for IP-based access
+  originAgentCluster: false, // Disable Origin-Agent-Cluster for IP-based access
 }));
 
 // CORS configuration
@@ -83,8 +94,8 @@ const { addQueue, removeQueue, setQueues, replaceQueues } = createBullBoard({
 
 app.use('/admin/queues', serverAdapter.getRouter());
 
-// API Routes
-app.use('/api/properties', propertyRouter);
+// API Routes (with optional authentication)
+app.use('/api/properties', optionalAuth, propertyRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

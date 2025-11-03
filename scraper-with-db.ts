@@ -1,5 +1,5 @@
 import puppeteer from 'puppeteer';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 import { insertProperties, getPropertyCount, closePool, Property } from './src/database.js';
 
 const width = 1440;
@@ -7,9 +7,9 @@ const height = 900;
 
 async function scrapePropertyTaxInformation() {
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     ignoreHTTPSErrors: true,
-    args: [`--window-size=${width},${height}`]
+    args: [`--window-size=${width},${height}`, '--no-sandbox', '--disable-setuid-sandbox']
   });
   const page = await browser.newPage();
   const url = 'https://stage.travis.prodigycad.com/property-search';
@@ -34,27 +34,33 @@ async function scrapePropertyTaxInformation() {
     const info: Property[] = [];
     const htmlContent = await page.content();
     const $ = cheerio.load(htmlContent);
-    const rows = $('[aria-label="Press SPACE to select this row."]').filter('[role="row"]');
 
-    console.log(`📋 Found ${rows.length} rows`);
-
-    // Extract property information
-    rows.each((index, row) => {
-      info.push({
-        name: $(row).find('[col-id="name"]').text(),
-        propType: $(row).find('[col-id="propType"]').text(),
-        city: $(row).find('[col-id="city"]').text(),
-        propertyAddress: $(row).find('[col-id="streetPrimary"]').text(),
-        assessedValue: $(row).find('.assessedValue').text(),
-        propertyID: $(row).find('[col-id="pid"]').text(),
-        appraisedValue: $(row).find('[col-id="appraisedValue"]').text(),
-        description: $(row).find('[col-id="legalDescription"]').text(),
-        geoID: $(row).find('[col-id="geoID"]').text(),
-      });
+    // Find all rows that contain gridcells (data rows, not header rows)
+    const rows = $('[role="row"]').filter((i, row) => {
+      return $(row).find('[role="gridcell"]').length > 0;
     });
 
-    // Filter out empty results
-    const validProperties = info.filter(elem => elem.propertyAddress !== '');
+    console.log(`📋 Found ${rows.length} data rows`);
+
+    // Extract property information using available col-ids
+    rows.each((index, row) => {
+      const propertyData = {
+        name: $(row).find('[col-id="displayName"]').text().trim(), // Owner name
+        propType: $(row).find('[col-id="propType"]').text().trim(),
+        city: '', // Not available in this view
+        propertyAddress: '', // Not available in this view
+        assessedValue: '', // Not available in this view
+        propertyID: $(row).find('[col-id="pid"]').text().trim(),
+        appraisedValue: '', // Not available in this view
+        description: $(row).find('[col-id="refID1"]').text().trim(), // Using refID1 as description
+        geoID: $(row).find('[col-id="geoID"]').text().trim(),
+      };
+
+      info.push(propertyData);
+    });
+
+    // Filter out empty results - use propertyID since address is not available in this view
+    const validProperties = info.filter(elem => elem.propertyID !== '');
     console.log(`✓ Found ${validProperties.length} valid properties`);
 
     // Save to database

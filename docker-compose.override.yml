@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database for TCAD scraper
+  postgres:
+    image: postgres:15-alpine
+    container_name: tcad-postgres
+    environment:
+      - POSTGRES_DB=tcad_scraper
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Add TCAD scraper worker as a service
+  tcad-worker:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: tcad-worker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CONCURRENT_WORKERS=3
+      - BATCH_SIZE=10
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    # Mount volume for results if needed
+    volumes:
+      - ./results:/app/results
+
+volumes:
+  postgres-data:
