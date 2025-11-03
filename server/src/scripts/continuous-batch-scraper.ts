@@ -197,16 +197,16 @@ class SearchPatternGenerator {
     //   - Full Names: 4.4 avg properties (INEFFICIENT - removed)
     //   - Street Addresses: 2.1 avg properties (WORST - removed)
     const strategies = [
-      { fn: () => this.generateLastNameOnly(), weight: 50 },          // 70.3 avg props - BEST PERFORMER
-      { fn: () => this.generateStreetNameOnly(), weight: 30 },        // 24.4 avg props - GREAT
+      { fn: () => this.generateLastNameOnly(), weight: 60 },          // 70.3 avg props - BEST PERFORMER (increased)
+      { fn: () => this.generateStreetNameOnly(), weight: 35 },        // 24.4 avg props - GREAT (increased)
       { fn: () => this.generateBusinessName(), weight: 20 },          // 6.7 avg props - DECENT
-      { fn: () => this.generateNeighborhood(), weight: 10 },          // Good for area coverage
+      { fn: () => this.generateNeighborhood(), weight: 15 },          // Good for area coverage (increased)
       { fn: () => this.generatePropertyType(), weight: 5 },           // Moderate yield
-      { fn: () => this.generateFourLetterWord(), weight: 3 },         // Short terms work well
       { fn: () => this.generatePropertyWithDescriptor(), weight: 2 }, // Low priority
-      { fn: () => this.generateTwoLetterCombo(), weight: 1 },         // Alphanumeric codes - minimal
-      { fn: () => this.generateThreeLetterCombo(), weight: 1 },       // Alphanumeric codes - minimal
-      // REMOVED inefficient strategies based on data analysis:
+      // REMOVED inefficient strategies based on zero-result analysis (26.1% success rate):
+      // - generateTwoLetterCombo() - 73.9% failure rate, alphanumeric codes return zero
+      // - generateThreeLetterCombo() - 73.9% failure rate, alphanumeric codes return zero
+      // - generateFourLetterWord() - 73.9% failure rate, random short codes return zero
       // - generateFullName() - only 4.4 avg props (16x worse than last names)
       // - generateStreetAddress() - only 2.1 avg props (33x worse than last names)
       // - generatePartialAddress() - still has numbers, inefficient
