@@ -30,7 +30,7 @@ class SearchPatternGenerator {
 
   // Common first names (top 200)
   private firstNames = [
-    'James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda',
+/*    'James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda',
     'William', 'Elizabeth', 'David', 'Barbara', 'Richard', 'Susan', 'Joseph', 'Jessica',
     'Thomas', 'Sarah', 'Charles', 'Karen', 'Christopher', 'Nancy', 'Daniel', 'Lisa',
     'Matthew', 'Betty', 'Anthony', 'Margaret', 'Mark', 'Sandra', 'Donald', 'Ashley',
@@ -50,7 +50,7 @@ class SearchPatternGenerator {
     'Noah', 'Martha', 'Gerald', 'Gloria', 'Carl', 'Teresa', 'Terry', 'Ann',
     'Sean', 'Sara', 'Austin', 'Madison', 'Arthur', 'Frances', 'Lawrence', 'Kathryn',
     'Jesse', 'Janice', 'Dylan', 'Jean', 'Bryan', 'Abigail', 'Joe', 'Sophia',
-    'Jordan', 'Judy', 'Billy', 'Theresa', 'Bruce', 'Rose', 'Albert', 'Beverly',
+*/    'Jordan', 'Judy', 'Billy', 'Theresa', 'Bruce', 'Rose', 'Albert', 'Beverly',
     'Willie', 'Denise', 'Gabriel', 'Marilyn', 'Logan', 'Amber', 'Alan', 'Danielle',
     'Juan', 'Brittany', 'Wayne', 'Diana', 'Roy', 'Natalie', 'Ralph', 'Sophia',
     'Randy', 'Alexis', 'Eugene', 'Lori', 'Vincent', 'Kayla', 'Russell', 'Jane',
@@ -59,7 +59,7 @@ class SearchPatternGenerator {
 
   // Common last names (expanded to 500+)
   private lastNames = [
-    'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
+/*    'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
     'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas',
     'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson', 'White',
     'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson', 'Walker', 'Young',
@@ -113,7 +113,7 @@ class SearchPatternGenerator {
     'Carey', 'Bird', 'Hess', 'Morse', 'Santiago', 'Leon', 'Krueger', 'Cochran',
     'Pratt', 'Valencia', 'Jarvis', 'Sharp', 'Oconnor', 'Levine', 'Flynn', 'Chang',
     'Yates', 'Nolan', 'Zuniga', 'Maddox', 'Whitehead', 'Gallagher', 'Michael', 'Cooke',
-    'Sanford', 'Pitts', 'Haley', 'Hanna', 'Hatfield', 'Hoover', 'Decker', 'Davila',
+*/    'Sanford', 'Pitts', 'Haley', 'Hanna', 'Hatfield', 'Hoover', 'Decker', 'Davila',
     'Vega', 'Stafford', 'Cain', 'Dillon', 'Wiggins', 'Mathews', 'Krause', 'McMillan',
     'Kent', 'Holt', 'Shaffer', 'Dyer', 'Koch', 'Blackburn', 'Riddle', 'Shields',
     'Hendrix', 'Mahoney', 'Morrow', 'Collier', 'Stein', 'Best', 'Blanchard', 'Melton',
@@ -134,52 +134,44 @@ class SearchPatternGenerator {
 
   // Austin/Travis County street names (expanded to 150+)
   private streetNames = [
-    'Main', 'Oak', 'Lamar', 'Congress', 'Guadalupe', 'Burnet', 'Airport', 'Oltorf',
-    'Anderson', 'Bee Cave', 'Slaughter', 'William Cannon', 'Research', 'Parmer', 'Braker',
-    'Rundberg', 'North Loop', 'South Lamar', 'East Riverside', 'West Anderson',
-    'South Congress', 'Red River', 'Rainey', 'Cesar Chavez', 'MLK', 'Dean Keeton',
-    'Speedway', 'Duval', 'Shoal Creek', 'Koenig', 'Far West', 'Research Blvd',
-    'South First', 'East 7th', 'West 6th', 'Barton Springs', 'Westlake', 'Exposition',
-    'Windsor', 'Enfield', 'Balcones', 'Spicewood', 'Capital of Texas', 'Cameron',
-    'Metric', 'Dessau', 'Lamar Blvd', 'IH 35', 'Loop 360', 'Wells Branch',
-    'McNeil', 'Howard', 'Jollyville', 'Mopac', 'Manchaca', 'Riverside',
-    'Guadalupe', 'Rio Grande', 'Nueces', 'San Antonio', 'Lavaca', 'Colorado',
-    'Brazos', 'San Jacinto', 'Trinity', 'Neches', 'Sabine', 'Blanco',
-    'Manor', 'Martin Luther King', 'Airport', 'Pleasant Valley', 'Springdale',
-    'Loyola', 'Berkman', 'Mueller', 'Cherrywood', 'Hancock',
+//    'Main', 'Oak', 'Lamar', 'Congress', 'Guadalupe', 'Burnet', 'Airport', 'Oltorf',
+//    'Anderson', 'Bee Cave', 'Slaughter', 'William Cannon', 'Research', 'Parmer', 'Braker',
+//    'Rundberg', 'North Loop', 'South Lamar', 'East Riverside', 'West Anderson',
+//    'South Congress', 'Red River', 'Rainey', 'Cesar Chavez', 'MLK', 'Dean Keeton',
+//    'Speedway', 'Duval', 'Shoal Creek', 'Koenig', 'Far West', 'Research Blvd',
+//    'South First', 'East 7th', 'West 6th', 'Barton Springs', 'Westlake', 'Exposition',
+//    'Windsor', 'Enfield', 'Balcones', 'Spicewood', 'Capital of Texas', 'Cameron',
+//    'Metric', 'Dessau', 'Lamar Blvd', 'IH 35', 'Loop 360', 'Wells Branch',
+//    'McNeil', 'Howard', 'Jollyville', 'Mopac', 'Manchaca', 'Riverside',
+//    'Guadalupe', 'Rio Grande', 'Nueces', 'San Antonio', 'Lavaca', 'Colorado',
+//    'Brazos', 'San Jacinto', 'Trinity', 'Neches', 'Sabine', 'Blanco',
+ //   'Manor', 'Martin Luther King', 'Airport', 'Pleasant Valley', 'Springdale',
+//    'Loyola', 'Berkman', 'Mueller', 'Cherrywood', 'Hancock',
     // Additional Austin streets
-    'Burnet Road', 'South 1st', 'East 6th', 'West 5th', 'East 11th', 'West 12th',
-    'Guadalupe Street', 'Congress Avenue', 'Lavaca Street', 'Brazos Street', 'San Jacinto Boulevard',
-    'Red River Street', 'Trinity Street', 'Neches Street', 'Sabine Street', 'Waller Street',
-    'San Marcos', 'Cesar Chavez Street', 'East Cesar Chavez', 'Riverside Drive', 'Town Lake',
-    'Manor Road', 'Airport Boulevard', 'Koenig Lane', 'North Lamar', 'South Lamar Boulevard',
-    'Mopac Expressway', 'Loop 1', 'Highway 183', 'Ben White', 'Highway 290',
-    'FM 620', 'FM 2222', 'RM 2244', 'RM 620', 'Lakeline Boulevard',
-    'Cedar Park', 'Anderson Lane', 'Steck Avenue', 'Spicewood Springs', 'Mesa Drive',
-    'Great Hills', 'Arboretum Boulevard', 'Research Boulevard', 'Burnet Lane', 'North Burnet',
-    'Justin Lane', 'Rutland Drive', 'Lamar Boulevard', 'Brodie Lane', 'Manchaca Road',
-    'Escarpment Boulevard', 'William Cannon Drive', 'Slaughter Lane', 'Davis Lane', 'Convict Hill',
-    'Dittmar', 'Stassney Lane', 'Woodward Street', 'Oltorf Street', 'Woodland Avenue',
-    'East Oltorf', 'West Oltorf', 'Montopolis', 'Burleson Road', 'South Pleasant Valley',
-    'East Riverside Drive', 'Parker Lane', 'Wickersham Lane', 'Nuckols Crossing', 'McKinney Falls',
-    'Del Valle', 'Webberville', 'East MLK', 'Walnut Creek', 'Dessau Road',
-    'Decker Lane', 'Georgian Drive', 'Johnny Morris', 'Cameron Road', 'North Cameron',
-    'Berkman Drive', 'Loyola Lane', 'Airport Road', 'Springdale Road', 'Govalle Avenue',
-    'Tillery Street', 'East 4th', 'East 5th', 'East 2nd', 'East 3rd',
-    'West 3rd', 'West 4th', 'West 8th', 'West 9th', 'West 10th',
-    'West Lynn', 'Jefferson Street', 'Washington Square', 'Windsor Road', 'Harris Avenue',
-    'Pease Park', 'Lamar Square', 'Travis Street', 'Nueces Street', 'Rio Grande Street',
-    'West Avenue', 'Pressler Street', 'San Gabriel', 'Guadalupe Place', 'Pearl Street',
+//    'Burnet Road', 'South 1st', 'East 6th', 'West 5th', 'East 11th', 'West 12th',
+//    'Guadalupe Street', 'Congress Avenue', 'Lavaca Street', 'Brazos Street', 'San Jacinto Boulevard',
+//    'Red River Street', 'Trinity Street', 'Neches Street', 'Sabine Street', 'Waller Street',
+//    'San Marcos', 'Cesar Chavez Street', 'East Cesar Chavez', 'Riverside Drive', 'Town Lake',
+//    'Manor Road', 'Airport Boulevard', 'Koenig Lane', 'North Lamar', 'South Lamar Boulevard',
+//    'Mopac Expressway', 'Loop 1', 'Highway 183', 'Ben White', 'Highway 290',
+//    'FM 620', 'FM 2222', 'RM 2244', 'RM 620', 'Lakeline Boulevard',
+//    'Cedar Park', 'Anderson Lane', 'Steck Avenue', 'Spicewood Springs', 'Mesa Drive',
+    'Hill', 'Boulevard', 'Lane', 'Burnet', 'Drive', 'Road', "East" "West", "Avenue", "Ave."
+    'Dittmar', 'Montopolis', 'South', 'North', 'Crossing', 'Fall',
+    'Del Valle', 'Webberville', 'Creek', 'Johnny Morris', 'Cameron Road', 'Airport', 'Springdale', 'General',
+    '4th S', '5th S', '2nd S', '3rd S', 'Square',
+    'West Lynn', 'Park', "Square', 'Place', 'San G',
   ];
 
   // Property types and building names (expanded)
   private propertyTypes = [
-    'Apartments', 'Condos', 'Townhomes', 'Office', 'Retail', 'Plaza', 'Center',
-    'Building', 'Tower', 'Park', 'Ranch', 'Estates', 'Village', 'Square',
-    'Commons', 'Crossing', 'Landing', 'Pointe', 'Ridge', 'Creek', 'Hills',
-    'Woods', 'Grove', 'Meadows', 'Terrace', 'Court', 'Place',
+//    'Apartments', 'Condos', 'Townhomes', 'Office', 'Retail', 'Plaza', 'Center',
+//    'Building', 'Tower', 'Park', 'Ranch', 'Estates', 'Village', 'Square',
+//    'Commons', 'Crossing', 'Landing', 'Pointe', 'Ridge', 'Creek', 'Hills',
+//    'Woods', 'Grove', 'Meadows', 'Terrace', 'Court', 'Place',
     'Lofts', 'Flats', 'Studios', 'Villas', 'Gardens', 'Heights', 'Trails',
     'Vista', 'Reserve', 'Springs', 'Oaks', 'Pines', 'Palms', 'Lake',
+    'Ranch', 'Farm', 'Pecan', 'Walnut', 'River', 'Lake', 'Mount', 'Ridge',
   ];
 
   // Business/Company suffixes (optimized for high success rate)
@@ -190,42 +182,43 @@ class SearchPatternGenerator {
     'LLC',         // Legal entity - high reliability
     'Inc',         // Legal entity - high reliability
     'Corp',        // Legal entity - high reliability
+    'Partner'      // Legal entity
+    'Develop'      // Covers 'Developers'/'Development'/ect.
     'LTD',         // Legal entity - high reliability
     'Company',     // Legal entity - high reliability
     'Properties',  // Real estate specific - proven
     'Trust',       // Real estate specific - proven
-    'Realty',      // Real estate specific - proven
-    'Holdings',    // Investment specific - proven
+    'Real',      // Real estate specific - proven
+    'Holding',    // Investment specific - proven
+    'Assoc'      // Association/Associates, ect.
   ];
 
   // Austin neighborhoods and subdivisions (expanded to 75+)
   private neighborhoods = [
-    'Hyde Park', 'Clarksville', 'Bouldin Creek', 'Travis Heights', 'Zilker',
-    'Allandale', 'Crestview', 'Rosedale', 'North Loop', 'Mueller',
-    'East Austin', 'South Congress', 'Barton Hills', 'Tarrytown', 'West Lake',
-    'Circle C', 'Steiner Ranch', 'Avery Ranch', 'Anderson Mill', 'Brushy Creek',
-    'Wells Branch', 'Walnut Creek', 'Windsor Park', 'Cherrywood', 'Hancock',
-    'Brentwood', 'North Shoal Creek', 'Gracywoods', 'Balcones', 'Great Hills',
+//    'Hyde Park', 'Clarksville', 'Bouldin Creek', 'Travis Heights', 'Zilker',
+//    'Allandale', 'Crestview', 'Rosedale', 'North Loop', 'Mueller',
+//    'East Austin', 'South Congress', 'Barton Hills', 'Tarrytown', 'West Lake',
+//    'Circle C', 'Steiner Ranch', 'Avery Ranch', 'Anderson Mill', 'Brushy Creek',
+//    'Wells Branch', 'Walnut Creek', 'Windsor Park', 'Cherrywood', 'Hancock',
+//    'Brentwood', 'North Shoal Creek', 'Gracywoods', 'Balcones', 'Great Hills',
     // Additional neighborhoods
-    'Onion Creek', 'Barton Creek', 'Oak Hill', 'Sunset Valley', 'Rollingwood',
-    'West Campus', 'East Cesar Chavez', 'Holly', 'Govalle', 'Riverside',
-    'Montopolis', 'Pleasant Valley', 'Del Valle', 'Dove Springs', 'Southpark Meadows',
-    'St. Edwards', 'St. Johns', 'North University', 'Wooten', 'Highland',
-    'Heritage Hills', 'Pemberton Heights', 'Old West Austin', 'Bryker Woods', 'Old Enfield',
-    'Judges Hill', 'Shoal Crest', 'Northwest Hills', 'Jester Estates', 'Ridgetop',
-    'Spicewood at Bull Creek', 'Mesa Park', 'Westover Hills', 'Rollingwood West', 'Lost Creek',
-    'Senna Hills', 'Ranch at Cypress Creek', 'Sendero Springs', 'Falconhead', 'Shady Hollow',
-    'Ridge at Barton Creek', 'Davenport Ranch', 'Eanes', 'Rob Roy', 'River Place',
-    'Cat Mountain', 'Courtyard', 'Village at Western Oaks', 'Legend Oaks', 'Sendera',
-    'Belterra', 'Canyon Creek', 'Westcreek', 'Maple Run', 'Commons at Rowe Lane',
-    'Scofield Farms', 'Milwood', 'Gracy Woods', 'Balcones Civic Association', 'Lamplight Village',
-    'North Acres', 'Georgian Acres', 'Pecan Springs', 'Franklin Park', 'Coronado Hills',
+//    'Onion Creek', 'Barton Creek', 'Oak Hill', 'Sunset Valley', 'Rollingwood',
+//    'West Campus', 'East Cesar Chavez', 'Holly', 'Govalle', 'Riverside',
+//    'Montopolis', 'Pleasant Valley', 'Del Valle', 'Dove Springs', 'Southpark Meadows',
+//    'St. Edwards', 'St. Johns', 'North University', 'Wooten', 'Highland',
+//    'Heritage Hills', 'Pemberton Heights', 'Old West Austin', 'Bryker Woods', 'Old Enfield',
+//    'Judges Hill', 'Shoal Crest', 'Northwest Hills', 'Jester Estates', 'Ridgetop',
+//    'Spicewood at Bull Creek', 'Mesa Park', 'Westover Hills', 'Rollingwood West', 'Lost Creek',
+//    'Senna Hills', 'Ranch at Cypress Creek', 'Sendero Springs', 'Falconhead', 'Shady Hollow',
+    'Eanes', 'Rob Roy', 'Courtyard', 'Sendera',
+    'Belterra', 'Canyon', 'Maple Run', 'Common', 'Acres', 'Spring',
   ];
 
   // Common property descriptors
   private propertyDescriptors = [
     'Home', 'House', 'Property', 'Land', 'Lot', 'Parcel', 'Tract',
     'Residence', 'Unit', 'Suite', 'Space', 'Commercial', 'Residential',
+    'Condo', 'Comm', 'Ste.'
   ];
 
   // Load all previously used search terms from database to avoid duplicates
@@ -291,8 +284,8 @@ class SearchPatternGenerator {
       { fn: () => this.generateLastNameOnly(), weight: 70 },          // 70.3 avg props - BEST PERFORMER (increased from 60)
       { fn: () => this.generateStreetNameOnly(), weight: 40 },        // 24.4 avg props - GREAT (increased from 35)
       { fn: () => this.generateNeighborhood(), weight: 20 },          // Good for area coverage (increased from 15)
-      { fn: () => this.generateBusinessName(), weight: 8 },           // 6.7 avg props but 26% zero-result rate (reduced from 20)
-      { fn: () => this.generatePropertyType(), weight: 5 },           // Moderate yield
+      { fn: () => this.generateBusinessName(), weight: 20 },           // 6.7 avg props but 26% zero-result rate (reduced from 20)
+      { fn: () => this.generatePropertyType(), weight: 40 },           // Moderate yield
       // REMOVED inefficient strategies based on monitor analysis (500 recent zero-results):
       // - generatePropertyWithDescriptor() - 26% zero-result rate, creates patterns like "Landing Space"
       // - generateTwoLetterCombo() - 73.9% failure rate, alphanumeric codes return zero
@@ -337,9 +330,9 @@ class SearchPatternGenerator {
         // Better to rely on database deduplication and accept some overlap
         // Original logic caused 0-term generation when term database grew too large
 
-        // Optional: Only filter exact two-word business combinations
-        // Example: Skip "Smith LLC" if "Smith" exists, but allow "Smithson" or "Oak Hill"
-        const isSimpleBusinessCombo = /^(\w+)\s+(LLC|Inc|Corp|LTD|Properties|Trust)$/i.test(term);
+        // Optional: Only filter exact two-word business combinations that are supersets of >=4 characters
+        // Example: Skip "Smith LLC" if "Smith" exists, but not if "LLC" exists
+        const isSimpleBusinessCombo = /^(\w+)\s+(LLC|Inc|LTD)$/i.test(term);
         if (isSimpleBusinessCombo) {
           const baseName = term.split(' ')[0];
           if (this.usedTerms.has(baseName)) {
@@ -363,12 +356,6 @@ class SearchPatternGenerator {
     }
 
     return batch;
-  }
-
-  private generateFullName(): string {
-    const first = this.firstNames[Math.floor(Math.random() * this.firstNames.length)];
-    const last = this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
-    return `${first} ${last}`;
   }
 
   private generateLastNameOnly(): string {
@@ -400,22 +387,6 @@ class SearchPatternGenerator {
     return patterns[Math.floor(Math.random() * patterns.length)];
   }
 
-  private generateTwoLetterCombo(): string {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const l1 = letters[Math.floor(Math.random() * letters.length)];
-    const l2 = letters[Math.floor(Math.random() * letters.length)];
-    const number = Math.floor(Math.random() * 99) + 1;
-    return `${l1}${l2} ${number}`;
-  }
-
-  private generateThreeLetterCombo(): string {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const l1 = letters[Math.floor(Math.random() * letters.length)];
-    const l2 = letters[Math.floor(Math.random() * letters.length)];
-    const l3 = letters[Math.floor(Math.random() * letters.length)];
-    return `${l1}${l2}${l3}${Math.floor(Math.random() * 9)}`;
-  }
-
   private generateFourLetterWord(): string {
     const words = ['Park', 'Lake', 'Hill', 'Wood', 'Glen', 'Dale', 'View', 'Rock', 'Pine', 'Sage'];
     return words[Math.floor(Math.random() * words.length)];
@@ -440,20 +411,6 @@ class SearchPatternGenerator {
     const words = street.split(' ');
     // Sometimes use just first word of street name for broader matches
     return Math.random() > 0.3 ? `${number} ${street}` : `${number} ${words[0]}`;
-  }
-
-  // NEW: Generate compound name patterns (common in trusts/estates)
-  private generateCompoundName(): string {
-    const last1 = this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
-    const last2 = this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
-    const patterns = [
-      `${last1} & ${last2}`,
-      `${last1} Family`,
-      `${last1} Estate`,
-      `${last1} Trust`,
-      `${last1}-${last2}`,
-    ];
-    return patterns[Math.floor(Math.random() * patterns.length)];
   }
 
   // NEW: Generate just street numbers (catches all properties on that block)

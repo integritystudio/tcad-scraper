@@ -21,6 +21,7 @@
     "@anthropic-ai/sdk": "^0.68.0",
     "@bull-board/api": "^5.10.0",
     "@bull-board/express": "^5.10.0",
+    "@playwright/test": "^1.56.1",
     "@prisma/client": "^5.8.0",
     "@queuelabs/bullmq-utils": "^1.2.8",
     "@types/jsonwebtoken": "^9.0.10",
@@ -33,7 +34,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
-    "playwright": "^1.41.0",
+    "playwright": "^1.56.1",
     "redis": "^4.6.0",
     "winston": "^3.11.0",
     "zod": "^3.22.0"
