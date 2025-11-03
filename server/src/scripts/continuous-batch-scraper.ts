@@ -182,12 +182,20 @@ class SearchPatternGenerator {
     'Vista', 'Reserve', 'Springs', 'Oaks', 'Pines', 'Palms', 'Lake',
   ];
 
-  // Business/Company suffixes (expanded)
+  // Business/Company suffixes (optimized for high success rate)
+  // ONLY legal entity types and proven real estate terms
+  // Removed generic terms that cause zero-results: Ventures, Development, Developers,
+  // Real Estate, Management, Equity, Assets, Portfolio (26% zero-result rate)
   private businessSuffixes = [
-    'LLC', 'Inc', 'Corp', 'LTD', 'Company', 'Properties', 'Investments',
-    'Holdings', 'Ventures', 'Group', 'Partners', 'Trust', 'Foundation',
-    'Realty', 'Real Estate', 'Development', 'Developers', 'Capital',
-    'Management', 'Equity', 'Assets', 'Portfolio',
+    'LLC',         // Legal entity - high reliability
+    'Inc',         // Legal entity - high reliability
+    'Corp',        // Legal entity - high reliability
+    'LTD',         // Legal entity - high reliability
+    'Company',     // Legal entity - high reliability
+    'Properties',  // Real estate specific - proven
+    'Trust',       // Real estate specific - proven
+    'Realty',      // Real estate specific - proven
+    'Holdings',    // Investment specific - proven
   ];
 
   // Austin neighborhoods and subdivisions (expanded to 75+)
