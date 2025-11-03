@@ -196,14 +196,23 @@ export class TCADScraper {
 
               // Parse JSON with truncation detection
               const text = await res.text();
+              const trimmed = text.trim();
 
               // Check if response looks truncated (incomplete JSON)
-              if (text.length > 0 && !text.endsWith('}') && !text.endsWith(']')) {
+              if (trimmed.length > 0 && !trimmed.endsWith('}') && !trimmed.endsWith(']')) {
                 throw new Error('TRUNCATED_RESPONSE');
               }
 
-              const data = JSON.parse(text);
-              return data;
+              try {
+                const data = JSON.parse(trimmed);
+                return data;
+              } catch (parseError: any) {
+                // If JSON parse fails, it's likely truncation
+                if (parseError.message.includes('JSON') || parseError.message.includes('Unexpected')) {
+                  throw new Error('TRUNCATED_RESPONSE');
+                }
+                throw parseError;
+              }
 
             } catch (error: any) {
               clearTimeout(timeout);
