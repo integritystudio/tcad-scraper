@@ -52,8 +52,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@100.114.160.53:5432/tcad_scraper
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
         run: |
-            cd server
-            docker-compse up --build
+            cd server && docker compose up --build
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
