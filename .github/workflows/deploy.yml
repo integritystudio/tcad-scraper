@@ -47,6 +47,15 @@ jobs:
           echo "Building with API_URL: $VITE_API_URL"
           npm run build
 
+      - name: Build db layer
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@100.114.160.53:5432/tcad_scraper
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+            cd server
+            docker container run -e DOPPLER_TOKEN tcad-scraper
+            docker-compse up
+            npm run dev
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
