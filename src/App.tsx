@@ -6,57 +6,7 @@ import Filters from './components/Filters';
 import Charts from './components/Charts';
 import './App.css';
 
-// Mock data for demonstration
-const mockProperties: Property[] = [
-  {
-    id: '1',
-    property_id: 'R123456',
-    name: 'John Smith',
-    prop_type: 'Single Family',
-    city: 'Austin',
-    property_address: '123 Main St',
-    assessed_value: 450000,
-    appraised_value: 475000,
-    geo_id: 'GEO001',
-    description: 'Residential property',
-    search_term: null,
-    scraped_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    property_id: 'R234567',
-    name: 'Jane Doe',
-    prop_type: 'Condo',
-    city: 'Austin',
-    property_address: '456 Oak Ave',
-    assessed_value: 325000,
-    appraised_value: 340000,
-    geo_id: 'GEO002',
-    description: 'Condominium unit',
-    search_term: null,
-    scraped_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    property_id: 'R345678',
-    name: 'Bob Johnson',
-    prop_type: 'Townhouse',
-    city: 'Round Rock',
-    property_address: '789 Elm St',
-    assessed_value: 280000,
-    appraised_value: 295000,
-    geo_id: 'GEO003',
-    description: 'Townhouse property',
-    search_term: null,
-    scraped_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 function App() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -71,14 +21,26 @@ function App() {
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      setError(null);
 
-      // Use mock data instead of Supabase
-      setProperties(mockProperties);
-      setFilteredProperties(mockProperties);
+      // Fetch properties from the API
+      const response = await fetch(`${API_URL}/properties?limit=1000`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const fetchedProperties = data.data || [];
+
+      setProperties(fetchedProperties);
+      setFilteredProperties(fetchedProperties);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Failed to fetch properties:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load properties');
+      // Set empty arrays on error
+      setProperties([]);
+      setFilteredProperties([]);
     } finally {
       setLoading(false);
     }
