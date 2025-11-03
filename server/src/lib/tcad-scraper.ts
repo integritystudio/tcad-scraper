@@ -174,41 +174,68 @@ export class TCADScraper {
 
             // Fetch pages until we get all results
             while (true) {
-              const res = await fetch(`${apiUrl}?page=${currentPage}&pageSize=${pageSize}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json',
-                  'Authorization': token,
-                },
-                body: JSON.stringify(requestBody)
-              });
+              // Use AbortController for timeout on large responses
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
-              if (!res.ok) {
-                const errorText = await res.text();
-                throw new Error(`API request failed on page ${currentPage}: ${res.status} - ${errorText}`);
+              try {
+                const res = await fetch(`${apiUrl}?page=${currentPage}&pageSize=${pageSize}`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': token,
+                  },
+                  body: JSON.stringify(requestBody),
+                  signal: controller.signal
+                });
+
+                clearTimeout(timeout);
+
+                if (!res.ok) {
+                  const errorText = await res.text();
+                  throw new Error(`API request failed on page ${currentPage}: ${res.status} - ${errorText}`);
+                }
+
+                // Handle JSON parsing with better error handling for large responses
+                let data;
+                try {
+                  const text = await res.text();
+                  data = JSON.parse(text);
+                } catch (jsonError) {
+                  throw new Error(`JSON parse error on page ${currentPage}: ${(jsonError as Error).message}. Response may be truncated for large result sets.`);
+                }
+
+                if (currentPage === 1) {
+                  totalCount = data.totalProperty?.propertyCount || 0;
+                }
+
+                const pageResults = data.results || [];
+                allResults.push(...pageResults);
+
+                // If we got fewer results than page size, we're done
+                if (pageResults.length < pageSize) {
+                  break;
+                }
+
+                // Safety check: don't loop forever
+                if (currentPage >= 100) {
+                  break;
+                }
+
+                currentPage++;
+
+              } catch (fetchError: any) {
+                clearTimeout(timeout);
+
+                // Handle abort/timeout errors
+                if (fetchError.name === 'AbortError') {
+                  throw new Error(`Request timeout on page ${currentPage} after 60 seconds. Result set may be too large.`);
+                }
+
+                // Re-throw other errors
+                throw fetchError;
               }
-
-              const data = await res.json();
-
-              if (currentPage === 1) {
-                totalCount = data.totalProperty?.propertyCount || 0;
-              }
-
-              const pageResults = data.results || [];
-              allResults.push(...pageResults);
-
-              // If we got fewer results than page size, we're done
-              if (pageResults.length < pageSize) {
-                break;
-              }
-
-              // Safety check: don't loop forever
-              if (currentPage >= 100) {
-                break;
-              }
-
-              currentPage++;
             }
 
             return { totalCount, results: allResults };
