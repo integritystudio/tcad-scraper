@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { scraperQueue, canScheduleJob } from '../queues/scraper.queue';
 import { prisma } from '../lib/prisma';
 import { ScrapeRequest, ScrapeResponse } from '../types';
+import { claudeSearchService } from '../lib/claude.service';
 
 const router = Router();
 
@@ -148,6 +149,48 @@ router.get('/', async (req: Request, res: Response) => {
     }
     console.error('Error fetching properties:', error);
     res.status(500).json({ error: 'Failed to fetch properties' });
+  }
+});
+
+// POST /api/properties/search - Natural language search powered by Claude
+router.post('/search', async (req: Request, res: Response) => {
+  try {
+    const { query, limit = 100, offset = 0 } = req.body;
+
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: 'Query is required and must be a string' });
+    }
+
+    // Use Claude to parse the natural language query
+    const { whereClause, orderBy, explanation } = await claudeSearchService.parseNaturalLanguageQuery(query);
+
+    // Query the database with the generated filters
+    const [properties, total] = await Promise.all([
+      prisma.property.findMany({
+        where: whereClause,
+        orderBy: orderBy || { scrapedAt: 'desc' },
+        skip: offset,
+        take: Math.min(limit, 1000),
+      }),
+      prisma.property.count({ where: whereClause }),
+    ]);
+
+    res.json({
+      data: properties,
+      pagination: {
+        total,
+        limit: Math.min(limit, 1000),
+        offset,
+        hasMore: offset + properties.length < total,
+      },
+      query: {
+        original: query,
+        explanation,
+      },
+    });
+  } catch (error) {
+    console.error('Error in natural language search:', error);
+    res.status(500).json({ error: 'Failed to process search query' });
   }
 });
 
