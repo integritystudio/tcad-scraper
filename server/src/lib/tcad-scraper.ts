@@ -169,11 +169,11 @@ export class TCADScraper {
 
             // Adaptive page sizing: try larger sizes first, fall back to smaller if truncation occurs
             const pageSizes = [1000, 500, 100, 50];
-            let workingPageSize: number | null = null;
-            let lastError: string | null = null;
+            let workingPageSize = null;
+            let lastError = null;
 
             // Helper function to fetch a single page with a given page size
-            const fetchPage = async (pageNum: number, pageSize: number): Promise<any> => {
+            const fetchPage = async (pageNum, pageSize) => {
               const controller = new AbortController();
               const timeout = setTimeout(() => controller.abort(), 60000);
 
@@ -207,7 +207,7 @@ export class TCADScraper {
                 const data = JSON.parse(text);
                 return data;
 
-              } catch (error: any) {
+              } catch (error) {
                 clearTimeout(timeout);
                 if (error.name === 'AbortError') {
                   throw new Error('TIMEOUT');
@@ -223,7 +223,7 @@ export class TCADScraper {
                 workingPageSize = testPageSize;
 
                 // Successfully got page 1, now fetch all pages with this size
-                const allResults: any[] = [];
+                const allResults = [];
                 const totalCount = testData.totalProperty?.propertyCount || 0;
                 let currentPage = 1;
 
@@ -251,7 +251,7 @@ export class TCADScraper {
                   message: workingPageSize < 1000 ? `Used smaller page size (${workingPageSize}) due to truncation` : undefined
                 };
 
-              } catch (error: any) {
+              } catch (error) {
                 lastError = error.message;
 
                 // If this is a truncation or JSON parse error, try next smaller page size
