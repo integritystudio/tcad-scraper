@@ -1,0 +1,69 @@
+{
+  "timestamp": "2025-11-03T06:53:53.313Z",
+  "totalZeroResults": 500,
+  "threshold": 20,
+  "needsOptimization": true,
+  "patterns": {
+    "longNumbers": {
+      "pattern": "Long numbers (1000-9999)",
+      "count": 23,
+      "percentage": "4.6",
+      "shouldAvoid": false,
+      "reason": "Could be valid street numbers",
+      "examples": [
+        "3347",
+        "7467",
+        "9163",
+        "5691",
+        "3118"
+      ]
+    },
+    "alphanumeric4": {
+      "pattern": "4-character alphanumeric (AB12, X1Y2, etc)",
+      "count": 21,
+      "percentage": "4.2",
+      "shouldAvoid": true,
+      "reason": "Rarely match property records",
+      "examples": [
+        "RQP0",
+        "BUE3",
+        "PGG7",
+        "ADS1",
+        "RLC1"
+      ]
+    },
+    "fullNames": {
+      "pattern": "Full names (First Last)",
+      "count": 130,
+      "percentage": "26.0",
+      "shouldAvoid": true,
+      "reason": "Last name only performs better",
+      "examples": [
+        "Owens Ventures",
+        "Landing Space",
+        "Griffin Developers",
+        "Alexander Real Estate",
+        "Turner Real Estate"
+      ]
+    },
+    "streetAddresses": {
+      "pattern": "Street addresses (123 Main)",
+      "count": 224,
+      "percentage": "44.8",
+      "shouldAvoid": true,
+      "reason": "Too specific, usually zero results",
+      "examples": [
+        "7820 Martin Luther King",
+        "829 Blanco",
+        "6326 Martin Luther King",
+        "4385 Nueces",
+        "9862 Cameron"
+      ]
+    }
+  },
+  "recommendations": [
+    "- REMOVE or DISABLE short alphanumeric combination generators",
+    "- AVOID full name combinations, use last names only",
+    "- AVOID specific street addresses, use street names only"
+  ]
+}

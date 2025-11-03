@@ -328,6 +328,8 @@ export class TCADScraper {
    * Legacy DOM-based scraping method (DEPRECATED - use scrapePropertiesViaAPI instead)
    * Limited to 20 results per search due to hidden AG Grid pagination.
    */
+
+/*
   async scrapeProperties(searchTerm: string, maxRetries: number = 3): Promise<PropertyData[]> {
     if (!this.browser) {
       throw new Error('Browser not initialized. Call initialize() first.');
@@ -453,7 +455,7 @@ export class TCADScraper {
               firstRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
           // Try to access AG Grid API and set page size to large number
-          const gridConfigured = await page.evaluate(() => {
+          const gridConfigured = await page.waitForFunction(() => {
             try {
               // Find AG Grid instance
               const gridDivs = document.querySelectorAll('[class*="ag-"]');
@@ -965,7 +967,7 @@ export class TCADScraper {
 
     throw lastError || new Error('All scraping attempts failed');
   }
-
+*/
   private async discoverApiEndpoint(searchTerm: string): Promise<void> {
     if (!this.browser) {
       throw new Error('Browser not initialized. Call initialize() first.');
