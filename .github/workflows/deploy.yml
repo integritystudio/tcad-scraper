@@ -49,7 +49,7 @@ jobs:
 
       - name: Build db layer
         env:
-          DATABASE_URL: postgresql://postgres:postgres@100.114.160.53:5432/tcad_scraper
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
         run: |
             cd server && docker compose up --build

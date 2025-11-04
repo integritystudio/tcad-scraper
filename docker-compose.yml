@@ -31,7 +31,7 @@ services:
     build: ./bullmq-exporter
     container_name: bullmq-metrics
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379

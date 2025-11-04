@@ -3,8 +3,12 @@ import { stdin, stdout } from 'process';
 import * as readline from 'readline';
 
 
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is not set');
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/tcad_scraper'
+  connectionString: process.env.DATABASE_URL
 });
 
 async function displayStats() {

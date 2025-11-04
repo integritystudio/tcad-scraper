@@ -334,6 +334,17 @@ npx playwright install chromium
 npx playwright install-deps chromium  # Install system dependencies
 ```
 
+### Database Configuration
+
+The application requires a PostgreSQL database. The connection is configured using the `DATABASE_URL` environment variable.
+
+**Example:**
+`DATABASE_URL="postgresql://user:password@host:port/database"`
+
+You can set this environment variable in a `.env` file in the `server/` directory or by using a secrets management tool like Doppler.
+
+If the `DATABASE_URL` is not set, the application will throw an error and refuse to start.
+
 4. **Set up Doppler (recommended for production):**
 ```bash
 # Install Doppler CLI
@@ -703,7 +714,23 @@ docker run --name tcad-postgres -d \
   postgres:15-alpine
 ```
 
+## Deployment
+
+The project includes a GitHub Actions workflow to deploy the application to GitHub Pages. To use this workflow, you will need to create a `DATABASE_URL` secret in your GitHub repository settings. This secret should contain the connection string for your production database.
+
+**Steps to configure deployment:**
+
+1.  Navigate to your GitHub repository's **Settings** tab.
+2.  In the **Security** section, click on **Secrets and variables** > **Actions**.
+3.  Click on **New repository secret**.
+4.  Enter `DATABASE_URL` as the secret name.
+5.  Paste your database connection string as the secret value.
+6.  Click **Add secret**.
+
+Once the secret is configured, the workflow will automatically deploy the application to GitHub Pages whenever you push to the `main` branch.
+
 ## Monitoring & Metrics
+
 
 ### Bull Dashboard
 

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { scraperQueue, canScheduleJob } from '../queues/scraper.queue';
-import { prisma } from '../lib/prisma';
+import { prisma, prismaReadOnly } from '../lib/prisma';
 import { ScrapeRequest, ScrapeResponse } from '../types';
 import { claudeSearchService } from '../lib/claude.service';
 
@@ -125,13 +125,13 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     const [properties, total] = await Promise.all([
-      prisma.property.findMany({
+      prismaReadOnly.property.findMany({
         where,
         skip: filters.offset,
         take: filters.limit,
         orderBy: { scrapedAt: 'desc' },
       }),
-      prisma.property.count({ where }),
+      prismaReadOnly.property.count({ where }),
     ]);
 
     res.json({
@@ -166,13 +166,13 @@ router.post('/search', async (req: Request, res: Response) => {
 
     // Query the database with the generated filters
     const [properties, total] = await Promise.all([
-      prisma.property.findMany({
+      prismaReadOnly.property.findMany({
         where: whereClause,
         orderBy: orderBy || { scrapedAt: 'desc' },
         skip: offset,
         take: Math.min(limit, 1000),
       }),
-      prisma.property.count({ where: whereClause }),
+      prismaReadOnly.property.count({ where: whereClause }),
     ]);
 
     res.json({
@@ -200,13 +200,13 @@ router.get('/history', async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = parseInt(req.query.offset as string) || 0;
 
-    const jobs = await prisma.scrapeJob.findMany({
+    const jobs = await prismaReadOnly.scrapeJob.findMany({
       orderBy: { startedAt: 'desc' },
       skip: offset,
       take: limit,
     });
 
-    const total = await prisma.scrapeJob.count();
+    const total = await prismaReadOnly.scrapeJob.count();
 
     res.json({
       data: jobs,
@@ -227,16 +227,16 @@ router.get('/history', async (req: Request, res: Response) => {
 router.get('/stats', async (req: Request, res: Response) => {
   try {
     const [totalProperties, totalJobs, recentJobs, cityStats, typeStats] = await Promise.all([
-      prisma.property.count(),
-      prisma.scrapeJob.count(),
-      prisma.scrapeJob.count({
+      prismaReadOnly.property.count(),
+      prismaReadOnly.scrapeJob.count(),
+      prismaReadOnly.scrapeJob.count({
         where: {
           startedAt: {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
           },
         },
       }),
-      prisma.property.groupBy({
+      prismaReadOnly.property.groupBy({
         by: ['city'],
         _count: true,
         where: {
@@ -249,7 +249,7 @@ router.get('/stats', async (req: Request, res: Response) => {
         },
         take: 10,
       }),
-      prisma.property.groupBy({
+      prismaReadOnly.property.groupBy({
         by: ['propType'],
         _count: true,
         _avg: {
@@ -304,7 +304,7 @@ router.post('/monitor', async (req: Request, res: Response) => {
 // GET /api/properties/monitor - Get monitored search terms
 router.get('/monitor', async (req: Request, res: Response) => {
   try {
-    const monitoredSearches = await prisma.monitoredSearch.findMany({
+    const monitoredSearches = await prismaReadOnly.monitoredSearch.findMany({
       where: { active: true },
       orderBy: { createdAt: 'desc' },
     });
