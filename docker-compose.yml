@@ -1,12 +1,4 @@
-version: '3.8'
-
 services:
-  tcad-postgres:
-    build: ./server
-    ports:
-      - "3001:3001"
-    environment:
-      - PORT=3001
   redis:
     image: redis:7-alpine
     container_name: bullmq-redis
@@ -15,6 +7,11 @@ services:
     volumes:
       - redis-data:/data
     command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   prometheus:
     image: prom/prometheus:latest
@@ -37,13 +34,14 @@ services:
     build: ./bullmq-exporter
     container_name: bullmq-metrics
     ports:
-      - "3000:3000"
+      - "4000:3000"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - PORT=3000
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
 volumes:
   redis-data:
