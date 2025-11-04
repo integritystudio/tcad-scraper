@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Property } from '../types';
 import './PropertySearch.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.DATABASE_URL || 'http://localhost:3001/api';
 
 interface SearchResult {
   data: Property[];
@@ -51,10 +51,16 @@ export default function PropertySearch() {
       });
 
       if (!response.ok) {
-        throw new Error('Search failed');
+        const errorData = await response.json().catch(() => ({ message: 'Search failed' }));
+        throw new Error(errorData.message || 'Search failed');
       }
 
       const data: SearchResult = await response.json();
+
+      if (!data || !data.data || !data.pagination) {
+        throw new Error('Received invalid data from server');
+      }
+
       setResults(data.data);
       setTotalResults(data.pagination.total);
       setExplanation(data.query?.explanation || '');

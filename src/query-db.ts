@@ -4,7 +4,7 @@ import * as readline from 'readline';
 
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/tcad_scraper'
+  connectionString: process.env.DATABASE_URL || 'postgresql://localhost:3001/tcad_scraper'
 });
 
 async function displayStats() {
