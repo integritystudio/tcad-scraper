@@ -6,7 +6,7 @@ if (!process.env.DATABASE_URL) {
 }
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL
-});
+)};
 
 export interface Property {
   name: string;
