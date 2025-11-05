@@ -1,8 +1,24 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Property } from '../types';
+import { dataController } from '../lib/xcontroller.client';
 import './PropertySearch.css';
 
-const API_BASE_URL = import.meta.env.DATABASE_URL || 'http://localhost:3001/api';
+interface InitialAppData {
+  apiUrl: string;
+  environment: string;
+  features: {
+    search: boolean;
+    analytics: boolean;
+    monitoring: boolean;
+  };
+  version: string;
+}
+
+// Load initial data from xcontroller (secure server-passed config)
+const getApiBaseUrl = (): string => {
+  const initialData = dataController.loadData<InitialAppData>('initial-data');
+  return initialData?.apiUrl || '/api';
+};
 
 interface SearchResult {
   data: Property[];
@@ -19,6 +35,9 @@ interface SearchResult {
 }
 
 export default function PropertySearch() {
+  // Load API URL from secure server-passed configuration
+  const apiBaseUrl = useMemo(() => getApiBaseUrl(), []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<Property[]>([]);
   const [loading, setLoading] = useState(false);
@@ -42,7 +61,7 @@ export default function PropertySearch() {
     setError('');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/properties/search`, {
+      const response = await fetch(`${apiBaseUrl}/properties/search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
