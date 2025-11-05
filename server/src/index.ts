@@ -12,6 +12,8 @@ import { scraperQueue } from './queues/scraper.queue';
 import { propertyRouter } from './routes/property.routes';
 import { scheduledJobs } from './schedulers/scrape-scheduler';
 import { optionalAuth } from './middleware/auth';
+import { nonceMiddleware } from './middleware/xcontroller.middleware';
+import { appRouter } from './routes/app.routes';
 
 // Load environment variables from .env or Doppler
 dotenv.config();
@@ -46,12 +48,15 @@ const logger = winston.createLogger({
 // Create Express app
 const app = express();
 
+// Add nonce generation for all requests (used by CSP in frontend routes)
+app.use(nonceMiddleware);
+
 // Security middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   hsts: false, // Disable HSTS for HTTP access
   crossOriginOpenerPolicy: false, // Disable COOP for IP-based access
-  contentSecurityPolicy: false, // Disable CSP for IP-based access
+  contentSecurityPolicy: false, // CSP handled by xcontroller middleware for frontend routes
   originAgentCluster: false, // Disable Origin-Agent-Cluster for IP-based access
 }));
 
@@ -111,10 +116,7 @@ const { addQueue, removeQueue, setQueues, replaceQueues } = createBullBoard({
 
 app.use('/admin/queues', serverAdapter.getRouter());
 
-// API Routes (with optional authentication)
-app.use('/api/properties', optionalAuth, propertyRouter);
-
-// Health check endpoint
+// Health check endpoints (before other routes)
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
@@ -124,7 +126,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Queue health check
 app.get('/health/queue', async (req, res) => {
   try {
     const [waiting, active, completed, failed] = await Promise.all([
@@ -152,6 +153,13 @@ app.get('/health/queue', async (req, res) => {
     });
   }
 });
+
+// API Routes (with optional authentication)
+app.use('/api/properties', optionalAuth, propertyRouter);
+
+// Frontend app routes (with xcontroller security)
+// This must come last to serve the SPA for all unmatched routes
+app.use('/', appRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

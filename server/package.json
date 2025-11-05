@@ -14,7 +14,10 @@
     "prisma:generate": "doppler run -- prisma generate",
     "prisma:migrate": "doppler run -- prisma migrate dev",
     "prisma:studio": "doppler run -- prisma studio",
-    "test": "doppler run -- jest",
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --config jest.config.js --watch",
+    "test:coverage": "jest --config jest.config.js --coverage",
+    "test:security": "jest --config jest.config.js src/__tests__/security.test.ts",
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
@@ -45,15 +48,19 @@
     "@types/bull": "^4.10.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
     "@types/node": "^20.11.0",
     "@types/node-cron": "^3.0.11",
     "@types/pino": "^7.0.4",
+    "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^6.18.0",
     "@typescript-eslint/parser": "^6.18.0",
     "eslint": "^8.56.0",
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "prisma": "^5.8.0",
+    "supertest": "^6.3.4",
+    "ts-jest": "^29.1.2",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   }
