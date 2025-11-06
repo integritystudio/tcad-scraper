@@ -52,6 +52,7 @@ The application supports two scraping methods:
 
 ### API & Frontend
 - **RESTful API**: Express server with rate limiting, CORS, security middleware
+- **AI-Powered Search**: Natural language property search using Claude AI (Anthropic)
 - **Bull Dashboard**: Web UI for monitoring job queues at `/admin/queues`
 - **React Frontend**: Modern UI for searching and viewing property data (in development)
 - **Optional Authentication**: JWT and API key support for production environments
@@ -75,6 +76,7 @@ The application supports two scraping methods:
 - **Bull Board** for queue monitoring dashboard
 - **Winston** for structured logging
 - **Zod** for runtime type validation
+- **Anthropic Claude AI** for natural language search parsing
 
 ### Infrastructure & DevOps
 - **PostgreSQL 15+** - Primary database
@@ -363,6 +365,7 @@ doppler secrets set REDIS_PORT="6379"
 doppler secrets set JWT_SECRET="your-secure-random-secret"
 doppler secrets set API_KEY="your-api-key"
 doppler secrets set FRONTEND_URL="http://localhost:5173"
+doppler secrets set ANTHROPIC_API_KEY="sk-ant-api03-xxxxx"  # For Claude AI search
 ```
 
 **Alternative**: Create `.env` file in `server/` directory:
@@ -373,6 +376,7 @@ REDIS_PORT=6379
 JWT_SECRET=your-secure-random-secret
 API_KEY=your-api-key
 FRONTEND_URL=http://localhost:5173
+ANTHROPIC_API_KEY=sk-ant-api03-xxxxx
 NODE_ENV=development
 PORT=3001
 HOST=localhost
@@ -449,15 +453,67 @@ Retrieve a specific property by ID.
 curl http://localhost:3001/api/properties/abc-123-def
 ```
 
-#### GET /api/properties/search
-Search properties by address, owner name, or property ID.
+#### POST /api/properties/search
+**AI-Powered Natural Language Search** - Search properties using plain English queries powered by Claude AI.
 
-**Query Parameters:**
-- `q` - Search query string
+**Request Body:**
+```json
+{
+  "query": "residential properties in Austin worth over 500k",
+  "limit": 100,
+  "offset": 0
+}
+```
+
+**Response:**
+```json
+{
+  "data": [...],
+  "pagination": {
+    "total": 1234,
+    "limit": 100,
+    "offset": 0,
+    "hasMore": true
+  },
+  "query": {
+    "original": "residential properties in Austin worth over 500k",
+    "explanation": "Searching for residential properties in Austin with appraised value over $500,000"
+  }
+}
+```
 
 **Example:**
 ```bash
-curl "http://localhost:3001/api/properties/search?q=123%20Main%20St"
+curl -X POST http://localhost:3001/api/properties/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "properties in Austin worth over 1 million"}'
+```
+
+**Supported Query Types:**
+- Location: "properties in Austin", "homes in Round Rock"
+- Value: "properties worth over 500k", "homes under $200,000"
+- Type: "residential properties", "commercial buildings"
+- Owner: "properties owned by Smith"
+- Combined: "residential properties in Austin worth over 1M"
+
+See [docs/CLAUDE_SEARCH.md](docs/CLAUDE_SEARCH.md) for detailed documentation.
+
+#### GET /api/properties/search/test
+Test Claude AI API connection and configuration.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Claude API connection successful",
+  "testQuery": "properties in Austin",
+  "result": {...}
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:3001/api/properties/search/test
 ```
 
 #### POST /api/properties/scrape/:propertyId
@@ -1016,6 +1072,7 @@ Long-running scraper processes can accumulate memory. Recommended:
 
 Comprehensive documentation is available in the `docs/` directory:
 
+- **[CLAUDE_SEARCH.md](docs/CLAUDE_SEARCH.md)** - AI-powered natural language search documentation
 - **[MODERNIZATION_REPORT.md](docs/MODERNIZATION_REPORT.md)** - Architecture analysis and modernization recommendations
 - **[DATABASE.md](docs/DATABASE.md)** - Database schema and query examples
 - **[BATCH_SCRAPING_SUMMARY.md](docs/BATCH_SCRAPING_SUMMARY.md)** - Batch scraping strategies and patterns
@@ -1025,6 +1082,15 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[SETUP.md](SETUP.md)** - Detailed setup instructions
 
 ## Recent Updates
+
+### November 5, 2024
+- Added AI-powered natural language search using Claude AI (Anthropic)
+- Implemented `POST /api/properties/search` endpoint for plain English queries
+- Added `GET /api/properties/search/test` endpoint to verify Claude API connection
+- Created comprehensive Claude search documentation (`docs/CLAUDE_SEARCH.md`)
+- Added test suite for Claude search service and endpoints
+- Fixed logger import and error handling in Claude service
+- Updated environment configuration for `ANTHROPIC_API_KEY`
 
 ### November 3, 2024
 - Comprehensive README overhaul with current architecture

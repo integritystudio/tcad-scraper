@@ -152,6 +152,32 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/properties/search/test - Test Claude API connection
+router.get('/search/test', async (req: Request, res: Response) => {
+  try {
+    const testQuery = 'properties in Austin';
+    const result = await claudeSearchService.parseNaturalLanguageQuery(testQuery);
+
+    res.json({
+      success: true,
+      message: 'Claude API connection successful',
+      testQuery,
+      result,
+    });
+  } catch (error) {
+    console.error('Claude API test failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Claude API connection failed',
+      error: error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      } : String(error),
+    });
+  }
+});
+
 // POST /api/properties/search - Natural language search powered by Claude
 router.post('/search', async (req: Request, res: Response) => {
   try {
