@@ -63,9 +63,9 @@ export const config = {
 
   // Server Configuration
   server: {
-    port: parseIntEnv('PORT', 3001),
-    host: process.env.HOST || '0.0.0.0',
-    logLevel: process.env.LOG_LEVEL || 'info',
+    port: parseIntEnv('PORT'),
+    host: process.env.HOST,
+    logLevel: process.env.LOG_LEVEL,
     gracefulShutdownTimeout: parseIntEnv('GRACEFUL_SHUTDOWN_TIMEOUT', 10000),
   },
 
@@ -175,6 +175,10 @@ export const config = {
 
   // Scraper Configuration
   scraper: {
+    tcadApiKey: process.env.TCAD_API_KEY,
+    autoRefreshToken: parseBoolEnv('TCAD_AUTO_REFRESH_TOKEN', true),
+    tokenRefreshInterval: parseIntEnv('TCAD_TOKEN_REFRESH_INTERVAL', 270000), // 4.5 minutes
+    tokenRefreshCron: process.env.TCAD_TOKEN_REFRESH_CRON, // Optional cron schedule
     headless: parseBoolEnv('SCRAPER_HEADLESS', true),
     timeout: parseIntEnv('SCRAPER_TIMEOUT', 30000),
     retryAttempts: parseIntEnv('SCRAPER_RETRY_ATTEMPTS', 3),
@@ -219,12 +223,12 @@ export const config = {
 
   // Logging Configuration
   logging: {
-    level: process.env.LOG_LEVEL || 'info',
-    format: process.env.LOG_FORMAT || 'json',
+    level: process.env.LOG_LEVEL,
+    format: process.env.LOG_FORMAT,
     colorize: parseBoolEnv('LOG_COLORIZE', true),
     files: {
-      error: process.env.LOG_ERROR_FILE || 'logs/error.log',
-      combined: process.env.LOG_COMBINED_FILE || 'logs/combined.log',
+      error: process.env.LOG_ERROR_FILE,
+      combined: process.env.LOG_COMBINED_FILE,
       enabled: parseBoolEnv('LOG_FILES_ENABLED', true),
     },
     console: {
@@ -235,8 +239,8 @@ export const config = {
   // Frontend Configuration
   frontend: {
     url: process.env.FRONTEND_URL,
-    apiUrl: process.env.API_URL || '/api',
-    viteApiUrl: process.env.VITE_API_URL || 'http://localhost:3001/api',
+    apiUrl: process.env.API_URL,
+    viteApiUrl: process.env.VITE_API_URL,
     appVersion: process.env.APP_VERSION || '1.0.0',
     features: {
       search: parseBoolEnv('FEATURE_SEARCH', true),
@@ -247,12 +251,6 @@ export const config = {
 
   // Monitoring & Metrics Configuration
   monitoring: {
-    enabled: parseBoolEnv('MONITORING_ENABLED', false),
-    prometheus: {
-      enabled: parseBoolEnv('PROMETHEUS_ENABLED', false),
-      port: parseIntEnv('PROMETHEUS_PORT', 9090),
-      metricsPath: process.env.PROMETHEUS_METRICS_PATH || '/metrics',
-    },
     sentry: {
       enabled: parseBoolEnv('SENTRY_ENABLED', false),
       dsn: process.env.SENTRY_DSN,
@@ -278,7 +276,6 @@ export function validateConfig(): void {
     if (!config.auth.jwt.secret || config.auth.jwt.secret === 'fallback-secret-change-in-production') {
       errors.push('JWT_SECRET must be set in production');
     }
-
     if (!config.claude.apiKey) {
       errors.push('ANTHROPIC_API_KEY is required for AI search functionality');
     }
@@ -301,6 +298,8 @@ export function logConfigSummary(): void {
   console.log(`Queue Dashboard: ${config.queue.dashboard.enabled ? config.queue.dashboard.basePath : 'Disabled'}`);
   console.log(`Auth: ${config.auth.apiKey ? 'API Key configured' : 'No API Key'}, ${config.auth.jwt.secret ? 'JWT configured' : 'No JWT'}`);
   console.log(`Claude AI: ${config.claude.apiKey ? 'Enabled' : 'Disabled'}`);
+  console.log(`TCAD API Token: ${config.scraper.tcadApiKey ? 'Configured (fast API mode)' : 'Not configured (fallback to browser capture)'}`);
+  console.log(`TCAD Auto Refresh: ${config.scraper.autoRefreshToken ? `Enabled (every ${config.scraper.tokenRefreshInterval / 60000} min)` : 'Disabled'}`);
   console.log(`Scraper Proxy: ${config.scraper.proxy.enabled ? 'Enabled' : 'Disabled'}`);
   console.log(`Bright Data: ${config.scraper.brightData.enabled ? 'Enabled' : 'Disabled'}`);
   console.log(`Monitoring: ${config.monitoring.enabled ? 'Enabled' : 'Disabled'}`);

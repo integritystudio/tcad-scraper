@@ -3,6 +3,7 @@ import { scraperQueue, canScheduleJob } from '../queues/scraper.queue';
 import { prisma, prismaReadOnly } from '../lib/prisma';
 import { ScrapeResponse } from '../types';
 import { claudeSearchService } from '../lib/claude.service';
+import { cacheService } from '../lib/redis-cache.service';
 import type {
   ScrapeRequestBody,
   PropertyFilters,
@@ -77,31 +78,44 @@ export class PropertyController {
 
   /**
    * GET /api/properties - Get properties from database with filters
+   * Cached for 5 minutes per unique filter combination
    */
   async getProperties(req: Request<{}, {}, {}, PropertyFilters>, res: Response) {
     const filters = req.query as PropertyFilters;
 
-    const where = this.buildWhereClause(filters);
+    // Generate cache key based on filters
+    const cacheKey = `properties:list:${JSON.stringify(filters)}`;
 
-    const [properties, total] = await Promise.all([
-      prismaReadOnly.property.findMany({
-        where,
-        skip: filters.offset,
-        take: filters.limit,
-        orderBy: { scrapedAt: 'desc' },
-      }),
-      prismaReadOnly.property.count({ where }),
-    ]);
+    // Try to get from cache first (cache-aside pattern)
+    const result = await cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const where = this.buildWhereClause(filters);
 
-    res.json({
-      data: properties,
-      pagination: {
-        total,
-        limit: filters.limit,
-        offset: filters.offset,
-        hasMore: filters.offset + filters.limit < total,
+        const [properties, total] = await Promise.all([
+          prismaReadOnly.property.findMany({
+            where,
+            skip: filters.offset,
+            take: filters.limit,
+            orderBy: { scrapedAt: 'desc' },
+          }),
+          prismaReadOnly.property.count({ where }),
+        ]);
+
+        return {
+          data: properties,
+          pagination: {
+            total,
+            limit: filters.limit,
+            offset: filters.offset,
+            hasMore: filters.offset + filters.limit < total,
+          },
+        };
       },
-    });
+      300 // 5 minutes TTL
+    );
+
+    res.json(result);
   }
 
   /**
@@ -185,52 +199,64 @@ export class PropertyController {
 
   /**
    * GET /api/properties/stats - Get statistics
+   * Cached for 10 minutes (expensive aggregation queries)
    */
   async getStats(req: Request, res: Response) {
-    const [totalProperties, totalJobs, recentJobs, cityStats, typeStats] = await Promise.all([
-      prismaReadOnly.property.count(),
-      prismaReadOnly.scrapeJob.count(),
-      prismaReadOnly.scrapeJob.count({
-        where: {
-          startedAt: {
-            gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
-          },
-        },
-      }),
-      prismaReadOnly.property.groupBy({
-        by: ['city'],
-        _count: true,
-        where: {
-          city: { not: null },
-        },
-        orderBy: {
-          _count: {
-            city: 'desc',
-          },
-        },
-        take: 10,
-      }),
-      prismaReadOnly.property.groupBy({
-        by: ['propType'],
-        _count: true,
-        _avg: {
-          appraisedValue: true,
-        },
-        orderBy: {
-          _count: {
-            propType: 'desc',
-          },
-        },
-      }),
-    ]);
+    const cacheKey = 'properties:stats:all';
 
-    res.json({
-      totalProperties,
-      totalJobs,
-      recentJobs,
-      cityDistribution: cityStats,
-      propertyTypeDistribution: typeStats,
-    });
+    // Cache stats for 10 minutes (600 seconds)
+    const stats = await cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const [totalProperties, totalJobs, recentJobs, cityStats, typeStats] = await Promise.all([
+          prismaReadOnly.property.count(),
+          prismaReadOnly.scrapeJob.count(),
+          prismaReadOnly.scrapeJob.count({
+            where: {
+              startedAt: {
+                gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+              },
+            },
+          }),
+          prismaReadOnly.property.groupBy({
+            by: ['city'],
+            _count: true,
+            where: {
+              city: { not: null },
+            },
+            orderBy: {
+              _count: {
+                city: 'desc',
+              },
+            },
+            take: 10,
+          }),
+          prismaReadOnly.property.groupBy({
+            by: ['propType'],
+            _count: true,
+            _avg: {
+              appraisedValue: true,
+            },
+            orderBy: {
+              _count: {
+                propType: 'desc',
+              },
+            },
+          }),
+        ]);
+
+        return {
+          totalProperties,
+          totalJobs,
+          recentJobs,
+          cityDistribution: cityStats,
+          propertyTypeDistribution: typeStats,
+        };
+      },
+      600 // 10 minutes TTL
+    );
+
+    res.json(stats);
   }
 
   /**

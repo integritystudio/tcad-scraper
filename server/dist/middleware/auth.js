@@ -5,15 +5,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateToken = exports.optionalAuth = exports.jwtAuth = exports.apiKeyAuth = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const config_1 = require("../config");
 // Simple API key authentication middleware
 const apiKeyAuth = (req, res, next) => {
     const apiKey = req.headers['x-api-key'];
-    const expectedApiKey = process.env.API_KEY;
-    // Skip auth in development if no API key is set
-    if (process.env.NODE_ENV === 'development' && !expectedApiKey) {
+    // Skip auth in development if no API key is set and skip is enabled
+    if (config_1.config.env.isDevelopment && config_1.config.auth.skipInDevelopment && !config_1.config.auth.apiKey) {
         return next();
     }
-    if (!apiKey || apiKey !== expectedApiKey) {
+    if (!apiKey || apiKey !== config_1.config.auth.apiKey) {
         return res.status(401).json({ error: 'Unauthorized - Invalid API key' });
     }
     next();
@@ -23,16 +23,15 @@ exports.apiKeyAuth = apiKeyAuth;
 const jwtAuth = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-    // Skip auth in development if no JWT secret is set
-    if (process.env.NODE_ENV === 'development' && !process.env.JWT_SECRET) {
+    // Skip auth in development if no JWT secret is set and skip is enabled
+    if (config_1.config.env.isDevelopment && config_1.config.auth.skipInDevelopment && !config_1.config.auth.jwt.secret) {
         return next();
     }
     if (!token) {
         return res.status(401).json({ error: 'Unauthorized - No token provided' });
     }
     try {
-        const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-        const decoded = jsonwebtoken_1.default.verify(token, jwtSecret);
+        const decoded = jsonwebtoken_1.default.verify(token, config_1.config.auth.jwt.secret);
         req.user = decoded;
         next();
     }
@@ -45,9 +44,9 @@ exports.jwtAuth = jwtAuth;
 const optionalAuth = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    if (token && process.env.JWT_SECRET) {
+    if (token && config_1.config.auth.jwt.secret) {
         try {
-            const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+            const decoded = jsonwebtoken_1.default.verify(token, config_1.config.auth.jwt.secret);
             req.user = decoded;
         }
         catch (error) {
@@ -59,9 +58,9 @@ const optionalAuth = (req, res, next) => {
 exports.optionalAuth = optionalAuth;
 // Generate JWT token
 const generateToken = (userId, email) => {
-    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
-    return jsonwebtoken_1.default.sign({ id: userId, email }, jwtSecret, { expiresIn });
+    return jsonwebtoken_1.default.sign({ id: userId, email }, config_1.config.auth.jwt.secret, {
+        expiresIn: config_1.config.auth.jwt.expiresIn,
+    });
 };
 exports.generateToken = generateToken;
 //# sourceMappingURL=auth.js.map

@@ -1,0 +1,257 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # Build and test before deployment
+  pre-deploy:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [pre-deploy]
+    if: |
+      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging.yourdomain.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Deploy to staging server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_PORT || 22 }}
+          script: |
+            cd /var/www/tcad-scraper
+            git pull origin main
+            npm ci --production
+            npm run build
+            npx prisma migrate deploy
+            pm2 restart tcad-scraper
+            pm2 save
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: 'Staging deployment ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Deploy to production (only on tags)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [pre-deploy]
+    if: |
+      (startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment:
+      name: production
+      url: https://api.yourdomain.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          port: ${{ secrets.PRODUCTION_PORT || 22 }}
+          script: |
+            cd /var/www/tcad-scraper
+            git fetch --tags
+            git checkout ${{ github.ref_name }}
+            npm ci --production
+            npm run build
+            npx prisma migrate deploy
+            pm2 restart tcad-scraper
+            pm2 save
+
+      - name: Create Sentry release
+        uses: getsentry/action-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: tcad-scraper
+        with:
+          environment: production
+          version: ${{ github.ref_name }}
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: 'Production deployment ${{ job.status }} - Version: ${{ github.ref_name }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Docker deployment (alternative)
+  deploy-docker:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [pre-deploy]
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/tcad-scraper
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Health check after deployment
+  health-check:
+    name: Post-deployment Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+
+    steps:
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ needs.deploy-production.result }}" == "success" ]; then
+            echo "url=https://api.yourdomain.com" >> $GITHUB_OUTPUT
+            echo "name=production" >> $GITHUB_OUTPUT
+          else
+            echo "url=https://staging.yourdomain.com" >> $GITHUB_OUTPUT
+            echo "name=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Check health endpoint
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ steps.env.outputs.url }}/health)
+          if [ "$response" -ne 200 ]; then
+            echo "Health check failed with status code: $response"
+            exit 1
+          fi
+          echo "Health check passed!"
+
+      - name: Check queue health
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ steps.env.outputs.url }}/health/queue)
+          if [ "$response" -ne 200 ]; then
+            echo "Queue health check failed with status code: $response"
+            exit 1
+          fi
+          echo "Queue health check passed!"
+
+      - name: Check cache health
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ steps.env.outputs.url }}/health/cache)
+          if [ "$response" -ne 200 ]; then
+            echo "Cache health check failed with status code: $response"
+            exit 1
+          fi
+          echo "Cache health check passed!"
+
+      - name: Notify health check results
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: 'Post-deployment health check ${{ job.status }} for ${{ steps.env.outputs.name }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}

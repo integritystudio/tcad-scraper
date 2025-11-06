@@ -14,11 +14,12 @@ exports.cspMiddleware = cspMiddleware;
 exports.generateSecureHtml = generateSecureHtml;
 exports.getInitialAppData = getInitialAppData;
 const crypto_1 = __importDefault(require("crypto"));
+const config_1 = require("../config");
 /**
  * Generate cryptographically secure nonce for CSP
  */
 function generateNonce() {
-    return crypto_1.default.randomBytes(16).toString('base64');
+    return crypto_1.default.randomBytes(config_1.config.security.csp.nonceLength).toString('base64');
 }
 /**
  * Encode JSON safely for embedding in HTML
@@ -50,26 +51,33 @@ function cspMiddleware(req, res, next) {
         console.warn('CSP middleware called without nonce. Use nonceMiddleware first.');
     }
     // CSP Level 3 with nonce support
-    const cspDirectives = [
-        "default-src 'self'",
-        nonce ? `script-src 'self' 'nonce-${nonce}'` : "script-src 'self'",
-        nonce ? `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'` : "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: https:",
-        "font-src 'self' data:",
-        "connect-src 'self'",
-        "frame-ancestors 'none'",
-        "base-uri 'self'",
-        "form-action 'self'",
-    ].join('; ');
-    res.setHeader('Content-Security-Policy', cspDirectives);
+    if (config_1.config.security.csp.enabled) {
+        const directives = config_1.config.security.csp.directives;
+        const cspDirectives = [
+            `default-src ${directives.defaultSrc.join(' ')}`,
+            nonce
+                ? `script-src ${directives.scriptSrc.join(' ')} 'nonce-${nonce}'`
+                : `script-src ${directives.scriptSrc.join(' ')}`,
+            nonce
+                ? `style-src ${directives.styleSrc.join(' ')} 'nonce-${nonce}'`
+                : `style-src ${directives.styleSrc.join(' ')}`,
+            `img-src ${directives.imgSrc.join(' ')}`,
+            `font-src ${directives.fontSrc.join(' ')}`,
+            `connect-src ${directives.connectSrc.join(' ')}`,
+            `frame-ancestors ${directives.frameAncestors.join(' ')}`,
+            `base-uri ${directives.baseUri.join(' ')}`,
+            `form-action ${directives.formAction.join(' ')}`,
+        ].join('; ');
+        res.setHeader('Content-Security-Policy', cspDirectives);
+    }
     // Additional security headers
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     // HSTS (only in production with HTTPS)
-    if (process.env.NODE_ENV === 'production' && req.protocol === 'https') {
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    if (config_1.config.env.isProduction && req.protocol === 'https') {
+        res.setHeader('Strict-Transport-Security', `max-age=${config_1.config.security.hsts.maxAge}${config_1.config.security.hsts.includeSubDomains ? '; includeSubDomains' : ''}`);
     }
     next();
 }
@@ -109,14 +117,14 @@ function generateSecureHtml(options) {
  */
 function getInitialAppData() {
     return {
-        apiUrl: process.env.API_URL || '/api',
-        environment: process.env.NODE_ENV || 'development',
+        apiUrl: config_1.config.frontend.apiUrl,
+        environment: config_1.config.env.nodeEnv,
         features: {
-            search: true,
-            analytics: process.env.NODE_ENV === 'production',
-            monitoring: process.env.NODE_ENV === 'production',
+            search: config_1.config.frontend.features.search,
+            analytics: config_1.config.frontend.features.analytics,
+            monitoring: config_1.config.frontend.features.monitoring,
         },
-        version: process.env.APP_VERSION || '1.0.0',
+        version: config_1.config.frontend.appVersion,
     };
 }
 //# sourceMappingURL=xcontroller.middleware.js.map

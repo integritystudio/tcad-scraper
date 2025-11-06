@@ -1,7 +1,7 @@
 #!/usr/bin/env npx tsx
 
-import { scraperQueue } from './src/queues/scraper.queue';
-import { prisma } from './src/lib/prisma';
+import { scraperQueue } from '../src/queues/scraper.queue';
+import { prisma } from '../src/lib/prisma';
 
 async function addBusinessBatch3() {
   console.log('➕ Adding business batch 3 to front of queue...\n');

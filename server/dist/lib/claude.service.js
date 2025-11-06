@@ -6,15 +6,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.claudeSearchService = exports.ClaudeSearchService = void 0;
 const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
 const logger_1 = __importDefault(require("./logger"));
+const config_1 = require("../config");
 const anthropic = new sdk_1.default({
-    apiKey: process.env.ANTHROPIC_API_KEY,
+    apiKey: config_1.config.claude.apiKey,
 });
 class ClaudeSearchService {
     async parseNaturalLanguageQuery(query) {
         try {
             const message = await anthropic.messages.create({
-                model: 'claude-3-haiku-20240307',
-                max_tokens: 1024,
+                model: config_1.config.claude.model,
+                max_tokens: config_1.config.claude.maxTokens,
                 messages: [
                     {
                         role: 'user',
