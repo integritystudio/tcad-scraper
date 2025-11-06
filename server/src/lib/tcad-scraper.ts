@@ -3,6 +3,7 @@ import winston from 'winston';
 import { ScraperConfig, PropertyData } from '../types';
 import { config as appConfig } from '../config';
 import { scrapeDOMFallback } from './fallback/dom-scraper';
+import { tokenRefreshService } from '../services/token-refresh.service';
 
 const logger = winston.createLogger({
   level: appConfig.logging.level,
@@ -59,6 +60,7 @@ export class TCADScraper {
 
       const launchOptions: any = {
         headless: this.config.headless,
+        executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
         args: [
           '--disable-blink-features=AutomationControlled',
           '--disable-web-security',
@@ -136,8 +138,24 @@ export class TCADScraper {
         const page = await context.newPage();
 
         try {
-          // Step 1: Get auth token - use pre-fetched token if available, otherwise capture from browser
-          let authToken: string | null = process.env.TCAD_API_KEY || null;
+          // Step 1: Get auth token - priority order:
+          // 1. Token from auto-refresh service (if enabled)
+          // 2. Token from environment/config
+          // 3. Capture from browser (fallback)
+          let authToken: string | null = null;
+
+          // Try to get token from refresh service first (if auto-refresh is enabled)
+          if (appConfig.scraper.autoRefreshToken) {
+            authToken = tokenRefreshService.getCurrentToken();
+            if (authToken) {
+              logger.info('Using token from auto-refresh service');
+            }
+          }
+
+          // Fall back to config token if refresh service doesn't have one
+          if (!authToken) {
+            authToken = appConfig.scraper.tcadApiKey || null;
+          }
 
           if (authToken) {
             logger.info('Using pre-fetched TCAD_API_KEY from environment');

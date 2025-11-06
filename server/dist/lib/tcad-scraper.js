@@ -6,8 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.scraperInstance = exports.TCADScraper = void 0;
 const playwright_1 = require("playwright");
 const winston_1 = __importDefault(require("winston"));
+const config_1 = require("../config");
+const token_refresh_service_1 = require("../services/token-refresh.service");
 const logger = winston_1.default.createLogger({
-    level: 'info',
+    level: config_1.config.logging.level,
     format: winston_1.default.format.json(),
     transports: [
         new winston_1.default.transports.Console({
@@ -19,31 +21,33 @@ class TCADScraper {
     browser = null;
     config;
     constructor(config) {
-        // Configure Bright Data proxy if available
-        // TEMPORARILY DISABLED: Proxy blocks React from rendering
-        const proxyConfig = {}; // Disabled for testing
-        /*
-        const proxyConfig = process.env.BRIGHT_DATA_API_TOKEN ? {
-          proxyServer: `http://${process.env.BRIGHT_DATA_PROXY_HOST || 'brd.superproxy.io'}:${process.env.BRIGHT_DATA_PROXY_PORT || '22225'}`,
-          proxyUsername: `brd-customer-${process.env.BRIGHT_DATA_API_TOKEN?.substring(0, 8)}-zone-residential`,
-          proxyPassword: process.env.BRIGHT_DATA_API_TOKEN,
-        } : {};
-        */
+        // Configure proxy if enabled
+        let proxyConfig = {};
+        if (config_1.config.scraper.brightData.enabled && config_1.config.scraper.brightData.apiToken) {
+            // Bright Data proxy configuration
+            proxyConfig = {
+                proxyServer: `http://${config_1.config.scraper.brightData.proxyHost}:${config_1.config.scraper.brightData.proxyPort}`,
+                proxyUsername: `brd-customer-${config_1.config.scraper.brightData.apiToken.substring(0, 8)}-zone-residential`,
+                proxyPassword: config_1.config.scraper.brightData.apiToken,
+            };
+            logger.info('Bright Data proxy configured');
+        }
+        else if (config_1.config.scraper.proxy.enabled && config_1.config.scraper.proxy.server) {
+            // Generic proxy configuration
+            proxyConfig = {
+                proxyServer: config_1.config.scraper.proxy.server,
+                proxyUsername: config_1.config.scraper.proxy.username,
+                proxyPassword: config_1.config.scraper.proxy.password,
+            };
+            logger.info('Generic proxy configured');
+        }
         this.config = {
-            headless: true,
-            timeout: 30000,
-            retryAttempts: 3,
-            retryDelay: 2000,
-            userAgents: [
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            ],
-            viewports: [
-                { width: 3840, height: 2160 }, // 4K to see all columns
-                { width: 2560, height: 1440 }, // 1440p
-                { width: 1920, height: 1080 },
-            ],
+            headless: config_1.config.scraper.headless,
+            timeout: config_1.config.scraper.timeout,
+            retryAttempts: config_1.config.scraper.retryAttempts,
+            retryDelay: config_1.config.scraper.retryDelay,
+            userAgents: config_1.config.scraper.userAgents,
+            viewports: config_1.config.scraper.viewports,
             ...proxyConfig,
             ...config,
         };
@@ -54,6 +58,7 @@ class TCADScraper {
             logger.info(`Initializing browser${proxyEnabled ? ' with Bright Data proxy' : ''}...`);
             const launchOptions = {
                 headless: this.config.headless,
+                executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
                 args: [
                     '--disable-blink-features=AutomationControlled',
                     '--disable-web-security',
@@ -82,7 +87,7 @@ class TCADScraper {
     getRandomElement(array) {
         return array[Math.floor(Math.random() * array.length)];
     }
-    async humanDelay(min = 100, max = 500) {
+    async humanDelay(min = config_1.config.scraper.humanDelay.min, max = config_1.config.scraper.humanDelay.max) {
         const delay = Math.floor(Math.random() * (max - min) + min);
         await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -107,8 +112,22 @@ class TCADScraper {
                 });
                 const page = await context.newPage();
                 try {
-                    // Step 1: Get auth token - use pre-fetched token if available, otherwise capture from browser
-                    let authToken = process.env.TCAD_API_KEY || null;
+                    // Step 1: Get auth token - priority order:
+                    // 1. Token from auto-refresh service (if enabled)
+                    // 2. Token from environment/config
+                    // 3. Capture from browser (fallback)
+                    let authToken = null;
+                    // Try to get token from refresh service first (if auto-refresh is enabled)
+                    if (config_1.config.scraper.autoRefreshToken) {
+                        authToken = token_refresh_service_1.tokenRefreshService.getCurrentToken();
+                        if (authToken) {
+                            logger.info('Using token from auto-refresh service');
+                        }
+                    }
+                    // Fall back to config token if refresh service doesn't have one
+                    if (!authToken) {
+                        authToken = config_1.config.scraper.tcadApiKey || null;
+                    }
                     if (authToken) {
                         logger.info('Using pre-fetched TCAD_API_KEY from environment');
                     }

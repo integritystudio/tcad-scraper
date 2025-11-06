@@ -5,16 +5,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.claudeSearchService = exports.ClaudeSearchService = void 0;
 const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
-const logger_1 = require("./logger");
+const logger_1 = __importDefault(require("./logger"));
+const config_1 = require("../config");
 const anthropic = new sdk_1.default({
-    apiKey: process.env.ANTHROPIC_API_KEY,
+    apiKey: config_1.config.claude.apiKey,
 });
 class ClaudeSearchService {
     async parseNaturalLanguageQuery(query) {
         try {
             const message = await anthropic.messages.create({
-                model: 'claude-3-5-sonnet-20241022',
-                max_tokens: 1024,
+                model: config_1.config.claude.model,
+                max_tokens: config_1.config.claude.maxTokens,
                 messages: [
                     {
                         role: 'user',
@@ -108,7 +109,7 @@ Now generate the JSON for the user's query above.`,
                 ],
             });
             const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
-            logger_1.logger.info('Claude response:', { responseText });
+            logger_1.default.info('Claude response:', { responseText });
             // Parse the JSON response
             const parsed = JSON.parse(responseText);
             return {
@@ -119,11 +120,13 @@ Now generate the JSON for the user's query above.`,
         }
         catch (error) {
             // Safely log the error without risking serialization issues
-            logger_1.logger.error('Error parsing natural language query with Claude:', {
+            const errorDetails = {
                 message: error instanceof Error ? error.message : String(error),
                 name: error instanceof Error ? error.name : 'Unknown',
                 stack: error instanceof Error ? error.stack : undefined,
-            });
+            };
+            logger_1.default.error('Error parsing natural language query with Claude:', errorDetails);
+            console.error('Claude API Error Details:', JSON.stringify(errorDetails, null, 2));
             // Fallback: simple text search across multiple fields
             return {
                 whereClause: {

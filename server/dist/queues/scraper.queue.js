@@ -9,8 +9,9 @@ const bull_1 = __importDefault(require("bull"));
 const tcad_scraper_1 = require("../lib/tcad-scraper");
 const winston_1 = __importDefault(require("winston"));
 const prisma_1 = require("../lib/prisma");
+const config_1 = require("../config");
 const logger = winston_1.default.createLogger({
-    level: 'info',
+    level: config_1.config.logging.level,
     format: winston_1.default.format.json(),
     transports: [
         new winston_1.default.transports.Console({
@@ -19,23 +20,25 @@ const logger = winston_1.default.createLogger({
     ],
 });
 // Create the Bull queue
-exports.scraperQueue = new bull_1.default('scraper-queue', {
+exports.scraperQueue = new bull_1.default(config_1.config.queue.name, {
     redis: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        host: config_1.config.redis.host,
+        port: config_1.config.redis.port,
+        password: config_1.config.redis.password,
+        db: config_1.config.redis.db,
     },
     defaultJobOptions: {
-        attempts: 3,
+        attempts: config_1.config.queue.defaultJobOptions.attempts,
         backoff: {
             type: 'exponential',
-            delay: 2000,
+            delay: config_1.config.queue.defaultJobOptions.backoffDelay,
         },
-        removeOnComplete: 100, // Keep last 100 completed jobs
-        removeOnFail: 50, // Keep last 50 failed jobs
+        removeOnComplete: config_1.config.queue.defaultJobOptions.removeOnComplete,
+        removeOnFail: config_1.config.queue.defaultJobOptions.removeOnFail,
     },
 });
 // Process scraping jobs
-exports.scraperQueue.process('scrape-properties', 2, async (job) => {
+exports.scraperQueue.process(config_1.config.queue.jobName, config_1.config.queue.concurrency, async (job) => {
     const startTime = Date.now();
     const { searchTerm, userId, scheduled = false } = job.data;
     logger.info(`Processing scrape job ${job.id} for search term: ${searchTerm}`);
@@ -47,7 +50,7 @@ exports.scraperQueue.process('scrape-properties', 2, async (job) => {
         },
     });
     const scraper = new tcad_scraper_1.TCADScraper({
-        headless: process.env.NODE_ENV === 'production',
+        headless: config_1.config.env.isProduction ? true : config_1.config.scraper.headless,
     });
     try {
         // Update progress: Initializing
@@ -59,36 +62,53 @@ exports.scraperQueue.process('scrape-properties', 2, async (job) => {
         const properties = await scraper.scrapePropertiesViaAPI(searchTerm);
         // Update progress: Saving to database
         await job.progress(70);
-        // Bulk upsert properties to database
-        const savedProperties = await Promise.all(properties.map(async (property) => {
-            return await prisma_1.prisma.property.upsert({
-                where: { propertyId: property.propertyId },
-                update: {
-                    name: property.name,
-                    propType: property.propType,
-                    city: property.city,
-                    propertyAddress: property.propertyAddress,
-                    assessedValue: property.assessedValue,
-                    appraisedValue: property.appraisedValue,
-                    geoId: property.geoId,
-                    description: property.description,
-                    searchTerm,
-                    scrapedAt: new Date(),
-                },
-                create: {
-                    propertyId: property.propertyId,
-                    name: property.name,
-                    propType: property.propType,
-                    city: property.city,
-                    propertyAddress: property.propertyAddress,
-                    assessedValue: property.assessedValue,
-                    appraisedValue: property.appraisedValue,
-                    geoId: property.geoId,
-                    description: property.description,
-                    searchTerm,
-                },
-            });
-        }));
+        // Batch upsert properties to database using PostgreSQL's ON CONFLICT
+        // This is 10-50x faster than individual upserts
+        let savedCount = 0;
+        if (properties.length > 0) {
+            // Process in chunks of 500 to avoid query size limits
+            const CHUNK_SIZE = 500;
+            for (let i = 0; i < properties.length; i += CHUNK_SIZE) {
+                const chunk = properties.slice(i, i + CHUNK_SIZE);
+                // Build the VALUES clause dynamically
+                const now = new Date();
+                const valuesClauses = [];
+                const params = [];
+                let paramIndex = 1;
+                for (const property of chunk) {
+                    valuesClauses.push(`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, ` +
+                        `$${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, ` +
+                        `$${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12})`);
+                    params.push(property.propertyId, property.name, property.propType, property.city, property.propertyAddress, property.assessedValue, property.appraisedValue, property.geoId, property.description, searchTerm, now, now, now);
+                    paramIndex += 13;
+                }
+                // Execute raw SQL with PostgreSQL's native UPSERT (ON CONFLICT)
+                const sql = `
+          INSERT INTO properties (
+            property_id, name, prop_type, city, property_address,
+            assessed_value, appraised_value, geo_id, description,
+            search_term, scraped_at, created_at, updated_at
+          )
+          VALUES ${valuesClauses.join(', ')}
+          ON CONFLICT (property_id) DO UPDATE SET
+            name = EXCLUDED.name,
+            prop_type = EXCLUDED.prop_type,
+            city = EXCLUDED.city,
+            property_address = EXCLUDED.property_address,
+            assessed_value = EXCLUDED.assessed_value,
+            appraised_value = EXCLUDED.appraised_value,
+            geo_id = EXCLUDED.geo_id,
+            description = EXCLUDED.description,
+            search_term = EXCLUDED.search_term,
+            scraped_at = EXCLUDED.scraped_at,
+            updated_at = EXCLUDED.updated_at
+        `;
+                await prisma_1.prisma.$executeRawUnsafe(sql, ...params);
+                savedCount += chunk.length;
+                logger.info(`Batch upserted ${chunk.length} properties (${savedCount}/${properties.length} total)`);
+            }
+        }
+        const savedProperties = properties;
         // Update progress: Complete
         await job.progress(100);
         // Update job record
@@ -137,30 +157,28 @@ exports.scraperQueue.on('failed', (job, err) => {
 exports.scraperQueue.on('stalled', (job) => {
     logger.warn(`Job ${job.id} stalled and will be retried`);
 });
-// Clean up old jobs periodically (every hour)
+// Clean up old jobs periodically
 setInterval(async () => {
     try {
-        const grace = 1000 * 60 * 60 * 24; // 24 hours
-        await exports.scraperQueue.clean(grace, 'completed');
-        await exports.scraperQueue.clean(grace, 'failed');
+        await exports.scraperQueue.clean(config_1.config.queue.cleanupGracePeriod, 'completed');
+        await exports.scraperQueue.clean(config_1.config.queue.cleanupGracePeriod, 'failed');
         logger.info('Cleaned old jobs from queue');
     }
     catch (error) {
         logger.error('Failed to clean queue:', error);
     }
-}, 60 * 60 * 1000);
+}, config_1.config.queue.cleanupInterval);
 // Rate limiting helper
 const activeJobs = new Map();
 async function canScheduleJob(searchTerm) {
     const lastJobTime = activeJobs.get(searchTerm);
-    const rateLimitDelay = parseInt(process.env.SCRAPER_RATE_LIMIT_DELAY || '5000');
-    if (lastJobTime && Date.now() - lastJobTime < rateLimitDelay) {
+    if (lastJobTime && Date.now() - lastJobTime < config_1.config.rateLimit.scraper.jobDelay) {
         return false;
     }
     activeJobs.set(searchTerm, Date.now());
     // Clean up old entries
     for (const [term, time] of activeJobs.entries()) {
-        if (Date.now() - time > 60000) {
+        if (Date.now() - time > config_1.config.rateLimit.scraper.cacheCleanupInterval) {
             activeJobs.delete(term);
         }
     }

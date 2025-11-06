@@ -10,7 +10,7 @@ const logger = winston.createLogger({
   ),
   transports: [
     new winston.transports.Console(),
-    new winston.transports.File({ filename: 'continuous-scraper.log' }),
+    new winston.transports.File({ filename: 'logs/continuous-scraper.log' }),
   ],
 });
 
@@ -156,7 +156,7 @@ class SearchPatternGenerator {
 //    'Mopac Expressway', 'Loop 1', 'Highway 183', 'Ben White', 'Highway 290',
 //    'FM 620', 'FM 2222', 'RM 2244', 'RM 620', 'Lakeline Boulevard',
 //    'Cedar Park', 'Anderson Lane', 'Steck Avenue', 'Spicewood Springs', 'Mesa Drive',
-    'Hill', 'Boulevard', 'Lane', 'Burnet', 'Drive', 'Road', "East", "West", "Avenue", "Ave."
+    'Hill', 'Boulevard', 'Lane', 'Burnet', 'Drive', 'Road', "East", "West", "Avenue", "Ave.",
     'Dittmar', 'Montopolis', 'South', 'North', 'Crossing', 'Fall',
     'Del Valle', 'Webberville', 'Creek', 'Johnny Morris', 'Cameron Road', 'Airport', 'Springdale', 'General',
     '4th S', '5th S', '2nd S', '3rd S', 'Square',
@@ -335,9 +335,8 @@ class SearchPatternGenerator {
     const rangeGenerator = ranges[Math.floor(Math.random() * ranges.length)];
     return rangeGenerator().toString();
   }
-}
 
-async getNextBatch(batchSize: number): Promise<string[]> {
+  async getNextBatch(batchSize: number): Promise<string[]> {
     // Load or refresh database terms (automatic hourly refresh)
     await this.loadUsedTermsFromDatabase();
     const batch: string[] = [];
@@ -427,6 +426,7 @@ async getNextBatch(batchSize: number): Promise<string[]> {
 
     return batch;
   }
+}
 
 
 class ContinuousBatchScraper {
