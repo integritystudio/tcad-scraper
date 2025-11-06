@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Property } from '../types';
 import './Filters.css';
 
@@ -7,12 +7,64 @@ interface FiltersProps {
   onFilterChange: (filtered: Property[]) => void;
 }
 
+interface FilterState {
+  searchTerm: string;
+  selectedCity: string;
+  selectedType: string;
+  minValue: string;
+  maxValue: string;
+}
+
+const initialFilterState: FilterState = {
+  searchTerm: '',
+  selectedCity: '',
+  selectedType: '',
+  minValue: '',
+  maxValue: '',
+};
+
+function applyFilters(properties: Property[], filters: FilterState): Property[] {
+  return properties.filter(property => {
+    // Search filter
+    if (filters.searchTerm) {
+      const term = filters.searchTerm.toLowerCase();
+      const matchesSearch =
+        property.name.toLowerCase().includes(term) ||
+        property.property_address.toLowerCase().includes(term) ||
+        property.property_id.toLowerCase().includes(term) ||
+        (property.description && property.description.toLowerCase().includes(term));
+
+      if (!matchesSearch) return false;
+    }
+
+    // City filter
+    if (filters.selectedCity && property.city !== filters.selectedCity) {
+      return false;
+    }
+
+    // Property type filter
+    if (filters.selectedType && property.prop_type !== filters.selectedType) {
+      return false;
+    }
+
+    // Min value filter
+    if (filters.minValue) {
+      const min = parseFloat(filters.minValue);
+      if (property.appraised_value < min) return false;
+    }
+
+    // Max value filter
+    if (filters.maxValue) {
+      const max = parseFloat(filters.maxValue);
+      if (property.appraised_value > max) return false;
+    }
+
+    return true;
+  });
+}
+
 function Filters({ properties, onFilterChange }: FiltersProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCity, setSelectedCity] = useState('');
-  const [selectedType, setSelectedType] = useState('');
-  const [minValue, setMinValue] = useState('');
-  const [maxValue, setMaxValue] = useState('');
+  const [filters, setFilters] = useState<FilterState>(initialFilterState);
 
   const cities = useMemo(() => {
     const citySet = new Set(properties.map(p => p.city).filter(Boolean));
@@ -24,49 +76,21 @@ function Filters({ properties, onFilterChange }: FiltersProps) {
     return Array.from(typeSet).sort();
   }, [properties]);
 
-  useEffect(() => {
-    let filtered = [...properties];
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(term) ||
-        p.property_address.toLowerCase().includes(term) ||
-        p.property_id.toLowerCase().includes(term) ||
-        (p.description && p.description.toLowerCase().includes(term))
-      );
-    }
-
-    if (selectedCity) {
-      filtered = filtered.filter(p => p.city === selectedCity);
-    }
-
-    if (selectedType) {
-      filtered = filtered.filter(p => p.prop_type === selectedType);
-    }
-
-    if (minValue) {
-      const min = parseFloat(minValue);
-      filtered = filtered.filter(p => p.appraised_value >= min);
-    }
-
-    if (maxValue) {
-      const max = parseFloat(maxValue);
-      filtered = filtered.filter(p => p.appraised_value <= max);
-    }
-
+  const filteredProperties = useMemo(() => {
+    const filtered = applyFilters(properties, filters);
     onFilterChange(filtered);
-  }, [searchTerm, selectedCity, selectedType, minValue, maxValue, properties, onFilterChange]);
+    return filtered;
+  }, [properties, filters, onFilterChange]);
 
-  const handleReset = () => {
-    setSearchTerm('');
-    setSelectedCity('');
-    setSelectedType('');
-    setMinValue('');
-    setMaxValue('');
+  const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const hasActiveFilters = searchTerm || selectedCity || selectedType || minValue || maxValue;
+  const handleReset = () => {
+    setFilters(initialFilterState);
+  };
+
+  const hasActiveFilters = Object.values(filters).some(value => value !== '');
 
   return (
     <div className="filters">
@@ -86,8 +110,8 @@ function Filters({ properties, onFilterChange }: FiltersProps) {
             id="search"
             type="text"
             placeholder="Search by name, address, or property ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={filters.searchTerm}
+            onChange={(e) => updateFilter('searchTerm', e.target.value)}
           />
         </div>
 
@@ -95,8 +119,8 @@ function Filters({ properties, onFilterChange }: FiltersProps) {
           <label htmlFor="city">City</label>
           <select
             id="city"
-            value={selectedCity}
-            onChange={(e) => setSelectedCity(e.target.value)}
+            value={filters.selectedCity}
+            onChange={(e) => updateFilter('selectedCity', e.target.value)}
           >
             <option value="">All Cities</option>
             {cities.map(city => (
@@ -109,8 +133,8 @@ function Filters({ properties, onFilterChange }: FiltersProps) {
           <label htmlFor="type">Property Type</label>
           <select
             id="type"
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
+            value={filters.selectedType}
+            onChange={(e) => updateFilter('selectedType', e.target.value)}
           >
             <option value="">All Types</option>
             {propertyTypes.map(type => (
@@ -125,8 +149,8 @@ function Filters({ properties, onFilterChange }: FiltersProps) {
             id="minValue"
             type="number"
             placeholder="0"
-            value={minValue}
-            onChange={(e) => setMinValue(e.target.value)}
+            value={filters.minValue}
+            onChange={(e) => updateFilter('minValue', e.target.value)}
           />
         </div>
 
@@ -136,8 +160,8 @@ function Filters({ properties, onFilterChange }: FiltersProps) {
             id="maxValue"
             type="number"
             placeholder="No limit"
-            value={maxValue}
-            onChange={(e) => setMaxValue(e.target.value)}
+            value={filters.maxValue}
+            onChange={(e) => updateFilter('maxValue', e.target.value)}
           />
         </div>
       </div>
