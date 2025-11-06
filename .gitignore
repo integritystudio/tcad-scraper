@@ -3,3 +3,4 @@ node_modules/
 logs/
 screenshots/
 *.log
+package-lock.json
