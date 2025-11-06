@@ -98,22 +98,22 @@ model: 'claude-3-5-sonnet-20241022', // or claude-3-opus-20240229
 
 ```bash
 # Find expensive properties in Austin
-curl -X POST http://localhost:3001/api/properties/search \
+curl -X POST http://localhost:5050/api/properties/search \
   -H "Content-Type: application/json" \
   -d '{"query": "properties in Austin worth over 1 million"}'
 
 # Find commercial properties owned by Smith
-curl -X POST http://localhost:3001/api/properties/search \
+curl -X POST http://localhost:5050/api/properties/search \
   -H "Content-Type: application/json" \
   -d '{"query": "commercial properties owned by Smith"}'
 
 # Find properties on Congress Avenue
-curl -X POST http://localhost:3001/api/properties/search \
+curl -X POST http://localhost:5050/api/properties/search \
   -H "Content-Type: application/json" \
   -d '{"query": "properties on Congress Ave"}'
 
 # Find properties by value range
-curl -X POST http://localhost:3001/api/properties/search \
+curl -X POST http://localhost:5050/api/properties/search \
   -H "Content-Type: application/json" \
   -d '{"query": "find properties appraised between 300k and 600k"}'
 ```
@@ -155,7 +155,7 @@ curl -X POST http://localhost:3001/api/properties/search \
 
 **Example**:
 ```bash
-curl http://localhost:3001/api/properties/search/test
+curl http://localhost:5050/api/properties/search/test
 ```
 
 ## Supported Query Types
@@ -243,12 +243,12 @@ Check logs at `server/logs/pm2-error.log` for Claude API errors.
 
 Test the Claude API connection:
 ```bash
-curl http://localhost:3001/api/properties/search/test
+curl http://localhost:5050/api/properties/search/test
 ```
 
 Test natural language search:
 ```bash
-curl -X POST http://localhost:3001/api/properties/search \
+curl -X POST http://localhost:5050/api/properties/search \
   -H "Content-Type: application/json" \
   -d '{"query": "properties in Austin"}'
 ```

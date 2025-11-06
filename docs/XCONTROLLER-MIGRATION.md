@@ -160,7 +160,7 @@ if (config) {
 ### Test CSP Headers
 
 ```bash
-curl -I http://localhost:3001 | grep Content-Security-Policy
+curl -I http://localhost:5050 | grep Content-Security-Policy
 ```
 
 Should see:

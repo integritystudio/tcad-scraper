@@ -200,8 +200,8 @@ cd server && npm test
 npm run dev
 
 # Test endpoints
-curl -I http://localhost:3001/
-curl http://localhost:3001/api/properties/stats
+curl -I http://localhost:5050/
+curl http://localhost:5050/api/properties/stats
 ```
 
 **Option 3: Deploy to Production**
@@ -285,7 +285,7 @@ Before deploying to production:
 2. Verify all inline scripts have nonces: `<script nonce="${nonce}">`
 3. Confirm nonce matches CSP header:
    ```bash
-   curl http://localhost:3001/ | grep nonce
+   curl http://localhost:5050/ | grep nonce
    ```
 4. Check that `nonceMiddleware` is applied before routes
 
@@ -305,7 +305,7 @@ Before deploying to production:
 3. Check that CSP middleware is NOT applied to API routes
 4. Test API directly:
    ```bash
-   curl -v http://localhost:3001/api/properties/stats
+   curl -v http://localhost:5050/api/properties/stats
    ```
 
 ### If Frontend Doesn't Load
@@ -314,7 +314,7 @@ Before deploying to production:
 3. Check browser console for CSP violations
 4. Confirm nonce middleware is working:
    ```bash
-   curl http://localhost:3001/ | grep nonce
+   curl http://localhost:5050/ | grep nonce
    ```
 
 ---
@@ -388,8 +388,8 @@ cd server && npm test
 npm run dev
 
 # In another terminal, test the endpoints
-curl -I http://localhost:3001/
-curl http://localhost:3001/api/properties/stats
+curl -I http://localhost:5050/
+curl http://localhost:5050/api/properties/stats
 
 # When ready, commit the changes (see "Next Immediate Steps" above)
 ```

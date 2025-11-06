@@ -175,9 +175,9 @@ cd server && npm run dev
 ```
 
 **Default port:** 3001
-**Frontend served at:** http://localhost:3001/
-**API endpoints:** http://localhost:3001/api/*
-**Health check:** http://localhost:3001/health
+**Frontend served at:** http://localhost:5050/
+**API endpoints:** http://localhost:5050/api/*
+**Health check:** http://localhost:5050/health
 
 ### Frontend Development
 ```bash
@@ -427,14 +427,14 @@ cd server && npm run prisma:migrate
 
 ### CSP Violations
 1. Check browser console for CSP errors
-2. Verify nonce in HTML: `curl http://localhost:3001/ | grep nonce`
+2. Verify nonce in HTML: `curl http://localhost:5050/ | grep nonce`
 3. Check route order in `server/src/index.ts`
 4. Ensure inline scripts have nonces
 
 ### API Routes Not Working
 1. Verify route order (API before frontend)
 2. Check CORS configuration
-3. Test endpoint directly: `curl -v http://localhost:3001/api/properties/stats`
+3. Test endpoint directly: `curl -v http://localhost:5050/api/properties/stats`
 4. Check server logs
 
 ---

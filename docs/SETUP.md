@@ -64,7 +64,7 @@ npm run dev
 cd ..
 
 # The .env file is already created with:
-# VITE_API_URL=http://localhost:3001/api
+# VITE_API_URL=http://localhost:5050/api
 
 # Start frontend
 npm run dev
@@ -85,9 +85,9 @@ npx prisma studio
 ## Access the Application
 
 - **Frontend UI**: http://localhost:5173
-- **Backend API**: http://localhost:3001/api
-- **API Health**: http://localhost:3001/health
-- **Queue Dashboard**: http://localhost:3001/admin/queues
+- **Backend API**: http://localhost:5050/api
+- **API Health**: http://localhost:5050/health
+- **Queue Dashboard**: http://localhost:5050/admin/queues
 - **Prisma Studio**: http://localhost:5555 (if running)
 
 ## Authentication
@@ -105,7 +105,7 @@ The API now includes authentication middleware:
 export API_KEY="your-secure-api-key"
 
 # Make authenticated requests
-curl -H "X-API-Key: your-secure-api-key" http://localhost:3001/api/properties
+curl -H "X-API-Key: your-secure-api-key" http://localhost:5050/api/properties
 ```
 
 ### Using JWT Authentication
@@ -113,7 +113,7 @@ curl -H "X-API-Key: your-secure-api-key" http://localhost:3001/api/properties
 ```bash
 # Generate a token (implement your own auth endpoint)
 # Then use it in requests:
-curl -H "Authorization: Bearer your-jwt-token" http://localhost:3001/api/properties
+curl -H "Authorization: Bearer your-jwt-token" http://localhost:5050/api/properties
 ```
 
 ## Viewing Database Contents
@@ -176,7 +176,7 @@ psql postgresql://postgres:postgres@localhost:5432/tcad_scraper -c "SELECT 1;"
 - Set `NODE_ENV=development` to skip auth
 
 ### UI shows "Failed to load properties"
-- Verify server is running: `curl http://localhost:3001/health`
+- Verify server is running: `curl http://localhost:5050/health`
 - Check browser console for errors
 - Verify VITE_API_URL in `.env` matches server URL
 
@@ -200,7 +200,7 @@ psql postgresql://postgres:postgres@localhost:5432/tcad_scraper -c "SELECT 1;"
 - `PORT`: Server port (default: 3001)
 
 #### Frontend (.env in root directory)
-- `VITE_API_URL`: Backend API URL (default: http://localhost:3001/api)
+- `VITE_API_URL`: Backend API URL (default: http://localhost:5050/api)
 
 ### Running in Production
 
@@ -230,7 +230,7 @@ doppler run -- npm start
 
 1. Populate database by running the scraper
 2. Explore the UI at http://localhost:5173
-3. Monitor queue jobs at http://localhost:3001/admin/queues
+3. Monitor queue jobs at http://localhost:5050/admin/queues
 4. Set up Doppler for production deployment
 5. Configure production secrets and deploy
 

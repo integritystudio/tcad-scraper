@@ -271,7 +271,7 @@ npm run dev
 ### 2. Verify CSP Headers
 
 ```bash
-curl -I http://localhost:3001/
+curl -I http://localhost:5050/
 ```
 
 Should see:
@@ -285,7 +285,7 @@ X-XSS-Protection: 1; mode=block
 ### 3. Verify Initial Data
 
 ```bash
-curl http://localhost:3001/ | grep -A 5 "initial-data"
+curl http://localhost:5050/ | grep -A 5 "initial-data"
 ```
 
 Should see properly encoded JSON.
@@ -301,7 +301,7 @@ All 228 tests should pass.
 
 ### 5. Check Browser Console
 
-Open http://localhost:3001 in browser:
+Open http://localhost:5050 in browser:
 - No CSP violations in console
 - Initial data loaded correctly
 - No security warnings

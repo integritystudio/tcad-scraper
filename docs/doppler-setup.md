@@ -92,11 +92,11 @@ doppler run -- npm start
 cd ..
 
 # Create .env file for frontend
-echo "VITE_API_URL=http://localhost:3001/api" > .env
+echo "VITE_API_URL=http://localhost:5050/api" > .env
 
 # Or use Doppler for frontend too
 doppler setup
-doppler secrets set VITE_API_URL="http://localhost:3001/api"
+doppler secrets set VITE_API_URL="http://localhost:5050/api"
 doppler run -- npm run dev
 ```
 
@@ -138,12 +138,12 @@ doppler secrets
 
 3. Test server connection:
 ```bash
-curl http://localhost:3001/health
+curl http://localhost:5050/health
 ```
 
 4. Test API endpoint:
 ```bash
-curl http://localhost:3001/api/properties?limit=10
+curl http://localhost:5050/api/properties?limit=10
 ```
 
 ## Security Best Practices

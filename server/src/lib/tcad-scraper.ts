@@ -164,8 +164,16 @@ export class TCADScraper {
 
             page.on('request', (request) => {
               const headers = request.headers();
-              if (headers['authorization'] && !authToken) {
-                authToken = headers['authorization'];
+              const authHeader = headers['authorization'];
+
+              // Only capture valid tokens (ignore "null" string and ensure it looks like a JWT)
+              if (authHeader &&
+                  authHeader !== 'null' &&
+                  authHeader.length > 50 &&
+                  authHeader.startsWith('eyJ') &&
+                  !authToken) {
+                authToken = authHeader;
+                logger.info(`Auth token captured: length ${authToken.length}, preview: ${authToken.substring(0, 50)}...`);
               }
             });
 

@@ -175,7 +175,7 @@ SELECT COUNT(*) as total, COUNT(DISTINCT property_id) as unique_props FROM prope
 SELECT status, COUNT(*) FROM scrape_jobs GROUP BY status;
 
 # View BullMQ Dashboard
-# http://localhost:3001/admin/queues (when server is running)
+# http://localhost:5050/admin/queues (when server is running)
 ```
 
 ## 🔍 Deduplication Verification

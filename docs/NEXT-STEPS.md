@@ -51,8 +51,8 @@ cd server && npm test
 npm run dev
 
 # In another terminal
-curl -I http://localhost:3001/
-curl http://localhost:3001/api/properties/stats
+curl -I http://localhost:5050/
+curl http://localhost:5050/api/properties/stats
 ```
 
 ### Option C: Staged Commits (10 minutes)
@@ -185,7 +185,7 @@ npm run dev
 ### CSP violations in browser?
 Check console and verify:
 ```bash
-curl http://localhost:3001/ | grep nonce
+curl http://localhost:5050/ | grep nonce
 ```
 
 ---

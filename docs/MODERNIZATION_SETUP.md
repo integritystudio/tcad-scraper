@@ -116,8 +116,8 @@ cd server
 npm run dev
 ```
 
-**Server starts on:** `http://localhost:3001`
-**Admin Dashboard:** `http://localhost:3001/admin/queues`
+**Server starts on:** `http://localhost:5050`
+**Admin Dashboard:** `http://localhost:5050/admin/queues`
 
 ### 2. Start the Frontend (Optional)
 
@@ -153,7 +153,7 @@ npm run dev
 
 ### 4. Queue Dashboard
 
-Visit `http://localhost:3001/admin/queues` to:
+Visit `http://localhost:5050/admin/queues` to:
 - View active, completed, and failed jobs
 - Retry failed jobs
 - Monitor queue performance
@@ -173,7 +173,7 @@ Visit `http://localhost:3001/admin/queues` to:
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │              Express Backend Server                      │
-│                (localhost:3001)                          │
+│                (localhost:5050)                          │
 │                                                          │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
 │  │ API Routes   │  │  Bull Queue  │  │  Scheduler   │  │
@@ -285,7 +285,7 @@ PostgreSQL MCP server still available for Claude Code:
 ### Basic Scrape
 ```bash
 # Start a scrape job
-curl -X POST http://localhost:3001/api/properties/scrape \
+curl -X POST http://localhost:5050/api/properties/scrape \
   -H "Content-Type: application/json" \
   -d '{"searchTerm": "downtown"}'
 
@@ -297,7 +297,7 @@ curl -X POST http://localhost:3001/api/properties/scrape \
 }
 
 # Check job status
-curl http://localhost:3001/api/properties/scrape/123
+curl http://localhost:5050/api/properties/scrape/123
 
 # Response
 {
@@ -313,19 +313,19 @@ curl http://localhost:3001/api/properties/scrape/123
 ### Query Properties
 ```bash
 # Get all properties
-curl http://localhost:3001/api/properties
+curl http://localhost:5050/api/properties
 
 # Search by term
-curl http://localhost:3001/api/properties/search?term=austin
+curl http://localhost:5050/api/properties/search?term=austin
 
 # Get statistics
-curl http://localhost:3001/api/properties/stats
+curl http://localhost:5050/api/properties/stats
 ```
 
 ### Monitor Searches
 ```bash
 # Add monitored search
-curl -X POST http://localhost:3001/api/properties/monitor \
+curl -X POST http://localhost:5050/api/properties/monitor \
   -H "Content-Type: application/json" \
   -d '{
     "searchTerm": "commercial downtown",
@@ -333,7 +333,7 @@ curl -X POST http://localhost:3001/api/properties/monitor \
   }'
 
 # List monitored searches
-curl http://localhost:3001/api/properties/monitor
+curl http://localhost:5050/api/properties/monitor
 ```
 
 ---
@@ -370,7 +370,7 @@ SELECT * FROM properties LIMIT 5;
 ```
 
 ### Queue Issues
-Visit the admin dashboard: `http://localhost:3001/admin/queues`
+Visit the admin dashboard: `http://localhost:5050/admin/queues`
 - Check for failed jobs
 - View error messages
 - Retry failed jobs manually

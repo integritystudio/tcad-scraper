@@ -255,7 +255,7 @@ model ScrapeJob {
 // src/services/api.service.ts
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
 
 export const propertyAPI = {
   // Trigger a new scrape job

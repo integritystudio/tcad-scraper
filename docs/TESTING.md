@@ -267,7 +267,7 @@ npm test:security
 ### 1. Test CSP Headers
 
 ```bash
-curl -I http://localhost:3001/ | grep Content-Security-Policy
+curl -I http://localhost:5050/ | grep Content-Security-Policy
 ```
 
 Expected output:
@@ -278,7 +278,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-xxxxx'; ..
 ### 2. Test Nonce Consistency
 
 ```bash
-curl http://localhost:3001/ | grep nonce
+curl http://localhost:5050/ | grep nonce
 ```
 
 All nonces should match.
@@ -286,7 +286,7 @@ All nonces should match.
 ### 3. Test Data Encoding
 
 ```bash
-curl http://localhost:3001/ | grep -A 5 "initial-data"
+curl http://localhost:5050/ | grep -A 5 "initial-data"
 ```
 
 Should see properly encoded JSON with no raw `<` or `>` characters.
@@ -294,7 +294,7 @@ Should see properly encoded JSON with no raw `<` or `>` characters.
 ### 4. Test API Route Isolation
 
 ```bash
-curl -I http://localhost:3001/api/properties/stats
+curl -I http://localhost:5050/api/properties/stats
 ```
 
 Should NOT have strict CSP headers that would break API functionality.

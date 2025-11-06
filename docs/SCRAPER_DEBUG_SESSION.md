@@ -8,7 +8,7 @@ Ran scraping job against TCAD website with search term "Willow". Job completed s
 
 ### 1. Initial Scrape Job Trigger
 ```bash
-curl -X POST http://localhost:3001/api/properties/scrape \
+curl -X POST http://localhost:5050/api/properties/scrape \
   -H "Content-Type: application/json" \
   -d '{"searchTerm": "Willow"}'
 ```
@@ -30,7 +30,7 @@ curl -X POST http://localhost:3001/api/properties/scrape \
 #### Checked Service Health
 ```bash
 # Backend server
-curl http://localhost:3001/health
+curl http://localhost:5050/health
 # Response: {"status":"healthy",...}
 
 # PostgreSQL & Redis
@@ -68,7 +68,7 @@ mcp__bullmq__remove_job(queue: "scraper-queue", jobId: "3")
 
 # Server automatically restarted
 # Triggered new scrape job
-curl -X POST http://localhost:3001/api/properties/scrape \
+curl -X POST http://localhost:5050/api/properties/scrape \
   -H "Content-Type: application/json" \
   -d '{"searchTerm": "Willow"}'
 ```
@@ -155,12 +155,12 @@ open screenshots/search_Willow_1761684833775.png
 Try a search term that should definitely return results:
 ```bash
 # Test with a common term
-curl -X POST http://localhost:3001/api/properties/scrape \
+curl -X POST http://localhost:5050/api/properties/scrape \
   -H "Content-Type: application/json" \
   -d '{"searchTerm": "Austin"}'
 
 # Or test with a specific property ID format
-curl -X POST http://localhost:3001/api/properties/scrape \
+curl -X POST http://localhost:5050/api/properties/scrape \
   -H "Content-Type: application/json" \
   -d '{"searchTerm": "12345"}'
 ```
@@ -336,28 +336,28 @@ CREATE TABLE properties (
 ### Check Job Status
 ```bash
 # Via API
-curl http://localhost:3001/api/properties/jobs/{jobId}
+curl http://localhost:5050/api/properties/jobs/{jobId}
 
 # Via Database
 psql -c "SELECT * FROM scrape_jobs ORDER BY started_at DESC LIMIT 5;"
 
 # Via Bull Queue
-# Use mcp__bullmq__get_job or Bull Dashboard at http://localhost:3001/admin/queues
+# Use mcp__bullmq__get_job or Bull Dashboard at http://localhost:5050/admin/queues
 ```
 
 ### Trigger New Scrape
 ```bash
-curl -X POST http://localhost:3001/api/properties/scrape \
+curl -X POST http://localhost:5050/api/properties/scrape \
   -H "Content-Type: application/json" \
   -d '{"searchTerm": "YOUR_SEARCH_TERM"}'
 ```
 
 ### View Properties
 ```bash
-curl http://localhost:3001/api/properties
+curl http://localhost:5050/api/properties
 
 # With search filter
-curl "http://localhost:3001/api/properties?searchTerm=Willow"
+curl "http://localhost:5050/api/properties?searchTerm=Willow"
 ```
 
 ### Monitor Server Logs
@@ -387,7 +387,7 @@ The scraper will be considered fixed when:
 ## Additional Resources
 
 - TCAD Staging: https://stage.travis.prodigycad.com/property-search
-- Bull Dashboard: http://localhost:3001/admin/queues
+- Bull Dashboard: http://localhost:5050/admin/queues
 - Playwright Docs: https://playwright.dev/docs/selectors
 - Server README: `server/README.md`
 

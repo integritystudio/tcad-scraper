@@ -214,17 +214,17 @@ npm run dev
 ### 3. Test Endpoints
 ```bash
 # Health check
-curl http://localhost:3001/health
+curl http://localhost:5050/health
 
 # API route (should work without CSP)
-curl http://localhost:3001/api/properties/stats
+curl http://localhost:5050/api/properties/stats
 
 # Frontend (should have CSP headers)
-curl -I http://localhost:3001/
+curl -I http://localhost:5050/
 ```
 
 ### 4. Check Browser
-- Open http://localhost:3001/
+- Open http://localhost:5050/
 - Open browser console
 - Verify: No CSP violations
 - Verify: No JavaScript errors
@@ -251,7 +251,7 @@ pg_isready
 doppler secrets
 
 # Check logs
-npm run dev 2>&1 | tee server.log
+npm run dev 2>&1 | tee server/logs/server.log
 ```
 
 ### Need to Rollback
