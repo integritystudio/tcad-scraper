@@ -2,8 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'tcad-api',
-      script: 'npx',
-      args: 'tsx src/index.ts',
+      script: './start.sh',
       cwd: '/home/aledlie/tcad-scraper/server',
       instances: 1,
       autorestart: true,
@@ -12,7 +11,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
-        HOST: 'localhost',
+        HOST: '0.0.0.0',
         DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/tcad_scraper',
       },
       error_file: '/home/aledlie/tcad-scraper/server/logs/pm2-error.log',
@@ -20,11 +19,6 @@ module.exports = {
       log_file: '/home/aledlie/tcad-scraper/server/logs/pm2-combined.log',
       time: true,
       merge_logs: true,
-      // Run with doppler for environment variables
-      interpreter: 'bash',
-      interpreter_args: '-c',
-      script: 'doppler run -- npx tsx src/index.ts',
-      args: '',
     },
   ],
 };

@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Prisma } from '@prisma/client';
-import { logger } from './logger';
+import logger from './logger';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -16,7 +16,7 @@ export class ClaudeSearchService {
   async parseNaturalLanguageQuery(query: string): Promise<SearchFilters> {
     try {
       const message = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 1024,
         messages: [
           {
@@ -123,7 +123,14 @@ Now generate the JSON for the user's query above.`,
         explanation: parsed.explanation || 'Searching properties based on your query',
       };
     } catch (error) {
-      logger.error('Error parsing natural language query with Claude:', error);
+      // Safely log the error without risking serialization issues
+      const errorDetails = {
+        message: error instanceof Error ? error.message : String(error),
+        name: error instanceof Error ? error.name : 'Unknown',
+        stack: error instanceof Error ? error.stack : undefined,
+      };
+      logger.error('Error parsing natural language query with Claude:', errorDetails);
+      console.error('Claude API Error Details:', JSON.stringify(errorDetails, null, 2));
 
       // Fallback: simple text search across multiple fields
       return {
