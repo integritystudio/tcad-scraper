@@ -1,24 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Property } from '../types';
-import { dataController } from '../lib/xcontroller.client';
+import { getApiBaseUrl } from '../lib/api-config';
 import './PropertySearch.css';
-
-interface InitialAppData {
-  apiUrl: string;
-  environment: string;
-  features: {
-    search: boolean;
-    analytics: boolean;
-    monitoring: boolean;
-  };
-  version: string;
-}
-
-// Load initial data from xcontroller (secure server-passed config)
-const getApiBaseUrl = (): string => {
-  const initialData = dataController.loadData<InitialAppData>('initial-data');
-  return initialData?.apiUrl || '/api';
-};
 
 interface SearchResult {
   data: Property[];
