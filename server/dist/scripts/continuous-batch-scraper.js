@@ -11,7 +11,7 @@ const logger = winston_1.default.createLogger({
     format: winston_1.default.format.combine(winston_1.default.format.timestamp(), winston_1.default.format.simple()),
     transports: [
         new winston_1.default.transports.Console(),
-        new winston_1.default.transports.File({ filename: 'continuous-scraper.log' }),
+        new winston_1.default.transports.File({ filename: 'logs/continuous-scraper.log' }),
     ],
 });
 const TARGET_PROPERTIES = 400000;
@@ -156,7 +156,7 @@ class SearchPatternGenerator {
         'Dittmar', 'Montopolis', 'South', 'North', 'Crossing', 'Fall',
         'Del Valle', 'Webberville', 'Creek', 'Johnny Morris', 'Cameron Road', 'Airport', 'Springdale', 'General',
         '4th S', '5th S', '2nd S', '3rd S', 'Square',
-        'West Lynn', 'Park', "Square', 'Place', 'San G',
+        'West Lynn', 'Park', 'Square', 'Place', 'San G',
     ];
     // Property types and building names (expanded)
     propertyTypes = [
@@ -176,17 +176,15 @@ class SearchPatternGenerator {
         'LLC', // Legal entity - high reliability
         'Inc', // Legal entity - high reliability
         'Corp', // Legal entity - high reliability
-        'Partner' // Legal entity
-        , // Legal entity
-        'Develop' // Covers 'Developers'/'Development'/ect.
-        , // Covers 'Developers'/'Development'/ect.
+        'Partner', // Legal entity
+        'Develop', // Covers 'Developers'/'Development'/etc.
         'LTD', // Legal entity - high reliability
         'Company', // Legal entity - high reliability
         'Properties', // Real estate specific - proven
         'Trust', // Real estate specific - proven
         'Real', // Real estate specific - proven
         'Holding', // Investment specific - proven
-        'Assoc' // Association/Associates, ect.
+        'Assoc', // Association/Associates, etc.
     ];
     // Austin neighborhoods and subdivisions (expanded to 75+)
     neighborhoods = [
@@ -253,6 +251,64 @@ class SearchPatternGenerator {
             throw error;
         }
     }
+    generateLastNameOnly() {
+        return this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
+    }
+    generateStreetAddress() {
+        const number = Math.floor(Math.random() * 9999) + 1;
+        const street = this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
+        return `${number} ${street}`;
+    }
+    generatePropertyType() {
+        return this.propertyTypes[Math.floor(Math.random() * this.propertyTypes.length)];
+    }
+    generateBusinessName() {
+        const name = this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
+        const suffix = this.businessSuffixes[Math.floor(Math.random() * this.businessSuffixes.length)];
+        return `${name} ${suffix}`;
+    }
+    generateStreetNameOnly() {
+        return this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
+    }
+    generateNumberPattern() {
+        const patterns = ['1000', '2000', '3000', '4000', '5000', '6000', '7000', '8000', '9000'];
+        return patterns[Math.floor(Math.random() * patterns.length)];
+    }
+    generateFourLetterWord() {
+        const words = ['Park', 'Lake', 'Hill', 'Wood', 'Glen', 'Dale', 'View', 'Rock', 'Pine', 'Sage'];
+        return words[Math.floor(Math.random() * words.length)];
+    }
+    // NEW: Generate neighborhood name
+    generateNeighborhood() {
+        return this.neighborhoods[Math.floor(Math.random() * this.neighborhoods.length)];
+    }
+    // NEW: Generate property type with descriptor
+    generatePropertyWithDescriptor() {
+        const type = this.propertyTypes[Math.floor(Math.random() * this.propertyTypes.length)];
+        const descriptor = this.propertyDescriptors[Math.floor(Math.random() * this.propertyDescriptors.length)];
+        return Math.random() > 0.5 ? `${type} ${descriptor}` : type;
+    }
+    // NEW: Generate partial street address (just number + street, more common)
+    generatePartialAddress() {
+        const number = Math.floor(Math.random() * 9999) + 1;
+        const street = this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
+        const words = street.split(' ');
+        // Sometimes use just first word of street name for broader matches
+        return Math.random() > 0.3 ? `${number} ${street}` : `${number} ${words[0]}`;
+    }
+    // NEW: Generate just street numbers (catches all properties on that block)
+    generateStreetNumber() {
+        // Focus on common street number ranges in Austin
+        const ranges = [
+            () => Math.floor(Math.random() * 1000) + 1, // 1-1000
+            () => Math.floor(Math.random() * 1000) + 1000, // 1000-2000
+            () => Math.floor(Math.random() * 1000) + 2000, // 2000-3000
+            () => Math.floor(Math.random() * 2000) + 3000, // 3000-5000
+            () => Math.floor(Math.random() * 5000) + 5000, // 5000-10000
+        ];
+        const rangeGenerator = ranges[Math.floor(Math.random() * ranges.length)];
+        return rangeGenerator().toString();
+    }
     async getNextBatch(batchSize) {
         // Load or refresh database terms (automatic hourly refresh)
         await this.loadUsedTermsFromDatabase();
@@ -266,9 +322,9 @@ class SearchPatternGenerator {
         //   - Full Names: 4.4 avg properties (INEFFICIENT - removed)
         //   - Street Addresses: 2.1 avg properties (WORST - removed)
         const strategies = [
-            { fn: () => this.generateLastNameOnly(), weight: 70 }, // 70.3 avg props - BEST PERFORMER (increased from 60)
-            { fn: () => this.generateStreetNameOnly(), weight: 40 }, // 24.4 avg props - GREAT (increased from 35)
-            { fn: () => this.generateNeighborhood(), weight: 20 }, // Good for area coverage (increased from 15)
+            //      { fn: () => this.generateLastNameOnly(), weight: 70 },          // 70.3 avg props - BEST PERFORMER (increased from 60)
+            //      { fn: () => this.generateStreetNameOnly(), weight: 40 },        // 24.4 avg props - GREAT (increased from 35)
+            //      { fn: () => this.generateNeighborhood(), weight: 20 },          // Good for area coverage (increased from 15)
             { fn: () => this.generateBusinessName(), weight: 20 }, // 6.7 avg props but 26% zero-result rate (reduced from 20)
             { fn: () => this.generatePropertyType(), weight: 40 }, // Moderate yield
             // REMOVED inefficient strategies based on monitor analysis (500 recent zero-results):
@@ -332,64 +388,6 @@ class SearchPatternGenerator {
             logger.info(`   🔍 Skipped ${containmentSkipped} terms containing previous search terms`);
         }
         return batch;
-    }
-    generateLastNameOnly() {
-        return this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
-    }
-    generateStreetAddress() {
-        const number = Math.floor(Math.random() * 9999) + 1;
-        const street = this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
-        return `${number} ${street}`;
-    }
-    generatePropertyType() {
-        return this.propertyTypes[Math.floor(Math.random() * this.propertyTypes.length)];
-    }
-    generateBusinessName() {
-        const name = this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
-        const suffix = this.businessSuffixes[Math.floor(Math.random() * this.businessSuffixes.length)];
-        return `${name} ${suffix}`;
-    }
-    generateStreetNameOnly() {
-        return this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
-    }
-    generateNumberPattern() {
-        const patterns = ['1000', '2000', '3000', '4000', '5000', '6000', '7000', '8000', '9000'];
-        return patterns[Math.floor(Math.random() * patterns.length)];
-    }
-    generateFourLetterWord() {
-        const words = ['Park', 'Lake', 'Hill', 'Wood', 'Glen', 'Dale', 'View', 'Rock', 'Pine', 'Sage'];
-        return words[Math.floor(Math.random() * words.length)];
-    }
-    // NEW: Generate neighborhood name
-    generateNeighborhood() {
-        return this.neighborhoods[Math.floor(Math.random() * this.neighborhoods.length)];
-    }
-    // NEW: Generate property type with descriptor
-    generatePropertyWithDescriptor() {
-        const type = this.propertyTypes[Math.floor(Math.random() * this.propertyTypes.length)];
-        const descriptor = this.propertyDescriptors[Math.floor(Math.random() * this.propertyDescriptors.length)];
-        return Math.random() > 0.5 ? `${type} ${descriptor}` : type;
-    }
-    // NEW: Generate partial street address (just number + street, more common)
-    generatePartialAddress() {
-        const number = Math.floor(Math.random() * 9999) + 1;
-        const street = this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
-        const words = street.split(' ');
-        // Sometimes use just first word of street name for broader matches
-        return Math.random() > 0.3 ? `${number} ${street}` : `${number} ${words[0]}`;
-    }
-    // NEW: Generate just street numbers (catches all properties on that block)
-    generateStreetNumber() {
-        // Focus on common street number ranges in Austin
-        const ranges = [
-            () => Math.floor(Math.random() * 1000) + 1, // 1-1000
-            () => Math.floor(Math.random() * 1000) + 1000, // 1000-2000
-            () => Math.floor(Math.random() * 1000) + 2000, // 2000-3000
-            () => Math.floor(Math.random() * 2000) + 3000, // 3000-5000
-            () => Math.floor(Math.random() * 5000) + 5000, // 5000-10000
-        ];
-        const rangeGenerator = ranges[Math.floor(Math.random() * ranges.length)];
-        return rangeGenerator().toString();
     }
 }
 class ContinuousBatchScraper {

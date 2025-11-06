@@ -3,15 +3,18 @@
 import { scraperQueue } from './src/queues/scraper.queue';
 import { prisma } from './src/lib/prisma';
 
-async function addMoreBusinessTerms() {
-  console.log('➕ Adding more business terms to front of queue...\n');
+async function addBusinessTerms() {
+  console.log('➕ Adding business terms to front of queue...\n');
 
   const terms = [
-    'Development',
-    'Equity',
-    'Portfolio',
-    'Real Estate',
-    'Developers'
+    'found',
+    'invest',
+    'real',
+    'asset',
+    'manage',
+    'capital',
+    'partner',
+    'folio'
   ];
 
   console.log(`Adding ${terms.length} terms with priority 1:\n`);
@@ -36,7 +39,7 @@ async function addMoreBusinessTerms() {
   await prisma.$disconnect();
 }
 
-addMoreBusinessTerms().then(() => process.exit(0)).catch((e) => {
+addBusinessTerms().then(() => process.exit(0)).catch((e) => {
   console.error('❌ Error:', e);
   process.exit(1);
 });
