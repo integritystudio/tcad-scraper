@@ -3,9 +3,10 @@ import { TCADScraper } from '../lib/tcad-scraper';
 import { ScrapeJobData, ScrapeJobResult } from '../types';
 import winston from 'winston';
 import { prisma } from '../lib/prisma';
+import { config } from '../config';
 
 const logger = winston.createLogger({
-  level: 'info',
+  level: config.logging.level,
   format: winston.format.json(),
   transports: [
     new winston.transports.Console({
@@ -15,24 +16,26 @@ const logger = winston.createLogger({
 });
 
 // Create the Bull queue
-export const scraperQueue = new Bull<ScrapeJobData>('scraper-queue', {
+export const scraperQueue = new Bull<ScrapeJobData>(config.queue.name, {
   redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
+    host: config.redis.host,
+    port: config.redis.port,
+    password: config.redis.password,
+    db: config.redis.db,
   },
   defaultJobOptions: {
-    attempts: 3,
+    attempts: config.queue.defaultJobOptions.attempts,
     backoff: {
       type: 'exponential',
-      delay: 2000,
+      delay: config.queue.defaultJobOptions.backoffDelay,
     },
-    removeOnComplete: 100, // Keep last 100 completed jobs
-    removeOnFail: 50, // Keep last 50 failed jobs
+    removeOnComplete: config.queue.defaultJobOptions.removeOnComplete,
+    removeOnFail: config.queue.defaultJobOptions.removeOnFail,
   },
 });
 
 // Process scraping jobs
-scraperQueue.process('scrape-properties', 2, async (job) => {
+scraperQueue.process(config.queue.jobName, config.queue.concurrency, async (job) => {
   const startTime = Date.now();
   const { searchTerm, userId, scheduled = false } = job.data;
 
@@ -47,7 +50,7 @@ scraperQueue.process('scrape-properties', 2, async (job) => {
   });
 
   const scraper = new TCADScraper({
-    headless: process.env.NODE_ENV === 'production',
+    headless: config.env.isProduction ? true : config.scraper.headless,
   });
 
   try {
@@ -154,26 +157,24 @@ scraperQueue.on('stalled', (job) => {
   logger.warn(`Job ${job.id} stalled and will be retried`);
 });
 
-// Clean up old jobs periodically (every hour)
+// Clean up old jobs periodically
 setInterval(async () => {
   try {
-    const grace = 1000 * 60 * 60 * 24; // 24 hours
-    await scraperQueue.clean(grace, 'completed');
-    await scraperQueue.clean(grace, 'failed');
+    await scraperQueue.clean(config.queue.cleanupGracePeriod, 'completed');
+    await scraperQueue.clean(config.queue.cleanupGracePeriod, 'failed');
     logger.info('Cleaned old jobs from queue');
   } catch (error) {
     logger.error('Failed to clean queue:', error);
   }
-}, 60 * 60 * 1000);
+}, config.queue.cleanupInterval);
 
 // Rate limiting helper
 const activeJobs = new Map<string, number>();
 
 export async function canScheduleJob(searchTerm: string): Promise<boolean> {
   const lastJobTime = activeJobs.get(searchTerm);
-  const rateLimitDelay = parseInt(process.env.SCRAPER_RATE_LIMIT_DELAY || '5000');
 
-  if (lastJobTime && Date.now() - lastJobTime < rateLimitDelay) {
+  if (lastJobTime && Date.now() - lastJobTime < config.rateLimit.scraper.jobDelay) {
     return false;
   }
 
@@ -181,7 +182,7 @@ export async function canScheduleJob(searchTerm: string): Promise<boolean> {
 
   // Clean up old entries
   for (const [term, time] of activeJobs.entries()) {
-    if (Date.now() - time > 60000) {
+    if (Date.now() - time > config.rateLimit.scraper.cacheCleanupInterval) {
       activeJobs.delete(term);
     }
   }

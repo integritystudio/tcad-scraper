@@ -5,12 +5,13 @@
 
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import { config } from '../config';
 
 /**
  * Generate cryptographically secure nonce for CSP
  */
 export function generateNonce(): string {
-  return crypto.randomBytes(16).toString('base64');
+  return crypto.randomBytes(config.security.csp.nonceLength).toString('base64');
 }
 
 /**
@@ -47,19 +48,26 @@ export function cspMiddleware(req: Request, res: Response, next: NextFunction) {
   }
 
   // CSP Level 3 with nonce support
-  const cspDirectives = [
-    "default-src 'self'",
-    nonce ? `script-src 'self' 'nonce-${nonce}'` : "script-src 'self'",
-    nonce ? `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'` : "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
-    "font-src 'self' data:",
-    "connect-src 'self'",
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-  ].join('; ');
+  if (config.security.csp.enabled) {
+    const directives = config.security.csp.directives;
+    const cspDirectives = [
+      `default-src ${directives.defaultSrc.join(' ')}`,
+      nonce
+        ? `script-src ${directives.scriptSrc.join(' ')} 'nonce-${nonce}'`
+        : `script-src ${directives.scriptSrc.join(' ')}`,
+      nonce
+        ? `style-src ${directives.styleSrc.join(' ')} 'nonce-${nonce}'`
+        : `style-src ${directives.styleSrc.join(' ')}`,
+      `img-src ${directives.imgSrc.join(' ')}`,
+      `font-src ${directives.fontSrc.join(' ')}`,
+      `connect-src ${directives.connectSrc.join(' ')}`,
+      `frame-ancestors ${directives.frameAncestors.join(' ')}`,
+      `base-uri ${directives.baseUri.join(' ')}`,
+      `form-action ${directives.formAction.join(' ')}`,
+    ].join('; ');
 
-  res.setHeader('Content-Security-Policy', cspDirectives);
+    res.setHeader('Content-Security-Policy', cspDirectives);
+  }
 
   // Additional security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -68,8 +76,11 @@ export function cspMiddleware(req: Request, res: Response, next: NextFunction) {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   // HSTS (only in production with HTTPS)
-  if (process.env.NODE_ENV === 'production' && req.protocol === 'https') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  if (config.env.isProduction && req.protocol === 'https') {
+    res.setHeader(
+      'Strict-Transport-Security',
+      `max-age=${config.security.hsts.maxAge}${config.security.hsts.includeSubDomains ? '; includeSubDomains' : ''}`
+    );
   }
 
   next();
@@ -134,13 +145,13 @@ export interface InitialAppData {
  */
 export function getInitialAppData(): InitialAppData {
   return {
-    apiUrl: process.env.API_URL || '/api',
-    environment: process.env.NODE_ENV || 'development',
+    apiUrl: config.frontend.apiUrl,
+    environment: config.env.nodeEnv,
     features: {
-      search: true,
-      analytics: process.env.NODE_ENV === 'production',
-      monitoring: process.env.NODE_ENV === 'production',
+      search: config.frontend.features.search,
+      analytics: config.frontend.features.analytics,
+      monitoring: config.frontend.features.monitoring,
     },
-    version: process.env.APP_VERSION || '1.0.0',
+    version: config.frontend.appVersion,
   };
 }

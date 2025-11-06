@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { config } from '../config';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -11,14 +12,13 @@ export interface AuthRequest extends Request {
 // Simple API key authentication middleware
 export const apiKeyAuth = (req: Request, res: Response, next: NextFunction) => {
   const apiKey = req.headers['x-api-key'] as string;
-  const expectedApiKey = process.env.API_KEY;
 
-  // Skip auth in development if no API key is set
-  if (process.env.NODE_ENV === 'development' && !expectedApiKey) {
+  // Skip auth in development if no API key is set and skip is enabled
+  if (config.env.isDevelopment && config.auth.skipInDevelopment && !config.auth.apiKey) {
     return next();
   }
 
-  if (!apiKey || apiKey !== expectedApiKey) {
+  if (!apiKey || apiKey !== config.auth.apiKey) {
     return res.status(401).json({ error: 'Unauthorized - Invalid API key' });
   }
 
@@ -30,8 +30,8 @@ export const jwtAuth = (req: AuthRequest, res: Response, next: NextFunction) => 
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
-  // Skip auth in development if no JWT secret is set
-  if (process.env.NODE_ENV === 'development' && !process.env.JWT_SECRET) {
+  // Skip auth in development if no JWT secret is set and skip is enabled
+  if (config.env.isDevelopment && config.auth.skipInDevelopment && !config.auth.jwt.secret) {
     return next();
   }
 
@@ -40,8 +40,7 @@ export const jwtAuth = (req: AuthRequest, res: Response, next: NextFunction) => 
   }
 
   try {
-    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-    const decoded = jwt.verify(token, jwtSecret) as { id: string; email?: string };
+    const decoded = jwt.verify(token, config.auth.jwt.secret) as { id: string; email?: string };
     req.user = decoded;
     next();
   } catch (error) {
@@ -54,9 +53,9 @@ export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  if (token && process.env.JWT_SECRET) {
+  if (token && config.auth.jwt.secret) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET) as { id: string; email?: string };
+      const decoded = jwt.verify(token, config.auth.jwt.secret) as { id: string; email?: string };
       req.user = decoded;
     } catch (error) {
       // Invalid token, but we continue anyway
@@ -68,8 +67,7 @@ export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction
 
 // Generate JWT token
 export const generateToken = (userId: string, email?: string): string => {
-  const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
-  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
-
-  return jwt.sign({ id: userId, email }, jwtSecret, { expiresIn });
+  return jwt.sign({ id: userId, email }, config.auth.jwt.secret, {
+    expiresIn: config.auth.jwt.expiresIn as string | number,
+  });
 };

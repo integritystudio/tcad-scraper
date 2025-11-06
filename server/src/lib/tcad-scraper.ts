@@ -1,9 +1,10 @@
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import winston from 'winston';
 import { ScraperConfig, PropertyData } from '../types';
+import { config as appConfig } from '../config';
 
 const logger = winston.createLogger({
-  level: 'info',
+  level: appConfig.logging.level,
   format: winston.format.json(),
   transports: [
     new winston.transports.Console({
@@ -17,32 +18,34 @@ export class TCADScraper {
   private config: ScraperConfig;
 
   constructor(config?: Partial<ScraperConfig>) {
-    // Configure Bright Data proxy if available
-    // TEMPORARILY DISABLED: Proxy blocks React from rendering
-    const proxyConfig = {}; // Disabled for testing
-    /*
-    const proxyConfig = process.env.BRIGHT_DATA_API_TOKEN ? {
-      proxyServer: `http://${process.env.BRIGHT_DATA_PROXY_HOST || 'brd.superproxy.io'}:${process.env.BRIGHT_DATA_PROXY_PORT || '22225'}`,
-      proxyUsername: `brd-customer-${process.env.BRIGHT_DATA_API_TOKEN?.substring(0, 8)}-zone-residential`,
-      proxyPassword: process.env.BRIGHT_DATA_API_TOKEN,
-    } : {};
-    */
+    // Configure proxy if enabled
+    let proxyConfig = {};
+
+    if (appConfig.scraper.brightData.enabled && appConfig.scraper.brightData.apiToken) {
+      // Bright Data proxy configuration
+      proxyConfig = {
+        proxyServer: `http://${appConfig.scraper.brightData.proxyHost}:${appConfig.scraper.brightData.proxyPort}`,
+        proxyUsername: `brd-customer-${appConfig.scraper.brightData.apiToken.substring(0, 8)}-zone-residential`,
+        proxyPassword: appConfig.scraper.brightData.apiToken,
+      };
+      logger.info('Bright Data proxy configured');
+    } else if (appConfig.scraper.proxy.enabled && appConfig.scraper.proxy.server) {
+      // Generic proxy configuration
+      proxyConfig = {
+        proxyServer: appConfig.scraper.proxy.server,
+        proxyUsername: appConfig.scraper.proxy.username,
+        proxyPassword: appConfig.scraper.proxy.password,
+      };
+      logger.info('Generic proxy configured');
+    }
 
     this.config = {
-      headless: true,
-      timeout: 30000,
-      retryAttempts: 3,
-      retryDelay: 2000,
-      userAgents: [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      ],
-      viewports: [
-        { width: 3840, height: 2160 }, // 4K to see all columns
-        { width: 2560, height: 1440 }, // 1440p
-        { width: 1920, height: 1080 },
-      ],
+      headless: appConfig.scraper.headless,
+      timeout: appConfig.scraper.timeout,
+      retryAttempts: appConfig.scraper.retryAttempts,
+      retryDelay: appConfig.scraper.retryDelay,
+      userAgents: appConfig.scraper.userAgents,
+      viewports: appConfig.scraper.viewports,
       ...proxyConfig,
       ...config,
     };
@@ -86,7 +89,10 @@ export class TCADScraper {
     return array[Math.floor(Math.random() * array.length)];
   }
 
-  private async humanDelay(min: number = 100, max: number = 500): Promise<void> {
+  private async humanDelay(
+    min: number = appConfig.scraper.humanDelay.min,
+    max: number = appConfig.scraper.humanDelay.max
+  ): Promise<void> {
     const delay = Math.floor(Math.random() * (max - min) + min);
     await new Promise(resolve => setTimeout(resolve, delay));
   }

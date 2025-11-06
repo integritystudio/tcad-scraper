@@ -2,12 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 import { createBullBoard } from '@bull-board/api';
 import { BullAdapter } from '@bull-board/api/bullAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import winston from 'winston';
 
+import { config, validateConfig, logConfigSummary } from './config';
 import { scraperQueue } from './queues/scraper.queue';
 import { propertyRouter } from './routes/property.routes';
 import { scheduledJobs } from './schedulers/scrape-scheduler';
@@ -15,33 +15,38 @@ import { optionalAuth } from './middleware/auth';
 import { nonceMiddleware } from './middleware/xcontroller.middleware';
 import { appRouter } from './routes/app.routes';
 
-// Load environment variables from .env or Doppler
-dotenv.config();
+// Validate configuration
+validateConfig();
 
-// Log Doppler usage
-if (process.env.DOPPLER_PROJECT) {
-  console.log(`Using Doppler project: ${process.env.DOPPLER_PROJECT}`);
-  console.log(`Doppler config: ${process.env.DOPPLER_CONFIG}`);
-}
+// Log configuration summary
+logConfigSummary();
 
 // Configure logger
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: config.logging.level,
   format: winston.format.json(),
   transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      ),
-    }),
-    new winston.transports.File({
-      filename: 'logs/error.log',
-      level: 'error'
-    }),
-    new winston.transports.File({
-      filename: 'logs/combined.log'
-    }),
+    ...(config.logging.console.enabled
+      ? [
+          new winston.transports.Console({
+            format: winston.format.combine(
+              config.logging.colorize ? winston.format.colorize() : winston.format.simple(),
+              winston.format.simple()
+            ),
+          }),
+        ]
+      : []),
+    ...(config.logging.files.enabled
+      ? [
+          new winston.transports.File({
+            filename: config.logging.files.error,
+            level: 'error',
+          }),
+          new winston.transports.File({
+            filename: config.logging.files.combined,
+          }),
+        ]
+      : []),
   ],
 });
 
@@ -53,34 +58,30 @@ app.use(nonceMiddleware);
 
 // Security middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-  hsts: false, // Disable HSTS for HTTP access
-  crossOriginOpenerPolicy: false, // Disable COOP for IP-based access
-  contentSecurityPolicy: false, // CSP handled by xcontroller middleware for frontend routes
-  originAgentCluster: false, // Disable Origin-Agent-Cluster for IP-based access
+  crossOriginResourcePolicy: { policy: config.security.helmet.crossOriginResourcePolicy as any },
+  hsts: config.security.helmet.enableHsts,
+  crossOriginOpenerPolicy: config.security.helmet.enableCoop,
+  contentSecurityPolicy: config.security.helmet.enableCsp,
+  originAgentCluster: config.security.helmet.enableOriginAgentCluster,
 }));
 
 // CORS configuration
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'https://alephatx.info',
-  'https://www.alephatx.info',
-  process.env.FRONTEND_URL,
-].filter(Boolean);
+const allowedOrigins = config.frontend.url
+  ? [...config.cors.allowedOrigins, config.frontend.url]
+  : config.cors.allowedOrigins;
 
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin && config.cors.allowNoOrigin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin as string)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true,
+  credentials: config.cors.credentials,
 }));
 
 // Body parsing middleware
@@ -89,32 +90,35 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting for API endpoints
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
+  windowMs: config.rateLimit.api.windowMs,
+  max: config.rateLimit.api.max,
+  message: config.rateLimit.api.message,
 });
 
 app.use('/api/', apiLimiter);
 
 // Rate limiting specifically for scraping endpoints
 const scrapeLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 5, // Limit each IP to 5 scrape requests per minute
-  message: 'Too many scrape requests, please wait before trying again.',
+  windowMs: config.rateLimit.scraper.windowMs,
+  max: config.rateLimit.scraper.max,
+  message: config.rateLimit.scraper.message,
 });
 
 app.use('/api/properties/scrape', scrapeLimiter);
 
 // Bull Dashboard setup
-const serverAdapter = new ExpressAdapter();
-serverAdapter.setBasePath('/admin/queues');
+if (config.queue.dashboard.enabled) {
+  const serverAdapter = new ExpressAdapter();
+  serverAdapter.setBasePath(config.queue.dashboard.basePath);
 
-const { addQueue, removeQueue, setQueues, replaceQueues } = createBullBoard({
-  queues: [new BullAdapter(scraperQueue)],
-  serverAdapter,
-});
+  const { addQueue, removeQueue, setQueues, replaceQueues } = createBullBoard({
+    queues: [new BullAdapter(scraperQueue)],
+    serverAdapter,
+  });
 
-app.use('/admin/queues', serverAdapter.getRouter());
+  app.use(config.queue.dashboard.basePath, serverAdapter.getRouter());
+  logger.info(`Bull Dashboard enabled at ${config.queue.dashboard.basePath}`);
+}
 
 // Health check endpoints (before other routes)
 app.get('/health', (req, res) => {
@@ -122,7 +126,7 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV,
+    environment: config.env.nodeEnv,
   });
 });
 
@@ -167,7 +171,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
   res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    message: config.env.isDevelopment ? err.message : undefined,
   });
 });
 
@@ -177,13 +181,12 @@ app.use((req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3001;
-const HOST = process.env.HOST || '0.0.0.0';
-
-const server = app.listen(PORT, HOST, () => {
-  logger.info(`Server running on http://${HOST}:${PORT}`);
-  logger.info(`Bull Dashboard available at http://${HOST}:${PORT}/admin/queues`);
-  logger.info(`Environment: ${process.env.NODE_ENV}`);
+const server = app.listen(config.server.port, config.server.host, () => {
+  logger.info(`Server running on http://${config.server.host}:${config.server.port}`);
+  if (config.queue.dashboard.enabled) {
+    logger.info(`Bull Dashboard available at http://${config.server.host}:${config.server.port}${config.queue.dashboard.basePath}`);
+  }
+  logger.info(`Environment: ${config.env.nodeEnv}`);
 
   // Initialize scheduled jobs
   scheduledJobs.initialize();

@@ -1,9 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Prisma } from '@prisma/client';
 import logger from './logger';
+import { config } from '../config';
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: config.claude.apiKey,
 });
 
 interface SearchFilters {
@@ -16,8 +17,8 @@ export class ClaudeSearchService {
   async parseNaturalLanguageQuery(query: string): Promise<SearchFilters> {
     try {
       const message = await anthropic.messages.create({
-        model: 'claude-3-haiku-20240307',
-        max_tokens: 1024,
+        model: config.claude.model,
+        max_tokens: config.claude.maxTokens,
         messages: [
           {
             role: 'user',
