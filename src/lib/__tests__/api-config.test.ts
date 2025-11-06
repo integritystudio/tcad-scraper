@@ -35,7 +35,30 @@ describe('API Configuration', () => {
   });
 
   describe('getApiBaseUrl', () => {
-    test('should prioritize server-passed config (xcontroller)', () => {
+    test('should prioritize VITE_API_URL (for static deployments)', () => {
+      // Mock VITE_API_URL environment variable
+      (import.meta.env as any).VITE_API_URL = 'https://api.alephatx.info';
+
+      // Mock xcontroller returning server config (should be ignored)
+      mockLoadData.mockReturnValue({
+        apiUrl: 'https://api.example.com',
+        environment: 'production',
+        features: { search: true, analytics: true, monitoring: true },
+        version: '1.0.0',
+      });
+
+      const apiUrl = getApiBaseUrl();
+
+      // Should use VITE_API_URL, not xcontroller
+      expect(apiUrl).toBe('https://api.alephatx.info');
+      // Should NOT call loadData when VITE_API_URL is available
+      expect(mockLoadData).not.toHaveBeenCalled();
+    });
+
+    test('should fall back to server-passed config when VITE_API_URL is unavailable', () => {
+      // Ensure VITE_API_URL is not set
+      delete (import.meta.env as any).VITE_API_URL;
+
       // Mock xcontroller returning server config
       mockLoadData.mockReturnValue({
         apiUrl: 'https://api.example.com',
@@ -47,19 +70,6 @@ describe('API Configuration', () => {
       const apiUrl = getApiBaseUrl();
 
       expect(apiUrl).toBe('https://api.example.com');
-      expect(mockLoadData).toHaveBeenCalledWith('initial-data');
-    });
-
-    test('should fall back to VITE_API_URL when xcontroller data is unavailable', () => {
-      // Mock xcontroller returning null (no server config)
-      mockLoadData.mockReturnValue(null);
-
-      // Mock VITE_API_URL environment variable
-      (import.meta.env as any).VITE_API_URL = 'https://api.alephatx.info';
-
-      const apiUrl = getApiBaseUrl();
-
-      expect(apiUrl).toBe('https://api.alephatx.info');
       expect(mockLoadData).toHaveBeenCalledWith('initial-data');
     });
 
@@ -76,7 +86,10 @@ describe('API Configuration', () => {
       expect(mockLoadData).toHaveBeenCalledWith('initial-data');
     });
 
-    test('should handle empty string from xcontroller', () => {
+    test('should handle empty string from xcontroller when VITE_API_URL is not set', () => {
+      // Ensure VITE_API_URL is not set
+      delete (import.meta.env as any).VITE_API_URL;
+
       // Mock xcontroller returning data with empty apiUrl
       mockLoadData.mockReturnValue({
         apiUrl: '',
@@ -85,16 +98,16 @@ describe('API Configuration', () => {
         version: '1.0.0',
       });
 
-      // Mock VITE_API_URL as fallback
-      (import.meta.env as any).VITE_API_URL = 'https://api.alephatx.info';
-
       const apiUrl = getApiBaseUrl();
 
-      // Empty string is falsy, should use VITE_API_URL
-      expect(apiUrl).toBe('https://api.alephatx.info');
+      // Empty string is falsy, should fall back to /api
+      expect(apiUrl).toBe('/api');
     });
 
-    test('should handle undefined apiUrl from xcontroller', () => {
+    test('should handle undefined apiUrl from xcontroller when VITE_API_URL is not set', () => {
+      // Ensure VITE_API_URL is not set
+      delete (import.meta.env as any).VITE_API_URL;
+
       // Mock xcontroller returning data without apiUrl property
       mockLoadData.mockReturnValue({
         environment: 'production',
@@ -102,12 +115,9 @@ describe('API Configuration', () => {
         version: '1.0.0',
       } as any);
 
-      // Mock VITE_API_URL as fallback
-      (import.meta.env as any).VITE_API_URL = 'https://api.alephatx.info';
-
       const apiUrl = getApiBaseUrl();
 
-      expect(apiUrl).toBe('https://api.alephatx.info');
+      expect(apiUrl).toBe('/api');
     });
 
     test('should use production API URL from environment variable', () => {
@@ -165,7 +175,6 @@ describe('API Configuration', () => {
       // This is the bug that caused the production issue
       // The component was falling back to '/api' instead of using VITE_API_URL
 
-      mockLoadData.mockReturnValue(null);
       (import.meta.env as any).VITE_API_URL = 'https://api.alephatx.info';
 
       const apiUrl = getApiBaseUrl();
@@ -173,6 +182,8 @@ describe('API Configuration', () => {
       // Must NOT be '/api' when VITE_API_URL is available
       expect(apiUrl).not.toBe('/api');
       expect(apiUrl).toBe('https://api.alephatx.info');
+      // Should not even call loadData when VITE_API_URL is set
+      expect(mockLoadData).not.toHaveBeenCalled();
     });
 
     test('REGRESSION: should work in GitHub Pages deployment scenario', () => {
@@ -180,7 +191,6 @@ describe('API Configuration', () => {
       // - No xcontroller data (static HTML)
       // - VITE_API_URL set during build
 
-      mockLoadData.mockReturnValue(null);
       (import.meta.env as any).VITE_API_URL = 'https://api.alephatx.info';
 
       const apiUrl = getApiBaseUrl();
@@ -188,11 +198,29 @@ describe('API Configuration', () => {
       // Should resolve to production API, not relative path
       expect(apiUrl).toBe('https://api.alephatx.info');
       expect(apiUrl).toMatch(/^https:\/\//);
+      // Should not call loadData to avoid console errors
+      expect(mockLoadData).not.toHaveBeenCalled();
+    });
+
+    test('REGRESSION: should not log console errors in static builds', () => {
+      // This test ensures we don't call loadData when VITE_API_URL is available
+      // Previously caused "[DataController] Script tag with id 'initial-data' not found" error
+
+      (import.meta.env as any).VITE_API_URL = 'https://api.alephatx.info';
+
+      const apiUrl = getApiBaseUrl();
+
+      // Verify the xcontroller was never called (preventing console.error)
+      expect(mockLoadData).not.toHaveBeenCalled();
+      expect(apiUrl).toBe('https://api.alephatx.info');
     });
   });
 
   describe('Integration Scenarios', () => {
-    test('should work in server-side rendered scenario', () => {
+    test('should work in server-side rendered scenario (no VITE_API_URL)', () => {
+      // SSR scenarios don't set VITE_API_URL
+      delete (import.meta.env as any).VITE_API_URL;
+
       mockLoadData.mockReturnValue({
         apiUrl: 'https://ssr-api.example.com',
         environment: 'production',
@@ -203,24 +231,27 @@ describe('API Configuration', () => {
       const apiUrl = getApiBaseUrl();
 
       expect(apiUrl).toBe('https://ssr-api.example.com');
+      expect(mockLoadData).toHaveBeenCalledWith('initial-data');
     });
 
     test('should work in static site scenario (GitHub Pages)', () => {
-      mockLoadData.mockReturnValue(null);
       (import.meta.env as any).VITE_API_URL = 'https://api.alephatx.info';
 
       const apiUrl = getApiBaseUrl();
 
       expect(apiUrl).toBe('https://api.alephatx.info');
+      // Should not call loadData in static builds
+      expect(mockLoadData).not.toHaveBeenCalled();
     });
 
     test('should work in local development scenario', () => {
-      mockLoadData.mockReturnValue(null);
       delete (import.meta.env as any).VITE_API_URL;
+      mockLoadData.mockReturnValue(null);
 
       const apiUrl = getApiBaseUrl();
 
       expect(apiUrl).toBe('/api');
+      expect(mockLoadData).toHaveBeenCalledWith('initial-data');
     });
   });
 });
