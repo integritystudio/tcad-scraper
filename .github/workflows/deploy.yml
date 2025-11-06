@@ -47,12 +47,9 @@ jobs:
           echo "Building with API_URL: $VITE_API_URL"
           npm run build
 
-      - name: Build db layer
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-        run: |
-            cd server && docker compose up --build
+      # Note: Removed "Build db layer" step - not needed for static GitHub Pages deployment
+      # The backend services run separately and are not deployed via GitHub Pages
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
