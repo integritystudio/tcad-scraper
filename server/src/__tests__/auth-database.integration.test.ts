@@ -6,7 +6,7 @@
  * authentication middleware, and PostgreSQL database layer.
  */
 
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import request from 'supertest';
 import app from '../index';
 import { generateToken } from '../middleware/auth';
@@ -194,10 +194,9 @@ describe('Authentication-Database Integration Tests', () => {
           data: {
             searchTerm: 'test-auth-job-status',
             status: 'completed',
-            progress: 100,
             startedAt: new Date(),
             completedAt: new Date(),
-            propertiesFound: 5,
+            resultCount: 5,
           },
         });
         testJobId = job.id;
@@ -210,7 +209,6 @@ describe('Authentication-Database Integration Tests', () => {
         if (response.status === 200) {
           expect(response.body).toHaveProperty('id', testJobId);
           expect(response.body).toHaveProperty('status', 'completed');
-          expect(response.body).toHaveProperty('progress', 100);
         }
       });
 
@@ -406,9 +404,7 @@ describe('Authentication-Database Integration Tests', () => {
         expect([202, 400, 429, 500]).toContain(response.status);
       });
 
-      // At least one should potentially hit rate limit if they fire quickly enough
-      const rateLimited = responses.some(r => r.status === 429);
-      // This is acceptable - rate limiting may or may not trigger depending on timing
+      // Rate limiting may or may not trigger depending on timing - this is acceptable
     });
   });
 
