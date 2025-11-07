@@ -2,9 +2,9 @@ const express = require('express');
 const { Queue } = require('bullmq');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
-const REDIS_PORT = process.env.REDIS_PORT || 6379;
+const PORT = process.env.PORT;
+const REDIS_HOST = process.env.REDIS_HOST;
+const REDIS_PORT = process.env.REDIS_PORT;
 
 // Connection configuration
 const connection = {
@@ -49,37 +49,6 @@ async function discoverQueues() {
   }
 }
 
-// Metrics endpoint
-app.get('/metrics', async (req, res) => {
-  try {
-    const queueNames = await discoverQueues();
-    
-    if (queueNames.length === 0) {
-      res.set('Content-Type', 'text/plain');
-      return res.send('# No queues found\n');
-    }
-
-    let allMetrics = '';
-    
-    // Gather metrics from all discovered queues
-    for (const queueName of queueNames) {
-      try {
-        const queue = getQueue(queueName);
-        const metrics = await queue.exportPrometheusMetrics();
-        allMetrics += metrics + '\n';
-      } catch (error) {
-        console.error(`Error getting metrics for queue ${queueName}:`, error);
-      }
-    }
-    
-    res.set('Content-Type', 'text/plain');
-    res.send(allMetrics);
-  } catch (error) {
-    console.error('Error generating metrics:', error);
-    res.status(500).send(`Error: ${error.message}`);
-  }
-});
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -96,8 +65,6 @@ app.get('/queues', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`BullMQ Prometheus metrics exporter running on port ${PORT}`);
-  console.log(`Metrics available at http://localhost:${PORT}/metrics`);
   console.log(`Health check at http://localhost:${PORT}/health`);
   console.log(`Queue list at http://localhost:${PORT}/queues`);
 });

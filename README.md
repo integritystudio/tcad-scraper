@@ -416,10 +416,10 @@ npm run dev
 ### Access Points
 
 - **Frontend UI**: http://localhost:5173
-- **Backend API**: http://localhost:3001/api
-- **Health Check**: http://localhost:3001/health
-- **Queue Health**: http://localhost:3001/health/queue
-- **Bull Dashboard**: http://localhost:3001/admin/queues
+- **Backend API**: http://localhost:5050/api
+- **Health Check**: http://localhost:5050/health
+- **Queue Health**: http://localhost:5050/health/queue
+- **Bull Dashboard**: http://localhost:5050/admin/queues
 - **Prisma Studio**: Run `npx prisma studio` from server/ (opens on port 5555)
 - **Prometheus**: http://localhost:9090 (if enabled)
 - **BullMQ Metrics**: http://localhost:3000 (if enabled)
@@ -441,7 +441,7 @@ Retrieve all properties with optional filtering and pagination.
 
 **Example:**
 ```bash
-curl http://localhost:3001/api/properties?city=Austin&limit=25
+curl http://localhost:5050/api/properties?city=Austin&limit=25
 ```
 
 #### GET /api/properties/:id
@@ -449,7 +449,7 @@ Retrieve a specific property by ID.
 
 **Example:**
 ```bash
-curl http://localhost:3001/api/properties/abc-123-def
+curl http://localhost:5050/api/properties/abc-123-def
 ```
 
 #### POST /api/properties/search
@@ -483,7 +483,7 @@ curl http://localhost:3001/api/properties/abc-123-def
 
 **Example:**
 ```bash
-curl -X POST http://localhost:3001/api/properties/search \
+curl -X POST http://localhost:5050/api/properties/search \
   -H "Content-Type: application/json" \
   -d '{"query": "properties in Austin worth over 1 million"}'
 ```
@@ -512,7 +512,7 @@ Test Claude AI API connection and configuration.
 
 **Example:**
 ```bash
-curl http://localhost:3001/api/properties/search/test
+curl http://localhost:5050/api/properties/search/test
 ```
 
 #### POST /api/properties/scrape/:propertyId
@@ -522,7 +522,7 @@ Trigger a scrape for a specific property ID.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:3001/api/properties/scrape/123456
+curl -X POST http://localhost:5050/api/properties/scrape/123456
 ```
 
 #### POST /api/properties/scrape/batch
@@ -539,7 +539,7 @@ Queue multiple search terms for scraping.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:3001/api/properties/scrape/batch \
+curl -X POST http://localhost:5050/api/properties/scrape/batch \
   -H "Content-Type: application/json" \
   -d '{"searchTerms": ["Smith", "123 Oak St"]}'
 ```
@@ -583,13 +583,13 @@ The API supports optional authentication via:
 1. **JWT Bearer Token:**
 ```bash
 curl -H "Authorization: Bearer your-jwt-token" \
-  http://localhost:3001/api/properties
+  http://localhost:5050/api/properties
 ```
 
 2. **API Key:**
 ```bash
 curl -H "X-API-Key: your-api-key" \
-  http://localhost:3001/api/properties
+  http://localhost:5050/api/properties
 ```
 
 By default, authentication is optional in development. Configure `JWT_SECRET` and `API_KEY` in Doppler for production use.
@@ -781,7 +781,7 @@ Once the secret is configured, the workflow will automatically deploy the applic
 
 ### Bull Dashboard
 
-Access the BullMQ dashboard at http://localhost:3001/admin/queues to monitor:
+Access the BullMQ dashboard at http://localhost:5050/admin/queues to monitor:
 - Queue status (waiting, active, completed, failed jobs)
 - Job processing times
 - Error rates and failed jobs
@@ -886,7 +886,7 @@ doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts > continuous-scra
 **No properties being scraped:**
 ```bash
 # Check queue status
-curl http://localhost:3001/health/queue
+curl http://localhost:5050/health/queue
 
 # Check Redis connection
 docker exec bullmq-redis redis-cli PING
@@ -955,7 +955,7 @@ docker-compose restart redis
 **Failed jobs accumulating:**
 ```bash
 # View failed jobs in Bull Dashboard
-open http://localhost:3001/admin/queues
+open http://localhost:5050/admin/queues
 
 # Or query Redis directly
 docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:failed"

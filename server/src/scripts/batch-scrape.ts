@@ -177,7 +177,7 @@ class BatchScraper {
           this.stats.totalQueued++;
           logger.info(`  ✓ Queued: ${searchTerm} (Job ID: ${job.id})`);
         } catch (error) {
-          logger.error(`  ✗ Failed to queue: ${searchTerm}`, error);
+          logger.error({ err: error }, `  ✗ Failed to queue: ${searchTerm}`);
         }
       }
 
@@ -310,7 +310,7 @@ Strategy Used: ${this.config.searchStrategy}
       logger.info('\n✓ Batch scraping completed successfully!');
       process.exit(0);
     } catch (error) {
-      logger.error('Fatal error during batch scraping:', error);
+      logger.error({ err: error }, 'Fatal error during batch scraping:');
       process.exit(1);
     }
   }

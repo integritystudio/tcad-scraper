@@ -5,7 +5,7 @@
  */
 
 import { scraperQueue } from '../queues/scraper.queue';
-import { logger } from '../lib/logger';
+import logger from '../lib/logger';
 import { config } from '../config';
 
 const INVESTMENT_TERMS = [
@@ -50,14 +50,14 @@ async function enqueueInvestmentBatch() {
         logger.info(`✅ [${successCount}/${INVESTMENT_TERMS.length}] Queued: "${term}" (Job ID: ${job.id})`);
       } catch (error) {
         failCount++;
-        logger.error(`❌ Failed to queue "${term}":`, error);
+        logger.error({ err: error }, `❌ Failed to queue "${term}":`);
       }
     }
 
     logger.info(`\n📊 Summary: ${successCount} queued, ${failCount} failed`);
     logger.info('✨ Investment batch enqueue completed!');
   } catch (error) {
-    logger.error('❌ Fatal error:', error);
+    logger.error({ err: error }, '❌ Fatal error:');
     process.exit(1);
   }
 }
@@ -65,6 +65,6 @@ async function enqueueInvestmentBatch() {
 enqueueInvestmentBatch()
   .then(() => process.exit(0))
   .catch((error) => {
-    logger.error('❌ Script failed:', error);
+    logger.error({ err: error }, '❌ Script failed:');
     process.exit(1);
   });

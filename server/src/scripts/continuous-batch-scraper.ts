@@ -262,7 +262,7 @@ class SearchPatternGenerator {
       this.dbTermsLoaded = true;
       this.lastDbRefresh = now;
     } catch (error) {
-      logger.error('❌ Failed to load used terms from database:', error);
+      logger.error({ err: error }, '❌ Failed to load used terms from database:');
       throw error;
     }
   }
@@ -518,7 +518,7 @@ class ContinuousBatchScraper {
 
         this.stats.totalQueued++;
       } catch (error) {
-        logger.error(`Failed to queue ${searchTerm}:`, error);
+        logger.error({ err: error }, `Failed to queue ${searchTerm}:`);
       }
     }
 
@@ -571,7 +571,7 @@ class ContinuousBatchScraper {
           logger.info(`⏱️  Estimated time to target: ${hoursRemaining.toFixed(1)} hours`);
         }
       } catch (error) {
-        logger.error('Monitoring error:', error);
+        logger.error({ err: error }, 'Monitoring error:');
       }
     }, CHECK_INTERVAL);
   }
@@ -618,6 +618,6 @@ class ContinuousBatchScraper {
 // Run the continuous scraper
 const scraper = new ContinuousBatchScraper();
 scraper.run().catch((error) => {
-  logger.error('Fatal error:', error);
+  logger.error({ err: error }, 'Fatal error:');
   process.exit(1);
 });

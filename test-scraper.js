@@ -52,8 +52,6 @@ async function runTest() {
 
   console.log('\n✅ Test complete!');
   console.log('\n💡 View live monitoring at:');
-  console.log('   - Prometheus: http://localhost:9090');
-  console.log('   - Metrics: http://localhost:3000/metrics\n');
 
   process.exit(0);
 }
