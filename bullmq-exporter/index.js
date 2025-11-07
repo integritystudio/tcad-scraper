@@ -1,9 +1,9 @@
 const http = require('http');
 const { Queue } = require('bullmq');
 
-const PORT = process.env.PORT;
-const REDIS_HOST = process.env.REDIS_HOST;
-const REDIS_PORT = process.env.REDIS_PORT;
+const PORT = process.env.PORT || 3000;
+const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+const REDIS_PORT = process.env.REDIS_PORT || 6379;
 
 const connection = {
   host: REDIS_HOST,
@@ -50,6 +50,17 @@ const server = http.createServer(async (req, res) => {
       if (queueNames.length === 0) {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         return res.end('# No queues found\n');
+      }
+
+      let allMetrics = '';
+      for (const queueName of queueNames) {
+        try {
+          const queue = getQueue(queueName);
+          const metrics = await queue.exportPrometheusMetrics();
+          allMetrics += metrics + '\n';
+        } catch (error) {
+          console.error(`Error getting metrics for queue ${queueName}:`, error);
+        }
       }
 
       res.writeHead(200, { 'Content-Type': 'text/plain' });

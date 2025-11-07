@@ -20,6 +20,25 @@ module.exports = {
       time: true,
       merge_logs: true,
     },
+    {
+      name: 'continuous-enqueue',
+      script: 'doppler',
+      args: 'run -- npx tsx src/scripts/continuous-batch-scraper.ts',
+      cwd: '/home/aledlie/tcad-scraper/server',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '2G',
+      env: {
+        NODE_ENV: 'production',
+        DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/tcad_scraper',
+      },
+      error_file: '/home/aledlie/tcad-scraper/server/logs/continuous-enqueue-error.log',
+      out_file: '/home/aledlie/tcad-scraper/server/logs/continuous-enqueue-out.log',
+      log_file: '/home/aledlie/tcad-scraper/server/logs/continuous-enqueue-combined.log',
+      time: true,
+      merge_logs: true,
+    },
   ],
   scraper: [
     {

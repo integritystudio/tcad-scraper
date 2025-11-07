@@ -298,10 +298,13 @@ model MonitoredSearch {
 }
 ```
 
-**Database Statistics** (as of last update):
-- Properties: 150,000+ unique records
-- Scrape Jobs: 13,000+ operations logged
-- Success Rate: ~98%+ successful scrapes
+**Database Statistics** (as of November 7, 2025):
+- Properties: 105,000+ unique records (growing at ~3,000/minute)
+- Scrape Jobs: 770+ operations logged
+- Success Rate: ~23% (175 completed / 773 total)
+- Average Results: 398 properties per successful scrape
+- Peak Single Scrape: 6,174 properties ("Ridge")
+- Scraping Rate: ~180,000 properties/hour sustained
 
 ## Getting Started
 
@@ -597,7 +600,41 @@ By default, authentication is optional in development. Configure `JWT_SECRET` an
 
 ### Continuous Production Scraper
 
-The recommended way to run the scraper in production:
+#### Using PM2 (Recommended)
+
+The preferred way to run the scraper in production with PM2 process management:
+
+```bash
+cd server
+
+# Start with PM2 using ecosystem config
+pm2 start ecosystem.config.js
+
+# Or start just the continuous-enqueue process
+pm2 start continuous-enqueue
+
+# Monitor processes
+pm2 list
+pm2 status continuous-enqueue
+
+# View logs
+pm2 logs continuous-enqueue
+pm2 logs continuous-enqueue --lines 100
+
+# Restart process
+pm2 restart continuous-enqueue
+
+# Stop process
+pm2 stop continuous-enqueue
+
+# Save PM2 configuration (persists across reboots)
+pm2 save
+pm2 startup  # Follow instructions to enable auto-start on boot
+```
+
+#### Using Direct Process
+
+Alternative method without PM2:
 
 ```bash
 cd server
@@ -631,6 +668,47 @@ pkill -f "continuous-batch-scraper"
 # Or using saved PID:
 kill $(cat continuous-scraper.pid)
 ```
+
+#### TCAD API Token Management
+
+The TCAD API requires token refresh every ~5 minutes. An automated cron job handles this:
+
+```bash
+# View current cron jobs
+crontab -l
+
+# The cron job (already configured):
+# */4 * * * * /home/aledlie/tcad-scraper/refresh-tcad-token.sh >> /home/aledlie/tcad-scraper/logs/token-refresh-cron.log 2>&1
+
+# Monitor token refresh logs
+tail -f /home/aledlie/tcad-scraper/logs/token-refresh-cron.log
+
+# Manually refresh token if needed
+/home/aledlie/tcad-scraper/refresh-tcad-token.sh
+```
+
+**Token refresh runs every 4 minutes automatically**, preventing HTTP 401 errors during continuous scraping.
+
+### Priority Search Terms
+
+Add high-value search terms to the front of the queue with priority 1:
+
+```bash
+cd server
+
+# Use the priority enqueue script (edit terms in the file)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" \
+  doppler run -- npx tsx src/scripts/enqueue-priority-terms.ts
+
+# The script adds terms like "Real", "Estate", "Trust", "Part", "Hill"
+# These process before other pending jobs
+```
+
+**Performance Notes:**
+- Priority 1 jobs process first
+- High-value terms like "Real", "Estate" return 3,000-6,000 properties each
+- Typical scraping rate: ~3,000 properties/minute
+- Peak performance: 10,000-15,000 properties/minute during large job completions
 
 ### Manual Batch Scraping
 
@@ -1034,6 +1112,12 @@ When using browser-based scraping, TCAD's AG Grid pagination controls are hidden
 
 The API-based scraping method requires token refresh every ~5 minutes. The scraper handles this automatically, but rapid scraping may occasionally hit rate limits.
 
+**Solution Implemented**:
+- Automated cron job refreshes token every 4 minutes
+- Cron logs to `/home/aledlie/tcad-scraper/logs/token-refresh-cron.log`
+- Provides 1-minute buffer before expiration
+- Prevents HTTP 401 errors during continuous scraping
+
 **Mitigation**: The system implements exponential backoff and automatic retry logic.
 
 ### 3. Search Result Variability
@@ -1072,6 +1156,17 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[SETUP.md](SETUP.md)** - Detailed setup instructions
 
 ## Recent Updates
+
+### November 7, 2025 - Production Optimization
+- **Automated Token Refresh**: Implemented cron job (every 4 minutes) to prevent TCAD API token expiration
+- **PM2 Process Management**: Added `ecosystem.config.js` for managing continuous-enqueue and tcad-api processes
+- **High-Priority Enqueuing**: Created `enqueue-priority-terms.ts` script for adding priority searches to front of queue
+- **Performance Milestone**: Achieved ~3,000 properties/minute scraping rate (180K/hour)
+- **Database Growth**: Surpassed 105,000 properties with continuous batch scraping
+- **Token Management**: Configured automatic token refresh via `/home/aledlie/tcad-scraper/refresh-tcad-token.sh`
+- **Monitoring Improvements**: Enhanced database statistics and per-minute tracking
+- **Production Stability**: Fixed syntax errors in continuous-batch-scraper.ts
+- **Process Reliability**: PM2 auto-restart and memory limits (2GB for continuous-enqueue)
 
 ### November 5, 2024
 - Added AI-powered natural language search using Claude AI (Anthropic)

@@ -147,7 +147,7 @@ class SearchPatternGenerator {
     'Brazos', 'San Jacinto', 'Trinity', 'Neches', 'Sabine', 'Blanco',
    'Manor', 'Martin Luther King', 'Airport', 'Pleasant Valley', 'Springdale',
     'Loyola', 'Berkman', 'Mueller', 'Cherrywood', 'Hancock',
-     Additional Austin streets
+    // Additional Austin streets
     'Burnet Road', 'South 1st', 'East 6th', 'West 5th', 'East 11th', 'West 12th',
     'Guadalupe', 'Street', 'Avenue', 'Lavaca', 'Street', 'Brazos', 'Boulevard',
    'Red River', 'Trinity', 'Neches', 'Sabine', 'Waller Street',
@@ -340,7 +340,7 @@ class SearchPatternGenerator {
       // - generatePropertyWithDescriptor() - 26% zero-result rate, creates patterns like "Landing Space"
       // - generateTwoLetterCombo() - 73.9% failure rate, alphanumeric codes return zero
       // - generateThreeLetterCombo() - 73.9% failure rate, alphanumeric codes return zero
-       - generateFourLetterWord() - 73.9% failure rate, random short codes return zero
+      // - generateFourLetterWord() - 73.9% failure rate, random short codes return zero
       // - generateFullName() - only 4.4 avg props (16x worse than last names), 26% zero-result rate
       // - generateStreetAddress() - 44.8% zero-result rate, too specific (number + street)
       // - generatePartialAddress() - still has numbers, inefficient
