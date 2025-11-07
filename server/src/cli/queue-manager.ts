@@ -203,7 +203,7 @@ program
 
       for (const job of activeJobs) {
         try {
-          await job.moveToFailed(new Error('Force-stopped by CLI'), '0');
+          await job.moveToFailed(new Error('Force-stopped by CLI'), false);
           removed++;
           if (removed % 10 === 0) {
             process.stdout.write(`\r   Progress: ${removed}/${waiting + delayed + active} jobs`);
@@ -273,8 +273,8 @@ program
 
       console.log('\n🚀 Removing jobs...');
       const [removedCompleted, removedFailed] = await Promise.all([
-        scraperQueue.clean(0, 0, 'completed'),
-        scraperQueue.clean(0, 0, 'failed'),
+        scraperQueue.clean(0, 'completed'),
+        scraperQueue.clean(0, 'failed'),
       ]);
 
       totalRemoved = removedCompleted.length + removedFailed.length;
@@ -289,8 +289,8 @@ program
       console.log(`\n📅 Removing jobs older than ${days} days...`);
 
       const [removedCompleted, removedFailed] = await Promise.all([
-        scraperQueue.clean(timestamp, 0, 'completed'),
-        scraperQueue.clean(timestamp, 0, 'failed'),
+        scraperQueue.clean(timestamp, 'completed'),
+        scraperQueue.clean(timestamp, 'failed'),
       ]);
 
       totalRemoved = removedCompleted.length + removedFailed.length;

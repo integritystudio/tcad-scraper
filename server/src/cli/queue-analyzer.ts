@@ -264,7 +264,7 @@ program
         searchTerm: true,
         resultCount: true,
         completedAt: true,
-        createdAt: true,
+        startedAt: true,
       }
     });
 
@@ -289,9 +289,9 @@ program
 
     // Calculate processing time
     const processingTimes = completed
-      .filter(j => j.createdAt && j.completedAt)
+      .filter(j => j.startedAt && j.completedAt)
       .map(j => {
-        const created = new Date(j.createdAt!).getTime();
+        const created = new Date(j.startedAt!).getTime();
         const completedTime = new Date(j.completedAt!).getTime();
         return (completedTime - created) / 1000; // seconds
       });

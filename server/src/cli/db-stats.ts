@@ -116,11 +116,11 @@ program
       const propertiesByCity = await prisma.property.groupBy({
         by: ['city'],
         _count: {
-          _all: true
+          id: true
         },
         orderBy: {
           _count: {
-            _all: 'desc'
+            id: 'desc'
           }
         },
         take: parseInt(options.top)
@@ -128,8 +128,9 @@ program
 
       console.log(`\n🏙️  Top ${options.top} Cities:`);
       propertiesByCity.forEach((city, idx) => {
-        const pct = ((city._count._all / totalProperties) * 100).toFixed(1);
-        console.log(`   ${idx + 1}. ${city.city || 'Unknown'}: ${city._count._all.toLocaleString()} (${pct}%)`);
+        const count = city._count.id;
+        const pct = ((count / totalProperties) * 100).toFixed(1);
+        console.log(`   ${idx + 1}. ${city.city || 'Unknown'}: ${count.toLocaleString()} (${pct}%)`);
       });
     }
 
@@ -138,11 +139,11 @@ program
       const propertiesByType = await prisma.property.groupBy({
         by: ['propType'],
         _count: {
-          _all: true
+          id: true
         },
         orderBy: {
           _count: {
-            _all: 'desc'
+            id: 'desc'
           }
         },
         take: parseInt(options.top)
@@ -150,8 +151,9 @@ program
 
       console.log(`\n🏗️  Top ${options.top} Property Types:`);
       propertiesByType.forEach((type, idx) => {
-        const pct = ((type._count._all / totalProperties) * 100).toFixed(1);
-        console.log(`   ${idx + 1}. ${type.propType}: ${type._count._all.toLocaleString()} (${pct}%)`);
+        const count = type._count.id;
+        const pct = ((count / totalProperties) * 100).toFixed(1);
+        console.log(`   ${idx + 1}. ${type.propType}: ${count.toLocaleString()} (${pct}%)`);
       });
     }
 
@@ -206,7 +208,7 @@ program
       select: {
         resultCount: true,
         completedAt: true,
-        createdAt: true
+        startedAt: true
       }
     });
 
@@ -226,9 +228,9 @@ program
 
     // Calculate processing time
     const processingTimes = recentJobs
-      .filter(j => j.createdAt && j.completedAt)
+      .filter(j => j.startedAt && j.completedAt)
       .map(j => {
-        const created = new Date(j.createdAt!).getTime();
+        const created = new Date(j.startedAt!).getTime();
         const completed = new Date(j.completedAt!).getTime();
         return (completed - created) / 1000; // seconds
       });
@@ -354,24 +356,21 @@ program
     console.log('⭐ Priority Job Statistics\n');
     console.log('='.repeat(70));
 
-    // This assumes priority jobs were marked with a specific userId or pattern
+    // This assumes priority jobs were marked with specific search terms
     // Adjust the query based on how priority jobs are identified
     const priorityJobs = await prisma.scrapeJob.findMany({
       where: {
-        OR: [
-          { userId: { contains: 'priority' } },
-          { searchTerm: { in: ['Estate', 'Family', 'Trust'] } }
-        ]
+        searchTerm: { in: ['Estate', 'Family', 'Trust'] }
       },
       select: {
         searchTerm: true,
         status: true,
         resultCount: true,
         completedAt: true,
-        createdAt: true
+        startedAt: true
       },
       orderBy: {
-        createdAt: 'desc'
+        startedAt: 'desc'
       },
       take: parseInt(options.recent)
     });
