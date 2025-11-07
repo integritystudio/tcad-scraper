@@ -38,7 +38,7 @@ export const scraperQueue = new Bull<ScrapeJobData>(config.queue.name, {
 // Process scraping jobs
 scraperQueue.process(config.queue.jobName, config.queue.concurrency, async (job) => {
   const startTime = Date.now();
-  const { searchTerm, userId, scheduled = false } = job.data;
+  const { searchTerm } = job.data;
 
   logger.info(`Processing scrape job ${job.id} for search term: ${searchTerm}`);
 

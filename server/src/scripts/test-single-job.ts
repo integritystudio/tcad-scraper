@@ -42,7 +42,7 @@ async function testSingleJob() {
 
     process.exit(0);
   } catch (error) {
-    logger.error(`❌ Job failed:`, error);
+    logger.error({ err: error }, `❌ Job failed:`);
     process.exit(1);
   }
 }

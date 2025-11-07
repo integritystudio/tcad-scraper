@@ -146,7 +146,7 @@ async function enqueueHighValueBatch() {
         }
       } catch (error) {
         failCount++;
-        logger.error(`❌ Failed to queue "${term}":`, error);
+        logger.error({ err: error }, `❌ Failed to queue "${term}"`);
       }
     }
 
@@ -172,7 +172,7 @@ async function enqueueHighValueBatch() {
     logger.info('='.repeat(60));
 
   } catch (error) {
-    logger.error('❌ Fatal error:', error);
+    logger.error({ err: error }, '❌ Fatal error');
     process.exit(1);
   }
 }
@@ -181,6 +181,6 @@ async function enqueueHighValueBatch() {
 enqueueHighValueBatch()
   .then(() => process.exit(0))
   .catch((error) => {
-    logger.error('❌ Script failed:', error);
+    logger.error({ err: error }, '❌ Script failed');
     process.exit(1);
   });

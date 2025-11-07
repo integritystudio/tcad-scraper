@@ -196,7 +196,7 @@ class ComprehensiveBatchScraper {
           this.stats.totalQueued++;
           logger.info(`  ✓ ${searchTerm} (Job ${job.id})`);
         } catch (error) {
-          logger.error(`  ✗ ${searchTerm}:`, error);
+          logger.error({ err: error }, `  ✗ ${searchTerm}:`);
         }
       }
 
@@ -335,7 +335,7 @@ Coverage Strategy:
       await this.monitorProgress();
       process.exit(0);
     } catch (error) {
-      logger.error('❌ Fatal error:', error);
+      logger.error({ err: error }, '❌ Fatal error:');
       process.exit(1);
     }
   }

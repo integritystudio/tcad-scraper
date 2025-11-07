@@ -82,7 +82,7 @@ async function enqueueTestBatch() {
         }
       } catch (error) {
         failCount++;
-        logger.error(`❌ Failed to queue "${term}":`, error);
+        logger.error({ err: error }, `❌ Failed to queue "${term}"`);
       }
     }
 
@@ -101,7 +101,7 @@ async function enqueueTestBatch() {
     logger.info('='.repeat(60));
 
   } catch (error) {
-    logger.error('❌ Fatal error:', error);
+    logger.error({ err: error }, '❌ Fatal error');
     process.exit(1);
   }
 }
@@ -110,6 +110,6 @@ async function enqueueTestBatch() {
 enqueueTestBatch()
   .then(() => process.exit(0))
   .catch((error) => {
-    logger.error('❌ Script failed:', error);
+    logger.error({ err: error }, '❌ Script failed');
     process.exit(1);
   });

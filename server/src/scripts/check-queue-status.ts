@@ -18,14 +18,14 @@ async function checkQueueStatus() {
       completed,
       failed,
       delayed,
-      paused
+      isPaused
     ] = await Promise.all([
       scraperQueue.getWaiting(),
       scraperQueue.getActive(),
       scraperQueue.getCompleted(),
       scraperQueue.getFailed(),
       scraperQueue.getDelayed(),
-      scraperQueue.getPaused()
+      scraperQueue.isPaused()
     ]);
 
     // Get counts
@@ -35,7 +35,7 @@ async function checkQueueStatus() {
       completed: completed.length,
       failed: failed.length,
       delayed: delayed.length,
-      paused: paused.length
+      paused: isPaused ? 1 : 0
     };
 
     logger.info('='.repeat(60));
@@ -103,7 +103,7 @@ async function checkQueueStatus() {
     await scraperQueue.close();
     process.exit(0);
   } catch (error) {
-    logger.error('❌ Error checking queue status:', error);
+    logger.error({ err: error }, '❌ Error checking queue status:');
     process.exit(1);
   }
 }

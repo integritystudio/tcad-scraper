@@ -85,7 +85,7 @@ async function queueBatch() {
 
     } catch (error) {
       failed++;
-      logger.error(`  ✗ ${searchTerm}:`, error);
+      logger.error({ err: error }, `  ✗ ${searchTerm}:`);
     }
   }
 
@@ -109,6 +109,6 @@ async function queueBatch() {
 }
 
 queueBatch().catch((error) => {
-  logger.error('Fatal error:', error);
+  logger.error({ err: error }, 'Fatal error:');
   process.exit(1);
 });

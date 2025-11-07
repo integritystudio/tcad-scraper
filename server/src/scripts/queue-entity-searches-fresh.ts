@@ -1,5 +1,4 @@
 import { scraperQueue } from '../queues/scraper.queue';
-import { logger } from '../lib/logger';
 
 /**
  * Queue 50 high-yield entity term searches with fresh TCAD token

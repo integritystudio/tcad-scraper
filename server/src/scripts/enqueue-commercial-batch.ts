@@ -5,7 +5,7 @@
  */
 
 import { scraperQueue } from '../queues/scraper.queue';
-import { logger } from '../lib/logger';
+import logger from '../lib/logger';
 import { config } from '../config';
 
 const COMMERCIAL_TERMS = [
@@ -51,14 +51,14 @@ async function enqueueCommercialBatch() {
         logger.info(`✅ [${successCount}/${COMMERCIAL_TERMS.length}] Queued: "${term}" (Job ID: ${job.id})`);
       } catch (error) {
         failCount++;
-        logger.error(`❌ Failed to queue "${term}":`, error);
+        logger.error({ err: error }, `❌ Failed to queue "${term}":`);
       }
     }
 
     logger.info(`\n📊 Summary: ${successCount} queued, ${failCount} failed`);
     logger.info('✨ Commercial batch enqueue completed!');
   } catch (error) {
-    logger.error('❌ Fatal error:', error);
+    logger.error({ err: error }, '❌ Fatal error:');
     process.exit(1);
   }
 }
@@ -66,6 +66,6 @@ async function enqueueCommercialBatch() {
 enqueueCommercialBatch()
   .then(() => process.exit(0))
   .catch((error) => {
-    logger.error('❌ Script failed:', error);
+    logger.error({ err: error }, '❌ Script failed:');
     process.exit(1);
   });
