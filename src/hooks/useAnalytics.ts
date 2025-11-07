@@ -8,6 +8,7 @@ import {
   trackExampleQueryClick,
   trackSearchResults,
   trackPropertyView,
+  trackPageView,
   trackError,
   trackConversion,
   type AnalyticsEvent,
@@ -45,12 +46,17 @@ export const useAnalytics = () => {
     trackConversion(conversionType, value);
   }, []);
 
+  const logPageView = useCallback((path: string, title?: string) => {
+    trackPageView(path, title);
+  }, []);
+
   return {
     track,
     logSearch,
     logExampleQueryClick,
     logSearchResults,
     logPropertyView,
+    logPageView,
     logError,
     logConversion,
   };

@@ -152,10 +152,11 @@ export const trackPropertyView = (propertyId: string, propertyAddress?: string):
 /**
  * Track page view (automatically called on route change)
  */
-export const trackPageView = (path: string): void => {
+export const trackPageView = (path: string, title?: string): void => {
   if (window.gtag) {
     window.gtag('config', 'G-J7TL7PQH7S', {
       page_path: path,
+      page_title: title,
     });
   }
 
