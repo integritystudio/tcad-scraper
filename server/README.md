@@ -4,11 +4,33 @@ Production web scraper for Travis Central Appraisal District property data. Uses
 
 ## Current Status
 
-- **Properties Collected**: 17,352
-- **Job Success Rate**: 98.1%
-- **Cities Covered**: 35
-- **Queue Status**: ~500-600 waiting jobs
+- **Properties Collected**: 282,125+
+- **Peak Processing Rate**: 3,346 properties/minute
+- **Average Rate**: 700-1,000 properties/minute (when token is valid)
+- **Cities Covered**: Multiple cities across Travis County
+- **Queue Status**: 100+ jobs in queue
 - **Scraper**: Running 24/7 with optimized search term generation
+
+## Important Database Notes
+
+### Correct Database Connection
+The production database is on **port 5432** (not 5433):
+```bash
+postgresql://postgres:postgres@localhost:5432/tcad_scraper
+```
+
+### MCP Postgres Tool Issue
+The MCP postgres tool connects to port 5433 by default, which shows 0 rows. Always use direct psql commands for accurate data:
+```bash
+PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d tcad_scraper -c "SELECT COUNT(*) FROM properties;"
+```
+
+### Token Expiration
+The TCAD API token expires every 5 minutes. The scraper needs the token refreshed regularly:
+```bash
+/home/aledlie/tcad-scraper/refresh-tcad-token.sh
+```
+When the token expires, jobs fail with HTTP 401 errors and the processing rate drops to near 0.
 
 ## Prerequisites
 
