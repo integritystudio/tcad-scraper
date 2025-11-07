@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { stdin, stdout } from 'process';
 import * as readline from 'readline';
+import logger from './lib/logger';
 
 
 if (!process.env.DATABASE_URL) {
@@ -12,7 +13,7 @@ const pool = new Pool({
 });
 
 async function displayStats() {
-  console.log('\n📊 Database Statistics\n' + '='.repeat(50));
+  logger.info('\n📊 Database Statistics\n' + '='.repeat(50));
 
   const stats = await pool.query(`
     SELECT
@@ -22,13 +23,13 @@ async function displayStats() {
     FROM properties
   `);
 
-  console.log(`Total Properties: ${stats.rows[0].total_properties}`);
-  console.log(`Unique Cities: ${stats.rows[0].unique_cities}`);
-  console.log(`Last Scraped: ${stats.rows[0].last_scraped || 'Never'}`);
+  logger.info(`Total Properties: ${stats.rows[0].total_properties}`);
+  logger.info(`Unique Cities: ${stats.rows[0].unique_cities}`);
+  logger.info(`Last Scraped: ${stats.rows[0].last_scraped || 'Never'}`);
 }
 
 async function displayCitySummary() {
-  console.log('\n🏙️  Properties by City\n' + '='.repeat(50));
+  logger.info('\n🏙️  Properties by City\n' + '='.repeat(50));
 
   const cities = await pool.query(`
     SELECT
@@ -44,12 +45,12 @@ async function displayCitySummary() {
 
   cities.rows.forEach(row => {
     const avgValue = row.avg_value ? `$${Math.round(row.avg_value).toLocaleString()}` : 'N/A';
-    console.log(`${row.city.padEnd(20)} | ${String(row.property_count).padStart(5)} properties | Avg: ${avgValue}`);
+    logger.info(`${row.city.padEnd(20)} | ${String(row.property_count).padStart(5)} properties | Avg: ${avgValue}`);
   });
 }
 
 async function displayRecentProperties(limit: number = 10) {
-  console.log(`\n🏠 Recent Properties (Last ${limit})\n` + '='.repeat(50));
+  logger.info(`\n🏠 Recent Properties (Last ${limit})\n` + '='.repeat(50));
 
   const properties = await pool.query(`
     SELECT
@@ -65,16 +66,16 @@ async function displayRecentProperties(limit: number = 10) {
   `, [limit]);
 
   properties.rows.forEach((prop, idx) => {
-    console.log(`\n${idx + 1}. Property ID: ${prop.property_id}`);
-    console.log(`   Owner: ${prop.owner_name}`);
-    console.log(`   Address: ${prop.property_address}, ${prop.city || 'N/A'}`);
-    console.log(`   Value: ${prop.appraised_value || 'N/A'}`);
-    console.log(`   Scraped: ${prop.scraped_at}`);
+    logger.info(`\n${idx + 1}. Property ID: ${prop.property_id}`);
+    logger.info(`   Owner: ${prop.owner_name}`);
+    logger.info(`   Address: ${prop.property_address}, ${prop.city || 'N/A'}`);
+    logger.info(`   Value: ${prop.appraised_value || 'N/A'}`);
+    logger.info(`   Scraped: ${prop.scraped_at}`);
   });
 }
 
 async function searchProperties(searchTerm: string) {
-  console.log(`\n🔍 Search Results for: "${searchTerm}"\n` + '='.repeat(50));
+  logger.info(`\n🔍 Search Results for: "${searchTerm}"\n` + '='.repeat(50));
 
   const results = await pool.query(`
     SELECT
@@ -92,12 +93,12 @@ async function searchProperties(searchTerm: string) {
   `, [`%${searchTerm}%`]);
 
   if (results.rows.length === 0) {
-    console.log('No results found.');
+    logger.info('No results found.');
   } else {
     results.rows.forEach((prop, idx) => {
-      console.log(`\n${idx + 1}. ${prop.owner_name}`);
-      console.log(`   ${prop.property_address}, ${prop.city || 'N/A'}`);
-      console.log(`   Value: ${prop.appraised_value || 'N/A'} | ID: ${prop.property_id}`);
+      logger.info(`\n${idx + 1}. ${prop.owner_name}`);
+      logger.info(`   ${prop.property_address}, ${prop.city || 'N/A'}`);
+      logger.info(`   Value: ${prop.appraised_value || 'N/A'} | ID: ${prop.property_id}`);
     });
   }
 }
@@ -105,11 +106,11 @@ async function searchProperties(searchTerm: string) {
 async function runCustomQuery(query: string) {
   try {
     const result = await pool.query(query);
-    console.log('\n✓ Query executed successfully\n');
+    logger.info('\n✓ Query executed successfully\n');
     console.table(result.rows);
-    console.log(`\nRows returned: ${result.rowCount}`);
+    logger.info(`\nRows returned: ${result.rowCount}`);
   } catch (error) {
-    console.error('❌ Query error:', error);
+    logger.error('❌ Query error:', error);
   }
 }
 
@@ -131,20 +132,20 @@ async function main() {
         break;
       case 'search':
         if (!args[1]) {
-          console.error('Please provide a search term: npm run db:query search "term"');
+          logger.error('Please provide a search term: npm run db:query search "term"');
           process.exit(1);
         }
         await searchProperties(args[1]);
         break;
       case 'query':
         if (!args[1]) {
-          console.error('Please provide a SQL query: npm run db:query query "SELECT * FROM properties LIMIT 5"');
+          logger.error('Please provide a SQL query: npm run db:query query "SELECT * FROM properties LIMIT 5"');
           process.exit(1);
         }
         await runCustomQuery(args[1]);
         break;
       default:
-        console.log(`
+        logger.info(`
 🗃️  TCAD Property Database Query Tool
 
 Usage: npm run db:query <command> [args]
@@ -167,7 +168,7 @@ Or use: npm run db:stats for quick statistics
         `);
     }
   } catch (error) {
-    console.error('Error:', error);
+    logger.error('Error:', error);
   } finally {
     await pool.end();
   }

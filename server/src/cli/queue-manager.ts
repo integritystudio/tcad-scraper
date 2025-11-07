@@ -5,6 +5,7 @@ import { scraperQueue } from '../queues/scraper.queue';
 import { prisma } from '../lib/prisma';
 import * as fs from 'fs';
 import * as path from 'path';
+import logger from '../lib/logger';
 
 const program = new Command();
 
@@ -24,14 +25,14 @@ program
   .option('-d, --dedupe', 'Remove duplicates from database first')
   .option('--priority-level <level>', 'Set priority level (1-10, lower is higher priority)', '10')
   .action(async (file: string, options: any) => {
-    console.log('📝 Adding Search Terms to Queue\n');
-    console.log('='.repeat(60));
+    logger.info('📝 Adding Search Terms to Queue\n');
+    logger.info('='.repeat(60));
 
     const filePath = path.resolve(file);
 
     // Check if file exists
     if (!fs.existsSync(filePath)) {
-      console.error(`❌ Error: File not found: ${filePath}`);
+      logger.error(`❌ Error: File not found: ${filePath}`);
       process.exit(1);
     }
 
@@ -42,12 +43,12 @@ program
       .map(line => line.trim())
       .filter(line => line && !line.startsWith('#'));
 
-    console.log(`📄 File: ${path.basename(filePath)}`);
-    console.log(`📊 Found ${terms.length} search terms`);
+    logger.info(`📄 File: ${path.basename(filePath)}`);
+    logger.info(`📊 Found ${terms.length} search terms`);
 
     // Dedupe if requested
     if (options.dedupe) {
-      console.log('\n🔍 Checking for existing search terms in database...');
+      logger.info('\n🔍 Checking for existing search terms in database...');
       const existing = await prisma.scrapeJob.findMany({
         where: { searchTerm: { in: terms } },
         select: { searchTerm: true },
@@ -55,11 +56,11 @@ program
       });
       const existingSet = new Set(existing.map(j => j.searchTerm));
       const newTerms = terms.filter(t => !existingSet.has(t));
-      console.log(`   - Existing terms (skipped): ${existing.length}`);
-      console.log(`   - New terms to add: ${newTerms.length}`);
+      logger.info(`   - Existing terms (skipped): ${existing.length}`);
+      logger.info(`   - New terms to add: ${newTerms.length}`);
 
       if (newTerms.length === 0) {
-        console.log('\n✅ No new terms to add (all already in database)');
+        logger.info('\n✅ No new terms to add (all already in database)');
         await cleanup();
         return;
       }
@@ -70,8 +71,8 @@ program
 
     const priorityLevel = options.priority ? 1 : parseInt(options.priorityLevel);
 
-    console.log(`\n🚀 Adding ${terms.length} jobs to queue...`);
-    console.log(`   Priority: ${priorityLevel} ${options.priority ? '(highest)' : ''}`);
+    logger.info(`\n🚀 Adding ${terms.length} jobs to queue...`);
+    logger.info(`   Priority: ${priorityLevel} ${options.priority ? '(highest)' : ''}`);
 
     let added = 0;
     for (const term of terms) {
@@ -97,11 +98,11 @@ program
           process.stdout.write(`\r   Progress: ${added}/${terms.length} (${((added/terms.length)*100).toFixed(1)}%)`);
         }
       } catch (error: any) {
-        console.error(`\n   ❌ Failed to add "${term}":`, error.message);
+        logger.error(`\n   ❌ Failed to add "${term}":`, error.message);
       }
     }
 
-    console.log(`\n\n✅ Added ${added} jobs to queue!`);
+    logger.info(`\n\n✅ Added ${added} jobs to queue!`);
 
     // Show queue status
     const [waiting, active] = await Promise.all([
@@ -109,9 +110,9 @@ program
       scraperQueue.getActiveCount(),
     ]);
 
-    console.log(`\n📊 Queue Status:`);
-    console.log(`   - Waiting: ${waiting}`);
-    console.log(`   - Active: ${active}`);
+    logger.info(`\n📊 Queue Status:`);
+    logger.info(`   - Waiting: ${waiting}`);
+    logger.info(`   - Active: ${active}`);
 
     await cleanup();
   });
@@ -124,8 +125,8 @@ program
   .description('Stop all pending jobs in queue (active jobs will complete)')
   .option('--force', 'Also attempt to fail active jobs')
   .action(async (options: any) => {
-    console.log('🛑 Stopping All Jobs in Queue\n');
-    console.log('='.repeat(60));
+    logger.info('🛑 Stopping All Jobs in Queue\n');
+    logger.info('='.repeat(60));
 
     // Get current queue stats
     const [waiting, active, delayed] = await Promise.all([
@@ -134,18 +135,18 @@ program
       scraperQueue.getDelayedCount(),
     ]);
 
-    console.log(`📊 Current Queue State:`);
-    console.log(`   - Waiting: ${waiting}`);
-    console.log(`   - Active: ${active}`);
-    console.log(`   - Delayed: ${delayed}`);
-    console.log(`   - Total to stop: ${waiting + delayed}\n`);
+    logger.info(`📊 Current Queue State:`);
+    logger.info(`   - Waiting: ${waiting}`);
+    logger.info(`   - Active: ${active}`);
+    logger.info(`   - Delayed: ${delayed}`);
+    logger.info(`   - Total to stop: ${waiting + delayed}\n`);
 
     if (waiting + delayed === 0 && !options.force) {
-      console.log('✅ No pending jobs to stop (queue is empty)');
+      logger.info('✅ No pending jobs to stop (queue is empty)');
 
       if (active > 0) {
-        console.log(`\nℹ️  Note: ${active} jobs are currently active and cannot be stopped.`);
-        console.log('   They will finish processing. Use --force to attempt to fail them.');
+        logger.info(`\nℹ️  Note: ${active} jobs are currently active and cannot be stopped.`);
+        logger.info('   They will finish processing. Use --force to attempt to fail them.');
       }
       await cleanup();
       return;
@@ -156,7 +157,7 @@ program
 
     // Remove waiting jobs
     if (waiting > 0) {
-      console.log(`📋 Removing ${waiting} waiting jobs...`);
+      logger.info(`📋 Removing ${waiting} waiting jobs...`);
       const waitingJobs = await scraperQueue.getWaiting();
 
       for (const job of waitingJobs) {
@@ -169,7 +170,7 @@ program
         } catch (error: any) {
           failed++;
           if (failed <= 3) {
-            console.error(`\n   ❌ Failed to remove job ${job.id}:`, error.message);
+            logger.error(`\n   ❌ Failed to remove job ${job.id}:`, error.message);
           }
         }
       }
@@ -177,7 +178,7 @@ program
 
     // Remove delayed jobs
     if (delayed > 0) {
-      console.log(`\n⏰ Removing ${delayed} delayed jobs...`);
+      logger.info(`\n⏰ Removing ${delayed} delayed jobs...`);
       const delayedJobs = await scraperQueue.getDelayed();
 
       for (const job of delayedJobs) {
@@ -190,7 +191,7 @@ program
         } catch (error: any) {
           failed++;
           if (failed <= 3) {
-            console.error(`\n   ❌ Failed to remove job ${job.id}:`, error.message);
+            logger.error(`\n   ❌ Failed to remove job ${job.id}:`, error.message);
           }
         }
       }
@@ -198,7 +199,7 @@ program
 
     // Force-fail active jobs if requested
     if (options.force && active > 0) {
-      console.log(`\n⚠️  Force-failing ${active} active jobs...`);
+      logger.info(`\n⚠️  Force-failing ${active} active jobs...`);
       const activeJobs = await scraperQueue.getActive();
 
       for (const job of activeJobs) {
@@ -211,15 +212,15 @@ program
         } catch (error: any) {
           failed++;
           if (failed <= 3) {
-            console.error(`\n   ❌ Failed to stop job ${job.id}:`, error.message);
+            logger.error(`\n   ❌ Failed to stop job ${job.id}:`, error.message);
           }
         }
       }
     }
 
-    console.log(`\n\n✅ Jobs stopped!`);
-    console.log(`   - Successfully stopped: ${removed}`);
-    console.log(`   - Failed to stop: ${failed}`);
+    logger.info(`\n\n✅ Jobs stopped!`);
+    logger.info(`   - Successfully stopped: ${removed}`);
+    logger.info(`   - Failed to stop: ${failed}`);
 
     // Get final queue stats
     const [finalWaiting, finalActive, finalDelayed] = await Promise.all([
@@ -228,10 +229,10 @@ program
       scraperQueue.getDelayedCount(),
     ]);
 
-    console.log(`\n📊 Final Queue Status:`);
-    console.log(`   - Waiting: ${finalWaiting}`);
-    console.log(`   - Active: ${finalActive}`);
-    console.log(`   - Delayed: ${finalDelayed}`);
+    logger.info(`\n📊 Final Queue Status:`);
+    logger.info(`   - Waiting: ${finalWaiting}`);
+    logger.info(`   - Active: ${finalActive}`);
+    logger.info(`   - Delayed: ${finalDelayed}`);
 
     await cleanup();
   });
@@ -246,39 +247,39 @@ program
   .option('--older-than <days>', 'Remove jobs older than N days', '7')
   .option('--zero-results', 'Remove waiting jobs for terms that previously returned zero results')
   .action(async (options: any) => {
-    console.log('🧹 Queue Cleanup\n');
-    console.log('='.repeat(60));
+    logger.info('🧹 Queue Cleanup\n');
+    logger.info('='.repeat(60));
 
     let totalRemoved = 0;
     let totalFailed = 0;
 
     // Aggressive cleanup - remove all completed/failed
     if (options.aggressive) {
-      console.log('\n⚠️  AGGRESSIVE MODE: Removing ALL completed and failed jobs...');
+      logger.info('\n⚠️  AGGRESSIVE MODE: Removing ALL completed and failed jobs...');
 
       const [completedCount, failedCount] = await Promise.all([
         scraperQueue.getCompletedCount(),
         scraperQueue.getFailedCount(),
       ]);
 
-      console.log(`   - Completed jobs: ${completedCount}`);
-      console.log(`   - Failed jobs: ${failedCount}`);
-      console.log(`   - Total to remove: ${completedCount + failedCount}`);
+      logger.info(`   - Completed jobs: ${completedCount}`);
+      logger.info(`   - Failed jobs: ${failedCount}`);
+      logger.info(`   - Total to remove: ${completedCount + failedCount}`);
 
       if (completedCount + failedCount === 0) {
-        console.log('\n✅ No jobs to clean up!');
+        logger.info('\n✅ No jobs to clean up!');
         await cleanup();
         return;
       }
 
-      console.log('\n🚀 Removing jobs...');
+      logger.info('\n🚀 Removing jobs...');
       const [removedCompleted, removedFailed] = await Promise.all([
         scraperQueue.clean(0, 'completed'),
         scraperQueue.clean(0, 'failed'),
       ]);
 
       totalRemoved = removedCompleted.length + removedFailed.length;
-      console.log(`\n✅ Removed ${totalRemoved} jobs (${removedCompleted.length} completed, ${removedFailed.length} failed)`);
+      logger.info(`\n✅ Removed ${totalRemoved} jobs (${removedCompleted.length} completed, ${removedFailed.length} failed)`);
     }
 
     // Remove jobs older than N days
@@ -286,7 +287,7 @@ program
       const days = parseInt(options.olderThan);
       const timestamp = Date.now() - (days * 24 * 60 * 60 * 1000);
 
-      console.log(`\n📅 Removing jobs older than ${days} days...`);
+      logger.info(`\n📅 Removing jobs older than ${days} days...`);
 
       const [removedCompleted, removedFailed] = await Promise.all([
         scraperQueue.clean(timestamp, 'completed'),
@@ -294,12 +295,12 @@ program
       ]);
 
       totalRemoved = removedCompleted.length + removedFailed.length;
-      console.log(`   ✅ Removed ${totalRemoved} old jobs`);
+      logger.info(`   ✅ Removed ${totalRemoved} old jobs`);
     }
 
     // Zero results cleanup
     if (options.zeroResults) {
-      console.log('\n🔍 Finding terms with zero results...');
+      logger.info('\n🔍 Finding terms with zero results...');
 
       const emptyJobs = await prisma.scrapeJob.findMany({
         where: {
@@ -311,17 +312,17 @@ program
       });
 
       const emptyTerms = new Set(emptyJobs.map(j => j.searchTerm));
-      console.log(`   Found ${emptyTerms.size} terms that returned zero results`);
+      logger.info(`   Found ${emptyTerms.size} terms that returned zero results`);
 
       const waitingJobs = await scraperQueue.getWaiting();
       const jobsToRemove = waitingJobs.filter(job =>
         emptyTerms.has(job.data.searchTerm)
       );
 
-      console.log(`   Found ${jobsToRemove.length} waiting jobs to remove`);
+      logger.info(`   Found ${jobsToRemove.length} waiting jobs to remove`);
 
       if (jobsToRemove.length > 0) {
-        console.log('\n🗑️  Removing zero-result jobs...');
+        logger.info('\n🗑️  Removing zero-result jobs...');
         let removed = 0;
 
         for (const job of jobsToRemove) {
@@ -336,7 +337,7 @@ program
           }
         }
 
-        console.log(`\n   ✅ Removed ${removed} zero-result jobs`);
+        logger.info(`\n   ✅ Removed ${removed} zero-result jobs`);
         totalRemoved += removed;
       }
     }
@@ -349,12 +350,12 @@ program
       scraperQueue.getFailedCount(),
     ]);
 
-    console.log(`\n📊 Final Queue Status:`);
-    console.log(`   - Waiting: ${waiting}`);
-    console.log(`   - Active: ${active}`);
-    console.log(`   - Completed: ${completed}`);
-    console.log(`   - Failed: ${failed}`);
-    console.log(`\n✨ Cleanup complete! Removed ${totalRemoved} jobs.`);
+    logger.info(`\n📊 Final Queue Status:`);
+    logger.info(`   - Waiting: ${waiting}`);
+    logger.info(`   - Active: ${active}`);
+    logger.info(`   - Completed: ${completed}`);
+    logger.info(`   - Failed: ${failed}`);
+    logger.info(`\n✨ Cleanup complete! Removed ${totalRemoved} jobs.`);
 
     await cleanup();
   });
@@ -367,8 +368,8 @@ program
   .description('Show current queue status with job counts')
   .option('--detailed', 'Show detailed information about recent jobs')
   .action(async (options: any) => {
-    console.log('📊 Queue Status\n');
-    console.log('='.repeat(60));
+    logger.info('📊 Queue Status\n');
+    logger.info('='.repeat(60));
 
     const [waiting, active, delayed, completed, failed, paused] = await Promise.all([
       scraperQueue.getWaitingCount(),
@@ -379,47 +380,47 @@ program
       scraperQueue.isPaused(),
     ]);
 
-    console.log(`\n🔢 Job Counts:`);
-    console.log(`   - Waiting: ${waiting}`);
-    console.log(`   - Active: ${active}`);
-    console.log(`   - Delayed: ${delayed}`);
-    console.log(`   - Completed: ${completed}`);
-    console.log(`   - Failed: ${failed}`);
-    console.log(`   - Paused: ${paused ? 'Yes' : 'No'}`);
-    console.log(`   - Total: ${waiting + active + delayed + completed + failed}`);
+    logger.info(`\n🔢 Job Counts:`);
+    logger.info(`   - Waiting: ${waiting}`);
+    logger.info(`   - Active: ${active}`);
+    logger.info(`   - Delayed: ${delayed}`);
+    logger.info(`   - Completed: ${completed}`);
+    logger.info(`   - Failed: ${failed}`);
+    logger.info(`   - Paused: ${paused ? 'Yes' : 'No'}`);
+    logger.info(`   - Total: ${waiting + active + delayed + completed + failed}`);
 
     if (options.detailed) {
-      console.log(`\n📝 Recent Jobs:`);
+      logger.info(`\n📝 Recent Jobs:`);
 
       // Show recent active jobs
       if (active > 0) {
         const activeJobs = await scraperQueue.getActive(0, 5);
-        console.log(`\n   Active Jobs (${Math.min(5, active)}):`);
+        logger.info(`\n   Active Jobs (${Math.min(5, active)}):`);
         activeJobs.forEach((job, idx) => {
-          console.log(`   ${idx + 1}. "${job.data.searchTerm}" (ID: ${job.id})`);
+          logger.info(`   ${idx + 1}. "${job.data.searchTerm}" (ID: ${job.id})`);
         });
       }
 
       // Show recent waiting jobs
       if (waiting > 0) {
         const waitingJobs = await scraperQueue.getWaiting(0, 5);
-        console.log(`\n   Waiting Jobs (showing ${Math.min(5, waiting)}):`);
+        logger.info(`\n   Waiting Jobs (showing ${Math.min(5, waiting)}):`);
         waitingJobs.forEach((job, idx) => {
-          console.log(`   ${idx + 1}. "${job.data.searchTerm}" (Priority: ${job.opts.priority || 10})`);
+          logger.info(`   ${idx + 1}. "${job.data.searchTerm}" (Priority: ${job.opts.priority || 10})`);
         });
       }
 
       // Show recent failed jobs
       if (failed > 0) {
         const failedJobs = await scraperQueue.getFailed(0, 3);
-        console.log(`\n   Recent Failed Jobs (showing ${Math.min(3, failed)}):`);
+        logger.info(`\n   Recent Failed Jobs (showing ${Math.min(3, failed)}):`);
         failedJobs.forEach((job, idx) => {
-          console.log(`   ${idx + 1}. "${job.data.searchTerm}" - ${job.failedReason || 'Unknown error'}`);
+          logger.info(`   ${idx + 1}. "${job.data.searchTerm}" - ${job.failedReason || 'Unknown error'}`);
         });
       }
     }
 
-    console.log('');
+    logger.info('');
     await cleanup();
   });
 
@@ -430,9 +431,9 @@ program
   .command('pause')
   .description('Pause queue processing')
   .action(async () => {
-    console.log('⏸️  Pausing queue...');
+    logger.info('⏸️  Pausing queue...');
     await scraperQueue.pause();
-    console.log('✅ Queue paused. Jobs will not be processed until resumed.');
+    logger.info('✅ Queue paused. Jobs will not be processed until resumed.');
     await cleanup();
   });
 
@@ -440,9 +441,9 @@ program
   .command('resume')
   .description('Resume queue processing')
   .action(async () => {
-    console.log('▶️  Resuming queue...');
+    logger.info('▶️  Resuming queue...');
     await scraperQueue.resume();
-    console.log('✅ Queue resumed. Processing will continue.');
+    logger.info('✅ Queue resumed. Processing will continue.');
     await cleanup();
   });
 
@@ -456,13 +457,13 @@ async function cleanup() {
 
 // Handle errors and cleanup
 process.on('SIGINT', async () => {
-  console.log('\n\n👋 Interrupted. Cleaning up...');
+  logger.info('\n\n👋 Interrupted. Cleaning up...');
   await cleanup();
   process.exit(0);
 });
 
 process.on('unhandledRejection', async (error: any) => {
-  console.error('\n❌ Unhandled error:', error.message);
+  logger.error('\n❌ Unhandled error:', error.message);
   await cleanup();
   process.exit(1);
 });

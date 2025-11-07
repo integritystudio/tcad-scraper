@@ -1,7 +1,8 @@
 import { TCADScraper } from './lib/tcad-scraper';
+import logger from '../lib/logger';
 
 async function testApiDiscovery() {
-  console.log('Starting API discovery...');
+  logger.info('Starting API discovery...');
 
   const scraper = new TCADScraper({
     headless: false, // Run with visible browser to see what's happening
@@ -14,9 +15,9 @@ async function testApiDiscovery() {
     // @ts-ignore - accessing private method for testing
     await scraper.discoverApiEndpoint('Willow');
 
-    console.log('\n✅ API discovery complete!');
+    logger.info('\n✅ API discovery complete!');
   } catch (error) {
-    console.error('❌ API discovery failed:', error);
+    logger.error('❌ API discovery failed:', error);
   } finally {
     await scraper.cleanup();
   }

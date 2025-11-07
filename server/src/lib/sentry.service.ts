@@ -13,18 +13,19 @@ import * as Sentry from '@sentry/node';
 import { ProfilingIntegration } from '@sentry/profiling-node';
 import { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
+import logger from './logger';
 
 /**
  * Initialize Sentry with configuration
  */
 export function initializeSentry(): void {
   if (!config.monitoring.sentry.enabled) {
-    console.log('Sentry monitoring is disabled');
+    logger.info('Sentry monitoring is disabled');
     return;
   }
 
   if (!config.monitoring.sentry.dsn) {
-    console.warn('Sentry DSN not configured - skipping initialization');
+    logger.warn('Sentry DSN not configured - skipping initialization');
     return;
   }
 
@@ -47,7 +48,7 @@ export function initializeSentry(): void {
       new Sentry.Integrations.Postgres(),
       new Sentry.Integrations.OnUncaughtException({
         onFatalError: async (err) => {
-          console.error('Fatal error:', err);
+          logger.error('Fatal error:', err);
           process.exit(1);
         },
       }),
@@ -90,7 +91,7 @@ export function initializeSentry(): void {
     debug: config.env.isDevelopment,
   });
 
-  console.log(`Sentry initialized (environment: ${config.monitoring.sentry.environment})`);
+  logger.info(`Sentry initialized (environment: ${config.monitoring.sentry.environment})`);
 }
 
 /**
@@ -133,7 +134,7 @@ export const sentryErrorHandler = () => {
  */
 export function captureException(error: Error, context?: Record<string, any>): string {
   if (!config.monitoring.sentry.enabled) {
-    console.error('Error (Sentry disabled):', error);
+    logger.error('Error (Sentry disabled):', error);
     return '';
   }
 
@@ -147,7 +148,7 @@ export function captureException(error: Error, context?: Record<string, any>): s
  */
 export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, any>): string {
   if (!config.monitoring.sentry.enabled) {
-    console.log(`Message (Sentry disabled) [${level}]:`, message);
+    logger.info(`Message (Sentry disabled) [${level}]:`, message);
     return '';
   }
 

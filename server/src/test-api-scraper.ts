@@ -1,7 +1,8 @@
 import { TCADScraper } from './lib/tcad-scraper';
+import logger from '../lib/logger';
 
 async function testApiScraper() {
-  console.log('Testing API-based scraper...\n');
+  logger.info('Testing API-based scraper...\n');
 
   const scraper = new TCADScraper({
     headless: true, // Run headless for speed
@@ -10,35 +11,35 @@ async function testApiScraper() {
   try {
     await scraper.initialize();
 
-    console.log('Scraping properties for "Willow"...');
+    logger.info('Scraping properties for "Willow"...');
     const properties = await scraper.scrapePropertiesViaAPI('Willow');
 
-    console.log(`\n✅ Successfully scraped ${properties.length} properties\n`);
+    logger.info(`\n✅ Successfully scraped ${properties.length} properties\n`);
 
     if (properties.length > 0) {
-      console.log('First 3 properties:\n');
+      logger.info('First 3 properties:\n');
       properties.slice(0, 3).forEach((prop, index) => {
-        console.log(`Property ${index + 1}:`);
-        console.log(`  Property ID: ${prop.propertyId}`);
-        console.log(`  Owner: ${prop.name}`);
-        console.log(`  City: ${prop.city || 'NOT FOUND'}`);
-        console.log(`  Address: ${prop.propertyAddress}`);
-        console.log(`  Appraised Value: $${prop.appraisedValue.toLocaleString()}`);
-        console.log(`  Property Type: ${prop.propType}`);
-        console.log('');
+        logger.info(`Property ${index + 1}:`);
+        logger.info(`  Property ID: ${prop.propertyId}`);
+        logger.info(`  Owner: ${prop.name}`);
+        logger.info(`  City: ${prop.city || 'NOT FOUND'}`);
+        logger.info(`  Address: ${prop.propertyAddress}`);
+        logger.info(`  Appraised Value: $${prop.appraisedValue.toLocaleString()}`);
+        logger.info(`  Property Type: ${prop.propType}`);
+        logger.info('');
       });
 
       // Check for city and appraised value coverage
       const withCity = properties.filter(p => p.city).length;
       const withValue = properties.filter(p => p.appraisedValue > 0).length;
 
-      console.log('\n📊 Data Quality:');
-      console.log(`  Properties with city: ${withCity}/${properties.length} (${Math.round(withCity/properties.length*100)}%)`);
-      console.log(`  Properties with appraised value: ${withValue}/${properties.length} (${Math.round(withValue/properties.length*100)}%)`);
+      logger.info('\n📊 Data Quality:');
+      logger.info(`  Properties with city: ${withCity}/${properties.length} (${Math.round(withCity/properties.length*100)}%)`);
+      logger.info(`  Properties with appraised value: ${withValue}/${properties.length} (${Math.round(withValue/properties.length*100)}%)`);
     }
 
   } catch (error) {
-    console.error('\n❌ Test failed:', error);
+    logger.error('\n❌ Test failed:', error);
   } finally {
     await scraper.cleanup();
   }

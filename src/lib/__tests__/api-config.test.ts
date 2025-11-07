@@ -6,6 +6,7 @@
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { getApiBaseUrl } from '../api-config';
 import { DataController } from '../xcontroller.client';
+import logger from './logger';
 
 // Mock the xcontroller module
 jest.mock('../xcontroller.client', () => ({
@@ -210,7 +211,7 @@ describe('API Configuration', () => {
 
       const apiUrl = getApiBaseUrl();
 
-      // Verify the xcontroller was never called (preventing console.error)
+      // Verify the xcontroller was never called (preventing logger.error)
       expect(mockLoadData).not.toHaveBeenCalled();
       expect(apiUrl).toBe('https://api.alephatx.info');
     });

@@ -12,6 +12,7 @@ import { Command } from 'commander';
 import { scraperQueue } from '../queues/scraper.queue';
 import { prisma } from '../lib/prisma';
 import { removeDuplicatesFromQueue } from '../utils/deduplication';
+import logger from '../lib/logger';
 
 const program = new Command();
 
@@ -29,11 +30,11 @@ program
   .option('--dry-run', 'Show what would be removed without actually removing', false)
   .option('--quiet', 'Suppress verbose output', false)
   .action(async (options) => {
-    console.log('🧹 Removing Duplicate Search Terms from Queue\n');
-    console.log('='.repeat(60));
+    logger.info('🧹 Removing Duplicate Search Terms from Queue\n');
+    logger.info('='.repeat(60));
 
     if (options.dryRun) {
-      console.log('🔍 Dry run mode - no changes will be made\n');
+      logger.info('🔍 Dry run mode - no changes will be made\n');
 
       // Analyze duplicates without removing
       const waitingJobs = await scraperQueue.getWaiting();
@@ -49,17 +50,17 @@ program
         }
       });
 
-      console.log(`\n📊 Analysis Results:`);
-      console.log(`   - Total waiting jobs: ${waitingJobs.length}`);
-      console.log(`   - Unique terms: ${seenTerms.size}`);
-      console.log(`   - Duplicate jobs: ${duplicates.length}`);
+      logger.info(`\n📊 Analysis Results:`);
+      logger.info(`   - Total waiting jobs: ${waitingJobs.length}`);
+      logger.info(`   - Unique terms: ${seenTerms.size}`);
+      logger.info(`   - Duplicate jobs: ${duplicates.length}`);
 
       if (duplicates.length > 0) {
-        console.log('\n📋 Sample duplicates (would be removed):');
+        logger.info('\n📋 Sample duplicates (would be removed):');
         duplicates.slice(0, 10).forEach((job, idx) => {
-          console.log(`   ${idx + 1}. ${job.data.searchTerm} (job #${job.id})`);
+          logger.info(`   ${idx + 1}. ${job.data.searchTerm} (job #${job.id})`);
         });
-        console.log('\nRun without --dry-run to actually remove duplicates.');
+        logger.info('\nRun without --dry-run to actually remove duplicates.');
       }
     } else {
       // Use shared deduplication utility
@@ -78,15 +79,15 @@ program
       scraperQueue.getFailedCount(),
     ]);
 
-    console.log(`\n📊 ${options.dryRun ? 'Current' : 'Final'} Queue Status:`);
-    console.log(`   - Waiting: ${waiting}`);
-    console.log(`   - Active: ${active}`);
-    console.log(`   - Delayed: ${delayed}`);
-    console.log(`   - Completed: ${completed}`);
-    console.log(`   - Failed: ${failedCount}`);
+    logger.info(`\n📊 ${options.dryRun ? 'Current' : 'Final'} Queue Status:`);
+    logger.info(`   - Waiting: ${waiting}`);
+    logger.info(`   - Active: ${active}`);
+    logger.info(`   - Delayed: ${delayed}`);
+    logger.info(`   - Completed: ${completed}`);
+    logger.info(`   - Failed: ${failedCount}`);
 
     if (!options.dryRun) {
-      console.log('\n🎉 All duplicates removed! Queue fully optimized.');
+      logger.info('\n🎉 All duplicates removed! Queue fully optimized.');
     }
 
     await cleanup();
@@ -101,8 +102,8 @@ program
   .option('--dry-run', 'Show duplicates without removing', true)
   .option('--remove', 'Actually remove duplicates (use with caution)', false)
   .action(async (options) => {
-    console.log('🔍 Finding Duplicate Properties in Database\n');
-    console.log('='.repeat(60));
+    logger.info('🔍 Finding Duplicate Properties in Database\n');
+    logger.info('='.repeat(60));
 
     // Find properties with duplicate property_id
     const duplicates = await prisma.$queryRaw<Array<{ property_id: string; count: bigint }>>`
@@ -113,23 +114,23 @@ program
       ORDER BY count DESC
     `;
 
-    console.log(`   Found ${duplicates.length} duplicate property_ids`);
+    logger.info(`   Found ${duplicates.length} duplicate property_ids`);
 
     const totalDuplicates = duplicates.reduce((sum, d) => sum + Number(d.count) - 1, 0);
-    console.log(`   Total duplicate records to remove: ${totalDuplicates}`);
+    logger.info(`   Total duplicate records to remove: ${totalDuplicates}`);
 
     if (options.dryRun) {
-      console.log('\n📋 DRY RUN - Sample duplicates (would be removed):');
+      logger.info('\n📋 DRY RUN - Sample duplicates (would be removed):');
       duplicates.slice(0, 10).forEach((dup, idx) => {
-        console.log(`   ${idx + 1}. Property ID: ${dup.property_id} (${Number(dup.count)} copies)`);
+        logger.info(`   ${idx + 1}. Property ID: ${dup.property_id} (${Number(dup.count)} copies)`);
       });
-      console.log('\nRun without --dry-run to actually remove duplicates.');
+      logger.info('\nRun without --dry-run to actually remove duplicates.');
       await cleanup();
       return;
     }
 
     // Remove duplicates - keep the oldest record
-    console.log('\n🗑️  Removing duplicates (keeping oldest record for each property_id)...');
+    logger.info('\n🗑️  Removing duplicates (keeping oldest record for each property_id)...');
 
     let removed = 0;
     for (const dup of duplicates) {
@@ -154,11 +155,11 @@ program
       }
     }
 
-    console.log(`\n\n✅ Removed ${removed} duplicate properties!`);
+    logger.info(`\n\n✅ Removed ${removed} duplicate properties!`);
 
     // Show final stats
     const totalProperties = await prisma.property.count();
-    console.log(`\n📊 Final property count: ${totalProperties.toLocaleString()}`);
+    logger.info(`\n📊 Final property count: ${totalProperties.toLocaleString()}`);
 
     await cleanup();
   });
@@ -173,15 +174,15 @@ program
   .option('--min-attempts <n>', 'Minimum attempts before considering term inefficient', '2')
   .option('--dry-run', 'Show what would be removed without removing')
   .action(async (options: any) => {
-    console.log('🧹 Removing Inefficient Search Terms\n');
-    console.log('='.repeat(70));
+    logger.info('🧹 Removing Inefficient Search Terms\n');
+    logger.info('='.repeat(70));
 
     const threshold = parseInt(options.threshold);
     const minAttempts = parseInt(options.minAttempts);
 
-    console.log(`\n📊 Criteria:`);
-    console.log(`   - Average results <= ${threshold} properties`);
-    console.log(`   - Minimum ${minAttempts} scrape attempts`);
+    logger.info(`\n📊 Criteria:`);
+    logger.info(`   - Average results <= ${threshold} properties`);
+    logger.info(`   - Minimum ${minAttempts} scrape attempts`);
 
     // Find terms and their average results
     const termStats = await prisma.scrapeJob.groupBy({
@@ -200,28 +201,28 @@ program
       (stat._avg.resultCount || 0) <= threshold
     );
 
-    console.log(`\n📊 Analyzed ${termStats.length} search terms`);
-    console.log(`📊 Inefficient terms found: ${inefficientTerms.length}`);
+    logger.info(`\n📊 Analyzed ${termStats.length} search terms`);
+    logger.info(`📊 Inefficient terms found: ${inefficientTerms.length}`);
 
     if (inefficientTerms.length === 0) {
-      console.log('\n✅ No inefficient terms found!');
+      logger.info('\n✅ No inefficient terms found!');
       await cleanup();
       return;
     }
 
     if (options.dryRun) {
-      console.log('\n📋 DRY RUN - Sample inefficient terms (would be removed):');
+      logger.info('\n📋 DRY RUN - Sample inefficient terms (would be removed):');
       inefficientTerms.slice(0, 20).forEach((stat, idx) => {
-        console.log(`   ${idx + 1}. "${stat.searchTerm}" - avg: ${(stat._avg.resultCount || 0).toFixed(1)} properties (${stat._count} attempts)`);
+        logger.info(`   ${idx + 1}. "${stat.searchTerm}" - avg: ${(stat._avg.resultCount || 0).toFixed(1)} properties (${stat._count} attempts)`);
       });
-      console.log('\nRun without --dry-run to actually remove these terms.');
+      logger.info('\nRun without --dry-run to actually remove these terms.');
       await cleanup();
       return;
     }
 
     // Remove from database
     const inefficientTermsList = inefficientTerms.map(t => t.searchTerm);
-    console.log(`\n🗑️  Removing ${inefficientTermsList.length} inefficient terms from database...`);
+    logger.info(`\n🗑️  Removing ${inefficientTermsList.length} inefficient terms from database...`);
 
     await prisma.scrapeJob.deleteMany({
       where: {
@@ -229,7 +230,7 @@ program
       }
     });
 
-    console.log(`✅ Removed from database!`);
+    logger.info(`✅ Removed from database!`);
 
     // Remove from queue
     const waitingJobs = await scraperQueue.getWaiting();
@@ -238,7 +239,7 @@ program
     );
 
     if (inefficientQueueJobs.length > 0) {
-      console.log(`\n🔍 Found ${inefficientQueueJobs.length} inefficient terms in queue, removing...`);
+      logger.info(`\n🔍 Found ${inefficientQueueJobs.length} inefficient terms in queue, removing...`);
 
       let removed = 0;
       for (const job of inefficientQueueJobs) {
@@ -253,7 +254,7 @@ program
         }
       }
 
-      console.log(`\n   ✅ Removed ${removed} from queue!`);
+      logger.info(`\n   ✅ Removed ${removed} from queue!`);
     }
 
     await cleanup();
@@ -271,8 +272,8 @@ program
   .option('--cities', 'Remove city names', false)
   .option('--dry-run', 'Show what would be removed without removing', false)
   .action(async (options) => {
-    console.log('🧹 Cleaning Problematic Search Terms\n');
-    console.log('='.repeat(60));
+    logger.info('🧹 Cleaning Problematic Search Terms\n');
+    logger.info('='.repeat(60));
 
     const filters: string[] = [];
     const allTerms = await prisma.scrapeJob.findMany({
@@ -321,21 +322,21 @@ program
       });
     }
 
-    console.log(`\n🎯 Filters applied: ${filters.join(', ')}`);
-    console.log(`📊 Terms to remove: ${termsToRemove.size}\n`);
+    logger.info(`\n🎯 Filters applied: ${filters.join(', ')}`);
+    logger.info(`📊 Terms to remove: ${termsToRemove.size}\n`);
 
     if (termsToRemove.size === 0) {
-      console.log('✅ No terms match the selected filters');
+      logger.info('✅ No terms match the selected filters');
       await cleanup();
       return;
     }
 
     if (options.dryRun) {
-      console.log('\n📋 DRY RUN - Sample terms (would be removed):');
+      logger.info('\n📋 DRY RUN - Sample terms (would be removed):');
       Array.from(termsToRemove).slice(0, 20).forEach((term, idx) => {
-        console.log(`   ${idx + 1}. "${term}"`);
+        logger.info(`   ${idx + 1}. "${term}"`);
       });
-      console.log('\nRun without --dry-run to actually remove these terms.');
+      logger.info('\nRun without --dry-run to actually remove these terms.');
       await cleanup();
       return;
     }
@@ -344,7 +345,7 @@ program
     const termsArray = Array.from(termsToRemove);
 
     // Remove from database
-    console.log(`\n🗑️  Removing ${termsArray.length} terms from database...`);
+    logger.info(`\n🗑️  Removing ${termsArray.length} terms from database...`);
 
     await prisma.scrapeJob.deleteMany({
       where: {
@@ -352,7 +353,7 @@ program
       }
     });
 
-    console.log(`✅ Removed from database!`);
+    logger.info(`✅ Removed from database!`);
 
     // Remove from queue
     const waitingJobs = await scraperQueue.getWaiting();
@@ -361,7 +362,7 @@ program
     );
 
     if (queueJobsToRemove.length > 0) {
-      console.log(`\n🔍 Found ${queueJobsToRemove.length} matching terms in queue, removing...`);
+      logger.info(`\n🔍 Found ${queueJobsToRemove.length} matching terms in queue, removing...`);
 
       let removed = 0;
       for (const job of queueJobsToRemove) {
@@ -376,7 +377,7 @@ program
         }
       }
 
-      console.log(`\n   ✅ Removed ${removed} from queue!`);
+      logger.info(`\n   ✅ Removed ${removed} from queue!`);
     }
 
     await cleanup();
@@ -390,32 +391,32 @@ program
   .description('Run all cleanup operations (short, numeric, duplicates, inefficient)')
   .option('--dry-run', 'Show what would be done without actually doing it')
   .action(async (options: any) => {
-    console.log('🧹 COMPREHENSIVE DATA CLEANUP\n');
-    console.log('='.repeat(70));
+    logger.info('🧹 COMPREHENSIVE DATA CLEANUP\n');
+    logger.info('='.repeat(70));
 
     if (options.dryRun) {
-      console.log('\n⚠️  DRY RUN MODE - No data will be modified\n');
+      logger.info('\n⚠️  DRY RUN MODE - No data will be modified\n');
     }
 
-    console.log('\n1️⃣  Removing short terms...');
+    logger.info('\n1️⃣  Removing short terms...');
     // Run short-terms command
     await program.parseAsync(['node', 'data-cleaner', 'short-terms', ...(options.dryRun ? ['--dry-run'] : [])]);
 
-    console.log('\n2️⃣  Removing numeric terms...');
+    logger.info('\n2️⃣  Removing numeric terms...');
     // Run numeric-terms command
     await program.parseAsync(['node', 'data-cleaner', 'numeric-terms', ...(options.dryRun ? ['--dry-run'] : [])]);
 
-    console.log('\n3️⃣  Removing queue duplicates...');
+    logger.info('\n3️⃣  Removing queue duplicates...');
     // Run queue-duplicates command (no dry-run support)
     if (!options.dryRun) {
       await program.parseAsync(['node', 'data-cleaner', 'queue-duplicates']);
     }
 
-    console.log('\n4️⃣  Removing property duplicates...');
+    logger.info('\n4️⃣  Removing property duplicates...');
     // Run properties-duplicates command
     await program.parseAsync(['node', 'data-cleaner', 'properties-duplicates', ...(options.dryRun ? ['--dry-run'] : [])]);
 
-    console.log('\n✅ Comprehensive cleanup complete!');
+    logger.info('\n✅ Comprehensive cleanup complete!');
 
     await cleanup();
   });
@@ -430,13 +431,13 @@ async function cleanup() {
 
 // Handle errors and cleanup
 process.on('SIGINT', async () => {
-  console.log('\n\n👋 Interrupted. Cleaning up...');
+  logger.info('\n\n👋 Interrupted. Cleaning up...');
   await cleanup();
   process.exit(0);
 });
 
 process.on('unhandledRejection', async (error: any) => {
-  console.error('\n❌ Unhandled error:', error.message);
+  logger.error('\n❌ Unhandled error:', error.message);
   await cleanup();
   process.exit(1);
 });

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import logger from '../lib/logger';
 
 const prisma = new PrismaClient();
 
@@ -81,12 +82,12 @@ export class SearchTermOptimizer {
 
     if (analyticsCount === 0) {
       // Cold start - return optimized 4-char terms
-      console.log('🚀 Cold start detected - using optimized 4-character starter terms');
+      logger.info('🚀 Cold start detected - using optimized 4-character starter terms');
       return OPTIMIZED_4_CHAR_STARTER_TERMS;
     }
 
     // Database has data - use analytics to optimize
-    console.log('📊 Using analytics to optimize starter terms');
+    logger.info('📊 Using analytics to optimize starter terms');
     return this.getOptimizedTerms({
       preferredTermLength: 4,
       minEfficiency: 5.0,

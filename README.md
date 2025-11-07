@@ -1146,68 +1146,26 @@ Long-running scraper processes can accumulate memory. Recommended:
 
 Comprehensive documentation is available in the `docs/` directory:
 
-- **[CLAUDE_SEARCH.md](docs/CLAUDE_SEARCH.md)** - AI-powered natural language search documentation
-- **[MODERNIZATION_REPORT.md](docs/MODERNIZATION_REPORT.md)** - Architecture analysis and modernization recommendations
-- **[DATABASE.md](docs/DATABASE.md)** - Database schema and query examples
-- **[BATCH_SCRAPING_SUMMARY.md](docs/BATCH_SCRAPING_SUMMARY.md)** - Batch scraping strategies and patterns
-- **[SCRAPER_DEBUG_SESSION.md](docs/SCRAPER_DEBUG_SESSION.md)** - Debugging notes and solutions
-- **[CLAUDE.md](docs/CLAUDE.md)** - Context for AI assistants working with this codebase
-- **[doppler-setup.md](doppler-setup.md)** - Doppler CLI installation and configuration
-- **[SETUP.md](SETUP.md)** - Detailed setup instructions
+### Primary Documentation
+- **[SETUP.md](docs/SETUP.md)** - Installation and setup guide
+- **[TESTING.md](docs/TESTING.md)** - Testing strategy and test execution
+- **[CLAUDE.md](docs/CLAUDE.md)** - AI assistant context and development guidelines
+- **[CODEBASE_ANALYSIS.md](CODEBASE_ANALYSIS.md)** - Code quality analysis and recommendations (ast-grep)
 
-## Recent Updates
+### Technical Documentation
+- **[API_TOKEN_IMPLEMENTATION.md](docs/API_TOKEN_IMPLEMENTATION.md)** - API token authentication implementation
+- **[API_TOKEN_VERIFICATION.md](docs/API_TOKEN_VERIFICATION.md)** - Token verification and validation
+- **[TOKEN_AUTO_REFRESH.md](docs/TOKEN_AUTO_REFRESH.md)** - Automatic token refresh system
+- **[TOKEN_AUTO_REFRESH_SUMMARY.md](docs/TOKEN_AUTO_REFRESH_SUMMARY.md)** - Token refresh summary
+- **[XCONTROLLER-MIGRATION.md](docs/XCONTROLLER-MIGRATION.md)** - DataController migration guide
 
-### November 7, 2025 - Production Optimization
-- **Automated Token Refresh**: Implemented cron job (every 4 minutes) to prevent TCAD API token expiration
-- **PM2 Process Management**: Added `ecosystem.config.js` for managing continuous-enqueue and tcad-api processes
-- **High-Priority Enqueuing**: Created `enqueue-priority-terms.ts` script for adding priority searches to front of queue
-- **Performance Milestone**: Achieved ~3,000 properties/minute scraping rate (180K/hour)
-- **Database Growth**: Surpassed 105,000 properties with continuous batch scraping
-- **Token Management**: Configured automatic token refresh via `/home/aledlie/tcad-scraper/refresh-tcad-token.sh`
-- **Monitoring Improvements**: Enhanced database statistics and per-minute tracking
-- **Production Stability**: Fixed syntax errors in continuous-batch-scraper.ts
-- **Process Reliability**: PM2 auto-restart and memory limits (2GB for continuous-enqueue)
-
-### November 5, 2024
-- Added AI-powered natural language search using Claude AI (Anthropic)
-- Implemented `POST /api/properties/search` endpoint for plain English queries
-- Added `GET /api/properties/search/test` endpoint to verify Claude API connection
-- Created comprehensive Claude search documentation (`docs/CLAUDE_SEARCH.md`)
-- Added test suite for Claude search service and endpoints
-- Fixed logger import and error handling in Claude service
-- Updated environment configuration for `ANTHROPIC_API_KEY`
-
-### November 3, 2024
-- Comprehensive README overhaul with current architecture
-- Added API endpoint documentation
-- Added monitoring and metrics section
-- Updated Docker services documentation
-- Added troubleshooting guide
-
-### November 2, 2024
-- Implemented optimized search term generation with weighted strategies
-- Added 30 Austin neighborhoods, expanded to 150+ street names
-- Expanded name database to 200+ first names, 500+ last names
-- Added 34 property types for targeted searching
-- Successfully running on remote Linux environment
-- Database grew to 150,000+ properties
-
-### November 1, 2024
-- Implemented dual scraping methods (API + browser-based)
-- Fixed race condition in browser initialization (commit a8812a4)
-- Added batch scraping capabilities
-- Migrated to remote Linux environment
-- Configured Docker Compose for Redis, Prometheus, BullMQ metrics
-- Implemented Doppler for secrets management
-- Added Express API server with REST endpoints
-- Integrated Bull Dashboard for queue monitoring
-
-### October 2024
-- Initial project creation
-- Implemented Playwright-based scraper
-- Set up PostgreSQL with Prisma ORM
-- Created React frontend application
-- Established basic Docker infrastructure
+### Development & Debugging
+- **[SCRAPER_DEBUG_SESSION.md](docs/SCRAPER_DEBUG_SESSION.md)** - Debugging session notes
+- **[SESSION-CONTEXT.md](docs/SESSION-CONTEXT.md)** - Development session context
+- **[ENQUEUE_FIXES_SUMMARY.md](docs/ENQUEUE_FIXES_SUMMARY.md)** - Queue enqueue fixes
+- **[TEST_RESULTS_SUMMARY.md](docs/TEST_RESULTS_SUMMARY.md)** - Test results and coverage
+- **[REFACTORING-SUMMARY.md](REFACTORING-SUMMARY.md)** - Recent refactoring summary
+- **[doppler-setup.md](docs/doppler-setup.md)** - Doppler CLI installation and configuration
 
 ---
 

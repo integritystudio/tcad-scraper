@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import logger from '../lib/logger';
 
 /**
  * Async handler wrapper to catch errors in async route handlers
@@ -20,7 +21,7 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  console.error('Error:', error);
+  logger.error('Error:', error);
 
   // Handle specific error types
   if (error.name === 'ValidationError') {

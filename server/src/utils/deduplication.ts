@@ -1,5 +1,6 @@
 import { scraperQueue } from '../queues/scraper.queue';
 import { prisma } from '../lib/prisma';
+import logger from '../lib/logger';
 
 interface DeduplicationOptions {
   verbose?: boolean;
@@ -10,7 +11,7 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
   const { verbose = true, showProgress = true } = options;
 
   if (verbose) {
-    console.log('🔍 Now checking for duplicates...\n');
+    logger.info('🔍 Now checking for duplicates...\n');
   }
 
   // Get all pending jobs (waiting + delayed)
@@ -22,10 +23,10 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
   const allPendingJobs = [...waitingJobs, ...delayedJobs];
 
   if (verbose) {
-    console.log(`📊 Queue State:`);
-    console.log(`   Waiting: ${waitingJobs.length}`);
-    console.log(`   Delayed: ${delayedJobs.length}`);
-    console.log(`   Total Pending: ${allPendingJobs.length}\n`);
+    logger.info(`📊 Queue State:`);
+    logger.info(`   Waiting: ${waitingJobs.length}`);
+    logger.info(`   Delayed: ${delayedJobs.length}`);
+    logger.info(`   Total Pending: ${allPendingJobs.length}\n`);
   }
 
   // Get completed search terms from database
@@ -65,10 +66,10 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
     .filter(([term, _]) => completedTermSet.has(term));
 
   if (verbose) {
-    console.log(`🔍 Analysis:`);
-    console.log(`   Unique pending terms: ${termMap.size}`);
-    console.log(`   ❌ Terms with duplicate pending jobs: ${duplicateTerms.length}`);
-    console.log(`   ✅ Terms already completed: ${alreadyCompletedTerms.length}`);
+    logger.info(`🔍 Analysis:`);
+    logger.info(`   Unique pending terms: ${termMap.size}`);
+    logger.info(`   ❌ Terms with duplicate pending jobs: ${duplicateTerms.length}`);
+    logger.info(`   ✅ Terms already completed: ${alreadyCompletedTerms.length}`);
   }
 
   let totalToRemove = 0;
@@ -84,12 +85,12 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
   }
 
   if (verbose) {
-    console.log(`   🗑️  Total jobs to remove: ${totalToRemove}\n`);
+    logger.info(`   🗑️  Total jobs to remove: ${totalToRemove}\n`);
   }
 
   if (totalToRemove === 0) {
     if (verbose) {
-      console.log('✅ No duplicates or completed terms found!');
+      logger.info('✅ No duplicates or completed terms found!');
     }
     return { removed: 0, failed: 0 };
   }
@@ -97,30 +98,30 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
   // Show what we're removing
   if (verbose) {
     if (duplicateTerms.length > 0) {
-      console.log('📝 Duplicate pending jobs:');
+      logger.info('📝 Duplicate pending jobs:');
       const displayCount = showProgress ? 10 : duplicateTerms.length;
       duplicateTerms.slice(0, displayCount).forEach(([term, jobs]) => {
-        console.log(`   "${term}": ${jobs.length} copies (keeping 1, removing ${jobs.length - 1})`);
+        logger.info(`   "${term}": ${jobs.length} copies (keeping 1, removing ${jobs.length - 1})`);
       });
       if (duplicateTerms.length > displayCount) {
-        console.log(`   ... and ${duplicateTerms.length - displayCount} more`);
+        logger.info(`   ... and ${duplicateTerms.length - displayCount} more`);
       }
-      console.log('');
+      logger.info('');
     }
 
     if (alreadyCompletedTerms.length > 0) {
-      console.log('📝 Already completed terms in queue:');
+      logger.info('📝 Already completed terms in queue:');
       const displayCount = showProgress ? 20 : alreadyCompletedTerms.length;
       alreadyCompletedTerms.slice(0, displayCount).forEach(([term, jobs]) => {
-        console.log(`   "${term}": ${jobs.length} pending (removing all)`);
+        logger.info(`   "${term}": ${jobs.length} pending (removing all)`);
       });
       if (alreadyCompletedTerms.length > displayCount) {
-        console.log(`   ... and ${alreadyCompletedTerms.length - displayCount} more`);
+        logger.info(`   ... and ${alreadyCompletedTerms.length - displayCount} more`);
       }
-      console.log('');
+      logger.info('');
     }
 
-    console.log(`🚀 Removing ${totalToRemove} duplicate/completed jobs...`);
+    logger.info(`🚀 Removing ${totalToRemove} duplicate/completed jobs...`);
   }
 
   let removed = 0;
@@ -142,7 +143,7 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
       } catch (error: any) {
         failed++;
         if (verbose && failed <= 3) {
-          console.error(`${showProgress ? '\n' : ''}   ❌ Failed to remove job ${jobs[i].job.id}:`, error.message);
+          logger.error(`${showProgress ? '\n' : ''}   ❌ Failed to remove job ${jobs[i].job.id}:`, error.message);
         }
       }
     }
@@ -160,7 +161,7 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
       } catch (error: any) {
         failed++;
         if (verbose && failed <= 3) {
-          console.error(`${showProgress ? '\n' : ''}   ❌ Failed to remove job ${jobInfo.job.id}:`, error.message);
+          logger.error(`${showProgress ? '\n' : ''}   ❌ Failed to remove job ${jobInfo.job.id}:`, error.message);
         }
       }
     }
@@ -168,11 +169,11 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
 
   if (verbose) {
     if (showProgress) {
-      console.log(''); // New line after progress
+      logger.info(''); // New line after progress
     }
-    console.log(`\n✅ Cleanup complete!`);
-    console.log(`   - Successfully removed: ${removed}`);
-    console.log(`   - Failed to remove: ${failed}`);
+    logger.info(`\n✅ Cleanup complete!`);
+    logger.info(`   - Successfully removed: ${removed}`);
+    logger.info(`   - Failed to remove: ${failed}`);
   }
 
   return { removed, failed };

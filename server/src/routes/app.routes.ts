@@ -4,6 +4,7 @@
 
 import { Router, Request, Response } from 'express';
 import {
+import logger from '../lib/logger';
   nonceMiddleware,
   cspMiddleware,
   generateSecureHtml,
@@ -35,7 +36,7 @@ router.get(
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.send(html);
     } catch (error) {
-      console.error('Error serving app:', error);
+      logger.error('Error serving app:', error);
       res.status(500).send('Internal Server Error');
     }
   }

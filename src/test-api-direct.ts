@@ -1,3 +1,4 @@
+import logger from './lib/logger';
 /**
  * Test script to directly call the TCAD API using the authentication token
  * This tests if we can use the API instead of web scraping
@@ -12,7 +13,7 @@ interface TCADAuthResponse {
 }
 
 async function getAuthToken(): Promise<string> {
-  console.log('🔑 Getting authentication token...');
+  logger.info('🔑 Getting authentication token...');
 
   const response = await fetch(`${TCAD_API_BASE_URL}/auth/token`, {
     method: 'POST',
@@ -22,12 +23,12 @@ async function getAuthToken(): Promise<string> {
 
   const data = await response.json() as TCADAuthResponse;
   const token = data.user.token;
-  console.log(`✅ Token received: ${token.substring(0, 50)}...`);
+  logger.info(`✅ Token received: ${token.substring(0, 50)}...`);
   return token;
 }
 
 async function searchProperties(token: string, searchTerm: string) {
-  console.log(`\n🔍 Searching for: "${searchTerm}"`);
+  logger.info(`\n🔍 Searching for: "${searchTerm}"`);
 
   try {
     // Try different possible API endpoints
@@ -41,7 +42,7 @@ async function searchProperties(token: string, searchTerm: string) {
 
     for (const endpoint of endpoints) {
       try {
-        console.log(`  Trying: ${TCAD_API_BASE_URL}${endpoint}`);
+        logger.info(`  Trying: ${TCAD_API_BASE_URL}${endpoint}`);
 
         // Try with different query parameter names
         const params = new URLSearchParams({
@@ -61,33 +62,33 @@ async function searchProperties(token: string, searchTerm: string) {
 
         if (response.ok) {
           const data = await response.json();
-          console.log(`\n✅ Success with endpoint: ${endpoint}`);
-          console.log('Response:', JSON.stringify(data, null, 2));
+          logger.info(`\n✅ Success with endpoint: ${endpoint}`);
+          logger.info('Response:', JSON.stringify(data, null, 2));
           return data;
         } else {
-          console.log(`  ❌ ${response.status}: ${response.statusText}`);
+          logger.info(`  ❌ ${response.status}: ${response.statusText}`);
           if (response.status !== 404 && response.status !== 405) {
             const errorData = await response.text();
-            console.log('  Response data:', errorData);
+            logger.info('  Response data:', errorData);
           }
         }
 
       } catch (error: any) {
-        console.log(`  ❌ Error: ${error.message}`);
+        logger.info(`  ❌ Error: ${error.message}`);
       }
     }
 
-    console.log('\n❌ All endpoints failed');
+    logger.info('\n❌ All endpoints failed');
 
   } catch (error) {
-    console.error('Error searching properties:', error);
+    logger.error('Error searching properties:', error);
   }
 }
 
 async function testTCADAPI() {
-  console.log('╔════════════════════════════════════════════════════╗');
-  console.log('║     TCAD API Direct Test                           ║');
-  console.log('╚════════════════════════════════════════════════════╝\n');
+  logger.info('╔════════════════════════════════════════════════════╗');
+  logger.info('║     TCAD API Direct Test                           ║');
+  logger.info('╚════════════════════════════════════════════════════╝\n');
 
   try {
     // Step 1: Get auth token
@@ -100,12 +101,12 @@ async function testTCADAPI() {
       await searchProperties(token, searchTerm);
     }
 
-    console.log('\n╔════════════════════════════════════════════════════╗');
-    console.log('║     Test Complete                                  ║');
-    console.log('╚════════════════════════════════════════════════════╝');
+    logger.info('\n╔════════════════════════════════════════════════════╗');
+    logger.info('║     Test Complete                                  ║');
+    logger.info('╚════════════════════════════════════════════════════╝');
 
   } catch (error) {
-    console.error('\n❌ Test failed:', error);
+    logger.error('\n❌ Test failed:', error);
   }
 }
 

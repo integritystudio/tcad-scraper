@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import { scraperQueue } from '../queues/scraper.queue';
 import { prisma } from '../lib/prisma';
+import logger from '../lib/logger';
 
 const program = new Command();
 
@@ -19,8 +20,8 @@ program
   .description('Analyze most successful search term patterns')
   .option('--top <n>', 'Show top N examples per category', '5')
   .action(async (options: any) => {
-    console.log('🔍 Analyzing Most Successful Search Term Types\n');
-    console.log('='.repeat(70));
+    logger.info('🔍 Analyzing Most Successful Search Term Types\n');
+    logger.info('='.repeat(70));
 
     // Get all successful jobs (with results)
     const successfulJobs = await prisma.scrapeJob.findMany({
@@ -37,11 +38,11 @@ program
       }
     });
 
-    console.log(`\n📊 Total successful scrapes: ${successfulJobs.length.toLocaleString()}`);
+    logger.info(`\n📊 Total successful scrapes: ${successfulJobs.length.toLocaleString()}`);
 
     const totalProperties = successfulJobs.reduce((sum, job) => sum + (job.resultCount || 0), 0);
-    console.log(`📊 Total properties found: ${totalProperties.toLocaleString()}`);
-    console.log(`📊 Average per successful search: ${(totalProperties / successfulJobs.length).toFixed(1)}`);
+    logger.info(`📊 Total properties found: ${totalProperties.toLocaleString()}`);
+    logger.info(`📊 Average per successful search: ${(totalProperties / successfulJobs.length).toFixed(1)}`);
 
     // Categorize search terms
     const categories = {
@@ -108,24 +109,24 @@ program
       };
     }).sort((a, b) => b.totalProperties - a.totalProperties);
 
-    console.log('\n📋 Search Term Categories (by total properties found):\n');
+    logger.info('\n📋 Search Term Categories (by total properties found):\n');
     stats.forEach((stat, idx) => {
       const categoryName = stat.name
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, str => str.toUpperCase())
         .trim();
 
-      console.log(`${idx + 1}. ${categoryName}`);
-      console.log(`   Searches: ${stat.count.toLocaleString()} (${stat.percentage.toFixed(1)}%)`);
-      console.log(`   Properties: ${stat.totalProperties.toLocaleString()}`);
-      console.log(`   Avg per search: ${stat.avgProperties.toFixed(1)}`);
-      console.log(`   Max in single search: ${stat.maxProperties}`);
-      console.log('');
+      logger.info(`${idx + 1}. ${categoryName}`);
+      logger.info(`   Searches: ${stat.count.toLocaleString()} (${stat.percentage.toFixed(1)}%)`);
+      logger.info(`   Properties: ${stat.totalProperties.toLocaleString()}`);
+      logger.info(`   Avg per search: ${stat.avgProperties.toFixed(1)}`);
+      logger.info(`   Max in single search: ${stat.maxProperties}`);
+      logger.info('');
     });
 
     // Show top examples from each category
-    console.log('='.repeat(70));
-    console.log('\n🏆 TOP PERFORMERS BY CATEGORY:\n');
+    logger.info('='.repeat(70));
+    logger.info('\n🏆 TOP PERFORMERS BY CATEGORY:\n');
 
     const topN = parseInt(options.top);
 
@@ -137,20 +138,20 @@ program
         .replace(/^./, str => str.toUpperCase())
         .trim();
 
-      console.log(`\n${displayName} (${jobs.length} total):`);
+      logger.info(`\n${displayName} (${jobs.length} total):`);
 
       const topJobs = jobs.sort((a, b) => (b.resultCount || 0) - (a.resultCount || 0)).slice(0, topN);
 
       topJobs.forEach((job, idx) => {
-        console.log(`  ${idx + 1}. "${job.searchTerm}" - ${(job.resultCount || 0).toLocaleString()} properties`);
+        logger.info(`  ${idx + 1}. "${job.searchTerm}" - ${(job.resultCount || 0).toLocaleString()} properties`);
       });
     }
 
-    console.log('\n' + '='.repeat(70));
-    console.log('\n💡 Insights:');
-    console.log('   - Focus on search term types with high avg properties per search');
-    console.log('   - Consider filtering out or deprioritizing "Short Code" and "Other" categories');
-    console.log('   - Business names with suffixes (LLC, Trust, etc.) are highly effective');
+    logger.info('\n' + '='.repeat(70));
+    logger.info('\n💡 Insights:');
+    logger.info('   - Focus on search term types with high avg properties per search');
+    logger.info('   - Consider filtering out or deprioritizing "Short Code" and "Other" categories');
+    logger.info('   - Business names with suffixes (LLC, Trust, etc.) are highly effective');
 
     await cleanup();
   });
@@ -163,8 +164,8 @@ program
   .description('Analyze failed search patterns and zero-result terms')
   .option('--limit <n>', 'Limit results', '50')
   .action(async (options: any) => {
-    console.log('❌ Analyzing Failed and Zero-Result Searches\n');
-    console.log('='.repeat(70));
+    logger.info('❌ Analyzing Failed and Zero-Result Searches\n');
+    logger.info('='.repeat(70));
 
     // Get failed jobs
     const failedJobs = await prisma.scrapeJob.findMany({
@@ -176,10 +177,10 @@ program
       take: parseInt(options.limit)
     });
 
-    console.log(`\n📊 Failed Jobs: ${failedJobs.length}`);
+    logger.info(`\n📊 Failed Jobs: ${failedJobs.length}`);
 
     if (failedJobs.length > 0) {
-      console.log('\nCommon Failure Patterns:');
+      logger.info('\nCommon Failure Patterns:');
       const errorCounts: Record<string, number> = {};
 
       failedJobs.forEach(job => {
@@ -190,7 +191,7 @@ program
       Object.entries(errorCounts)
         .sort((a, b) => b[1] - a[1])
         .forEach(([error, count]) => {
-          console.log(`   - ${error}: ${count} occurrences`);
+          logger.info(`   - ${error}: ${count} occurrences`);
         });
     }
 
@@ -206,7 +207,7 @@ program
       take: parseInt(options.limit)
     });
 
-    console.log(`\n📊 Zero-Result Searches: ${zeroResultJobs.length}`);
+    logger.info(`\n📊 Zero-Result Searches: ${zeroResultJobs.length}`);
 
     // Analyze zero-result patterns
     if (zeroResultJobs.length > 0) {
@@ -217,24 +218,24 @@ program
         singleLetter: zeroResultJobs.filter(j => /^[A-Z]$/.test(j.searchTerm)),
       };
 
-      console.log('\nZero-Result Patterns:');
-      console.log(`   - Too short (<= 2 chars): ${patterns.tooShort.length}`);
-      console.log(`   - Pure numbers: ${patterns.numbers.length}`);
-      console.log(`   - Contains special chars: ${patterns.specialChars.length}`);
-      console.log(`   - Single letter: ${patterns.singleLetter.length}`);
+      logger.info('\nZero-Result Patterns:');
+      logger.info(`   - Too short (<= 2 chars): ${patterns.tooShort.length}`);
+      logger.info(`   - Pure numbers: ${patterns.numbers.length}`);
+      logger.info(`   - Contains special chars: ${patterns.specialChars.length}`);
+      logger.info(`   - Single letter: ${patterns.singleLetter.length}`);
 
-      console.log('\nSample Zero-Result Terms:');
+      logger.info('\nSample Zero-Result Terms:');
       zeroResultJobs.slice(0, 10).forEach((job, idx) => {
-        console.log(`   ${idx + 1}. "${job.searchTerm}"`);
+        logger.info(`   ${idx + 1}. "${job.searchTerm}"`);
       });
     }
 
-    console.log('\n' + '='.repeat(70));
-    console.log('\n💡 Recommendations:');
-    console.log('   - Filter out single letters and numbers before queuing');
-    console.log('   - Implement minimum length requirement (3+ characters)');
-    console.log('   - Consider removing terms with special characters');
-    console.log('   - Use "queue-manager cleanup --zero-results" to clean queue');
+    logger.info('\n' + '='.repeat(70));
+    logger.info('\n💡 Recommendations:');
+    logger.info('   - Filter out single letters and numbers before queuing');
+    logger.info('   - Implement minimum length requirement (3+ characters)');
+    logger.info('   - Consider removing terms with special characters');
+    logger.info('   - Use "queue-manager cleanup --zero-results" to clean queue');
 
     await cleanup();
   });
@@ -247,8 +248,8 @@ program
   .description('Analyze queue performance metrics and throughput')
   .option('--days <n>', 'Analyze last N days', '7')
   .action(async (options: any) => {
-    console.log('⚡ Queue Performance Analysis\n');
-    console.log('='.repeat(70));
+    logger.info('⚡ Queue Performance Analysis\n');
+    logger.info('='.repeat(70));
 
     const days = parseInt(options.days);
     const since = new Date();
@@ -268,10 +269,10 @@ program
       }
     });
 
-    console.log(`\n📊 Jobs completed in last ${days} days: ${completed.length}`);
+    logger.info(`\n📊 Jobs completed in last ${days} days: ${completed.length}`);
 
     if (completed.length === 0) {
-      console.log('\nNo completed jobs in this timeframe.');
+      logger.info('\nNo completed jobs in this timeframe.');
       await cleanup();
       return;
     }
@@ -282,10 +283,10 @@ program
     const jobsPerDay = completed.length / days;
     const propertiesPerDay = totalProperties / days;
 
-    console.log(`\n📈 Throughput:`);
-    console.log(`   - Jobs per day: ${jobsPerDay.toFixed(1)}`);
-    console.log(`   - Properties per day: ${propertiesPerDay.toFixed(0)}`);
-    console.log(`   - Avg properties per job: ${avgPropertiesPerJob.toFixed(1)}`);
+    logger.info(`\n📈 Throughput:`);
+    logger.info(`   - Jobs per day: ${jobsPerDay.toFixed(1)}`);
+    logger.info(`   - Properties per day: ${propertiesPerDay.toFixed(0)}`);
+    logger.info(`   - Avg properties per job: ${avgPropertiesPerJob.toFixed(1)}`);
 
     // Calculate processing time
     const processingTimes = completed
@@ -301,10 +302,10 @@ program
       const minTime = Math.min(...processingTimes);
       const maxTime = Math.max(...processingTimes);
 
-      console.log(`\n⏱️  Processing Time:`);
-      console.log(`   - Average: ${(avgTime / 60).toFixed(1)} minutes`);
-      console.log(`   - Minimum: ${(minTime / 60).toFixed(1)} minutes`);
-      console.log(`   - Maximum: ${(maxTime / 60).toFixed(1)} minutes`);
+      logger.info(`\n⏱️  Processing Time:`);
+      logger.info(`   - Average: ${(avgTime / 60).toFixed(1)} minutes`);
+      logger.info(`   - Minimum: ${(minTime / 60).toFixed(1)} minutes`);
+      logger.info(`   - Maximum: ${(maxTime / 60).toFixed(1)} minutes`);
     }
 
     // Get current queue metrics
@@ -314,24 +315,24 @@ program
       scraperQueue.getFailedCount(),
     ]);
 
-    console.log(`\n📊 Current Queue State:`);
-    console.log(`   - Waiting: ${waiting}`);
-    console.log(`   - Active: ${active}`);
-    console.log(`   - Failed: ${failed}`);
+    logger.info(`\n📊 Current Queue State:`);
+    logger.info(`   - Waiting: ${waiting}`);
+    logger.info(`   - Active: ${active}`);
+    logger.info(`   - Failed: ${failed}`);
 
     // Estimate completion time
     if (waiting > 0 && jobsPerDay > 0) {
       const daysToComplete = waiting / jobsPerDay;
-      console.log(`\n⏳ Estimated time to clear queue: ${daysToComplete.toFixed(1)} days`);
+      logger.info(`\n⏳ Estimated time to clear queue: ${daysToComplete.toFixed(1)} days`);
     }
 
     // Success rate
     const totalJobsAttempted = completed.length + failed;
     const successRate = (completed.length / totalJobsAttempted) * 100;
 
-    console.log(`\n✅ Success Rate: ${successRate.toFixed(1)}% (${completed.length}/${totalJobsAttempted})`);
+    logger.info(`\n✅ Success Rate: ${successRate.toFixed(1)}% (${completed.length}/${totalJobsAttempted})`);
 
-    console.log('\n' + '='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
 
     await cleanup();
   });
@@ -343,8 +344,8 @@ program
   .command('overview')
   .description('Show comprehensive queue and performance overview')
   .action(async () => {
-    console.log('📊 Queue Overview\n');
-    console.log('='.repeat(70));
+    logger.info('📊 Queue Overview\n');
+    logger.info('='.repeat(70));
 
     // Get all counts
     const [waiting, active, delayed, completed, failed] = await Promise.all([
@@ -355,12 +356,12 @@ program
       scraperQueue.getFailedCount(),
     ]);
 
-    console.log(`\n🔢 Queue Counts:`);
-    console.log(`   - Waiting: ${waiting}`);
-    console.log(`   - Active: ${active}`);
-    console.log(`   - Delayed: ${delayed}`);
-    console.log(`   - Completed: ${completed}`);
-    console.log(`   - Failed: ${failed}`);
+    logger.info(`\n🔢 Queue Counts:`);
+    logger.info(`   - Waiting: ${waiting}`);
+    logger.info(`   - Active: ${active}`);
+    logger.info(`   - Delayed: ${delayed}`);
+    logger.info(`   - Completed: ${completed}`);
+    logger.info(`   - Failed: ${failed}`);
 
     // Get database stats
     const [totalProperties, totalJobs, distinctTerms] = await Promise.all([
@@ -372,10 +373,10 @@ program
       }).then(results => results.length)
     ]);
 
-    console.log(`\n📊 Database Stats:`);
-    console.log(`   - Total properties: ${totalProperties.toLocaleString()}`);
-    console.log(`   - Total scrape jobs: ${totalJobs.toLocaleString()}`);
-    console.log(`   - Distinct search terms: ${distinctTerms.toLocaleString()}`);
+    logger.info(`\n📊 Database Stats:`);
+    logger.info(`   - Total properties: ${totalProperties.toLocaleString()}`);
+    logger.info(`   - Total scrape jobs: ${totalJobs.toLocaleString()}`);
+    logger.info(`   - Distinct search terms: ${distinctTerms.toLocaleString()}`);
 
     // Get success/failure breakdown
     const successfulJobs = await prisma.scrapeJob.count({
@@ -388,13 +389,13 @@ program
 
     const successRate = totalJobs > 0 ? (successfulJobs / totalJobs) * 100 : 0;
 
-    console.log(`\n✅ Success Metrics:`);
-    console.log(`   - Successful jobs: ${successfulJobs.toLocaleString()}`);
-    console.log(`   - Zero-result jobs: ${zeroResultJobs.toLocaleString()}`);
-    console.log(`   - Failed jobs: ${failed}`);
-    console.log(`   - Success rate: ${successRate.toFixed(1)}%`);
+    logger.info(`\n✅ Success Metrics:`);
+    logger.info(`   - Successful jobs: ${successfulJobs.toLocaleString()}`);
+    logger.info(`   - Zero-result jobs: ${zeroResultJobs.toLocaleString()}`);
+    logger.info(`   - Failed jobs: ${failed}`);
+    logger.info(`   - Success rate: ${successRate.toFixed(1)}%`);
 
-    console.log('\n' + '='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
 
     await cleanup();
   });
@@ -409,13 +410,13 @@ async function cleanup() {
 
 // Handle errors and cleanup
 process.on('SIGINT', async () => {
-  console.log('\n\n👋 Interrupted. Cleaning up...');
+  logger.info('\n\n👋 Interrupted. Cleaning up...');
   await cleanup();
   process.exit(0);
 });
 
 process.on('unhandledRejection', async (error: any) => {
-  console.error('\n❌ Unhandled error:', error.message);
+  logger.error('\n❌ Unhandled error:', error.message);
   await cleanup();
   process.exit(1);
 });

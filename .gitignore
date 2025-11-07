@@ -4,3 +4,32 @@ logs/
 screenshots/
 *.log
 package-lock.json
+
+# Debug artifacts
+debug-*.png
+results.png
+*-diagnostic.html
+*-source.html
+
+# Server artifacts
+server/screenshots/
+server/logs/
+server/*.log
+server/*.html
+server/*.deb
+
+# Build artifacts
+dist/
+.next/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

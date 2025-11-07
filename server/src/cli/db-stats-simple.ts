@@ -1,14 +1,15 @@
 #!/usr/bin/env npx tsx
 
 import { prisma } from './src/lib/prisma';
+import logger from '../lib/logger';
 
 async function checkDatabaseStats() {
-  console.log('📊 Database Statistics\n');
-  console.log('=' .repeat(60));
+  logger.info('📊 Database Statistics\n');
+  logger.info('=' .repeat(60));
 
   // Count total properties
   const totalProperties = await prisma.property.count();
-  console.log(`\n🏠 Total Properties: ${totalProperties.toLocaleString()}`);
+  logger.info(`\n🏠 Total Properties: ${totalProperties.toLocaleString()}`);
 
   // Count scrape jobs by status
   const jobStats = await prisma.scrapeJob.groupBy({
@@ -21,19 +22,19 @@ async function checkDatabaseStats() {
     }
   });
 
-  console.log('\n📋 Scrape Jobs:');
+  logger.info('\n📋 Scrape Jobs:');
   let totalJobs = 0;
   let totalScraped = 0;
 
   jobStats.forEach(stat => {
     totalJobs += stat._count._all;
     totalScraped += stat._sum.resultCount || 0;
-    console.log(`  ${stat.status}: ${stat._count._all} jobs (${(stat._sum.resultCount || 0).toLocaleString()} properties)`);
+    logger.info(`  ${stat.status}: ${stat._count._all} jobs (${(stat._sum.resultCount || 0).toLocaleString()} properties)`);
   });
 
-  console.log(`  ---`);
-  console.log(`  Total Jobs: ${totalJobs}`);
-  console.log(`  Total Properties Scraped: ${totalScraped.toLocaleString()}`);
+  logger.info(`  ---`);
+  logger.info(`  Total Jobs: ${totalJobs}`);
+  logger.info(`  Total Properties Scraped: ${totalScraped.toLocaleString()}`);
 
   // Properties by city
   const propertiesByCity = await prisma.property.groupBy({
@@ -49,9 +50,9 @@ async function checkDatabaseStats() {
     take: 10
   });
 
-  console.log('\n🏙️  Top 10 Cities:');
+  logger.info('\n🏙️  Top 10 Cities:');
   propertiesByCity.forEach((city, idx) => {
-    console.log(`  ${idx + 1}. ${city.city || 'Unknown'}: ${city._count._all.toLocaleString()} properties`);
+    logger.info(`  ${idx + 1}. ${city.city || 'Unknown'}: ${city._count._all.toLocaleString()} properties`);
   });
 
   // Most recent scrapes
@@ -66,10 +67,10 @@ async function checkDatabaseStats() {
     }
   });
 
-  console.log('\n📅 Recent Completed Scrapes:');
+  logger.info('\n📅 Recent Completed Scrapes:');
   recentJobs.forEach((job, idx) => {
     const time = job.completedAt ? new Date(job.completedAt).toLocaleString() : 'N/A';
-    console.log(`  ${idx + 1}. "${job.searchTerm}": ${job.resultCount} properties (${time})`);
+    logger.info(`  ${idx + 1}. "${job.searchTerm}": ${job.resultCount} properties (${time})`);
   });
 
   // Average properties per successful scrape
@@ -89,12 +90,12 @@ async function checkDatabaseStats() {
     }
   });
 
-  console.log('\n📈 Scrape Performance:');
-  console.log(`  Average properties per scrape: ${avgStats._avg.resultCount?.toFixed(0) || 0}`);
-  console.log(`  Max properties in single scrape: ${avgStats._max.resultCount || 0}`);
-  console.log(`  Min properties in single scrape: ${avgStats._min.resultCount || 0}`);
+  logger.info('\n📈 Scrape Performance:');
+  logger.info(`  Average properties per scrape: ${avgStats._avg.resultCount?.toFixed(0) || 0}`);
+  logger.info(`  Max properties in single scrape: ${avgStats._max.resultCount || 0}`);
+  logger.info(`  Min properties in single scrape: ${avgStats._min.resultCount || 0}`);
 
-  console.log('\n' + '=' .repeat(60));
+  logger.info('\n' + '=' .repeat(60));
 
   await prisma.$disconnect();
 }
@@ -104,7 +105,7 @@ checkDatabaseStats()
     process.exit(0);
   })
   .catch(async (error) => {
-    console.error('❌ Error:', error);
+    logger.error('❌ Error:', error);
     await prisma.$disconnect();
     process.exit(1);
   });
