@@ -143,33 +143,34 @@ export const dataController = new DataController(
 
 /**
  * Hook for React to load initial data
+ * Note: This hook is not currently used in the codebase.
+ * If you need to use it, uncomment the import below and the hook implementation.
  */
-export function useInitialData<T>(scriptId: string, fallbackUrl?: string): T | null {
-  const [data, setData] = React.useState<T | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<Error | null>(null);
-
-  React.useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const result = fallbackUrl
-          ? await dataController.loadDataWithFallback<T>(scriptId, fallbackUrl)
-          : dataController.loadData<T>(scriptId);
-
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error(String(err)));
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadData();
-  }, [scriptId, fallbackUrl]);
-
-  return data;
-}
-
-// Re-export React for the hook if needed
-declare const React: any;
+// import { useState, useEffect } from 'react';
+//
+// export function useInitialData<T>(scriptId: string, fallbackUrl?: string): T | null {
+//   const [data, setData] = useState<T | null>(null);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState<Error | null>(null);
+//
+//   useEffect(() => {
+//     async function loadData() {
+//       try {
+//         setLoading(true);
+//         const result = fallbackUrl
+//           ? await dataController.loadDataWithFallback<T>(scriptId, fallbackUrl)
+//           : dataController.loadData<T>(scriptId);
+//
+//         setData(result);
+//       } catch (err) {
+//         setError(err instanceof Error ? err : new Error(String(err)));
+//       } finally {
+//         setLoading(false);
+//       }
+//     }
+//
+//     loadData();
+//   }, [scriptId, fallbackUrl]);
+//
+//   return data;
+// }
