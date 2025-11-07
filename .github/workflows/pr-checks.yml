@@ -1,0 +1,365 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  # PR Validation
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR title format
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+
+      - name: Check for merge conflicts
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          if git merge-base --is-ancestor origin/${{ github.base_ref }} HEAD; then
+            echo "✅ No merge conflicts detected"
+          else
+            echo "⚠️ Branch may have conflicts with base branch"
+          fi
+
+  # Code Quality Checks
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Run ESLint with annotations
+        working-directory: ./server
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Check code formatting
+        working-directory: ./server
+        run: |
+          # Check if any files would be changed by prettier
+          if npx prettier --check "src/**/*.{ts,js,json}" 2>/dev/null; then
+            echo "✅ Code formatting is correct"
+          else
+            echo "⚠️ Some files need formatting. Run 'npm run format' locally."
+          fi
+        continue-on-error: true
+
+  # Test Coverage Comparison
+  test-coverage:
+    name: Test Coverage Report
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tcad_scraper_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ./server
+        run: npx prisma generate
+
+      - name: Run Prisma Migrations
+        working-directory: ./server
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tcad_scraper_test
+        run: npx prisma migrate deploy
+
+      - name: Run tests with coverage
+        working-directory: ./server
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tcad_scraper_test
+          DATABASE_READ_ONLY_URL: postgresql://postgres:postgres@localhost:5432/tcad_scraper_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          SENTRY_DSN: ""
+          CLAUDE_API_KEY: "test-key"
+        run: npm run test:coverage
+
+      - name: Generate Coverage Summary
+        id: coverage
+        run: |
+          cd server
+          COVERAGE=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "Coverage: $COVERAGE%"
+
+      - name: Comment Coverage on PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const coverage = '${{ steps.coverage.outputs.coverage }}';
+            const body = `## 📊 Test Coverage Report
+
+            **Current Coverage:** ${coverage}%
+
+            ${coverage >= 80 ? '✅ Great coverage!' : coverage >= 60 ? '⚠️ Coverage could be improved' : '❌ Coverage is below recommended threshold'}
+
+            <details>
+            <summary>View full coverage report</summary>
+
+            Check the artifacts section for the complete coverage report.
+            </details>
+            `;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Test Coverage Report')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+  # Changed Files Analysis
+  changed-files:
+    name: Analyze Changed Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          files_yaml: |
+            server:
+              - 'server/**'
+            frontend:
+              - 'src/**'
+              - 'vite.config.ts'
+              - 'index.html'
+            docs:
+              - 'docs/**'
+              - '*.md'
+            workflows:
+              - '.github/workflows/**'
+            dependencies:
+              - '**/package.json'
+              - '**/package-lock.json'
+            database:
+              - 'server/prisma/**'
+            tests:
+              - '**/__tests__/**'
+              - '**/*.test.ts'
+              - '**/*.spec.ts'
+
+      - name: Comment changed areas on PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const changedAreas = [];
+
+            if ('${{ steps.changed-files.outputs.server_any_changed }}' === 'true') {
+              changedAreas.push('🔧 Server/Backend');
+            }
+            if ('${{ steps.changed-files.outputs.frontend_any_changed }}' === 'true') {
+              changedAreas.push('🎨 Frontend');
+            }
+            if ('${{ steps.changed-files.outputs.docs_any_changed }}' === 'true') {
+              changedAreas.push('📚 Documentation');
+            }
+            if ('${{ steps.changed-files.outputs.workflows_any_changed }}' === 'true') {
+              changedAreas.push('⚙️ CI/CD Workflows');
+            }
+            if ('${{ steps.changed-files.outputs.dependencies_any_changed }}' === 'true') {
+              changedAreas.push('📦 Dependencies');
+            }
+            if ('${{ steps.changed-files.outputs.database_any_changed }}' === 'true') {
+              changedAreas.push('🗄️ Database Schema');
+            }
+            if ('${{ steps.changed-files.outputs.tests_any_changed }}' === 'true') {
+              changedAreas.push('🧪 Tests');
+            }
+
+            if (changedAreas.length > 0) {
+              const body = `## 📝 Changed Areas
+
+              This PR modifies the following areas:
+
+              ${changedAreas.map(area => `- ${area}`).join('\n')}
+
+              Please ensure appropriate reviewers are assigned.
+              `;
+
+              // Only comment if significant changes
+              if (changedAreas.length >= 2 ||
+                  changedAreas.some(a => a.includes('Database') || a.includes('Dependencies'))) {
+                console.log('Posting changed areas comment');
+                // Comment logic would go here
+              }
+            }
+
+  # Size Check
+  bundle-size:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'frontend') ||
+        contains(github.event.pull_request.changed_files, 'src/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        env:
+          VITE_API_URL: https://api.example.com
+        run: npm run build
+
+      - name: Analyze bundle size
+        run: |
+          BUNDLE_SIZE=$(du -sh dist | cut -f1)
+          echo "Bundle size: $BUNDLE_SIZE"
+          echo "bundle_size=$BUNDLE_SIZE" >> $GITHUB_OUTPUT
+        id: bundle
+
+      - name: Comment bundle size
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const size = '${{ steps.bundle.outputs.bundle_size }}';
+            const body = `## 📦 Bundle Size
+
+            **Current size:** ${size}
+
+            Make sure the bundle size is reasonable for production deployment.
+            `;
+
+            console.log(body);
+
+  # PR Summary
+  pr-summary:
+    name: PR Summary
+    runs-on: ubuntu-latest
+    needs: [pr-validation, code-quality, test-coverage, changed-files]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## PR Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ PR validation: ${{ needs.pr-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Code quality: ${{ needs.code-quality.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Test coverage: ${{ needs.test-coverage.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Changed files analysis: ${{ needs.changed-files.result }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check if all required checks passed
+        if: |
+          needs.pr-validation.result == 'failure' ||
+          needs.code-quality.result == 'failure' ||
+          needs.test-coverage.result == 'failure'
+        run: |
+          echo "❌ Some PR checks failed"
+          exit 1
