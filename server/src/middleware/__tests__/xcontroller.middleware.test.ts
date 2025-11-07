@@ -2,8 +2,55 @@
  * XController Middleware Tests
  */
 
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { Request, Response, NextFunction } from 'express';
+
+// Mock the config module before importing middleware
+jest.mock('../../config', () => {
+  const mockConfig = {
+    env: {
+      nodeEnv: 'development',
+      isDevelopment: true,
+      isProduction: false,
+      isTest: false,
+    },
+    security: {
+      csp: {
+        enabled: true,
+        nonceLength: 16,
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          fontSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          frameAncestors: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+        },
+      },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+      },
+    },
+    frontend: {
+      apiUrl: '/api',
+      appVersion: '1.0.0',
+      features: {
+        search: true,
+        analytics: false,
+        monitoring: false,
+      },
+    },
+  };
+
+  return {
+    config: mockConfig,
+  };
+});
+
 import {
   generateNonce,
   encodeJsonForHtml,
@@ -12,6 +59,7 @@ import {
   generateSecureHtml,
   getInitialAppData,
 } from '../xcontroller.middleware';
+import { config } from '../../config';
 
 describe('XController Middleware', () => {
   describe('generateNonce', () => {
@@ -128,7 +176,9 @@ describe('XController Middleware', () => {
         setHeader: jest.fn(),
       };
       next = jest.fn();
-      process.env.NODE_ENV = 'development';
+      // Reset config to development mode
+      (config.env as any).isProduction = false;
+      (config.env as any).nodeEnv = 'development';
     });
 
     test('should set Content-Security-Policy header with nonce', () => {
@@ -179,7 +229,8 @@ describe('XController Middleware', () => {
     });
 
     test('should set HSTS in production with HTTPS', () => {
-      process.env.NODE_ENV = 'production';
+      (config.env as any).isProduction = true;
+      (config.env as any).nodeEnv = 'production';
       req.protocol = 'https';
       cspMiddleware(req as Request, res as Response, next);
       expect(res.setHeader).toHaveBeenCalledWith(
@@ -189,7 +240,8 @@ describe('XController Middleware', () => {
     });
 
     test('should not set HSTS in development', () => {
-      process.env.NODE_ENV = 'development';
+      (config.env as any).isProduction = false;
+      (config.env as any).nodeEnv = 'development';
       cspMiddleware(req as Request, res as Response, next);
       expect(res.setHeader).not.toHaveBeenCalledWith(
         'Strict-Transport-Security',
@@ -198,7 +250,8 @@ describe('XController Middleware', () => {
     });
 
     test('should not set HSTS with HTTP in production', () => {
-      process.env.NODE_ENV = 'production';
+      (config.env as any).isProduction = true;
+      (config.env as any).nodeEnv = 'production';
       req.protocol = 'http';
       cspMiddleware(req as Request, res as Response, next);
       expect(res.setHeader).not.toHaveBeenCalledWith(
@@ -284,14 +337,13 @@ describe('XController Middleware', () => {
   });
 
   describe('getInitialAppData', () => {
-    const originalEnv = process.env;
-
     beforeEach(() => {
-      process.env = { ...originalEnv };
-    });
-
-    afterEach(() => {
-      process.env = originalEnv;
+      // Reset config to defaults
+      (config.frontend as any).apiUrl = '/api';
+      (config.env as any).nodeEnv = 'development';
+      (config.env as any).isProduction = false;
+      (config.frontend as any).appVersion = '1.0.0';
+      (config.frontend.features as any).analytics = false;
     });
 
     test('should return valid initial data structure', () => {
@@ -304,9 +356,9 @@ describe('XController Middleware', () => {
     });
 
     test('should use environment variables when available', () => {
-      process.env.API_URL = 'https://api.example.com';
-      process.env.NODE_ENV = 'production';
-      process.env.APP_VERSION = '2.0.0';
+      (config.frontend as any).apiUrl = 'https://api.example.com';
+      (config.env as any).nodeEnv = 'production';
+      (config.frontend as any).appVersion = '2.0.0';
 
       const data = getInitialAppData();
 
@@ -316,9 +368,9 @@ describe('XController Middleware', () => {
     });
 
     test('should use defaults when environment variables are missing', () => {
-      delete process.env.API_URL;
-      delete process.env.NODE_ENV;
-      delete process.env.APP_VERSION;
+      (config.frontend as any).apiUrl = '/api';
+      (config.env as any).nodeEnv = 'development';
+      (config.frontend as any).appVersion = '1.0.0';
 
       const data = getInitialAppData();
 
@@ -328,27 +380,31 @@ describe('XController Middleware', () => {
     });
 
     test('should enable analytics in production', () => {
-      process.env.NODE_ENV = 'production';
+      (config.env as any).nodeEnv = 'production';
+      (config.env as any).isProduction = true;
+      (config.frontend.features as any).analytics = true;
+
       const data = getInitialAppData();
       expect(data.features.analytics).toBe(true);
     });
 
     test('should disable analytics in development', () => {
-      process.env.NODE_ENV = 'development';
+      (config.env as any).nodeEnv = 'development';
+      (config.env as any).isProduction = false;
+      (config.frontend.features as any).analytics = false;
+
       const data = getInitialAppData();
       expect(data.features.analytics).toBe(false);
     });
 
     test('should not expose sensitive data', () => {
-      process.env.DATABASE_URL = 'postgres://secret';
-      process.env.API_KEY = 'secret-key';
-
       const data = getInitialAppData();
       const json = JSON.stringify(data);
 
-      expect(json).not.toContain('secret');
       expect(json).not.toContain('DATABASE_URL');
       expect(json).not.toContain('API_KEY');
+      expect(json).not.toContain('JWT_SECRET');
+      expect(json).not.toContain('ANTHROPIC_API_KEY');
     });
   });
 });

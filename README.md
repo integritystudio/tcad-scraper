@@ -74,7 +74,6 @@ The application supports two scraping methods:
 - **Prisma ORM 5.8** for type-safe database access
 - **BullMQ** for distributed job queue management
 - **Bull Board** for queue monitoring dashboard
-- **Winston** for structured logging
 - **Zod** for runtime type validation
 - **Anthropic Claude AI** for natural language search parsing
 
