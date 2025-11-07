@@ -56,3 +56,28 @@ model MonitoredSearch {
 
   @@map("monitored_searches")
 }
+
+model SearchTermAnalytics {
+  id                String   @id @default(uuid())
+  searchTerm        String   @map("search_term")
+  termLength        Int      @map("term_length")
+  totalSearches     Int      @default(0) @map("total_searches")
+  successfulSearches Int     @default(0) @map("successful_searches")
+  failedSearches    Int      @default(0) @map("failed_searches")
+  totalResults      Int      @default(0) @map("total_results")
+  avgResultsPerSearch Float  @default(0) @map("avg_results_per_search")
+  maxResults        Int      @default(0) @map("max_results")
+  minResults        Int?     @map("min_results")
+  lastSearched      DateTime @map("last_searched")
+  successRate       Float    @default(0) @map("success_rate")
+  efficiency        Float    @default(0) // Results per search weighted by success rate
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([searchTerm])
+  @@index([efficiency])
+  @@index([avgResultsPerSearch])
+  @@index([termLength])
+  @@index([lastSearched])
+  @@map("search_term_analytics")
+}
