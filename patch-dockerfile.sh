@@ -16,7 +16,6 @@ if [ ! -f "$SCRIPT_DIR/docker-compose.yml" ]; then
     echo "You need to run this script from the directory containing:"
     echo "  - docker-compose.yml"
     echo "  - bullmq-exporter/"
-    echo "  - prometheus.yml"
     echo ""
     echo "Did you download all the files from Claude?"
     echo "They should all be in the same directory."

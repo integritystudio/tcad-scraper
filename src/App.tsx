@@ -1,10 +1,10 @@
-import PropertySearch from './components/PropertySearch';
+import { PropertySearchContainer } from './components/features/PropertySearch';
 import './App.css';
 
 function App() {
   return (
     <div className="app">
-      <PropertySearch />
+      <PropertySearchContainer />
     </div>
   );
 }

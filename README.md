@@ -222,7 +222,6 @@ tcad-scraper/
 ├── bullmq-exporter/                 # Custom Prometheus exporter
 ├── docker-compose.yml               # Infrastructure services
 ├── docker-compose.override.yml      # Local overrides
-├── prometheus.yml                   # Prometheus configuration
 ├── doppler-setup.md                 # Doppler configuration guide
 ├── SETUP.md                         # Setup instructions
 └── README.md                        # This file
@@ -693,14 +692,6 @@ The application uses Docker Compose for infrastructure services defined in `dock
 - **Purpose**: BullMQ job queue and state management
 - **Volume**: `redis-data`
 - **Features**: AOF persistence enabled
-
-#### Prometheus (prometheus)
-- **Image**: prom/prometheus:latest
-- **Port**: 9090
-- **Purpose**: Metrics collection and monitoring
-- **Volume**: `prometheus-data`
-- **Config**: `./prometheus.yml`
-- **Dependencies**: bullmq-metrics
 
 #### BullMQ Metrics Exporter (bullmq-metrics)
 - **Build**: `./bullmq-exporter`

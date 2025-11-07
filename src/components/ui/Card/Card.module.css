@@ -1,0 +1,51 @@
+.card {
+  background: white;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.default {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.elevated {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.elevated:hover {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.outlined {
+  border: 1px solid var(--neutral-200, #e5e7eb);
+  box-shadow: none;
+}
+
+/* Padding variants */
+.padding-sm {
+  padding: 1rem;
+}
+
+.padding-md {
+  padding: 1.5rem;
+}
+
+.padding-lg {
+  padding: 2rem;
+}
+
+/* Card sections */
+.header {
+  margin-bottom: 1rem;
+}
+
+.body {
+  flex: 1;
+}
+
+.footer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--neutral-200, #e5e7eb);
+}
