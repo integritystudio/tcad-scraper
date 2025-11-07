@@ -63,8 +63,8 @@ export const config = {
 
   // Server Configuration
   server: {
-    port: parseIntEnv('PORT'),
-    host: process.env.HOST,
+    port: parseIntEnv('PORT', 3001),
+    host: process.env.HOST || '0.0.0.0',
     logLevel: process.env.LOG_LEVEL,
     gracefulShutdownTimeout: parseIntEnv('GRACEFUL_SHUTDOWN_TIMEOUT', 10000),
   },
