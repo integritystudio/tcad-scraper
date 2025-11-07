@@ -1,373 +1,330 @@
-# XController Testing Guide
+# Testing Guide
 
-## Overview
+Quick reference for running tests in the TCAD Scraper project.
 
-Comprehensive test suite for the XController security implementation in TCAD Scraper. Tests cover middleware functionality, security compliance, XSS prevention, and integration scenarios.
+## Quick Start
+
+```bash
+# Navigate to server directory
+cd server
+
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run specific test file
+npm test -- --testPathPattern="security"
+```
+
+## Prerequisites
+
+### Local Development
+
+Before running tests locally, you need:
+
+1. **PostgreSQL** - Running on port 5432
+2. **Redis** - Running on port 6379
+3. **Test Database** - Created and migrated
+
+#### Setup Commands
+
+```bash
+# Start services with Docker
+docker-compose up -d postgres redis
+
+# Create test database
+createdb tcad_scraper_test
+
+# Run migrations
+cd server
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper_test" \
+  npx prisma migrate deploy
+```
+
+## Test Commands
+
+### Server Tests
+
+```bash
+cd server
+
+# All tests
+npm test
+
+# Coverage report
+npm run test:coverage
+
+# Watch mode (re-run on changes)
+npm run test:watch
+
+# Security tests only
+npm run test:security
+
+# Auth/database tests
+npm run test:auth-db
+
+# Specific test file
+npm test -- src/__tests__/security.test.ts
+```
+
+### Available Test Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm test` | Run all tests |
+| `npm run test:coverage` | Run with coverage report |
+| `npm run test:watch` | Watch mode |
+| `npm run test:security` | Security tests only |
+| `npm run test:auth-db` | Auth/database tests |
+| `npm run test:enqueue` | Queue tests |
 
 ## Test Structure
 
 ```
-server/src/
-├── __tests__/
-│   ├── integration.test.ts      # Full integration tests
-│   └── security.test.ts         # Security-focused tests
-├── middleware/__tests__/
-│   └── xcontroller.middleware.test.ts  # Middleware unit tests
-└── routes/__tests__/
-    └── app.routes.test.ts       # Route handler tests
-
-src/lib/__tests__/
-└── xcontroller.client.test.ts   # Client-side data controller tests
+server/src/__tests__/
+├── setup.ts                    # Global test setup
+├── security.test.ts            # Security vulnerability tests
+├── integration.test.ts         # Integration tests
+├── enqueue.test.ts             # Queue/BullMQ tests
+├── api.test.ts                 # API endpoint tests (skipped)
+├── controller.test.ts          # Controller tests (skipped)
+├── auth-database.*.test.ts     # Database auth tests
+├── lib/__tests__/              # Library unit tests
+├── middleware/__tests__/       # Middleware tests
+└── routes/__tests__/           # Route handler tests
 ```
 
-## Running Tests
+## Test Categories
 
-### Install Dependencies
+### Unit Tests
+- Fast, isolated tests
+- Mock external dependencies
+- Test single functions/classes
 
+### Integration Tests
+- Test multiple components together
+- Use real database and services
+- Slower but more realistic
+
+### Security Tests
+- Test for common vulnerabilities
+- SQL injection, XSS, CSRF protection
+- Input validation
+
+## Environment Variables
+
+Tests use these environment variables:
+
+```bash
+NODE_ENV=test
+LOG_LEVEL=error
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/tcad_scraper_test
+DATABASE_READ_ONLY_URL=(same as above)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+SENTRY_DSN=""
+CLAUDE_API_KEY="test-key"
+```
+
+## Coverage Reports
+
+After running `npm run test:coverage`:
+
+```bash
+# View HTML report
+open coverage/lcov-report/index.html
+
+# View summary in terminal
+cat coverage/coverage-summary.json
+```
+
+### Coverage Goals
+
+- **Lines**: 70%+
+- **Branches**: 65%+
+- **Functions**: 70%+
+- **Statements**: 70%+
+
+## Known Issues
+
+### Database Permission Errors
+
+**Error**: `User 'postgres' was denied access`
+
+**Fix**:
+```bash
+# Ensure DATABASE_URL points to test database
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper_test"
+
+# Grant permissions if needed
+psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE tcad_scraper_test TO postgres;"
+```
+
+### Redis Connection Errors
+
+**Error**: `ECONNREFUSED localhost:6379`
+
+**Fix**:
+```bash
+# Start Redis
+docker-compose up -d redis
+
+# Or with Homebrew
+brew services start redis
+```
+
+### Module Not Found Errors
+
+**Error**: `Cannot find module '@prisma/client'`
+
+**Fix**:
 ```bash
 cd server
-npm install
+npm ci
+npx prisma generate
 ```
 
-### Run All Tests
+## CI/CD Testing
+
+GitHub Actions runs tests automatically on every push and PR.
+
+See [CI/CD Documentation](docs/CI-CD.md) for details.
+
+### CI Test Environment
+
+- PostgreSQL 16 container
+- Redis 7 container
+- Automated database migrations
+- All environment variables configured
+
+## Debugging Tests
+
+### Run Single Test
 
 ```bash
-npm test
+npm test -- --testNamePattern="should return healthy status"
 ```
 
-### Run Specific Test Suites
+### Enable Verbose Output
 
 ```bash
-# Middleware tests
-npm test -- middleware/__tests__/xcontroller.middleware.test.ts
-
-# Security tests
-npm test:security
-
-# Integration tests
-npm test -- __tests__/integration.test.ts
-
-# Route tests
-npm test -- routes/__tests__/app.routes.test.ts
+npm test -- --verbose
 ```
 
-### Watch Mode
+### Debug in VS Code
 
-```bash
-npm test:watch
+Add to `.vscode/launch.json`:
+
+```json
+{
+  "type": "node",
+  "request": "launch",
+  "name": "Jest Debug",
+  "program": "${workspaceFolder}/server/node_modules/.bin/jest",
+  "args": ["--runInBand", "--testPathPattern=${relativeFile}"],
+  "console": "integratedTerminal",
+  "internalConsoleOptions": "neverOpen"
+}
 ```
 
-### Coverage Report
+## Writing Tests
 
-```bash
-npm test:coverage
-```
+### Test Structure
 
-## Test Coverage
-
-### Middleware Tests (xcontroller.middleware.test.ts)
-
-**94 tests** covering:
-
-- ✅ Nonce generation (cryptographic security, uniqueness)
-- ✅ JSON encoding (XSS prevention, dangerous character encoding)
-- ✅ CSP middleware (header configuration, nonce injection)
-- ✅ Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
-- ✅ HTML generation (secure data embedding, template rendering)
-- ✅ Initial data configuration (environment variables, safe defaults)
-- ✅ HTTPS/HSTS handling (production vs development)
-
-**Key Tests:**
 ```typescript
-describe('encodeJsonForHtml', () => {
-  test('should encode dangerous < character', () => {
-    const data = { html: '<script>alert("xss")</script>' };
-    const encoded = encodeJsonForHtml(data);
-    expect(encoded).not.toContain('<script>');
-    expect(encoded).toContain('\\u003C');
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+
+describe('Feature Name', () => {
+  beforeEach(() => {
+    // Setup before each test
+  });
+
+  afterEach(() => {
+    // Cleanup after each test
+  });
+
+  it('should do something specific', () => {
+    // Arrange
+    const input = 'test';
+
+    // Act
+    const result = someFunction(input);
+
+    // Assert
+    expect(result).toBe('expected');
   });
 });
 ```
 
-### Route Tests (app.routes.test.ts)
+### Best Practices
 
-**38 tests** covering:
+1. **One assertion per test** - Tests should be focused
+2. **Descriptive names** - `should return error when input is invalid`
+3. **Arrange-Act-Assert** - Clear test structure
+4. **Clean up** - Use afterEach to prevent test pollution
+5. **Mock external dependencies** - Don't call real APIs in tests
 
-- ✅ HTML response structure and content-type
-- ✅ CSP header presence and configuration
-- ✅ Nonce consistency (HTML and CSP match)
-- ✅ Security header validation
-- ✅ Initial data embedding and parsing
-- ✅ XSS prevention in templates
+### Mocking Example
 
-**Key Tests:**
 ```typescript
-describe('CSP Headers', () => {
-  test('should match nonce in CSP and HTML', async () => {
-    const response = await request(app).get('/');
-    const htmlNonceMatch = response.text.match(/nonce="([^"]+)"/);
-    const htmlNonce = htmlNonceMatch![1];
-    const csp = response.headers['content-security-policy'];
-    expect(csp).toContain(`'nonce-${htmlNonce}'`);
-  });
-});
+jest.mock('../lib/external-service');
+
+import { externalService } from '../lib/external-service';
+
+const mockService = externalService as jest.MockedFunction<typeof externalService>;
+mockService.mockResolvedValue({ data: 'mocked' });
 ```
 
-### Integration Tests (integration.test.ts)
+## Troubleshooting
 
-**23 tests** covering:
+### Tests Hanging
 
-- ✅ Server health checks
-- ✅ API route isolation (no CSP interference)
-- ✅ Frontend route security
-- ✅ Route priority (health > API > frontend)
-- ✅ Data passing from server to client
-- ✅ Sensitive data protection
-- ✅ Error handling
-
-**Key Tests:**
-```typescript
-describe('Data Passing', () => {
-  test('should not expose sensitive environment variables', async () => {
-    const response = await request(app).get('/');
-    const text = response.text.toLowerCase();
-    expect(text).not.toContain('database_url');
-    expect(text).not.toContain('api_key');
-  });
-});
-```
-
-### Security Tests (security.test.ts)
-
-**45 tests** covering:
-
-- ✅ XSS attack prevention (script injection, event handlers)
-- ✅ CSP Level 3 compliance
-- ✅ Security header validation
-- ✅ Sensitive data protection
-- ✅ HTTPS and transport security
-- ✅ Attack vector prevention (polyglot, mXSS, CRLF)
-- ✅ Input validation
-- ✅ Regression testing
-
-**Key Tests:**
-```typescript
-describe('Attack Vectors', () => {
-  test('should prevent polyglot attacks', () => {
-    const polyglot = {
-      payload: '/*-/*`/*\\`/*\'/*"/**/(/* */onerror=alert(\'xss\') )//'
-    };
-    const encoded = encodeJsonForHtml(polyglot);
-    expect(encoded).not.toContain('<script>');
-    expect(encoded).not.toContain('onerror=');
-  });
-});
-```
-
-### Client Tests (xcontroller.client.test.ts)
-
-**28 tests** covering:
-
-- ✅ Data loading from JSON script tags
-- ✅ Caching functionality
-- ✅ API fallback mechanism
-- ✅ Error handling
-- ✅ Type safety
-- ✅ XSS prevention in client
-- ✅ Unicode and special character handling
-
-**Key Tests:**
-```typescript
-describe('loadDataWithFallback', () => {
-  test('should fallback to API when script tag missing', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ source: 'api' })
-    });
-
-    const data = await controller.loadDataWithFallback('missing', '/api/fallback');
-    expect(data?.source).toBe('api');
-  });
-});
-```
-
-## Security Validation Checklist
-
-The test suite validates all items from the XController security checklist:
-
-- [x] CSP headers with nonces configured
-- [x] JSON encoding with proper escaping (\\u003C, \\u003E, \\u0026)
-- [x] HTTPS enforced (production)
-- [x] Security headers set (X-Frame-Options, X-Content-Type-Options, etc.)
-- [x] No sensitive data exposed to client
-- [x] No dangerouslySetInnerHTML with user data
-- [x] No v-html with untrusted data
-- [x] No eval() usage
-- [x] Nonce consistency across page
-- [x] Frame embedding blocked
-- [x] Script source restrictions
-- [x] Attack vector prevention
-
-## Coverage Goals
-
-Target coverage: **>90%** for security-critical code
-
-Current coverage areas:
-- Middleware: ~95%
-- Route handlers: ~90%
-- Client library: ~85%
-- Integration: ~100% of critical paths
-
-## Running Security Audit
-
+**Solution**: Force exit after timeout
 ```bash
-# Run only security tests
-npm test:security
-
-# Check for security vulnerabilities in dependencies
-npm audit
-
-# Run security-focused linting
-npm run lint
+npm test -- --forceExit
 ```
 
-## Continuous Integration
+### Tests Pass Locally, Fail in CI
 
-### Pre-commit Checks
+**Causes**:
+- Different Node.js version
+- Missing environment variables
+- Service not running
 
-```bash
-# Run tests before committing
-npm test
+**Solution**: Check CI logs and match local environment to CI
 
-# Run security tests
-npm test:security
-```
+### Flaky Tests
 
-### CI Pipeline
+**Causes**:
+- Race conditions
+- Insufficient timeouts
+- Shared state between tests
 
-```yaml
-# Example GitHub Actions workflow
-- name: Run Tests
-  run: |
-    cd server
-    npm install
-    npm test:coverage
-
-- name: Security Tests
-  run: |
-    cd server
-    npm test:security
-
-- name: Upload Coverage
-  uses: codecov/codecov-action@v3
-```
-
-## Manual Security Testing
-
-### 1. Test CSP Headers
-
-```bash
-curl -I http://localhost:5050/ | grep Content-Security-Policy
-```
-
-Expected output:
-```
-Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-xxxxx'; ...
-```
-
-### 2. Test Nonce Consistency
-
-```bash
-curl http://localhost:5050/ | grep nonce
-```
-
-All nonces should match.
-
-### 3. Test Data Encoding
-
-```bash
-curl http://localhost:5050/ | grep -A 5 "initial-data"
-```
-
-Should see properly encoded JSON with no raw `<` or `>` characters.
-
-### 4. Test API Route Isolation
-
-```bash
-curl -I http://localhost:5050/api/properties/stats
-```
-
-Should NOT have strict CSP headers that would break API functionality.
-
-## Common Issues and Solutions
-
-### Issue: Tests fail with "Cannot find module"
-
-**Solution:**
-```bash
-cd server
-npm install
-npm run build
-```
-
-### Issue: Jest timeout errors
-
-**Solution:** Increase timeout in `jest.config.js`:
-```javascript
-testTimeout: 20000,
-```
-
-### Issue: Nonce mismatch in tests
-
-**Solution:** Ensure `nonceMiddleware` is applied before `cspMiddleware`:
-```typescript
-app.use(nonceMiddleware);
-app.use(cspMiddleware);
-```
-
-### Issue: CSP violations in browser
-
-**Solution:** Check that all inline scripts have nonces:
-```html
-<script nonce="${nonce}">...</script>
-```
-
-## Performance Benchmarks
-
-Tests include performance assertions:
-
-- Nonce generation: < 1ms
-- JSON encoding: < 5ms (typical data)
-- Page load with embedded data: < 100ms
-- API response times: < 200ms
-
-## Future Test Improvements
-
-- [ ] Add E2E tests with Playwright
-- [ ] Add performance regression tests
-- [ ] Add visual regression tests
-- [ ] Add penetration testing scenarios
-- [ ] Add fuzzing tests for encoding
-- [ ] Add load testing for concurrent requests
+**Solution**:
+- Add `await` for async operations
+- Increase test timeout
+- Clean up properly in afterEach
 
 ## Resources
 
-- [OWASP Testing Guide](https://owasp.org/www-project-web-security-testing-guide/)
-- [Jest Documentation](https://jestjs.io/docs/getting-started)
-- [Supertest Documentation](https://github.com/visionmedia/supertest)
-- [CSP Testing Tools](https://csp-evaluator.withgoogle.com/)
+- [Jest Documentation](https://jestjs.io/)
+- [Testing Library](https://testing-library.com/)
+- [Supertest](https://github.com/visionmedia/supertest)
+- [CI/CD Docs](docs/CI-CD.md)
+- [Test Status Report](docs/TEST-STATUS.md)
 
-## Support
+## Getting Help
 
-For test-related issues:
-1. Check this documentation
-2. Review test output for specific failures
-3. Check the implementation code for recent changes
-4. Verify all dependencies are installed
+1. Check [TEST-STATUS.md](docs/TEST-STATUS.md) for known issues
+2. Review test logs in CI
+3. Run tests locally with `--verbose`
+4. Check environment configuration
 
 ---
 
-**Test Suite Version:** 1.0.0
-**Last Updated:** 2025-11-04
-**Total Tests:** 228
-**Expected Pass Rate:** 100%
+*For detailed CI/CD setup, see [docs/CI-CD.md](docs/CI-CD.md)*
