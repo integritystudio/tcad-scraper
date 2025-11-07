@@ -1,133 +1,156 @@
+/* CSS Custom Properties - Global design tokens */
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1e40af;
-  --secondary: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
-  --neutral-50: #f9fafb;
-  --neutral-100: #f3f4f6;
-  --neutral-200: #e5e7eb;
-  --neutral-300: #d1d5db;
-  --neutral-400: #9ca3af;
-  --neutral-500: #6b7280;
-  --neutral-600: #4b5563;
-  --neutral-700: #374151;
-  --neutral-800: #1f2937;
-  --neutral-900: #111827;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  /* Primary brand colors */
+  --primary: #2563eb; /* Blue - main brand color for buttons and links */
+  --primary-dark: #1e40af; /* Darker blue - hover states */
+  --secondary: #10b981; /* Green - success states and accents */
+  --error: #ef4444; /* Red - error messages and destructive actions */
+  --warning: #f59e0b; /* Amber - warning states */
+
+  /* Neutral color scale - lightest to darkest */
+  --neutral-50: #f9fafb; /* Off-white - page backgrounds */
+  --neutral-100: #f3f4f6; /* Very light gray - subtle backgrounds */
+  --neutral-200: #e5e7eb; /* Light gray - borders and dividers */
+  --neutral-300: #d1d5db; /* Gray - disabled states */
+  --neutral-400: #9ca3af; /* Medium gray - placeholders */
+  --neutral-500: #6b7280; /* Mid gray - secondary text */
+  --neutral-600: #4b5563; /* Dark gray - body text */
+  --neutral-700: #374151; /* Darker gray - headings */
+  --neutral-800: #1f2937; /* Very dark gray - emphasis */
+  --neutral-900: #111827; /* Near black - primary text */
+
+  /* Shadow tokens - elevation levels */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Subtle elevation */
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); /* Default card shadow */
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Medium elevation */
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); /* High elevation */
 }
 
+/* Global reset - ensures consistent spacing and box model */
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  margin: 0; /* Remove default margins */
+  padding: 0; /* Remove default padding */
+  box-sizing: border-box; /* Include padding and border in element width/height */
 }
 
+/* Base body styles - typography and colors */
 body {
+  /* System font stack - uses native fonts for optimal performance */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: var(--neutral-50);
-  color: var(--neutral-900);
-  line-height: 1.5;
+  -webkit-font-smoothing: antialiased; /* Smooth fonts on macOS/iOS */
+  -moz-osx-font-smoothing: grayscale; /* Smooth fonts on Firefox macOS */
+  background-color: var(--neutral-50); /* Light gray background */
+  color: var(--neutral-900); /* Near black text */
+  line-height: 1.5; /* 150% line height for readability */
 }
 
+/* Main app container */
 .app {
-  min-height: 100vh;
-  padding: 32px 16px;
+  min-height: 100vh; /* Ensure full viewport height */
+  padding: 32px 16px; /* 32px top/bottom, 16px left/right */
 }
 
+/* App header - centered with max width */
 .app-header {
-  max-width: 1200px;
-  margin: 0 auto 48px;
-  text-align: center;
+  max-width: 1200px; /* Limit width for readability */
+  margin: 0 auto 48px; /* Center horizontally, 48px bottom spacing */
+  text-align: center; /* Center all text */
+
+  /* Main heading */
+  h1 {
+    font-size: 2.5rem; /* 40px - large heading */
+    font-weight: 700; /* Bold weight */
+    color: var(--neutral-900); /* Dark text */
+    margin-bottom: 8px; /* Small gap below heading */
+    line-height: 1.2; /* Tight line height for large text */
+  }
+
+  /* Subtitle text */
+  p {
+    font-size: 1.125rem; /* 18px - slightly larger than body */
+    color: var(--neutral-600); /* Muted gray */
+    line-height: 1.5; /* Standard line height */
+  }
 }
 
-.app-header h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--neutral-900);
-  margin-bottom: 8px;
-  line-height: 1.2;
-}
-
-.app-header p {
-  font-size: 1.125rem;
-  color: var(--neutral-600);
-  line-height: 1.5;
-}
-
+/* Error banner - dismissible notification */
 .error-banner {
-  max-width: 1200px;
-  margin: 0 auto 24px;
-  padding: 16px 24px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--error);
+  max-width: 1200px; /* Match content width */
+  margin: 0 auto 24px; /* Center with bottom spacing */
+  padding: 16px 24px; /* Internal spacing */
+  background-color: #fef2f2; /* Light red background */
+  border: 1px solid #fecaca; /* Red border */
+  border-radius: 8px; /* Rounded corners */
+  display: flex; /* Flexbox layout */
+  justify-content: space-between; /* Space between text and button */
+  align-items: center; /* Vertically center content */
+  color: var(--error); /* Red text */
+
+  /* Dismiss button */
+  button {
+    padding: 8px 16px; /* Button spacing */
+    background-color: var(--error); /* Red background */
+    color: white; /* White text */
+    border: none; /* Remove default border */
+    border-radius: 6px; /* Rounded corners */
+    font-size: 0.875rem; /* 14px - small text */
+    font-weight: 500; /* Medium weight */
+    cursor: pointer; /* Show pointer on hover */
+    transition: background-color 0.2s; /* Smooth color transition */
+
+    /* Darker red on hover */
+    &:hover {
+      background-color: #dc2626; /* Darker red */
+    }
+  }
 }
 
-.error-banner button {
-  padding: 8px 16px;
-  background-color: var(--error);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.error-banner button:hover {
-  background-color: #dc2626;
-}
-
+/* Loading state container - centered vertically */
 .loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 16px;
-  gap: 16px;
+  display: flex; /* Flexbox layout */
+  flex-direction: column; /* Stack items vertically */
+  align-items: center; /* Center horizontally */
+  justify-content: center; /* Center vertically */
+  padding: 80px 16px; /* Large vertical padding */
+  gap: 16px; /* Space between spinner and text */
+
+  /* Loading text */
+  p {
+    color: var(--neutral-600); /* Muted gray */
+    font-size: 1rem; /* 16px - standard text */
+  }
 }
 
+/* Animated spinner */
 .spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--neutral-200);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  width: 48px; /* Spinner size */
+  height: 48px; /* Spinner size */
+  border: 4px solid var(--neutral-200); /* Gray border */
+  border-top-color: var(--primary); /* Blue top border for spinning effect */
+  border-radius: 50%; /* Perfect circle */
+  animation: spin 0.8s linear infinite; /* Continuous rotation */
 }
 
+/* Spinner rotation animation */
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to { transform: rotate(360deg); } /* Full rotation */
 }
 
-.loading p {
-  color: var(--neutral-600);
-  font-size: 1rem;
-}
-
+/* Mobile responsive styles - tablets and phones */
 @media (max-width: 768px) {
   .app {
-    padding: 24px 12px;
+    padding: 24px 12px; /* Less padding for mobile */
   }
 
-  .app-header h1 {
-    font-size: 1.875rem;
-  }
+  .app-header {
+    h1 {
+      font-size: 1.875rem; /* 30px instead of 40px */
+    }
 
-  .app-header p {
-    font-size: 1rem;
+    p {
+      font-size: 1rem; /* 16px instead of 18px */
+    }
   }
 }

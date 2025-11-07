@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { Property } from '../../../types';
-import { useFormatting } from '../../../hooks';
+import { useFormatting, useAnalytics } from '../../../hooks';
 import { Card, CardHeader, CardBody } from '../../ui/Card';
 import { Badge } from '../../ui/Badge';
 import { Icon } from '../../ui/Icon';
@@ -11,6 +12,12 @@ interface PropertyCardProps {
 
 export const PropertyCard = ({ property }: PropertyCardProps) => {
   const { formatCurrency } = useFormatting();
+  const { logPropertyView } = useAnalytics();
+
+  // Track property view when card is rendered
+  useEffect(() => {
+    logPropertyView(property.property_id, property.property_address);
+  }, [property.property_id, property.property_address, logPropertyView]);
 
   return (
     <Card variant="elevated" className={styles.card}>

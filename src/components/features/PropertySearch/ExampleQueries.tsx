@@ -1,3 +1,4 @@
+import { useAnalytics } from '../../../hooks';
 import { EXAMPLE_QUERIES } from '../../../utils/constants';
 import styles from './ExampleQueries.module.css';
 
@@ -10,6 +11,13 @@ export const ExampleQueries = ({
   onSelectQuery,
   disabled = false,
 }: ExampleQueriesProps) => {
+  const { logExampleQueryClick } = useAnalytics();
+
+  const handleQueryClick = (query: string) => {
+    logExampleQueryClick(query);
+    onSelectQuery(query);
+  };
+
   return (
     <div className={styles.container}>
       <span className={styles.label}>Try:</span>
@@ -17,7 +25,7 @@ export const ExampleQueries = ({
         {EXAMPLE_QUERIES.map((example, idx) => (
           <button
             key={idx}
-            onClick={() => onSelectQuery(example)}
+            onClick={() => handleQueryClick(example)}
             className={styles.chip}
             disabled={disabled}
           >
