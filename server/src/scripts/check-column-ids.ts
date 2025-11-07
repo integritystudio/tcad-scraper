@@ -1,7 +1,8 @@
 import { chromium } from 'playwright';
+import logger from '../lib/logger';
 
 async function checkColumnIds() {
-  console.log('🔍 Checking actual column IDs...\n');
+  logger.info('🔍 Checking actual column IDs...\n');
 
   const browser = await chromium.launch({
     headless: true,
@@ -46,20 +47,20 @@ async function checkColumnIds() {
       return { cellsInfo };
     });
 
-    console.log('📊 All Column IDs from first row:\n');
+    logger.info('📊 All Column IDs from first row:\n');
     if ('error' in columnInfo) {
-      console.error(columnInfo.error);
+      logger.error(columnInfo.error);
     } else {
       columnInfo.cellsInfo.forEach((cell, i) => {
-        console.log(`Column ${i + 1}:`);
-        console.log(`  col-id: ${cell.colId}`);
-        console.log(`  text: ${cell.text || '(empty)'}`);
-        console.log(`  aria-colindex: ${cell.ariaColIndex}\n`);
+        logger.info(`Column ${i + 1}:`);
+        logger.info(`  col-id: ${cell.colId}`);
+        logger.info(`  text: ${cell.text || '(empty)'}`);
+        logger.info(`  aria-colindex: ${cell.ariaColIndex}\n`);
       });
     }
 
   } catch (error: any) {
-    console.error(`❌ Error: ${error.message}`);
+    logger.error(`❌ Error: ${error.message}`);
   } finally {
     await context.close();
     await browser.close();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { propertyAPI, JobStatus, ScrapeHistory, MonitoredSearch } from '../services/api.service';
 import './ScrapeManager.css';
+import logger from '../lib/logger';
 
 interface ScrapeManagerProps {
   onScrapeComplete?: () => void;
@@ -26,7 +27,7 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({ onScrapeComplete }
       const response = await propertyAPI.getScrapeHistory(10, 0);
       setScrapeHistory(response.data);
     } catch (err) {
-      console.error('Failed to load scrape history:', err);
+      logger.error('Failed to load scrape history:', err);
     }
   };
 
@@ -35,7 +36,7 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({ onScrapeComplete }
       const searches = await propertyAPI.getMonitoredSearches();
       setMonitoredSearches(searches);
     } catch (err) {
-      console.error('Failed to load monitored searches:', err);
+      logger.error('Failed to load monitored searches:', err);
     }
   };
 

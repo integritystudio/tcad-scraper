@@ -1,4 +1,5 @@
 import { scraperQueue } from '../queues/scraper.queue';
+import logger from '../lib/logger';
 
 /**
  * Queue 50 high-yield entity term searches with fresh TCAD token
@@ -69,14 +70,14 @@ const ENTITY_TERMS = [
 ];
 
 async function clearAndQueueSearches() {
-  console.log('🔄 Clearing Failed Jobs and Queuing Fresh Entity Searches\n');
-  console.log('=' .repeat(80) + '\n');
+  logger.info('🔄 Clearing Failed Jobs and Queuing Fresh Entity Searches\n');
+  logger.info('=' .repeat(80) + '\n');
 
   try {
     // Clean up failed jobs
-    console.log('🧹 Cleaning up failed jobs...');
+    logger.info('🧹 Cleaning up failed jobs...');
     const failedJobs = await scraperQueue.getFailed(0, 100);
-    console.log(`Found ${failedJobs.length} failed jobs`);
+    logger.info(`Found ${failedJobs.length} failed jobs`);
 
     let removedCount = 0;
     for (const job of failedJobs) {
@@ -84,15 +85,15 @@ async function clearAndQueueSearches() {
         await job.remove();
         removedCount++;
       } catch (error) {
-        console.error(`Failed to remove job ${job.id}:`, error instanceof Error ? error.message : 'Unknown error');
+        logger.error(`Failed to remove job ${job.id}:`, error instanceof Error ? error.message : 'Unknown error');
       }
     }
-    console.log(`✅ Removed ${removedCount} failed jobs\n`);
+    logger.info(`✅ Removed ${removedCount} failed jobs\n`);
 
     // Take first 50 entity terms
     const searchTerms = ENTITY_TERMS.slice(0, 50);
 
-    console.log(`Queuing ${searchTerms.length} high-yield entity term searches...\n`);
+    logger.info(`Queuing ${searchTerms.length} high-yield entity term searches...\n`);
 
     const jobs = [];
     let queuedCount = 0;
@@ -116,41 +117,41 @@ async function clearAndQueueSearches() {
 
         jobs.push(job);
         queuedCount++;
-        console.log(`✅ [${queuedCount}/${searchTerms.length}] Queued: "${searchTerm}" (Job ID: ${job.id})`);
+        logger.info(`✅ [${queuedCount}/${searchTerms.length}] Queued: "${searchTerm}" (Job ID: ${job.id})`);
 
       } catch (error) {
         failedCount++;
-        console.error(`❌ Failed to queue "${searchTerm}":`, error instanceof Error ? error.message : 'Unknown error');
+        logger.error(`❌ Failed to queue "${searchTerm}":`, error instanceof Error ? error.message : 'Unknown error');
       }
     }
 
-    console.log('\n' + '─'.repeat(80));
-    console.log('QUEUE SUMMARY');
-    console.log('─'.repeat(80) + '\n');
-    console.log(`✅ Successfully queued: ${queuedCount} jobs`);
-    console.log(`❌ Failed to queue: ${failedCount} jobs`);
-    console.log(`📊 Total jobs added: ${queuedCount}`);
+    logger.info('\n' + '─'.repeat(80));
+    logger.info('QUEUE SUMMARY');
+    logger.info('─'.repeat(80) + '\n');
+    logger.info(`✅ Successfully queued: ${queuedCount} jobs`);
+    logger.info(`❌ Failed to queue: ${failedCount} jobs`);
+    logger.info(`📊 Total jobs added: ${queuedCount}`);
 
     if (queuedCount > 0) {
-      console.log('\n' + '='.repeat(80));
-      console.log('MONITORING');
-      console.log('='.repeat(80) + '\n');
-      console.log('🎯 Bull Board Dashboard: http://localhost:3001/admin/queues');
-      console.log('   Monitor job progress, view completed/failed jobs, and queue stats\n');
+      logger.info('\n' + '='.repeat(80));
+      logger.info('MONITORING');
+      logger.info('='.repeat(80) + '\n');
+      logger.info('🎯 Bull Board Dashboard: http://localhost:3001/admin/queues');
+      logger.info('   Monitor job progress, view completed/failed jobs, and queue stats\n');
 
-      console.log('📈 Expected Results:');
-      console.log(`   - Entity terms average: ~70 properties/search`);
-      console.log(`   - Estimated total properties: ${queuedCount * 70} (if all succeed)`);
-      console.log(`   - Processing time: ~${Math.ceil(queuedCount / 2 * 15 / 60)} hours (2 concurrent workers)\n`);
+      logger.info('📈 Expected Results:');
+      logger.info(`   - Entity terms average: ~70 properties/search`);
+      logger.info(`   - Estimated total properties: ${queuedCount * 70} (if all succeed)`);
+      logger.info(`   - Processing time: ~${Math.ceil(queuedCount / 2 * 15 / 60)} hours (2 concurrent workers)\n`);
 
-      console.log('⚠️  Note: Token expires in 5 minutes!');
-      console.log('   Run refresh-tcad-token.sh every 4 minutes to keep scraping active\n');
+      logger.info('⚠️  Note: Token expires in 5 minutes!');
+      logger.info('   Run refresh-tcad-token.sh every 4 minutes to keep scraping active\n');
     }
 
-    console.log('✨ Entity term searches queued successfully!\n');
+    logger.info('✨ Entity term searches queued successfully!\n');
 
   } catch (error) {
-    console.error('❌ Fatal error:', error);
+    logger.error('❌ Fatal error:', error);
     process.exit(1);
   }
 }
@@ -158,10 +159,10 @@ async function clearAndQueueSearches() {
 // Run the script
 clearAndQueueSearches()
   .then(() => {
-    console.log('✅ Script completed. Jobs are now processing...');
+    logger.info('✅ Script completed. Jobs are now processing...');
     process.exit(0);
   })
   .catch((error) => {
-    console.error('❌ Script failed:', error);
+    logger.error('❌ Script failed:', error);
     process.exit(1);
   });

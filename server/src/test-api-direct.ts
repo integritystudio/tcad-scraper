@@ -1,14 +1,15 @@
+import logger from '../lib/logger';
 async function testApi() {
-  console.log('Testing TCAD API directly...\n');
+  logger.info('Testing TCAD API directly...\n');
 
   // Step 1: Look up the office first (as the browser does)
-  console.log('1. Looking up office...');
+  logger.info('1. Looking up office...');
   const officeLookupResponse = await fetch('https://prod-container.trueprodigyapi.com/trueprodigy/officelookup/travis.prodigycad.com');
   const officeLookup = await officeLookupResponse.json();
-  console.log(`✓ Office: ${officeLookup.results.office}\n`);
+  logger.info(`✓ Office: ${officeLookup.results.office}\n`);
 
   // Step 2: Get auth token
-  console.log('2. Getting auth token...');
+  logger.info('2. Getting auth token...');
   const authResponse = await fetch('https://prod-container.trueprodigyapi.com/trueprodigy/cadpublic/auth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -17,10 +18,10 @@ async function testApi() {
 
   const authData = await authResponse.json();
   const token = authData.user.token;
-  console.log(`✓ Got token: ${token.substring(0, 50)}...\n`);
+  logger.info(`✓ Got token: ${token.substring(0, 50)}...\n`);
 
   // Step 3: Search for properties (exact format from API discovery with browser headers)
-  console.log('3. Searching for properties...');
+  logger.info('3. Searching for properties...');
   const searchResponse = await fetch('https://prod-container.trueprodigyapi.com/public/property/searchfulltext?page=1&pageSize=5', {
     method: 'POST',
     headers: {
@@ -38,29 +39,29 @@ async function testApi() {
     }),
   });
 
-  console.log(`   Status: ${searchResponse.status}`);
+  logger.info(`   Status: ${searchResponse.status}`);
   const searchData = await searchResponse.json();
-  console.log(`✓ Total properties found: ${searchData.totalProperty?.propertyCount || 0}\n`);
+  logger.info(`✓ Total properties found: ${searchData.totalProperty?.propertyCount || 0}\n`);
 
   // Step 4: Show first property with all fields
   if (searchData.results && searchData.results.length > 0) {
     const firstProperty = searchData.results[0];
-    console.log('4. First property data:');
-    console.log(JSON.stringify(firstProperty, null, 2));
+    logger.info('4. First property data:');
+    logger.info(JSON.stringify(firstProperty, null, 2));
 
-    console.log('\n5. Key fields check:');
-    console.log(`   - Property ID: ${firstProperty.pid}`);
-    console.log(`   - Owner Name: ${firstProperty.displayName || firstProperty.ownerName || 'N/A'}`);
-    console.log(`   - City: ${firstProperty.situsCity || firstProperty.city || 'NOT FOUND'}`);
-    console.log(`   - Address: ${firstProperty.streetPrimary || firstProperty.situsAddress || firstProperty.situs || 'N/A'}`);
-    console.log(`   - Appraised Value: ${firstProperty.appraisedValue || firstProperty.marketValue || firstProperty.mktValue || firstProperty.totalAppraised || 'NOT FOUND'}`);
-    console.log(`   - Property Type: ${firstProperty.propType || 'N/A'}`);
+    logger.info('\n5. Key fields check:');
+    logger.info(`   - Property ID: ${firstProperty.pid}`);
+    logger.info(`   - Owner Name: ${firstProperty.displayName || firstProperty.ownerName || 'N/A'}`);
+    logger.info(`   - City: ${firstProperty.situsCity || firstProperty.city || 'NOT FOUND'}`);
+    logger.info(`   - Address: ${firstProperty.streetPrimary || firstProperty.situsAddress || firstProperty.situs || 'N/A'}`);
+    logger.info(`   - Appraised Value: ${firstProperty.appraisedValue || firstProperty.marketValue || firstProperty.mktValue || firstProperty.totalAppraised || 'NOT FOUND'}`);
+    logger.info(`   - Property Type: ${firstProperty.propType || 'N/A'}`);
 
-    console.log('\n6. All available keys in response:');
-    console.log(Object.keys(firstProperty).join(', '));
+    logger.info('\n6. All available keys in response:');
+    logger.info(Object.keys(firstProperty).join(', '));
   } else {
-    console.log('❌ No results returned');
+    logger.info('❌ No results returned');
   }
 }
 
-testApi().catch(console.error);
+testApi().catch(logger.error);

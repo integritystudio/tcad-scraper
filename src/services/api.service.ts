@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { Property } from '../types';
+import logger from '../lib/logger';
 
 // API configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -44,13 +45,13 @@ apiClient.interceptors.response.use(
           break;
         case 429:
           // Handle rate limiting
-          console.error('Rate limit exceeded:', error.response.data);
+          logger.error('Rate limit exceeded:', error.response.data);
           break;
         default:
-          console.error('API Error:', error.response.data);
+          logger.error('API Error:', error.response.data);
       }
     } else if (error.request) {
-      console.error('Network Error:', error.message);
+      logger.error('Network Error:', error.message);
     }
     return Promise.reject(error);
   }

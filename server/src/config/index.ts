@@ -10,6 +10,7 @@
  */
 
 import dotenv from 'dotenv';
+import logger from '../lib/logger';
 
 // Load environment variables from .env or Doppler
 dotenv.config();
@@ -290,25 +291,25 @@ export function validateConfig(): void {
  * Log configuration summary (safe for production - no secrets)
  */
 export function logConfigSummary(): void {
-  console.log('=== Configuration Summary ===');
-  console.log(`Environment: ${config.env.nodeEnv}`);
-  console.log(`Server: ${config.server.host}:${config.server.port}`);
-  console.log(`Database: ${config.database.url ? 'Configured' : 'Not configured'}`);
-  console.log(`Redis: ${config.redis.host}:${config.redis.port}`);
-  console.log(`Queue Dashboard: ${config.queue.dashboard.enabled ? config.queue.dashboard.basePath : 'Disabled'}`);
-  console.log(`Auth: ${config.auth.apiKey ? 'API Key configured' : 'No API Key'}, ${config.auth.jwt.secret ? 'JWT configured' : 'No JWT'}`);
-  console.log(`Claude AI: ${config.claude.apiKey ? 'Enabled' : 'Disabled'}`);
-  console.log(`TCAD API Token: ${config.scraper.tcadApiKey ? 'Configured (fast API mode)' : 'Not configured (fallback to browser capture)'}`);
-  console.log(`TCAD Auto Refresh: ${config.scraper.autoRefreshToken ? `Enabled (every ${config.scraper.tokenRefreshInterval / 60000} min)` : 'Disabled'}`);
-  console.log(`Scraper Proxy: ${config.scraper.proxy.enabled ? 'Enabled' : 'Disabled'}`);
-  console.log(`Bright Data: ${config.scraper.brightData.enabled ? 'Enabled' : 'Disabled'}`);
-  console.log(`Monitoring: ${config.monitoring.enabled ? 'Enabled' : 'Disabled'}`);
+  logger.info('=== Configuration Summary ===');
+  logger.info(`Environment: ${config.env.nodeEnv}`);
+  logger.info(`Server: ${config.server.host}:${config.server.port}`);
+  logger.info(`Database: ${config.database.url ? 'Configured' : 'Not configured'}`);
+  logger.info(`Redis: ${config.redis.host}:${config.redis.port}`);
+  logger.info(`Queue Dashboard: ${config.queue.dashboard.enabled ? config.queue.dashboard.basePath : 'Disabled'}`);
+  logger.info(`Auth: ${config.auth.apiKey ? 'API Key configured' : 'No API Key'}, ${config.auth.jwt.secret ? 'JWT configured' : 'No JWT'}`);
+  logger.info(`Claude AI: ${config.claude.apiKey ? 'Enabled' : 'Disabled'}`);
+  logger.info(`TCAD API Token: ${config.scraper.tcadApiKey ? 'Configured (fast API mode)' : 'Not configured (fallback to browser capture)'}`);
+  logger.info(`TCAD Auto Refresh: ${config.scraper.autoRefreshToken ? `Enabled (every ${config.scraper.tokenRefreshInterval / 60000} min)` : 'Disabled'}`);
+  logger.info(`Scraper Proxy: ${config.scraper.proxy.enabled ? 'Enabled' : 'Disabled'}`);
+  logger.info(`Bright Data: ${config.scraper.brightData.enabled ? 'Enabled' : 'Disabled'}`);
+  logger.info(`Monitoring: ${config.monitoring.enabled ? 'Enabled' : 'Disabled'}`);
 
   if (config.doppler.enabled) {
-    console.log(`Doppler: ${config.doppler.project}/${config.doppler.config}`);
+    logger.info(`Doppler: ${config.doppler.project}/${config.doppler.config}`);
   }
 
-  console.log('============================');
+  logger.info('============================');
 }
 
 // Export individual config sections for convenience

@@ -6,6 +6,7 @@
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
+import logger from '../lib/logger';
 
 /**
  * Generate cryptographically secure nonce for CSP
@@ -44,7 +45,7 @@ export function cspMiddleware(req: Request, res: Response, next: NextFunction) {
   const nonce = res.locals.nonce;
 
   if (!nonce) {
-    console.warn('CSP middleware called without nonce. Use nonceMiddleware first.');
+    logger.warn('CSP middleware called without nonce. Use nonceMiddleware first.');
   }
 
   // CSP Level 3 with nonce support

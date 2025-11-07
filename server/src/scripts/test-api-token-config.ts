@@ -11,34 +11,35 @@
 
 import { config } from '../config';
 import { TCADScraper } from '../lib/tcad-scraper';
+import logger from '../lib/logger';
 
-console.log('=== TCAD API Token Configuration Test ===\n');
+logger.info('=== TCAD API Token Configuration Test ===\n');
 
 // Test 1: Check if TCAD_API_KEY is loaded in config
-console.log('Test 1: Config Loading');
-console.log('----------------------');
+logger.info('Test 1: Config Loading');
+logger.info('----------------------');
 if (config.scraper.tcadApiKey) {
-  console.log('✅ TCAD_API_KEY is configured');
-  console.log(`   Token preview: ${config.scraper.tcadApiKey.substring(0, 20)}...`);
+  logger.info('✅ TCAD_API_KEY is configured');
+  logger.info(`   Token preview: ${config.scraper.tcadApiKey.substring(0, 20)}...`);
 } else {
-  console.log('❌ TCAD_API_KEY is NOT configured');
-  console.log('   Scraper will fall back to browser-based token capture');
+  logger.info('❌ TCAD_API_KEY is NOT configured');
+  logger.info('   Scraper will fall back to browser-based token capture');
 }
-console.log('');
+logger.info('');
 
 // Test 2: Check full configuration
-console.log('Test 2: Full Scraper Configuration');
-console.log('-----------------------------------');
-console.log(`Headless: ${config.scraper.headless}`);
-console.log(`Timeout: ${config.scraper.timeout}ms`);
-console.log(`Retry Attempts: ${config.scraper.retryAttempts}`);
-console.log(`Retry Delay: ${config.scraper.retryDelay}ms`);
-console.log(`TCAD API Token: ${config.scraper.tcadApiKey ? '✅ Set' : '❌ Not Set'}`);
-console.log('');
+logger.info('Test 2: Full Scraper Configuration');
+logger.info('-----------------------------------');
+logger.info(`Headless: ${config.scraper.headless}`);
+logger.info(`Timeout: ${config.scraper.timeout}ms`);
+logger.info(`Retry Attempts: ${config.scraper.retryAttempts}`);
+logger.info(`Retry Delay: ${config.scraper.retryDelay}ms`);
+logger.info(`TCAD API Token: ${config.scraper.tcadApiKey ? '✅ Set' : '❌ Not Set'}`);
+logger.info('');
 
 // Test 3: Initialize scraper and check token usage
-console.log('Test 3: Scraper Initialization');
-console.log('-------------------------------');
+logger.info('Test 3: Scraper Initialization');
+logger.info('-------------------------------');
 
 const scraper = new TCADScraper();
 
@@ -46,100 +47,100 @@ const scraper = new TCADScraper();
 // by checking if the scraper would use the token
 async function testTokenUsage() {
   try {
-    console.log('Initializing browser...');
+    logger.info('Initializing browser...');
     await scraper.initialize();
-    console.log('✅ Browser initialized successfully');
+    logger.info('✅ Browser initialized successfully');
 
     // Note: We won't actually run a scrape to avoid hitting the API
     // But we can verify the configuration is correct
-    console.log('');
-    console.log('Configuration Status:');
-    console.log('--------------------');
+    logger.info('');
+    logger.info('Configuration Status:');
+    logger.info('--------------------');
 
     if (config.scraper.tcadApiKey) {
-      console.log('✅ When scraping runs, it will:');
-      console.log('   1. Use pre-fetched TCAD_API_KEY from environment');
-      console.log('   2. Skip browser-based token capture');
-      console.log('   3. Make direct API calls');
-      console.log('   4. Faster and more efficient');
+      logger.info('✅ When scraping runs, it will:');
+      logger.info('   1. Use pre-fetched TCAD_API_KEY from environment');
+      logger.info('   2. Skip browser-based token capture');
+      logger.info('   3. Make direct API calls');
+      logger.info('   4. Faster and more efficient');
     } else {
-      console.log('⚠️  When scraping runs, it will:');
-      console.log('   1. Load the TCAD search page');
-      console.log('   2. Perform a test search');
-      console.log('   3. Capture auth token from network requests');
-      console.log('   4. Then make API calls (slower)');
+      logger.info('⚠️  When scraping runs, it will:');
+      logger.info('   1. Load the TCAD search page');
+      logger.info('   2. Perform a test search');
+      logger.info('   3. Capture auth token from network requests');
+      logger.info('   4. Then make API calls (slower)');
     }
 
   } catch (error) {
-    console.error('❌ Error during test:', error);
+    logger.error('❌ Error during test:', error);
   } finally {
     await scraper.cleanup();
-    console.log('\n✅ Cleanup complete');
+    logger.info('\n✅ Cleanup complete');
   }
 }
 
 // Test 4: Simulate what would happen in a queue job
-console.log('Test 4: Queue Job Simulation');
-console.log('-----------------------------');
+logger.info('Test 4: Queue Job Simulation');
+logger.info('-----------------------------');
 
 function simulateQueueJob() {
-  console.log('When a scrape job is added to the queue:');
-  console.log('');
-  console.log('1. Queue worker creates new TCADScraper instance');
-  console.log('2. Calls scraper.initialize()');
-  console.log('3. Calls scraper.scrapePropertiesViaAPI(searchTerm)');
-  console.log('');
-  console.log('Inside scrapePropertiesViaAPI:');
-  console.log('   - Line 128: let authToken = appConfig.scraper.tcadApiKey || null;');
+  logger.info('When a scrape job is added to the queue:');
+  logger.info('');
+  logger.info('1. Queue worker creates new TCADScraper instance');
+  logger.info('2. Calls scraper.initialize()');
+  logger.info('3. Calls scraper.scrapePropertiesViaAPI(searchTerm)');
+  logger.info('');
+  logger.info('Inside scrapePropertiesViaAPI:');
+  logger.info('   - Line 128: let authToken = appConfig.scraper.tcadApiKey || null;');
 
   if (config.scraper.tcadApiKey) {
-    console.log('   - ✅ authToken is set from config');
-    console.log('   - ✅ Logs: "Using pre-fetched TCAD_API_KEY from environment"');
-    console.log('   - ✅ Skips browser token capture (lines 133-166)');
-    console.log('   - ✅ Proceeds directly to API calls (line 170+)');
+    logger.info('   - ✅ authToken is set from config');
+    logger.info('   - ✅ Logs: "Using pre-fetched TCAD_API_KEY from environment"');
+    logger.info('   - ✅ Skips browser token capture (lines 133-166)');
+    logger.info('   - ✅ Proceeds directly to API calls (line 170+)');
   } else {
-    console.log('   - ⚠️  authToken is null');
-    console.log('   - ⚠️  Logs: "No TCAD_API_KEY found, capturing token from browser..."');
-    console.log('   - ⚠️  Loads page and captures token (lines 133-166)');
-    console.log('   - ⚠️  Then proceeds to API calls (slower)');
+    logger.info('   - ⚠️  authToken is null');
+    logger.info('   - ⚠️  Logs: "No TCAD_API_KEY found, capturing token from browser..."');
+    logger.info('   - ⚠️  Loads page and captures token (lines 133-166)');
+    logger.info('   - ⚠️  Then proceeds to API calls (slower)');
   }
-  console.log('');
+  logger.info('');
 }
 
 // Run all tests
 async function runAllTests() {
   simulateQueueJob();
 
-  console.log('=== Running Browser Initialization Test ===\n');
+  logger.info('=== Running Browser Initialization Test ===\n');
   await testTokenUsage();
 
-  console.log('\n=== Test Complete ===\n');
+  logger.info('\n=== Test Complete ===\n');
 
   // Summary
-  console.log('Summary:');
-  console.log('--------');
+  logger.info('Summary:');
+  logger.info('--------');
   if (config.scraper.tcadApiKey) {
-    console.log('✅ PASS: API token is configured');
-    console.log('✅ PASS: Scraper will use fast API mode');
-    console.log('');
-    console.log('Next steps:');
-    console.log('  1. Run a test scrape: npm run test:scrape');
-    console.log('  2. Check logs for "Using pre-fetched TCAD_API_KEY from environment"');
+    logger.info('✅ PASS: API token is configured');
+    logger.info('✅ PASS: Scraper will use fast API mode');
+    logger.info('');
+    logger.info('Next steps:');
+    logger.info('  1. Run a test scrape: npm run test:scrape');
+    logger.info('  2. Check logs for "Using pre-fetched TCAD_API_KEY from environment"');
   } else {
-    console.log('⚠️  WARNING: API token is NOT configured');
-    console.log('⚠️  WARNING: Scraper will use fallback browser mode');
-    console.log('');
-    console.log('To enable fast API mode:');
-    console.log('  1. Get token from https://travis.prodigycad.com (see docs/TCAD_API_TOKEN_SETUP.md)');
-    console.log('  2. Add to .env: TCAD_API_KEY=your_token_here');
-    console.log('  3. Restart server: pm2 restart ecosystem.config.js');
-    console.log('  4. Re-run this test: npm run test:token-config');
+    logger.info('⚠️  WARNING: API token is NOT configured');
+    logger.info('⚠️  WARNING: Scraper will use fallback browser mode');
+    logger.info('');
+    logger.info('To enable fast API mode:');
+    logger.info('  1. Get token from https://travis.prodigycad.com (see docs/TCAD_API_TOKEN_SETUP.md)');
+    logger.info('  2. Add to .env: TCAD_API_KEY=your_token_here');
+    logger.info('  3. Restart server: pm2 restart ecosystem.config.js');
+    logger.info('  4. Re-run this test: npm run test:token-config');
   }
 
   process.exit(0);
 }
 
 runAllTests().catch((error) => {
-  console.error('Test failed:', error);
+  logger.error('Test failed:', error);
   process.exit(1);
 });

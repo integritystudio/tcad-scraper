@@ -131,7 +131,7 @@ Now generate the JSON for the user's query above.`,
         stack: error instanceof Error ? error.stack : undefined,
       };
       logger.error('Error parsing natural language query with Claude:', errorDetails);
-      console.error('Claude API Error Details:', JSON.stringify(errorDetails, null, 2));
+      logger.error('Claude API Error Details:', JSON.stringify(errorDetails, null, 2));
 
       // Fallback: simple text search across multiple fields
       return {

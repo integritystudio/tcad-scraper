@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import logger from './lib/logger';
 
 // Database connection configuration
 if (!process.env.DATABASE_URL) {
@@ -57,9 +58,9 @@ export async function insertProperty(property: Property): Promise<void> {
 
   try {
     await pool.query(query, values);
-    console.log(`✓ Saved property: ${property.propertyID}`);
+    logger.info(`✓ Saved property: ${property.propertyID}`);
   } catch (error) {
-    console.error(`✗ Error saving property ${property.propertyID}:`, error);
+    logger.error(`✗ Error saving property ${property.propertyID}:`, error);
     throw error;
   }
 }
@@ -78,10 +79,10 @@ export async function insertProperties(properties: Property[]): Promise<void> {
     }
 
     await client.query('COMMIT');
-    console.log(`✓ Successfully saved ${properties.length} properties`);
+    logger.info(`✓ Successfully saved ${properties.length} properties`);
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('✗ Error saving properties:', error);
+    logger.error('✗ Error saving properties:', error);
     throw error;
   } finally {
     client.release();

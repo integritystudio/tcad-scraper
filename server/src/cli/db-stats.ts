@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import { prisma } from '../lib/prisma';
 import { scraperQueue } from '../queues/scraper.queue';
+import logger from '../lib/logger';
 
 const program = new Command();
 
@@ -18,12 +19,12 @@ program
   .command('summary')
   .description('Show comprehensive database statistics summary')
   .action(async () => {
-    console.log('📊 Database Statistics Summary\n');
-    console.log('='.repeat(70));
+    logger.info('📊 Database Statistics Summary\n');
+    logger.info('='.repeat(70));
 
     // Count total properties
     const totalProperties = await prisma.property.count();
-    console.log(`\n🏠 Total Properties: ${totalProperties.toLocaleString()}`);
+    logger.info(`\n🏠 Total Properties: ${totalProperties.toLocaleString()}`);
 
     // Count scrape jobs by status
     const jobStats = await prisma.scrapeJob.groupBy({
@@ -36,19 +37,19 @@ program
       }
     });
 
-    console.log('\n📋 Scrape Jobs:');
+    logger.info('\n📋 Scrape Jobs:');
     let totalJobs = 0;
     let totalScraped = 0;
 
     jobStats.forEach(stat => {
       totalJobs += stat._count._all;
       totalScraped += stat._sum.resultCount || 0;
-      console.log(`   ${stat.status}: ${stat._count._all} jobs (${(stat._sum.resultCount || 0).toLocaleString()} properties)`);
+      logger.info(`   ${stat.status}: ${stat._count._all} jobs (${(stat._sum.resultCount || 0).toLocaleString()} properties)`);
     });
 
-    console.log(`   ---`);
-    console.log(`   Total Jobs: ${totalJobs}`);
-    console.log(`   Total Properties Scraped: ${totalScraped.toLocaleString()}`);
+    logger.info(`   ---`);
+    logger.info(`   Total Jobs: ${totalJobs}`);
+    logger.info(`   Total Properties Scraped: ${totalScraped.toLocaleString()}`);
 
     // Average properties per successful scrape
     const avgStats = await prisma.scrapeJob.aggregate({
@@ -67,10 +68,10 @@ program
       }
     });
 
-    console.log('\n📈 Scrape Performance:');
-    console.log(`   Average properties per scrape: ${avgStats._avg.resultCount?.toFixed(0) || 0}`);
-    console.log(`   Max properties in single scrape: ${avgStats._max.resultCount || 0}`);
-    console.log(`   Min properties in single scrape: ${avgStats._min.resultCount || 0}`);
+    logger.info('\n📈 Scrape Performance:');
+    logger.info(`   Average properties per scrape: ${avgStats._avg.resultCount?.toFixed(0) || 0}`);
+    logger.info(`   Max properties in single scrape: ${avgStats._max.resultCount || 0}`);
+    logger.info(`   Min properties in single scrape: ${avgStats._min.resultCount || 0}`);
 
     // Most recent scrapes
     const recentJobs = await prisma.scrapeJob.findMany({
@@ -84,13 +85,13 @@ program
       }
     });
 
-    console.log('\n📅 Recent Completed Scrapes:');
+    logger.info('\n📅 Recent Completed Scrapes:');
     recentJobs.forEach((job, idx) => {
       const time = job.completedAt ? new Date(job.completedAt).toLocaleString() : 'N/A';
-      console.log(`   ${idx + 1}. "${job.searchTerm}": ${job.resultCount} properties (${time})`);
+      logger.info(`   ${idx + 1}. "${job.searchTerm}": ${job.resultCount} properties (${time})`);
     });
 
-    console.log('\n' + '='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
 
     await cleanup();
   });
@@ -105,11 +106,11 @@ program
   .option('--by-type', 'Show properties grouped by type')
   .option('--top <n>', 'Show top N results', '10')
   .action(async (options: any) => {
-    console.log('🏠 Property Statistics\n');
-    console.log('='.repeat(70));
+    logger.info('🏠 Property Statistics\n');
+    logger.info('='.repeat(70));
 
     const totalProperties = await prisma.property.count();
-    console.log(`\n📊 Total Properties: ${totalProperties.toLocaleString()}`);
+    logger.info(`\n📊 Total Properties: ${totalProperties.toLocaleString()}`);
 
     // By city
     if (options.byCity) {
@@ -126,11 +127,11 @@ program
         take: parseInt(options.top)
       });
 
-      console.log(`\n🏙️  Top ${options.top} Cities:`);
+      logger.info(`\n🏙️  Top ${options.top} Cities:`);
       propertiesByCity.forEach((city, idx) => {
         const count = city._count.id;
         const pct = ((count / totalProperties) * 100).toFixed(1);
-        console.log(`   ${idx + 1}. ${city.city || 'Unknown'}: ${count.toLocaleString()} (${pct}%)`);
+        logger.info(`   ${idx + 1}. ${city.city || 'Unknown'}: ${count.toLocaleString()} (${pct}%)`);
       });
     }
 
@@ -149,11 +150,11 @@ program
         take: parseInt(options.top)
       });
 
-      console.log(`\n🏗️  Top ${options.top} Property Types:`);
+      logger.info(`\n🏗️  Top ${options.top} Property Types:`);
       propertiesByType.forEach((type, idx) => {
         const count = type._count.id;
         const pct = ((count / totalProperties) * 100).toFixed(1);
-        console.log(`   ${idx + 1}. ${type.propType}: ${count.toLocaleString()} (${pct}%)`);
+        logger.info(`   ${idx + 1}. ${type.propType}: ${count.toLocaleString()} (${pct}%)`);
       });
     }
 
@@ -173,13 +174,13 @@ program
       }
     });
 
-    console.log('\n💰 Property Values:');
-    console.log(`   Average Appraised: $${(valueStats._avg.appraisedValue || 0).toLocaleString()}`);
-    console.log(`   Max Appraised: $${(valueStats._max.appraisedValue || 0).toLocaleString()}`);
-    console.log(`   Min Appraised: $${(valueStats._min.appraisedValue || 0).toLocaleString()}`);
-    console.log(`   Average Assessed: $${(valueStats._avg.assessedValue || 0).toLocaleString()}`);
+    logger.info('\n💰 Property Values:');
+    logger.info(`   Average Appraised: $${(valueStats._avg.appraisedValue || 0).toLocaleString()}`);
+    logger.info(`   Max Appraised: $${(valueStats._max.appraisedValue || 0).toLocaleString()}`);
+    logger.info(`   Min Appraised: $${(valueStats._min.appraisedValue || 0).toLocaleString()}`);
+    logger.info(`   Average Assessed: $${(valueStats._avg.assessedValue || 0).toLocaleString()}`);
 
-    console.log('\n' + '='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
 
     await cleanup();
   });
@@ -192,8 +193,8 @@ program
   .description('Show scraping rate and time-based statistics')
   .option('--days <n>', 'Analyze last N days', '7')
   .action(async (options: any) => {
-    console.log('⚡ Scraping Rate Analysis\n');
-    console.log('='.repeat(70));
+    logger.info('⚡ Scraping Rate Analysis\n');
+    logger.info('='.repeat(70));
 
     const days = parseInt(options.days);
     const since = new Date();
@@ -212,19 +213,19 @@ program
       }
     });
 
-    console.log(`\n📅 Last ${days} days:`);
-    console.log(`   Jobs completed: ${recentJobs.length}`);
+    logger.info(`\n📅 Last ${days} days:`);
+    logger.info(`   Jobs completed: ${recentJobs.length}`);
 
     const totalProperties = recentJobs.reduce((sum, j) => sum + (j.resultCount || 0), 0);
-    console.log(`   Properties scraped: ${totalProperties.toLocaleString()}`);
+    logger.info(`   Properties scraped: ${totalProperties.toLocaleString()}`);
 
     const jobsPerDay = recentJobs.length / days;
     const propertiesPerDay = totalProperties / days;
 
-    console.log(`\n📈 Rates:`);
-    console.log(`   Jobs per day: ${jobsPerDay.toFixed(1)}`);
-    console.log(`   Properties per day: ${propertiesPerDay.toFixed(0)}`);
-    console.log(`   Avg properties per job: ${(totalProperties / recentJobs.length || 0).toFixed(1)}`);
+    logger.info(`\n📈 Rates:`);
+    logger.info(`   Jobs per day: ${jobsPerDay.toFixed(1)}`);
+    logger.info(`   Properties per day: ${propertiesPerDay.toFixed(0)}`);
+    logger.info(`   Avg properties per job: ${(totalProperties / recentJobs.length || 0).toFixed(1)}`);
 
     // Calculate processing time
     const processingTimes = recentJobs
@@ -238,8 +239,8 @@ program
     if (processingTimes.length > 0) {
       const avgTime = processingTimes.reduce((sum, t) => sum + t, 0) / processingTimes.length;
 
-      console.log(`\n⏱️  Average Processing Time:`);
-      console.log(`   ${(avgTime / 60).toFixed(1)} minutes per job`);
+      logger.info(`\n⏱️  Average Processing Time:`);
+      logger.info(`   ${(avgTime / 60).toFixed(1)} minutes per job`);
     }
 
     // Get queue status
@@ -248,18 +249,18 @@ program
       scraperQueue.getActiveCount()
     ]);
 
-    console.log(`\n📊 Current Queue:`);
-    console.log(`   Waiting: ${waiting}`);
-    console.log(`   Active: ${active}`);
+    logger.info(`\n📊 Current Queue:`);
+    logger.info(`   Waiting: ${waiting}`);
+    logger.info(`   Active: ${active}`);
 
     // Estimate completion time
     if (waiting > 0 && jobsPerDay > 0) {
       const daysToComplete = waiting / jobsPerDay;
-      console.log(`\n⏳ Estimated time to clear queue:`);
-      console.log(`   ${daysToComplete.toFixed(1)} days at current rate`);
+      logger.info(`\n⏳ Estimated time to clear queue:`);
+      logger.info(`   ${daysToComplete.toFixed(1)} days at current rate`);
     }
 
-    console.log('\n' + '='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
 
     await cleanup();
   });
@@ -272,8 +273,8 @@ program
   .description('Show statistics about search terms')
   .option('--top <n>', 'Show top N most productive terms', '10')
   .action(async (options: any) => {
-    console.log('🔍 Search Term Statistics\n');
-    console.log('='.repeat(70));
+    logger.info('🔍 Search Term Statistics\n');
+    logger.info('='.repeat(70));
 
     // Count distinct search terms
     const distinctTerms = await prisma.scrapeJob.findMany({
@@ -281,7 +282,7 @@ program
       distinct: ['searchTerm']
     });
 
-    console.log(`\n📊 Total distinct search terms: ${distinctTerms.length.toLocaleString()}`);
+    logger.info(`\n📊 Total distinct search terms: ${distinctTerms.length.toLocaleString()}`);
 
     // Terms by status
     const termsByStatus = await prisma.scrapeJob.groupBy({
@@ -291,9 +292,9 @@ program
       }
     });
 
-    console.log('\n📋 Search Terms by Status:');
+    logger.info('\n📋 Search Terms by Status:');
     termsByStatus.forEach(stat => {
-      console.log(`   ${stat.status}: ${stat._count.searchTerm} terms`);
+      logger.info(`   ${stat.status}: ${stat._count.searchTerm} terms`);
     });
 
     // Most productive terms
@@ -312,9 +313,9 @@ program
       }
     });
 
-    console.log(`\n🏆 Top ${options.top} Most Productive Terms:`);
+    logger.info(`\n🏆 Top ${options.top} Most Productive Terms:`);
     topTerms.forEach((term, idx) => {
-      console.log(`   ${idx + 1}. "${term.searchTerm}": ${(term.resultCount || 0).toLocaleString()} properties`);
+      logger.info(`   ${idx + 1}. "${term.searchTerm}": ${(term.resultCount || 0).toLocaleString()} properties`);
     });
 
     // Zero result terms
@@ -325,7 +326,7 @@ program
       }
     });
 
-    console.log(`\n❌ Zero-result scrapes: ${zeroResultCount}`);
+    logger.info(`\n❌ Zero-result scrapes: ${zeroResultCount}`);
 
     // Average results per term
     const avgResults = await prisma.scrapeJob.aggregate({
@@ -338,9 +339,9 @@ program
       }
     });
 
-    console.log(`📊 Average results per successful term: ${(avgResults._avg.resultCount || 0).toFixed(1)}`);
+    logger.info(`📊 Average results per successful term: ${(avgResults._avg.resultCount || 0).toFixed(1)}`);
 
-    console.log('\n' + '='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
 
     await cleanup();
   });
@@ -353,8 +354,8 @@ program
   .description('Show statistics for priority jobs')
   .option('--recent <n>', 'Show last N priority jobs', '10')
   .action(async (options: any) => {
-    console.log('⭐ Priority Job Statistics\n');
-    console.log('='.repeat(70));
+    logger.info('⭐ Priority Job Statistics\n');
+    logger.info('='.repeat(70));
 
     // This assumes priority jobs were marked with specific search terms
     // Adjust the query based on how priority jobs are identified
@@ -375,10 +376,10 @@ program
       take: parseInt(options.recent)
     });
 
-    console.log(`\n📊 Priority jobs found: ${priorityJobs.length}`);
+    logger.info(`\n📊 Priority jobs found: ${priorityJobs.length}`);
 
     if (priorityJobs.length === 0) {
-      console.log('\nNo priority jobs found in database.');
+      logger.info('\nNo priority jobs found in database.');
       await cleanup();
       return;
     }
@@ -392,22 +393,22 @@ program
       totalResults += job.resultCount || 0;
     });
 
-    console.log('\n📋 By Status:');
+    logger.info('\n📋 By Status:');
     Object.entries(statusCounts).forEach(([status, count]) => {
-      console.log(`   ${status}: ${count}`);
+      logger.info(`   ${status}: ${count}`);
     });
 
-    console.log(`\n📈 Total properties from priority jobs: ${totalResults.toLocaleString()}`);
-    console.log(`📈 Average per priority job: ${(totalResults / priorityJobs.length).toFixed(1)}`);
+    logger.info(`\n📈 Total properties from priority jobs: ${totalResults.toLocaleString()}`);
+    logger.info(`📈 Average per priority job: ${(totalResults / priorityJobs.length).toFixed(1)}`);
 
-    console.log(`\n📅 Recent Priority Jobs:`);
+    logger.info(`\n📅 Recent Priority Jobs:`);
     priorityJobs.forEach((job, idx) => {
       const status = job.status === 'completed' ? '✅' : job.status === 'failed' ? '❌' : '⏳';
       const results = job.status === 'completed' ? ` (${job.resultCount} props)` : '';
-      console.log(`   ${idx + 1}. ${status} "${job.searchTerm}"${results}`);
+      logger.info(`   ${idx + 1}. ${status} "${job.searchTerm}"${results}`);
     });
 
-    console.log('\n' + '='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
 
     await cleanup();
   });
@@ -419,24 +420,24 @@ program
   .command('all')
   .description('Show all available statistics (comprehensive report)')
   .action(async () => {
-    console.log('📊 COMPREHENSIVE DATABASE REPORT\n');
-    console.log('='.repeat(70));
+    logger.info('📊 COMPREHENSIVE DATABASE REPORT\n');
+    logger.info('='.repeat(70));
 
     // Run all stat commands
-    console.log('\n1️⃣  SUMMARY\n');
+    logger.info('\n1️⃣  SUMMARY\n');
     await program.parseAsync(['node', 'db-stats', 'summary']);
 
-    console.log('\n2️⃣  PROPERTIES\n');
+    logger.info('\n2️⃣  PROPERTIES\n');
     await program.parseAsync(['node', 'db-stats', 'properties', '--by-city', '--by-type']);
 
-    console.log('\n3️⃣  SCRAPING RATE\n');
+    logger.info('\n3️⃣  SCRAPING RATE\n');
     await program.parseAsync(['node', 'db-stats', 'rate']);
 
-    console.log('\n4️⃣  SEARCH TERMS\n');
+    logger.info('\n4️⃣  SEARCH TERMS\n');
     await program.parseAsync(['node', 'db-stats', 'search-terms']);
 
-    console.log('\n✅ Comprehensive report complete!\n');
-    console.log('='.repeat(70));
+    logger.info('\n✅ Comprehensive report complete!\n');
+    logger.info('='.repeat(70));
 
     await cleanup();
   });
@@ -451,13 +452,13 @@ async function cleanup() {
 
 // Handle errors and cleanup
 process.on('SIGINT', async () => {
-  console.log('\n\n👋 Interrupted. Cleaning up...');
+  logger.info('\n\n👋 Interrupted. Cleaning up...');
   await cleanup();
   process.exit(0);
 });
 
 process.on('unhandledRejection', async (error: any) => {
-  console.error('\n❌ Unhandled error:', error.message);
+  logger.error('\n❌ Unhandled error:', error.message);
   await cleanup();
   process.exit(1);
 });

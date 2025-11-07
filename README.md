@@ -1063,16 +1063,35 @@ Long-running scraper processes can accumulate memory. Recommended:
 
 Comprehensive documentation is available in the `docs/` directory:
 
-- **[CLAUDE_SEARCH.md](docs/CLAUDE_SEARCH.md)** - AI-powered natural language search documentation
-- **[MODERNIZATION_REPORT.md](docs/MODERNIZATION_REPORT.md)** - Architecture analysis and modernization recommendations
-- **[DATABASE.md](docs/DATABASE.md)** - Database schema and query examples
-- **[BATCH_SCRAPING_SUMMARY.md](docs/BATCH_SCRAPING_SUMMARY.md)** - Batch scraping strategies and patterns
-- **[SCRAPER_DEBUG_SESSION.md](docs/SCRAPER_DEBUG_SESSION.md)** - Debugging notes and solutions
-- **[CLAUDE.md](docs/CLAUDE.md)** - Context for AI assistants working with this codebase
-- **[doppler-setup.md](doppler-setup.md)** - Doppler CLI installation and configuration
-- **[SETUP.md](SETUP.md)** - Detailed setup instructions
+### Primary Documentation
+- **[SETUP.md](docs/SETUP.md)** - Installation and setup guide
+- **[TESTING.md](docs/TESTING.md)** - Testing strategy and test execution
+- **[CLAUDE.md](docs/CLAUDE.md)** - AI assistant context and development guidelines
+- **[CODEBASE_ANALYSIS.md](CODEBASE_ANALYSIS.md)** - Code quality analysis and recommendations (ast-grep)
+
+### Technical Documentation
+- **[API_TOKEN_IMPLEMENTATION.md](docs/API_TOKEN_IMPLEMENTATION.md)** - API token authentication implementation
+- **[API_TOKEN_VERIFICATION.md](docs/API_TOKEN_VERIFICATION.md)** - Token verification and validation
+- **[TOKEN_AUTO_REFRESH.md](docs/TOKEN_AUTO_REFRESH.md)** - Automatic token refresh system
+- **[TOKEN_AUTO_REFRESH_SUMMARY.md](docs/TOKEN_AUTO_REFRESH_SUMMARY.md)** - Token refresh summary
+- **[XCONTROLLER-MIGRATION.md](docs/XCONTROLLER-MIGRATION.md)** - DataController migration guide
+
+### Development & Debugging
+- **[SCRAPER_DEBUG_SESSION.md](docs/SCRAPER_DEBUG_SESSION.md)** - Debugging session notes
+- **[SESSION-CONTEXT.md](docs/SESSION-CONTEXT.md)** - Development session context
+- **[ENQUEUE_FIXES_SUMMARY.md](docs/ENQUEUE_FIXES_SUMMARY.md)** - Queue enqueue fixes
+- **[TEST_RESULTS_SUMMARY.md](docs/TEST_RESULTS_SUMMARY.md)** - Test results and coverage
+- **[REFACTORING-SUMMARY.md](REFACTORING-SUMMARY.md)** - Recent refactoring summary
+- **[doppler-setup.md](docs/doppler-setup.md)** - Doppler CLI installation and configuration
 
 ## Recent Updates
+
+### November 6, 2025
+- Comprehensive codebase analysis using ast-grep structural code search
+- Created CODEBASE_ANALYSIS.md with detailed code quality metrics
+- Identified and documented 10.2 MB of unnecessary files for cleanup
+- Updated documentation structure to reflect actual files
+- Analysis findings: 1,444 console.log statements, 113 error handlers, 0 TODOs
 
 ### November 5, 2024
 - Added AI-powered natural language search using Claude AI (Anthropic)

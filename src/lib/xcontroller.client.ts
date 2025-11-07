@@ -1,3 +1,4 @@
+import logger from './logger';
 /**
  * XController Client Library
  * Securely load server-passed data in the client
@@ -23,7 +24,7 @@ export class DataController {
     // Check cache first
     if (this.cache.has(scriptId)) {
       if (this.debug) {
-        console.log(`[DataController] Loading from cache: ${scriptId}`);
+        logger.info(`[DataController] Loading from cache: ${scriptId}`);
       }
       return this.cache.get(scriptId);
     }
@@ -31,12 +32,12 @@ export class DataController {
     const scriptTag = document.getElementById(scriptId);
 
     if (!scriptTag) {
-      console.error(`[DataController] Script tag with id "${scriptId}" not found`);
+      logger.error(`[DataController] Script tag with id "${scriptId}" not found`);
       return null;
     }
 
     if (scriptTag.getAttribute('type') !== 'application/json') {
-      console.error(`[DataController] Script tag "${scriptId}" is not type="application/json"`);
+      logger.error(`[DataController] Script tag "${scriptId}" is not type="application/json"`);
       return null;
     }
 
@@ -46,7 +47,7 @@ export class DataController {
 
       // Validate data structure
       if (!this.validateData(data)) {
-        console.error(`[DataController] Data validation failed for ${scriptId}`);
+        logger.error(`[DataController] Data validation failed for ${scriptId}`);
         return null;
       }
 
@@ -54,12 +55,12 @@ export class DataController {
       this.cache.set(scriptId, data);
 
       if (this.debug) {
-        console.log(`[DataController] Loaded and cached: ${scriptId}`, data);
+        logger.info(`[DataController] Loaded and cached: ${scriptId}`, data);
       }
 
       return data;
     } catch (error) {
-      console.error(`[DataController] Failed to parse data from ${scriptId}:`, error);
+      logger.error(`[DataController] Failed to parse data from ${scriptId}:`, error);
       return null;
     }
   }
@@ -82,7 +83,7 @@ export class DataController {
 
     // Fallback to API call
     if (this.debug) {
-      console.log(`[DataController] Falling back to API: ${fallbackUrl}`);
+      logger.info(`[DataController] Falling back to API: ${fallbackUrl}`);
     }
 
     try {
@@ -97,7 +98,7 @@ export class DataController {
 
       return apiData as T;
     } catch (error) {
-      console.error(`[DataController] API fallback failed for ${fallbackUrl}:`, error);
+      logger.error(`[DataController] API fallback failed for ${fallbackUrl}:`, error);
       return null;
     }
   }
@@ -122,7 +123,7 @@ export class DataController {
   clearCache(): void {
     this.cache.clear();
     if (this.debug) {
-      console.log('[DataController] Cache cleared');
+      logger.info('[DataController] Cache cleared');
     }
   }
 
