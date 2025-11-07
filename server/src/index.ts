@@ -5,7 +5,6 @@ import rateLimit from 'express-rate-limit';
 import { createBullBoard } from '@bull-board/api';
 import { BullAdapter } from '@bull-board/api/bullAdapter';
 import { ExpressAdapter } from '@bull-board/express';
-import winston from 'winston';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 
@@ -18,6 +17,7 @@ import { nonceMiddleware } from './middleware/xcontroller.middleware';
 import { appRouter } from './routes/app.routes';
 import { tokenRefreshService } from './services/token-refresh.service';
 import { cacheService } from './lib/redis-cache.service';
+import logger from './lib/logger';
 import {
   initializeSentry,
   sentryRequestHandler,
@@ -35,35 +35,6 @@ validateConfig();
 
 // Log configuration summary
 logConfigSummary();
-
-// Configure logger
-const logger = winston.createLogger({
-  level: config.logging.level,
-  format: winston.format.json(),
-  transports: [
-    ...(config.logging.console.enabled
-      ? [
-          new winston.transports.Console({
-            format: winston.format.combine(
-              config.logging.colorize ? winston.format.colorize() : winston.format.simple(),
-              winston.format.simple()
-            ),
-          }),
-        ]
-      : []),
-    ...(config.logging.files.enabled
-      ? [
-          new winston.transports.File({
-            filename: config.logging.files.error,
-            level: 'error',
-          }),
-          new winston.transports.File({
-            filename: config.logging.files.combined,
-          }),
-        ]
-      : []),
-  ],
-});
 
 // Create Express app
 const app = express();

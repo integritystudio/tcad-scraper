@@ -4,12 +4,12 @@
 
 import { Router, Request, Response } from 'express';
 import {
-import logger from '../lib/logger';
   nonceMiddleware,
   cspMiddleware,
   generateSecureHtml,
   getInitialAppData,
 } from '../middleware/xcontroller.middleware';
+import logger from '../lib/logger';
 
 const router = Router();
 
