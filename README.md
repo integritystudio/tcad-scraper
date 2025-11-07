@@ -298,10 +298,13 @@ model MonitoredSearch {
 }
 ```
 
-**Database Statistics** (as of last update):
-- Properties: 150,000+ unique records
-- Scrape Jobs: 13,000+ operations logged
-- Success Rate: ~98%+ successful scrapes
+**Database Statistics** (on November 7, 2025):
+- Properties: 105,000+ unique records (growing at ~3,000/minute)
+- Scrape Jobs: 770+ operations logged
+- Success Rate: ~23% (175 completed / 773 total)
+- Average Results: 398 properties per successful scrape
+- Peak Single Scrape: 6,174 properties ("Ridge")
+- Scraping Rate: ~180,000 properties/hour sustained
 
 ## Getting Started
 
@@ -597,7 +600,41 @@ By default, authentication is optional in development. Configure `JWT_SECRET` an
 
 ### Continuous Production Scraper
 
-The recommended way to run the scraper in production:
+#### Using PM2 (Recommended)
+
+The preferred way to run the scraper in production with PM2 process management:
+
+```bash
+cd server
+
+# Start with PM2 using ecosystem config
+pm2 start ecosystem.config.js
+
+# Or start just the continuous-enqueue process
+pm2 start continuous-enqueue
+
+# Monitor processes
+pm2 list
+pm2 status continuous-enqueue
+
+# View logs
+pm2 logs continuous-enqueue
+pm2 logs continuous-enqueue --lines 100
+
+# Restart process
+pm2 restart continuous-enqueue
+
+# Stop process
+pm2 stop continuous-enqueue
+
+# Save PM2 configuration (persists across reboots)
+pm2 save
+pm2 startup  # Follow instructions to enable auto-start on boot
+```
+
+#### Using Direct Process
+
+Alternative method without PM2:
 
 ```bash
 cd server
@@ -631,6 +668,47 @@ pkill -f "continuous-batch-scraper"
 # Or using saved PID:
 kill $(cat continuous-scraper.pid)
 ```
+
+#### TCAD API Token Management
+
+The TCAD API requires token refresh every ~5 minutes. An automated cron job handles this:
+
+```bash
+# View current cron jobs
+crontab -l
+
+# The cron job (already configured):
+# */4 * * * * /home/aledlie/tcad-scraper/refresh-tcad-token.sh >> /home/aledlie/tcad-scraper/logs/token-refresh-cron.log 2>&1
+
+# Monitor token refresh logs
+tail -f /home/aledlie/tcad-scraper/logs/token-refresh-cron.log
+
+# Manually refresh token if needed
+/home/aledlie/tcad-scraper/refresh-tcad-token.sh
+```
+
+**Token refresh runs every 4 minutes automatically**, preventing HTTP 401 errors during continuous scraping.
+
+### Priority Search Terms
+
+Add high-value search terms to the front of the queue with priority 1:
+
+```bash
+cd server
+
+# Use the priority enqueue script (edit terms in the file)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" \
+  doppler run -- npx tsx src/scripts/enqueue-priority-terms.ts
+
+# The script adds terms like "Real", "Estate", "Trust", "Part", "Hill"
+# These process before other pending jobs
+```
+
+**Performance Notes:**
+- Priority 1 jobs process first
+- High-value terms like "Real", "Estate" return 3,000-6,000 properties each
+- Typical scraping rate: ~3,000 properties/minute
+- Peak performance: 10,000-15,000 properties/minute during large job completions
 
 ### Manual Batch Scraping
 
@@ -805,13 +883,6 @@ bull_queue_failed_total
 # Active workers
 bull_queue_active
 ```
-
-### Application Logs
-
-**Winston Log Files:**
-- `server/logs/combined.log` - All logs
-- `server/logs/error.log` - Error logs only
-- `server/continuous-scraper.log` - Continuous scraper output
 
 **View logs:**
 ```bash
@@ -1034,6 +1105,12 @@ When using browser-based scraping, TCAD's AG Grid pagination controls are hidden
 
 The API-based scraping method requires token refresh every ~5 minutes. The scraper handles this automatically, but rapid scraping may occasionally hit rate limits.
 
+**Solution Implemented**:
+- Automated cron job refreshes token every 4 minutes
+- Cron logs to `/home/aledlie/tcad-scraper/logs/token-refresh-cron.log`
+- Provides 1-minute buffer before expiration
+- Prevents HTTP 401 errors during continuous scraping
+
 **Mitigation**: The system implements exponential backoff and automatic retry logic.
 
 ### 3. Search Result Variability
@@ -1054,7 +1131,6 @@ Aggressive scraping may trigger TCAD rate limiting. The system:
 ### 5. Memory Usage
 
 Long-running scraper processes can accumulate memory. Recommended:
-- Monitor with Prometheus metrics
 - Restart scraper process daily via cron
 - Use systemd service with restart policies
 
@@ -1083,61 +1159,11 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[REFACTORING-SUMMARY.md](REFACTORING-SUMMARY.md)** - Recent refactoring summary
 - **[doppler-setup.md](docs/doppler-setup.md)** - Doppler CLI installation and configuration
 
-## Recent Updates
-
-### November 6, 2025
-- Comprehensive codebase analysis using ast-grep structural code search
-- Created CODEBASE_ANALYSIS.md with detailed code quality metrics
-- Identified and documented 10.2 MB of unnecessary files for cleanup
-- Updated documentation structure to reflect actual files
-- Analysis findings: 1,444 console.log statements, 113 error handlers, 0 TODOs
-
-### November 5, 2024
-- Added AI-powered natural language search using Claude AI (Anthropic)
-- Implemented `POST /api/properties/search` endpoint for plain English queries
-- Added `GET /api/properties/search/test` endpoint to verify Claude API connection
-- Created comprehensive Claude search documentation (`docs/CLAUDE_SEARCH.md`)
-- Added test suite for Claude search service and endpoints
-- Fixed logger import and error handling in Claude service
-- Updated environment configuration for `ANTHROPIC_API_KEY`
-
-### November 3, 2024
-- Comprehensive README overhaul with current architecture
-- Added API endpoint documentation
-- Added monitoring and metrics section
-- Updated Docker services documentation
-- Added troubleshooting guide
-
-### November 2, 2024
-- Implemented optimized search term generation with weighted strategies
-- Added 30 Austin neighborhoods, expanded to 150+ street names
-- Expanded name database to 200+ first names, 500+ last names
-- Added 34 property types for targeted searching
-- Successfully running on remote Linux environment
-- Database grew to 150,000+ properties
-
-### November 1, 2024
-- Implemented dual scraping methods (API + browser-based)
-- Fixed race condition in browser initialization (commit a8812a4)
-- Added batch scraping capabilities
-- Migrated to remote Linux environment
-- Configured Docker Compose for Redis, Prometheus, BullMQ metrics
-- Implemented Doppler for secrets management
-- Added Express API server with REST endpoints
-- Integrated Bull Dashboard for queue monitoring
-
-### October 2024
-- Initial project creation
-- Implemented Playwright-based scraper
-- Set up PostgreSQL with Prisma ORM
-- Created React frontend application
-- Established basic Docker infrastructure
-
----
-
 ## Contributing
 
-This is a private project for property data analysis. For questions or issues, please contact the repository owner.
+Server Configuration and Archicture: Micah Linsay
+Front-end Architecture and initial tcad scraping logic: John Skelton
+Authentication, API, Queue Management & Batch Optimization: Alyshia Ledlie
 
 ## License
 
@@ -1150,4 +1176,4 @@ Proprietary - All rights reserved.
 
 ---
 
-**Built with ❤️ for property data enthusiasts**
+**Built with ❤️  for Karen, by John, Micah, and Alyshia**

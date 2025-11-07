@@ -394,5 +394,119 @@ describe('ClaudeSearchService', () => {
         expect(result.whereClause).toBeDefined();
       });
     });
+
+    describe('Schema Field Names', () => {
+      test('should use searchTerm field (camelCase) not search_term', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                searchTerm: { contains: 'Smith', mode: 'insensitive' }
+              },
+              explanation: 'Searching for properties found via Smith search term'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties from Smith search');
+
+        expect(result.whereClause).toEqual({
+          searchTerm: { contains: 'Smith', mode: 'insensitive' }
+        });
+        expect(result.explanation).toBe('Searching for properties found via Smith search term');
+      });
+
+      test('should use propType field (camelCase) not prop_type', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                propType: { contains: 'Residential', mode: 'insensitive' }
+              },
+              explanation: 'Searching for residential properties'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('residential properties');
+
+        expect(result.whereClause).toHaveProperty('propType');
+        expect(result.whereClause).not.toHaveProperty('prop_type');
+      });
+
+      test('should use propertyAddress field (camelCase) not property_address', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                propertyAddress: { contains: 'Main St', mode: 'insensitive' }
+              },
+              explanation: 'Searching for properties on Main St'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties on Main St');
+
+        expect(result.whereClause).toHaveProperty('propertyAddress');
+        expect(result.whereClause).not.toHaveProperty('property_address');
+      });
+
+      test('should use appraisedValue field (camelCase) not appraised_value', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                appraisedValue: { gte: 500000 }
+              },
+              orderBy: { appraisedValue: 'desc' },
+              explanation: 'Searching for properties appraised over $500,000'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties worth over 500k');
+
+        expect(result.whereClause).toHaveProperty('appraisedValue');
+        expect(result.whereClause).not.toHaveProperty('appraised_value');
+        expect(result.orderBy).toHaveProperty('appraisedValue');
+      });
+
+      test('should verify prompt includes correct Prisma field names', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ whereClause: {}, explanation: 'Test' })
+          }]
+        });
+
+        await service.parseNaturalLanguageQuery('test');
+
+        const callArgs = mockCreate.mock.calls[0][0];
+        const prompt = callArgs.messages[0].content;
+
+        // Verify the prompt uses camelCase Prisma field names, not snake_case DB names
+        expect(prompt).toContain('searchTerm');
+        expect(prompt).toContain('propType');
+        expect(prompt).toContain('propertyAddress');
+        expect(prompt).toContain('appraisedValue');
+        expect(prompt).toContain('assessedValue');
+        expect(prompt).toContain('geoId');
+        expect(prompt).toContain('scrapedAt');
+        expect(prompt).toContain('createdAt');
+        expect(prompt).toContain('updatedAt');
+
+        // Should NOT contain snake_case versions
+        expect(prompt).not.toContain('search_term');
+        expect(prompt).not.toContain('prop_type');
+        expect(prompt).not.toContain('property_address');
+        expect(prompt).not.toContain('appraised_value');
+        expect(prompt).not.toContain('assessed_value');
+      });
+    });
   });
 });

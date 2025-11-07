@@ -4,7 +4,7 @@
       "command": "node",
       "args": [
         "/home/aledlie/.mcp-servers/postgres/node_modules/@modelcontextprotocol/server-postgres/dist/index.js",
-        "postgresql:///tcad_scraper?host=/var/run/postgresql&port=5433"
+        "postgresql://postgres:postgres@localhost:5432/tcad_scraper"
       ]
     }
   }
