@@ -1171,7 +1171,9 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ## Contributing
 
-This is a private project for property data analysis. For questions or issues, please contact the repository owner.
+Server Configuration and Architecture: Micah Linsay
+Front-end Architecture and initial tcad scraping logic: John Skelton
+Authentication, API, Queue Management & Batch Optimization: Alyshia Ledlie
 
 ## License
 
@@ -1184,4 +1186,4 @@ Proprietary - All rights reserved.
 
 ---
 
-**Built with ❤️ for property data enthusiasts**
+**Built with ❤️  for Karen, by John, Micah, and Alyshia**
