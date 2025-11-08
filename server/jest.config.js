@@ -61,4 +61,18 @@ module.exports = {
   clearMocks: true,
   resetMocks: true,
   restoreMocks: true,
+
+  // Coverage thresholds to prevent regression
+  // Current coverage: ~36% statements, 33% branches, 38% functions, 36% lines
+  // Target coverage: 70% statements, 65% branches, 70% functions, 70% lines
+  // Thresholds are set slightly below current to allow minor fluctuations
+  // but prevent significant regression. Increase these as coverage improves.
+  coverageThreshold: {
+    global: {
+      statements: 35,
+      branches: 32,
+      functions: 37,
+      lines: 35,
+    },
+  },
 };
