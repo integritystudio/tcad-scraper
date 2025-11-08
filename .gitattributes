@@ -1,0 +1,22 @@
+# Git Attributes Configuration
+# Prevent merge conflicts in package-lock.json files
+
+# Use custom npm merge driver for lockfiles
+server/package-lock.json merge=npm
+package-lock.json merge=npm
+
+# Ensure consistent line endings
+* text=auto
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

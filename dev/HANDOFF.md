@@ -61,6 +61,101 @@ Resolved the database permissions issue identified during route testing. Created
 
 **Ready for:** Full application deployment with database operations
 
+### Session 5 (Nov 8, 2025) - Package Dependency Management Strategy
+Implemented automated merge strategy for package-lock.json files to prevent recurring merge conflicts that were causing excessive merge commits in the git history.
+
+**Problem Identified:**
+- 10+ merge-related commits in recent git history
+- Frequent conflicts in `server/package-lock.json` during branch merges
+- Manual conflict resolution was error-prone and time-consuming
+
+**Solution Implemented:**
+- ✅ Created `.gitattributes` with custom npm merge driver
+- ✅ Configured git to automatically regenerate package-lock.json on merge
+- ✅ Added line ending normalization and binary file handling
+- ✅ Documentation updated in HANDOFF.md
+
+**Configuration Details:**
+- Merge driver: `npm install --package-lock-only`
+- Driver name: "automatically merge npm lockfiles"
+- Files tracked: `server/package-lock.json`, `package-lock.json`
+
+**Impact:**
+- Future merges will automatically regenerate lockfiles
+- No more manual conflict resolution needed
+- Cleaner git history without repetitive merge commits
+- Consistent dependency resolution across branches
+
+**Ready for:** Testing on next branch merge
+
+---
+
+## Package Dependency Management Strategy
+
+### Preventing package-lock.json Merge Conflicts
+
+**Problem:** Multiple merge commits in git history due to package-lock.json conflicts
+
+**Solution Implemented:**
+1. `.gitattributes` configured with npm merge driver
+2. Git configured to regenerate package-lock.json on merge
+3. Automatic conflict resolution during branch merges
+
+**How It Works:**
+When git encounters a merge conflict in `package-lock.json`:
+1. Git runs `npm install --package-lock-only` automatically
+2. Lockfile is regenerated based on the merged `package.json`
+3. Regenerated file is automatically staged
+4. No manual intervention needed
+
+**Workflow (Automated):**
+```bash
+# Normal merge workflow - conflicts handled automatically
+git fetch origin main
+git merge origin/main
+# Git automatically regenerates package-lock.json if conflicts occur
+
+# Alternative: Rebase for cleaner history
+git fetch origin main
+git rebase origin/main
+# Package-lock.json conflicts auto-resolved during rebase
+```
+
+**Manual Override (If Needed):**
+```bash
+# If automatic resolution fails, manually regenerate:
+git checkout --theirs server/package-lock.json
+cd server && npm install --package-lock-only
+git add server/package-lock.json
+git merge --continue  # or git rebase --continue
+```
+
+**Best Practices:**
+1. **Always pull before starting work**: `git pull origin main`
+2. **Keep branches short-lived**: Merge frequently to avoid drift
+3. **Coordinate dependency updates**: Avoid simultaneous package updates on multiple branches
+4. **Verify after merge**: Run `npm install` to ensure lockfile is valid
+5. **Use CI/CD validation**: GitHub Actions already uses `npm ci` for verification
+
+**CI/CD Integration:**
+- ✅ GitHub Actions uses `npm ci` (already configured in workflows)
+- ✅ Package-lock.json committed to repo for cache optimization
+- ✅ Lockfile integrity verified on every build
+
+**Configuration Files:**
+- `.gitattributes` - Merge strategy configuration
+- `.git/config` - Local git merge driver settings
+
+**Verification:**
+```bash
+# Check git configuration
+git config --get merge.npm.driver
+git config --get merge.npm.name
+
+# View .gitattributes
+cat .gitattributes
+```
+
 ---
 
 ## What Was Accomplished
