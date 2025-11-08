@@ -33,6 +33,17 @@ Before running tests locally, you need:
 
 #### Setup Commands
 
+**Automated Setup (Recommended)**:
+```bash
+# Start services with Docker
+docker-compose up -d postgres redis
+
+# Run automated test database setup
+cd server
+./scripts/setup-test-db.sh
+```
+
+**Manual Setup**:
 ```bash
 # Start services with Docker
 docker-compose up -d postgres redis
@@ -45,6 +56,8 @@ cd server
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper_test" \
   npx prisma migrate deploy
 ```
+
+For detailed setup instructions, see [Test Database Setup Guide](../server/docs/TEST-DATABASE-SETUP.md).
 
 ## Test Commands
 
