@@ -1,11 +1,41 @@
 # CI/CD Implementation - Session Context
 
-**Last Updated**: 2025-01-07 (Session completed)
-**Status**: ✅ Completed with documentation
+**Last Updated**: 2025-01-08 (Integration tests separated)
+**Status**: ✅ Completed with separate integration test workflow
 
 ## Session Summary
 
-Implemented comprehensive CI/CD pipeline with GitHub Actions workflows, added test coverage, and created extensive documentation.
+Implemented comprehensive CI/CD pipeline with GitHub Actions workflows, added test coverage, and created extensive documentation. Integration tests have been separated into their own workflow for better performance and control.
+
+## Recent Updates (2025-01-08)
+
+### Integration Test Workflow Separation
+
+**Created**: `.github/workflows/integration-tests.yml`
+
+**Features**:
+- Separate workflow for integration and E2E tests
+- Nightly scheduled runs at 3 AM UTC
+- Manual trigger with optional debug mode
+- PR label-based triggering (`run-integration-tests` label)
+- Uses `RUN_INTEGRATION_TESTS=true` environment variable
+- PostgreSQL 16 and Redis 7 service containers
+- Database migration and optional seeding
+- Separate integration coverage reporting to Codecov
+- 30-day artifact retention for integration coverage
+
+**Updated**:
+- `.github/workflows/ci.yml` - Removed integration tests job, updated job numbering
+- `docs/CI-CD.md` - Added integration tests workflow documentation
+- `.github/workflows/README.md` - Updated quick reference
+- `dev/active/ci-cd-implementation-tasks.md` - Marked task as complete
+
+**Benefits**:
+- Faster CI pipeline (~6-8 minutes instead of ~8-12 minutes)
+- Integration tests don't slow down PRs
+- Can run integration tests on-demand
+- Better control over when expensive tests run
+- Separate coverage tracking for unit vs integration tests
 
 ## Completed Work
 

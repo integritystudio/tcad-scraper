@@ -143,10 +143,14 @@
   - ⏳ Phase 4: Final utilities and queue operations (Target: 70%+)
   - **See**: `dev/active/test-coverage-improvement-tasks.md`
 
-- ⏳ Separate integration test suite
-  - Create integration-tests.yml workflow
-  - Run with RUN_INTEGRATION_TESTS=true
-  - Test against real services
+- ✅ Separate integration test suite
+  - ✅ Created integration-tests.yml workflow
+  - ✅ Runs with RUN_INTEGRATION_TESTS=true
+  - ✅ Tests against real services (PostgreSQL 16, Redis 7)
+  - ✅ Nightly scheduled runs at 3 AM UTC
+  - ✅ Manual trigger support with debug mode
+  - ✅ PR label-based triggering (`run-integration-tests`)
+  - ✅ Separate integration coverage reporting
 
 - ⏳ Add coverage thresholds
   - ✅ Current coverage: 11.67%

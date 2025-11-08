@@ -25,10 +25,10 @@ The project uses GitHub Actions for automated testing, security scanning, and de
 - Generates and uploads coverage reports
 - Uploads to Codecov (optional)
 
-#### Integration Tests
-- Runs integration tests with Playwright
-- Tests full system behavior
-- Uses real database and Redis instances
+#### Cross-Platform Compatibility Tests
+- Tests on Ubuntu, macOS, and Windows
+- Runs unit tests without database dependencies
+- Ensures cross-platform compatibility
 
 #### Build Verification
 - Builds frontend (Vite)
@@ -120,7 +120,76 @@ CLAUDE_API_KEY: "test-key"
 
 ---
 
-### 3. Security Scanning (`security.yml`)
+### 3. Integration Tests (`integration-tests.yml`)
+
+**Trigger**:
+- Nightly at 3 AM UTC (scheduled)
+- Push to `main` branch (when server code changes)
+- Pull requests with the `run-integration-tests` label
+- Manual workflow dispatch (with optional debug mode)
+
+**Purpose**: Runs comprehensive integration and E2E tests that require full service stack. Separated from main CI pipeline to keep CI fast while ensuring thorough testing.
+
+**Jobs**:
+
+#### Check Trigger Conditions
+- Determines if tests should run based on trigger type
+- For PRs, only runs when labeled with `run-integration-tests`
+- Always runs for scheduled, manual, and push events
+
+#### Integration Tests
+- Runs full integration test suite with Playwright
+- Uses PostgreSQL 16 and Redis 7 service containers
+- Tests full system behavior with real dependencies
+- Runs database migrations and optional seeding
+- Generates and uploads integration coverage reports
+- Uploads to Codecov with `integration` flag
+- Set `RUN_INTEGRATION_TESTS=true` environment variable
+
+**Test Suites**:
+- API integration tests (`api.test.ts`)
+- Database integration tests (`auth-database.integration.test.ts`)
+- Queue integration tests (`enqueue.test.ts`)
+- Route integration tests (`routes/__tests__/*.test.ts`)
+- Security integration tests (`security.test.ts`)
+
+#### E2E Tests (Optional)
+- Placeholder for future end-to-end tests
+- Automatically detects if E2E test directory exists
+- Runs full user workflow tests if present
+- Skips gracefully if no E2E tests found
+
+#### Integration Success
+- Summary job that validates all integration tests passed
+- Provides comprehensive test results
+
+**How to Trigger**:
+
+1. **Automatic (Nightly)**: Runs every night at 3 AM UTC
+2. **On Push**: Automatically runs when server code changes on `main`
+3. **For PRs**: Add the `run-integration-tests` label to any PR
+4. **Manual**: Use "Run workflow" button in GitHub Actions tab
+   - Optional: Enable debug mode for interactive troubleshooting
+
+**Environment Variables Required**:
+```yaml
+RUN_INTEGRATION_TESTS: 'true'
+NODE_ENV: test
+DATABASE_URL: postgresql://user:pass@localhost:5432/db
+DATABASE_READ_ONLY_URL: postgresql://user:pass@localhost:5432/db
+REDIS_HOST: localhost
+REDIS_PORT: 6379
+SENTRY_DSN: ""
+CLAUDE_API_KEY: "test-key"
+```
+
+**Runtime**: ~10-15 minutes (longer than unit tests)
+
+**Coverage**: Integration coverage uploaded separately from unit coverage
+
+---
+
+### 4. Security Scanning (`security.yml`)
 
 **Trigger**:
 - Push to `main`/`develop`
@@ -179,7 +248,7 @@ CLAUDE_API_KEY: "test-key"
 
 ---
 
-### 4. Deployment (`deploy.yml`)
+### 5. Deployment (`deploy.yml`)
 
 **Trigger**: Push to `main` branch, or manual dispatch
 
