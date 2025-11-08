@@ -3,15 +3,15 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/lib/claude.service.ts</title>
+    <title>Code coverage report for deduplication.ts</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="../../prettify.css" />
-    <link rel="stylesheet" href="../../base.css" />
-    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <link rel="stylesheet" href="prettify.css" />
+    <link rel="stylesheet" href="base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style type='text/css'>
         .coverage-summary .sorter {
-            background-image: url(../../sort-arrow-sprite.png);
+            background-image: url(sort-arrow-sprite.png);
         }
     </style>
 </head>
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/lib</a> claude.service.ts</h1>
+        <h1><a href="index.html">All files</a> deduplication.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>16/16</span>
+                <span class='fraction'>96/96</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">66.66% </span>
+                <span class="strong">90% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>8/12</span>
+                <span class='fraction'>36/40</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/1</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>16/16</span>
+                <span class='fraction'>92/92</span>
             </div>
         
             
@@ -215,113 +215,87 @@
 <a name='L150'></a><a href='#L150'>150</a>
 <a name='L151'></a><a href='#L151'>151</a>
 <a name='L152'></a><a href='#L152'>152</a>
-<a name='L153'></a><a href='#L153'>153</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">4x</span>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">22x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">26x</span>
-<span class="cline-any cline-yes">26x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">30x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">125x</span>
+<span class="cline-any cline-yes">125x</span>
+<span class="cline-any cline-yes">125x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">125x</span>
+<span class="cline-any cline-yes">62x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">125x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -330,195 +304,305 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">62x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">62x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">22x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">22x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">20x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">30x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">30x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">18x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">63x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">63x</span>
+<span class="cline-any cline-yes">63x</span>
+<span class="cline-any cline-yes">59x</span>
+<span class="cline-any cline-yes">59x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import Anthropic from '@anthropic-ai/sdk';
-import { Prisma } from '@prisma/client';
-import logger from './logger';
-import { config } from '../config';
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">42x</span>
+<span class="cline-any cline-yes">42x</span>
+<span class="cline-any cline-yes">41x</span>
+<span class="cline-any cline-yes">41x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { scraperQueue } from '../queues/scraper.queue';
+import { prisma } from '../lib/prisma';
+import logger from '../lib/logger';
 &nbsp;
-const anthropic = new Anthropic({
-  apiKey: config.claude.apiKey,
-});
-&nbsp;
-interface SearchFilters {
-  whereClause: Prisma.PropertyWhereInput;
-  orderBy?: Prisma.PropertyOrderByWithRelationInput;
-  explanation: string;
+interface DeduplicationOptions {
+  verbose?: boolean;
+  showProgress?: boolean;
 }
 &nbsp;
-export class ClaudeSearchService {
-  async parseNaturalLanguageQuery(query: string): Promise&lt;SearchFilters&gt; {
-    try {
-      const message = await anthropic.messages.create({
-        model: config.claude.model,
-        max_tokens: config.claude.maxTokens,
-        messages: [
-          {
-            role: 'user',
-            content: `You are a database query generator for a property search system. Convert the user's natural language query into Prisma query filters.
+export async function removeDuplicatesFromQueue(options: DeduplicationOptions = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
+  const { verbose = <span class="branch-0 cbranch-no" title="branch not covered" >true,</span> showProgress = true } = options;
 &nbsp;
-Available fields in the properties table:
-- id (text): unique identifier
-- propertyId (text): property ID from TCAD
-- name (text): owner name
-- propType (text): property type (e.g., "Residential", "Commercial", "Industrial")
-- city (text): city name
-- propertyAddress (text): full address
-- assessedValue (number): assessed value in dollars
-- appraisedValue (number): appraised value in dollars
-- geoId (text): geographic ID
-- description (text): property description
-- searchTerm (text): original search term used to find this property
-- scrapedAt (datetime): when the data was scraped
-- createdAt (datetime): record creation time
-- updatedAt (datetime): last update time
+  if (verbose) {
+    logger.info('🔍 Now checking for duplicates...\n');
+  }
 &nbsp;
-User query: "${query}"
+  // Get all pending jobs (waiting + delayed)
+  const [waitingJobs, delayedJobs] = await Promise.all([
+    scraperQueue.getWaiting(),
+    scraperQueue.getDelayed(),
+  ]);
 &nbsp;
-Generate a JSON response with these fields:
-1. "whereClause": Prisma where clause as JSON (use "contains" for text searches with "mode": "insensitive" for case-insensitive, "gte"/"lte" for number ranges, "gt"/"lt" for comparisons)
-2. "orderBy": Prisma orderBy clause (optional, use "asc" or "desc")
-3. "explanation": Brief explanation of what you're searching for
+  const allPendingJobs = [...waitingJobs, ...delayedJobs];
 &nbsp;
-Examples:
+  if (verbose) {
+    logger.info(`📊 Queue State:`);
+    logger.info(`   Waiting: ${waitingJobs.length}`);
+    logger.info(`   Delayed: ${delayedJobs.length}`);
+    logger.info(`   Total Pending: ${allPendingJobs.length}\n`);
+  }
 &nbsp;
-Query: "properties in Austin worth over 500k"
-Response:
-{
-  "whereClause": {
-    "city": "Austin",
-    "appraisedValue": { "gte": 500000 }
-  },
-  "orderBy": { "appraisedValue": "desc" },
-  "explanation": "Searching for properties in Austin with appraised value over $500,000, sorted by value (highest first)"
-}
+  // Get completed search terms from database
+  const completedTerms = await prisma.scrapeJob.findMany({
+    where: { status: 'completed' },
+    select: { searchTerm: true },
+    distinct: ['searchTerm'],
+  });
 &nbsp;
-Query: "commercial properties owned by Smith"
-Response:
-{
-  "whereClause": {
-    "propType": { "contains": "Commercial", "mode": "insensitive" },
-    "name": { "contains": "Smith", "mode": "insensitive" }
-  },
-  "explanation": "Searching for commercial properties where owner name contains 'Smith'"
-}
+  const completedTermSet = new Set(completedTerms.map(j =&gt; j.searchTerm));
 &nbsp;
-Query: "show me the most expensive residential properties"
-Response:
-{
-  "whereClause": {
-    "propType": { "contains": "Residential", "mode": "insensitive" }
-  },
-  "orderBy": { "appraisedValue": "desc" },
-  "explanation": "Showing residential properties sorted by appraised value (highest first)"
-}
+  // Track search terms and their job IDs
+  const termMap = new Map&lt;string, Array&lt;{ job: any; priority: number; state: string }&gt;&gt;();
 &nbsp;
-Query: "properties on Congress Ave"
-Response:
-{
-  "whereClause": {
-    "propertyAddress": { "contains": "Congress", "mode": "insensitive" }
-  },
-  "explanation": "Searching for properties with 'Congress' in the address"
-}
+  // Build map of search terms to jobs
+  for (const job of allPendingJobs) {
+    const term = job.data.searchTerm;
+    let state = 'waiting';
+    if (delayedJobs.includes(job)) state = 'delayed';
 &nbsp;
-Query: "find properties appraised between 300k and 600k"
-Response:
-{
-  "whereClause": {
-    "appraisedValue": { "gte": 300000, "lte": 600000 }
-  },
-  "orderBy": { "appraisedValue": "asc" },
-  "explanation": "Searching for properties with appraised value between $300,000 and $600,000"
-}
+    if (!termMap.has(term)) {
+      termMap.set(term, []);
+    }
+    termMap.get(term)!.push({
+      job,
+      priority: job.opts.priority || 10,
+      state
+    });
+  }
 &nbsp;
-IMPORTANT:
-- Return ONLY valid JSON, no markdown formatting
-- Use "mode": "insensitive" for all text searches
-- Convert dollar amounts (like "500k" or "$1M") to numbers (500000, 1000000)
-- For text searches, use "contains" with "mode": "insensitive"
-- Only include orderBy if the query implies sorting
-- Keep explanations brief and user-friendly
+  // Find duplicates within pending jobs
+  const duplicateTerms = Array.from(termMap.entries())
+    .filter(([_, jobs]) =&gt; jobs.length &gt; 1);
 &nbsp;
-Now generate the JSON for the user's query above.`,
-          },
-        ],
+  // Find jobs that were already completed
+  const alreadyCompletedTerms = Array.from(termMap.entries())
+    .filter(([term, _]) =&gt; completedTermSet.has(term));
+&nbsp;
+  if (verbose) {
+    logger.info(`🔍 Analysis:`);
+    logger.info(`   Unique pending terms: ${termMap.size}`);
+    logger.info(`   ❌ Terms with duplicate pending jobs: ${duplicateTerms.length}`);
+    logger.info(`   ✅ Terms already completed: ${alreadyCompletedTerms.length}`);
+  }
+&nbsp;
+  let totalToRemove = 0;
+&nbsp;
+  // Count duplicates
+  for (const [_, jobs] of duplicateTerms) {
+    totalToRemove += jobs.length - 1; // Keep one
+  }
+&nbsp;
+  // Count already completed
+  for (const [_, jobs] of alreadyCompletedTerms) {
+    totalToRemove += jobs.length; // Remove all
+  }
+&nbsp;
+  if (verbose) {
+    logger.info(`   🗑️  Total jobs to remove: ${totalToRemove}\n`);
+  }
+&nbsp;
+  if (totalToRemove === 0) {
+    if (verbose) {
+      logger.info('✅ No duplicates or completed terms found!');
+    }
+    return { removed: 0, failed: 0 };
+  }
+&nbsp;
+  // Show what we're removing
+  if (verbose) {
+    if (duplicateTerms.length &gt; 0) {
+      logger.info('📝 Duplicate pending jobs:');
+      const displayCount = showProgress ? 10 : duplicateTerms.length;
+      duplicateTerms.slice(0, displayCount).forEach(([term, jobs]) =&gt; {
+        logger.info(`   "${term}": ${jobs.length} copies (keeping 1, removing ${jobs.length - 1})`);
       });
+      if (duplicateTerms.length &gt; displayCount) {
+        logger.info(`   ... and ${duplicateTerms.length - displayCount} more`);
+      }
+      logger.info('');
+    }
 &nbsp;
-      const responseText = message.content[0].type === 'text' ? message.content[0].text : <span class="branch-1 cbranch-no" title="branch not covered" >'';</span>
-      logger.info('Claude response:', { responseText });
+    if (alreadyCompletedTerms.length &gt; 0) {
+      logger.info('📝 Already completed terms in queue:');
+      const displayCount = showProgress ? 20 : alreadyCompletedTerms.length;
+      alreadyCompletedTerms.slice(0, displayCount).forEach(([term, jobs]) =&gt; {
+        logger.info(`   "${term}": ${jobs.length} pending (removing all)`);
+      });
+      if (alreadyCompletedTerms.length &gt; displayCount) {
+        logger.info(`   ... and ${alreadyCompletedTerms.length - displayCount} more`);
+      }
+      logger.info('');
+    }
 &nbsp;
-      // Parse the JSON response
-      const parsed = JSON.parse(responseText);
+    logger.info(`🚀 Removing ${totalToRemove} duplicate/completed jobs...`);
+  }
 &nbsp;
-      return {
-        whereClause: parsed.whereClause || {},
-        orderBy: parsed.orderBy,
-        explanation: parsed.explanation || 'Searching properties based on your query',
-      };
-    } catch (error) {
-      // Safely log the error without risking serialization issues
-      const errorDetails = {
-        message: error instanceof Error ? error.message : <span class="branch-1 cbranch-no" title="branch not covered" >String(error),</span>
-        name: error instanceof Error ? error.name : <span class="branch-1 cbranch-no" title="branch not covered" >'Unknown',</span>
-        stack: error instanceof Error ? error.stack : <span class="branch-1 cbranch-no" title="branch not covered" >undefined,</span>
-      };
-      logger.error('Error parsing natural language query with Claude:', errorDetails);
-      logger.error('Claude API Error Details:', JSON.stringify(errorDetails, null, 2));
+  let removed = 0;
+  let failed = 0;
 &nbsp;
-      // Fallback: simple text search across multiple fields
-      return {
-        whereClause: {
-          OR: [
-            { name: { contains: query, mode: 'insensitive' } },
-            { propertyAddress: { contains: query, mode: 'insensitive' } },
-            { city: { contains: query, mode: 'insensitive' } },
-            { description: { contains: query, mode: 'insensitive' } },
-          ],
-        },
-        explanation: `Searching for "${query}" across property names, addresses, cities, and descriptions`,
-      };
+  // Remove duplicates (keep highest priority)
+  for (const [term, jobs] of duplicateTerms) {
+    // Sort by priority (lower number = higher priority)
+    jobs.sort((a, b) =&gt; a.priority - b.priority);
+&nbsp;
+    // Remove all but the first (highest priority) job
+    for (let i = 1; i &lt; jobs.length; i++) {
+      try {
+        await jobs[i].job.remove();
+        removed++;
+        if (showProgress &amp;&amp; removed % 10 === 0) {
+          process.stdout.write(`\r   Progress: ${removed}/${totalToRemove} (${((removed/totalToRemove)*100).toFixed(1)}%)`);
+        }
+      } catch (error: any) {
+        failed++;
+        if (verbose &amp;&amp; failed &lt;= 3) {
+          logger.error(`${showProgress ? <span class="branch-0 cbranch-no" title="branch not covered" >'\n' </span>: ''}   ❌ Failed to remove job ${jobs[i].job.id}:`, error.message);
+        }
+      }
     }
   }
-}
 &nbsp;
-export const claudeSearchService = new ClaudeSearchService();
+  // Remove already completed terms
+  for (const [term, jobs] of alreadyCompletedTerms) {
+    for (const jobInfo of jobs) {
+      try {
+        await jobInfo.job.remove();
+        removed++;
+        if (showProgress &amp;&amp; removed % 10 === 0) {
+          process.stdout.write(`\r   Progress: ${removed}/${totalToRemove} (${((removed/totalToRemove)*100).toFixed(1)}%)`);
+        }
+      } catch (error: any) {
+        failed++;
+        if (verbose &amp;&amp; failed &lt;= 3) {
+          logger.error(`${showProgress ? <span class="branch-0 cbranch-no" title="branch not covered" >'\n' </span>: ''}   ❌ Failed to remove job ${jobInfo.job.id}:`, error.message);
+        }
+      }
+    }
+  }
+&nbsp;
+  if (verbose) {
+    if (showProgress) {
+      logger.info(''); // New line after progress
+    }
+    logger.info(`\n✅ Cleanup complete!`);
+    logger.info(`   - Successfully removed: ${removed}`);
+    logger.info(`   - Failed to remove: ${failed}`);
+  }
+&nbsp;
+  return { removed, failed };
+}
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -526,16 +610,16 @@ export const claudeSearchService = new ClaudeSearchService();
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-11-08T08:55:25.413Z
+                at 2025-11-08T08:31:34.495Z
             </div>
-        <script src="../../prettify.js"></script>
+        <script src="prettify.js"></script>
         <script>
             window.onload = function () {
                 prettyPrint();
             };
         </script>
-        <script src="../../sorter.js"></script>
-        <script src="../../block-navigation.js"></script>
+        <script src="sorter.js"></script>
+        <script src="block-navigation.js"></script>
     </body>
 </html>
     

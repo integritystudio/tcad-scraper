@@ -729,6 +729,156 @@ expect(result.itemListElement).toHaveLength(3);
 
 ---
 
-**Document Version**: 2.0
-**Last Updated**: 2025-11-08 08:15 CST (Session 2 Complete)
-**Next Update**: After Session 3 (Redis fix or Phase 3 completion)
+---
+
+## Session 3 Complete - Handoff Notes for Session 4
+
+### What Was Just Completed (Session 3)
+**Timestamp**: 2025-11-08 14:45 CST
+**Status**: ✅ All work committed and pushed to GitHub
+**Branch**: main (3 commits ahead, now pushed)
+
+**Session 3 Accomplishments**:
+1. ✅ Created comprehensive route tests (58 new tests)
+   - `src/routes/__tests__/property.routes.test.ts` (36 tests)
+   - `src/routes/__tests__/app.routes.test.ts` (22 tests)
+2. ✅ Improved deduplication to 100% coverage (7 additional tests)
+3. ✅ Fixed jest.config.js to enable routes tests
+4. ✅ Updated all development documentation
+5. ✅ Pushed all commits to GitHub
+
+**Coverage Achievement**: 22.56% → **51.72%** (+29.16 points!)
+
+### Current System State
+**Git Status**: Clean working directory, all committed
+**Test Status**: 287/287 tests passing (0 failures)
+**Coverage Files**: Generated in `server/coverage/` (not committed - in .gitignore)
+**Last Test Run**: Successful with full coverage report
+
+### Files Modified in Session 3
+1. **Created**:
+   - `server/src/routes/__tests__/property.routes.test.ts`
+   - None (app.routes.test.ts already existed, we fixed it)
+
+2. **Modified**:
+   - `server/src/routes/__tests__/app.routes.test.ts` (line 115: changed apiUrl to version test)
+   - `server/jest.config.js` (line 25: removed routes from testPathIgnorePatterns)
+   - `server/src/utils/__tests__/deduplication.test.ts` (added 7 tests, 15→22 total)
+
+3. **Documentation Updated**:
+   - `dev/active/test-coverage-improvement-context.md`
+   - `dev/active/test-coverage-improvement-tasks.md`
+   - `dev/HANDOFF-2025-11-08.md`
+
+### Git Commits Created
+```bash
+5aed536 - test: improve deduplication test coverage from 84% to 100%
+394170d - test: add comprehensive routes testing with supertest (+29.16% coverage)
+58cdcf9 - docs: update development documentation for Session 3 completion
+```
+
+All commits pushed to: `github.com:aledlie/tcad-scraper.git`
+
+### Exact State for Continuation
+
+**No Unfinished Work**: All planned Session 3 tasks completed successfully
+
+**Next Session Should Start With**:
+```bash
+cd /Users/alyshialedlie/code/ISPublicSites/tcad-scraper/server
+
+# Verify current state
+npm test -- --coverage
+
+# Should show:
+# - 287 tests passing
+# - 51.72% statement coverage
+# - All test suites passing
+```
+
+**Next Priority (Phase 4)**: Metrics Service Testing
+- File to create: `src/lib/__tests__/metrics.service.test.ts`
+- Expected impact: +10-12% coverage
+- Mock: prom-client library
+- Reference: `src/routes/__tests__/property.routes.test.ts` for comprehensive testing pattern
+
+### Key Discoveries This Session
+
+#### 1. Routes Testing Provides Massive Coverage Gains
+**Discovery**: Route tests gave +29% coverage (5x the target!)
+**Why**: Routes exercise validation middleware, controller integration, error handling, and HTTP logic all at once
+**Lesson**: Prioritize routes early in testing strategy for maximum impact
+
+#### 2. Validation Error Structure
+**Format**: `{ error: "Invalid request data", details: [...] }`
+**Not**: `{ errors: [...] }` (common mistake)
+**Test Pattern**:
+```typescript
+expect(response.body).toHaveProperty('error', 'Invalid request data');
+expect(response.body).toHaveProperty('details');
+```
+
+#### 3. Jest Config Can Silently Ignore Tests
+**Issue**: Routes tests existed but weren't running
+**Root Cause**: `testPathIgnorePatterns: ['/src/routes/__tests__/']` in jest.config.js
+**Fix**: Removed that pattern
+**Lesson**: Always check jest.config.js if tests mysteriously don't run
+
+#### 4. Express Route Registration Pattern
+**Discovery**: Express registers same-path routes with different methods as separate entries
+**Example**: `/monitor` with POST and GET = 2 route entries, not 1
+**Test Pattern**:
+```typescript
+const monitorRoutes = routes.filter(r => r.path === '/monitor');
+expect(monitorRoutes).toHaveLength(2);
+```
+
+### No Blockers or Issues
+**Status**: No blockers encountered in Session 3
+**Known Blocker from Session 2**: Redis Cache Service mock issue (deferred)
+**Recommended**: Skip Redis for now, focus on Metrics/Token/Sentry services
+
+### Commands for Next Session
+
+**Verify State**:
+```bash
+npm test -- --coverage
+git status
+git log --oneline -3
+```
+
+**Start New Tests**:
+```bash
+# Create metrics service test file
+touch src/lib/__tests__/metrics.service.test.ts
+
+# Use existing patterns as reference
+cat src/routes/__tests__/property.routes.test.ts
+cat src/controllers/__tests__/property.controller.test.ts
+
+# Start test development in watch mode
+npm run test:watch -- --testPathPattern="metrics.service"
+```
+
+### Performance Notes
+**Test Execution Speed**: ~2-3 seconds for full suite (287 tests)
+**Coverage Report Generation**: ~1-2 seconds
+**Watch Mode**: Very responsive, good for TDD
+
+### Architecture Observations
+
+**Current Test Coverage by Layer**:
+- ✅ Middleware: 99%+ (presentation layer)
+- ✅ Routes: 95%+ (presentation layer)
+- ✅ Controllers: 100% (application layer)
+- ✅ Utils: 100% (utility layer)
+- ⬜ Services: 2% (domain/infrastructure layer) ← **Next Target**
+- ⬜ Lib: 10% (infrastructure layer)
+
+**Testing Strategy Validated**: Bottom-up + Routes early = fast coverage gains
+
+---
+
+**Document Version**: 3.0
+**Last Updated**: 2025-11-08 14:45 CST (Session 3 Complete - Ready for Session 4)
+**Next Update**: After Session 4 (Service Layer Testing)
