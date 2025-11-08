@@ -298,7 +298,7 @@ model MonitoredSearch {
 }
 ```
 
-**Database Statistics** (as of November 7, 2025):
+**Database Statistics** (on November 7, 2025):
 - Properties: 105,000+ unique records (growing at ~3,000/minute)
 - Scrape Jobs: 770+ operations logged
 - Success Rate: ~23% (175 completed / 773 total)
@@ -884,13 +884,6 @@ bull_queue_failed_total
 bull_queue_active
 ```
 
-### Application Logs
-
-**Winston Log Files:**
-- `server/logs/combined.log` - All logs
-- `server/logs/error.log` - Error logs only
-- `server/continuous-scraper.log` - Continuous scraper output
-
 **View logs:**
 ```bash
 # Tail all logs
@@ -1138,7 +1131,6 @@ Aggressive scraping may trigger TCAD rate limiting. The system:
 ### 5. Memory Usage
 
 Long-running scraper processes can accumulate memory. Recommended:
-- Monitor with Prometheus metrics
 - Restart scraper process daily via cron
 - Use systemd service with restart policies
 

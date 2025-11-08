@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Session Summary - Multi-Session Project Work
 
 **Last Updated:** November 7, 2025
