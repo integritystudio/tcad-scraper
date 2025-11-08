@@ -136,10 +136,12 @@
 ## Pending Tasks (Future Work)
 
 ### Medium Priority
-- ⏳ Increase test coverage to 70%+
-  - Add route handler tests
-  - Add service layer tests
-  - Add error handling tests
+- 🟡 Increase test coverage to 70%+ **IN PROGRESS**
+  - ✅ Phase 1 Complete: 11.67% coverage (middleware at 99%)
+  - ⏳ Phase 2: Property controller, TCAD scraper, routes (Target: 35-40%)
+  - ⏳ Phase 3: Services (Redis, Metrics, Token refresh) (Target: 55-60%)
+  - ⏳ Phase 4: Final utilities and queue operations (Target: 70%+)
+  - **See**: `dev/active/test-coverage-improvement-tasks.md`
 
 - ⏳ Separate integration test suite
   - Create integration-tests.yml workflow
@@ -147,8 +149,9 @@
   - Test against real services
 
 - ⏳ Add coverage thresholds
-  - Enforce 70% minimum
-  - Block PRs below threshold
+  - ✅ Current coverage: 11.67%
+  - Target: 70% minimum
+  - Block PRs below threshold (add to jest.config.js)
 
 ### Low Priority
 - ⏳ Setup Codecov integration
