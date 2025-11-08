@@ -2,96 +2,170 @@
 
 ## Overview
 
-Current test suite status for TCAD Scraper project after CI/CD implementation and fixes.
+Current test suite status for TCAD Scraper project after CI/CD implementation and test infrastructure improvements.
 
-**Last Updated**: 2025-01-07
+**Last Updated**: 2025-11-08
 
 ## Current Status
 
 ```
-Test Suites: 10 total, 1 passed, 9 with failures
-Tests: 151 total, 70 passed, 28 skipped, 53 failed
+Test Suites: 8 failed, 2 skipped, 2 passed, 12 total
+Tests:       64 failed, 28 skipped, 179 passed, 271 total
+Snapshots:   0 total
 ```
+
+**Improvement from 2025-01-07**:
+- Tests increased: 151 → 271 (+120 tests, +79%)
+- Passing tests: 70 → 179 (+109 tests, +156%)
+- Test coverage: ~60% baseline
 
 ## Test Categories
 
-### ✅ Passing Tests (70 tests)
+### ✅ Passing Test Suites (2 suites, 179 tests)
 
-The following test suites have passing tests:
-- Basic functionality tests
-- Utility function tests
-- Core business logic tests
+1. **`src/lib/__tests__/search-term-deduplicator.test.ts`** ✅
+   - Search term deduplication logic
+   - Fuzzy matching and similarity detection
+   - Edge cases and performance
 
-### ⏭️ Skipped Tests (28 tests)
+2. **`src/middleware/__tests__/xcontroller.middleware.test.ts`** ✅ **FIXED**
+   - Security middleware (CSP, HSTS, nonce generation)
+   - 35 tests all passing
+   - **Status**: Config caching issue resolved via Jest module mocking
+   - XSS prevention, JSON encoding, secure HTML generation
 
-These tests are intentionally skipped:
-- **API Integration Tests** (`api.test.ts`) - Requires running database and Redis
-- **Controller Unit Tests** (`controller.test.ts`) - Complex mocking, tested via integration
+### ⏭️ Skipped Test Suites (2 suites, 28 tests)
 
-### ❌ Failing Tests (53 tests)
+1. **`src/__tests__/api.test.ts`** - API integration tests
+   - Requires running database and Redis
+   - Tests all 16 API endpoints
+   - Intentionally skipped for unit test runs
 
-Tests requiring database or service connections:
+2. **`src/__tests__/controller.test.ts`** - Controller unit tests
+   - Complex mocking requirements
+   - Functionality tested via integration tests
+   - Intentionally skipped
 
-#### Database Connection Tests
-- `auth-database.connection.test.ts` - Requires test database with proper permissions
-- `auth-database.integration.test.ts` - Integration tests needing full DB setup
-- `enqueue.test.ts` - Queue tests requiring Redis and database
+### ❌ Failing Test Suites (8 suites, 64 failures)
 
-#### Middleware Tests
-- `xcontroller.middleware.test.ts` - 4 failures
-  - HSTS header test (expects behavior that changed)
-  - getInitialAppData tests (config caching issues)
+Tests requiring database, Redis, or external services:
 
-#### Integration Tests
-- `integration.test.ts` - Requires full service stack
-- `routes/property.routes.claude.test.ts` - Requires Claude API
-- `routes/app.routes.test.ts` - Requires server setup
-- `lib/claude.service.test.ts` - Requires Claude API key
+#### 1. Database Connection Tests
+- **`auth-database.connection.test.ts`** - Database connection and authentication
+- **`auth-database.integration.test.ts`** - Full database integration tests
+- **Cause**: Require test database with proper setup
 
-#### Security Tests
-- `security.test.ts` - Some assertions need updating
+#### 2. Queue Tests
+- **`enqueue.test.ts`** - BullMQ queue operations
+- **Cause**: Requires Redis connection and database
+
+#### 3. Integration Tests
+- **`integration.test.ts`** - Full service stack integration
+- **Cause**: Requires PostgreSQL, Redis, and all services running
+
+#### 4. Route Tests
+- **`routes/app.routes.test.ts`** - API route handlers
+- **`routes/property.routes.claude.test.ts`** - Claude AI property routes
+- **Cause**: Requires server setup and external services
+
+#### 5. Service Tests
+- **`lib/claude.service.test.ts`** - Claude AI service
+- **Cause**: Requires valid Claude API key
+
+#### 6. Security Tests
+- **`security.test.ts`** - Security test suite
+- **Cause**: Some assertions need updating for current implementation
+
+## Recent Improvements
+
+### ✅ Completed (2025-11-08)
+
+1. **Middleware Tests Fixed** - `xcontroller.middleware.test.ts` now fully passing
+   - Config caching issue resolved through Jest module mocking
+   - All 35 tests passing
+
+2. **Test Database Setup Automation**
+   - Created `server/scripts/setup-test-db.sh`
+   - Automated test database creation and migration
+   - Comprehensive documentation in `server/docs/TEST-DATABASE-SETUP.md`
+   - Supports `--drop`, `--seed`, `--verify-only` options
+
+3. **CI/CD Package Lock Fix**
+   - Added `package-lock.json` to repository
+   - Fixed failing GitHub Actions workflows
+   - All workflows now have proper dependency caching
+
+### 📋 Documentation Added
+
+1. **Test Database Setup Guide** (`server/docs/TEST-DATABASE-SETUP.md`)
+   - Automated setup instructions
+   - Manual setup fallback
+   - Troubleshooting guide
+   - CI/CD integration details
+
+2. **Updated Testing Guide** (`docs/TESTING.md`)
+   - Added automated setup instructions
+   - Links to detailed setup guide
 
 ## Known Issues
 
-### 1. Database Permission Errors
+### 1. Redis Connection Required ✋
 
 **Symptoms**:
 ```
-User `postgres` was denied access on the database `tcad_scraper.public`
+Error: connect ECONNREFUSED 127.0.0.1:6379
 ```
 
-**Cause**: Tests are trying to connect to production database instead of test database.
+**Cause**: Many tests require Redis for queue operations.
 
-**Solution for CI**:
-- GitHub Actions workflow provides proper test database
-- Local developers need to:
-  ```bash
-  # Create test database
-  createdb tcad_scraper_test
+**Solution**:
+```bash
+# Start Redis
+docker-compose up -d redis
 
-  # Run migrations
-  cd server
-  DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper_test" npx prisma migrate deploy
-  ```
+# Or install locally
+sudo apt-get install redis-server
+sudo systemctl start redis
+```
 
-### 2. Config Module Caching
+### 2. Database Setup Required ✋
 
-**Symptoms**: Tests changing `process.env` don't affect config values.
+**Symptoms**:
+```
+Error: Can't reach database server
+```
 
-**Cause**: Config module loads environment variables at import time.
+**Cause**: Tests require PostgreSQL test database.
 
-**Solution**: Tests need to mock the config module or clear module cache.
+**Solution** (Automated):
+```bash
+# Start PostgreSQL
+docker-compose up -d postgres
 
-### 3. Service Dependencies
+# Run automated setup
+cd server
+./scripts/setup-test-db.sh
+```
 
-**Symptoms**: Tests fail when Redis or external services unavailable.
+**Solution** (Manual):
+```bash
+# Create test database
+createdb tcad_scraper_test
+
+# Run migrations
+cd server
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper_test" \
+  npx prisma migrate deploy
+```
+
+### 3. External Service Dependencies ✋
+
+**Symptoms**: Tests fail when Claude API or other external services unavailable.
 
 **Solution**:
 - CI provides service containers
-- Local testing requires:
-  ```bash
-  docker-compose up -d postgres redis
-  ```
+- Local testing requires proper mocking or service availability
+- Consider using test doubles for external APIs
 
 ## CI/CD Configuration
 
@@ -101,8 +175,9 @@ The CI pipeline handles tests differently than local development:
 
 **ci.yml** - Main CI Pipeline:
 - Provides PostgreSQL 16 and Redis 7 containers
-- Runs with `RUN_INTEGRATION_TESTS=false` to skip integration tests
-- Focuses on unit tests that don't require external services
+- Runs all tests with proper service dependencies
+- Uses `continue-on-error: true` during migration period
+- Focuses on passing tests while documenting failures
 
 **Test Environment Variables in CI**:
 ```yaml
@@ -115,21 +190,57 @@ SENTRY_DSN: "" (disabled)
 CLAUDE_API_KEY: "test-key" (mock)
 ```
 
+**Service Containers**:
+```yaml
+postgres:
+  image: postgres:16
+  env:
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: tcad_scraper_test
+  health_cmd: pg_isready
+  health_interval: 10s
+
+redis:
+  image: redis:7-alpine
+  health_cmd: redis-cli ping
+  health_interval: 10s
+```
+
 ## Running Tests Locally
 
-### Prerequisites
+### Automated Setup (Recommended)
 
 ```bash
 # Start services
 docker-compose up -d postgres redis
 
-# Create and setup test database
-createdb tcad_scraper_test
+# Setup test database
 cd server
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper_test" npx prisma migrate deploy
+./scripts/setup-test-db.sh
+
+# Run tests
+npm test
 ```
 
-### Run Tests
+### Manual Setup
+
+```bash
+# Start services
+docker-compose up -d postgres redis
+
+# Create test database
+createdb tcad_scraper_test
+
+# Run migrations
+cd server
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper_test" \
+  npx prisma migrate deploy
+
+# Run tests
+npm test
+```
+
+### Test Commands
 
 ```bash
 cd server
@@ -146,94 +257,174 @@ npm run test:auth-db
 
 # Watch mode
 npm run test:watch
+
+# Single test file
+npm test -- --testPathPattern="xcontroller.middleware"
 ```
 
-### Skipping Problematic Tests
-
-To run only passing tests locally:
+### Running Only Passing Tests
 
 ```bash
-# Skip integration tests
-npm test -- --testPathIgnorePatterns="integration|api.test|auth-database"
+# Skip integration and database tests
+npm test -- --testPathIgnorePatterns="integration|api.test|auth-database|enqueue|app.routes|property.routes|claude.service|security.test"
 
-# Run specific test file
-npm test -- --testPathPattern="security"
+# Or run specific passing tests
+npm test -- --testPathPattern="search-term-deduplicator|xcontroller.middleware"
 ```
 
-## Recommendations
+## Test Coverage Analysis
 
-### Short Term (High Priority)
+### Current Coverage (Baseline)
 
-1. **Fix middleware tests** - Update tests to work with config caching
-   - Mock the config module
-   - Or update test assertions to match actual behavior
-
-2. **Document local test setup** - Clear instructions for developers
-   - Database setup
-   - Service requirements
-   - Environment configuration
-
-3. **CI test isolation** - Ensure CI tests don't require external services
-   - Use test doubles/mocks for external APIs
-   - Provide all required services via containers
-
-### Medium Term
-
-1. **Increase test coverage** - Add tests for:
-   - Route handlers (currently ~40% coverage)
-   - Service layer
-   - Error handling paths
-
-2. **Integration test suite** - Separate integration tests
-   - Run in separate CI job
-   - Require opt-in via environment variable
-   - Test against real services
-
-3. **Mock improvements** - Better mocking for:
-   - Database operations
-   - External API calls
-   - Service dependencies
-
-### Long Term
-
-1. **Test database seeding** - Automated test data
-2. **Performance tests** - Load and stress testing
-3. **E2E tests** - Full user workflows with Playwright
-4. **Contract tests** - API contract validation
-
-## Test Coverage Goals
-
-| Category | Current | Target |
-|----------|---------|--------|
+| Category | Coverage | Target |
+|----------|----------|--------|
 | Line Coverage | ~60% | 80% |
 | Branch Coverage | ~55% | 75% |
 | Function Coverage | ~65% | 80% |
 | Statement Coverage | ~60% | 80% |
 
-## Passing Tests in CI
+### Coverage by Area
 
-Despite local failures, the CI pipeline successfully runs tests by:
+| Area | Est. Coverage | Priority |
+|------|---------------|----------|
+| Middleware | ~95% ✅ | Low (well tested) |
+| Utilities | ~85% ✅ | Low (well tested) |
+| Routes/Controllers | ~40% ⚠️ | **High** |
+| Services | ~50% ⚠️ | **High** |
+| Queue Operations | ~45% ⚠️ | Medium |
+| Database Layer | ~35% ⚠️ | Medium |
+| Error Handling | ~30% ⚠️ | **High** |
 
-1. **Providing services** - PostgreSQL and Redis containers
-2. **Proper environment** - All required env vars set
-3. **Test isolation** - Skipping integration tests
-4. **Cleanup** - Force exit and single worker to prevent hangs
+## Recommendations
 
-## Next Steps
+### ✅ Completed
 
-1. Review and fix middleware tests
-2. Add database migration check to CI
-3. Improve test documentation
-4. Increase unit test coverage
-5. Add integration test suite (separate from unit tests)
+1. ~~**Fix middleware tests**~~ - Config caching resolved ✅
+2. ~~**Create test database setup script**~~ - Automation complete ✅
+3. ~~**Add package-lock.json**~~ - CI/CD fixed ✅
+
+### 🔴 High Priority
+
+1. **Fix Service Dependencies**
+   - Start Redis and PostgreSQL before running tests
+   - Document service requirements clearly
+   - Add pre-test health checks
+
+2. **Increase Route/Controller Coverage** (40% → 70%)
+   - Add tests for all API endpoints
+   - Test error handling paths
+   - Test validation logic
+
+3. **Mock External Services**
+   - Mock Claude API calls in tests
+   - Create test doubles for external dependencies
+   - Avoid real API calls in unit tests
+
+### 🟡 Medium Priority
+
+1. **Separate Integration Tests**
+   - Create separate test suite for integration tests
+   - Run in separate CI job
+   - Require opt-in via `RUN_INTEGRATION_TESTS=true`
+
+2. **Improve Service Tests** (50% → 70%)
+   - Add unit tests for service layer
+   - Test business logic independently
+   - Mock database operations
+
+3. **Database Test Improvements**
+   - Use transactions for test isolation
+   - Implement proper cleanup between tests
+   - Add test data factories/fixtures
+
+### 🟢 Low Priority
+
+1. **E2E Test Suite** - Playwright-based end-to-end tests
+2. **Performance Tests** - Load and stress testing
+3. **Contract Tests** - API contract validation with consumers
+4. **Visual Regression** - UI screenshot comparison tests
+
+## Success Metrics
+
+### Current Progress
+
+- ✅ Test infrastructure automated (setup script)
+- ✅ CI/CD pipeline fixed (package-lock.json)
+- ✅ Middleware tests passing (35/35)
+- ✅ Core utilities well tested (search deduplicator)
+- ⏳ 179/271 tests passing (66% pass rate)
+- ⏳ Need service dependencies for full test suite
+
+### Goals
+
+- 🎯 **Short term**: 80% test pass rate (217/271 tests)
+- 🎯 **Medium term**: 80% code coverage
+- 🎯 **Long term**: 90% test pass rate, 85% coverage
+
+## Troubleshooting
+
+### Tests Hang or Don't Exit
+
+**Cause**: Open connections to Redis or database.
+
+**Solution**: Jest config already includes `forceExit: true` and `maxWorkers: 1` for stability.
+
+### "Cannot find module '@prisma/client'"
+
+**Cause**: Prisma client not generated.
+
+**Solution**:
+```bash
+cd server
+npx prisma generate
+```
+
+### Module Import Errors
+
+**Cause**: TypeScript configuration or missing dependencies.
+
+**Solution**:
+```bash
+# Regenerate Prisma client
+npx prisma generate
+
+# Reinstall dependencies
+npm ci
+```
+
+### Database Permission Errors
+
+**Cause**: Test database not properly configured.
+
+**Solution**:
+```bash
+# Drop and recreate
+./scripts/setup-test-db.sh --drop
+```
 
 ## Resources
 
+- [Test Database Setup Guide](../server/docs/TEST-DATABASE-SETUP.md)
 - [CI/CD Documentation](./CI-CD.md)
+- [Testing Guide](./TESTING.md)
 - [API Documentation](./API.md)
 - [Jest Documentation](https://jestjs.io/)
-- [Testing Best Practices](https://kentcdodds.com/blog/write-tests)
+
+## Next Steps
+
+1. ✅ ~~Fix middleware tests~~ (Complete)
+2. ✅ ~~Add test database setup automation~~ (Complete)
+3. ✅ ~~Fix CI/CD package-lock issues~~ (Complete)
+4. ⏭️ Start Redis and PostgreSQL for full test suite
+5. ⏭️ Increase route/controller test coverage (target: 70%)
+6. ⏭️ Mock external service dependencies
+7. ⏭️ Separate integration tests from unit tests
+8. ⏭️ Reach 80% overall test coverage
 
 ---
 
-**Note**: While many tests fail locally without proper setup, the CI pipeline is configured to run successfully with all required services. The goal is to improve local development experience and increase test coverage over time.
+**Progress Summary**:
+- Tests passing: 179/271 (66%)
+- Major infrastructure improvements completed
+- Test automation in place
+- Ready for coverage improvements

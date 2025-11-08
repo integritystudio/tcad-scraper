@@ -23,19 +23,19 @@ class ClaudeSearchService {
 
 Available fields in the properties table:
 - id (text): unique identifier
-- property_id (text): property ID from TCAD
+- propertyId (text): property ID from TCAD
 - name (text): owner name
-- prop_type (text): property type (e.g., "Residential", "Commercial", "Industrial")
+- propType (text): property type (e.g., "Residential", "Commercial", "Industrial")
 - city (text): city name
-- property_address (text): full address
-- assessed_value (number): assessed value in dollars
-- appraised_value (number): appraised value in dollars
-- geo_id (text): geographic ID
+- propertyAddress (text): full address
+- assessedValue (number): assessed value in dollars
+- appraisedValue (number): appraised value in dollars
+- geoId (text): geographic ID
 - description (text): property description
-- search_term (text): original search term used to find this property
-- scraped_at (datetime): when the data was scraped
-- created_at (datetime): record creation time
-- updated_at (datetime): last update time
+- searchTerm (text): original search term used to find this property
+- scrapedAt (datetime): when the data was scraped
+- createdAt (datetime): record creation time
+- updatedAt (datetime): last update time
 
 User query: "${query}"
 
@@ -126,7 +126,7 @@ Now generate the JSON for the user's query above.`,
                 stack: error instanceof Error ? error.stack : undefined,
             };
             logger_1.default.error('Error parsing natural language query with Claude:', errorDetails);
-            console.error('Claude API Error Details:', JSON.stringify(errorDetails, null, 2));
+            logger_1.default.error('Claude API Error Details:', JSON.stringify(errorDetails, null, 2));
             // Fallback: simple text search across multiple fields
             return {
                 whereClause: {

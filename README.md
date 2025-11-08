@@ -1143,6 +1143,13 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[TESTING.md](docs/TESTING.md)** - Testing strategy and test execution
 - **[CLAUDE.md](docs/CLAUDE.md)** - AI assistant context and development guidelines
 - **[CODEBASE_ANALYSIS.md](CODEBASE_ANALYSIS.md)** - Code quality analysis and recommendations (ast-grep)
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** ⭐ **NEW!** - Complete system architecture with diagrams
+- **[ANALYSIS_SUMMARY.md](ANALYSIS_SUMMARY.md)** - Analysis summary and completed improvements
+
+### API & Monitoring
+- **[Swagger API Docs](http://localhost:3002/api-docs)** ⭐ **NEW!** - Interactive API documentation (when server is running)
+- **[PROMETHEUS_SETUP.md](server/PROMETHEUS_SETUP.md)** ⭐ **NEW!** - Prometheus monitoring setup guide
+- **[Metrics Endpoint](http://localhost:3002/metrics)** ⭐ **NEW!** - Prometheus metrics (when server is running)
 
 ### Technical Documentation
 - **[API_TOKEN_IMPLEMENTATION.md](docs/API_TOKEN_IMPLEMENTATION.md)** - API token authentication implementation

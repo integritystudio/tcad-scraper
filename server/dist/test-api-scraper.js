@@ -1,38 +1,42 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const tcad_scraper_1 = require("./lib/tcad-scraper");
+const logger_1 = __importDefault(require("../lib/logger"));
 async function testApiScraper() {
-    console.log('Testing API-based scraper...\n');
+    logger_1.default.info('Testing API-based scraper...\n');
     const scraper = new tcad_scraper_1.TCADScraper({
         headless: true, // Run headless for speed
     });
     try {
         await scraper.initialize();
-        console.log('Scraping properties for "Willow"...');
+        logger_1.default.info('Scraping properties for "Willow"...');
         const properties = await scraper.scrapePropertiesViaAPI('Willow');
-        console.log(`\n✅ Successfully scraped ${properties.length} properties\n`);
+        logger_1.default.info(`\n✅ Successfully scraped ${properties.length} properties\n`);
         if (properties.length > 0) {
-            console.log('First 3 properties:\n');
+            logger_1.default.info('First 3 properties:\n');
             properties.slice(0, 3).forEach((prop, index) => {
-                console.log(`Property ${index + 1}:`);
-                console.log(`  Property ID: ${prop.propertyId}`);
-                console.log(`  Owner: ${prop.name}`);
-                console.log(`  City: ${prop.city || 'NOT FOUND'}`);
-                console.log(`  Address: ${prop.propertyAddress}`);
-                console.log(`  Appraised Value: $${prop.appraisedValue.toLocaleString()}`);
-                console.log(`  Property Type: ${prop.propType}`);
-                console.log('');
+                logger_1.default.info(`Property ${index + 1}:`);
+                logger_1.default.info(`  Property ID: ${prop.propertyId}`);
+                logger_1.default.info(`  Owner: ${prop.name}`);
+                logger_1.default.info(`  City: ${prop.city || 'NOT FOUND'}`);
+                logger_1.default.info(`  Address: ${prop.propertyAddress}`);
+                logger_1.default.info(`  Appraised Value: $${prop.appraisedValue.toLocaleString()}`);
+                logger_1.default.info(`  Property Type: ${prop.propType}`);
+                logger_1.default.info('');
             });
             // Check for city and appraised value coverage
             const withCity = properties.filter(p => p.city).length;
             const withValue = properties.filter(p => p.appraisedValue > 0).length;
-            console.log('\n📊 Data Quality:');
-            console.log(`  Properties with city: ${withCity}/${properties.length} (${Math.round(withCity / properties.length * 100)}%)`);
-            console.log(`  Properties with appraised value: ${withValue}/${properties.length} (${Math.round(withValue / properties.length * 100)}%)`);
+            logger_1.default.info('\n📊 Data Quality:');
+            logger_1.default.info(`  Properties with city: ${withCity}/${properties.length} (${Math.round(withCity / properties.length * 100)}%)`);
+            logger_1.default.info(`  Properties with appraised value: ${withValue}/${properties.length} (${Math.round(withValue / properties.length * 100)}%)`);
         }
     }
     catch (error) {
-        console.error('\n❌ Test failed:', error);
+        logger_1.default.error('\n❌ Test failed:', error);
     }
     finally {
         await scraper.cleanup();

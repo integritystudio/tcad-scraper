@@ -2,10 +2,14 @@
 /**
  * App Routes - Serves the frontend application with secure data passing
  */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.appRouter = void 0;
 const express_1 = require("express");
 const xcontroller_middleware_1 = require("../middleware/xcontroller.middleware");
+const logger_1 = __importDefault(require("../lib/logger"));
 const router = (0, express_1.Router)();
 exports.appRouter = router;
 /**
@@ -26,7 +30,7 @@ router.get('/', xcontroller_middleware_1.nonceMiddleware, xcontroller_middleware
         res.send(html);
     }
     catch (error) {
-        console.error('Error serving app:', error);
+        logger_1.default.error('Error serving app:', error);
         res.status(500).send('Internal Server Error');
     }
 });

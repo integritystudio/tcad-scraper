@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const scraper_queue_1 = require("../queues/scraper.queue");
 const prisma_1 = require("../lib/prisma");
 const winston_1 = __importDefault(require("winston"));
+const search_term_deduplicator_1 = require("../lib/search-term-deduplicator");
 const logger = winston_1.default.createLogger({
     level: 'info',
     format: winston_1.default.format.combine(winston_1.default.format.timestamp(), winston_1.default.format.simple()),
@@ -23,32 +24,33 @@ const CHECK_INTERVAL = 60000; // Check every minute
 // Generate diverse search patterns
 class SearchPatternGenerator {
     usedTerms = new Set();
+    deduplicator; // Initialized in loadUsedTerms
     dbTermsLoaded = false;
     lastDbRefresh = 0;
     DB_REFRESH_INTERVAL = 60 * 60 * 1000; // Refresh every hour
     // Common first names (top 200)
     firstNames = [
-        /*    'James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda',
-            'William', 'Elizabeth', 'David', 'Barbara', 'Richard', 'Susan', 'Joseph', 'Jessica',
-            'Thomas', 'Sarah', 'Charles', 'Karen', 'Christopher', 'Nancy', 'Daniel', 'Lisa',
-            'Matthew', 'Betty', 'Anthony', 'Margaret', 'Mark', 'Sandra', 'Donald', 'Ashley',
-            'Steven', 'Kimberly', 'Paul', 'Emily', 'Andrew', 'Donna', 'Joshua', 'Michelle',
-            'Kenneth', 'Dorothy', 'Kevin', 'Carol', 'Brian', 'Amanda', 'George', 'Melissa',
-            'Edward', 'Deborah', 'Ronald', 'Stephanie', 'Timothy', 'Rebecca', 'Jason', 'Sharon',
-            'Jeffrey', 'Laura', 'Ryan', 'Cynthia', 'Jacob', 'Kathleen', 'Gary', 'Amy',
-            'Nicholas', 'Shirley', 'Eric', 'Angela', 'Jonathan', 'Helen', 'Stephen', 'Anna',
-            'Larry', 'Brenda', 'Justin', 'Pamela', 'Scott', 'Nicole', 'Brandon', 'Emma',
-            'Benjamin', 'Samantha', 'Samuel', 'Katherine', 'Raymond', 'Christine', 'Gregory', 'Debra',
-            'Frank', 'Rachel', 'Alexander', 'Catherine', 'Patrick', 'Carolyn', 'Raymond', 'Janet',
-            'Jack', 'Ruth', 'Dennis', 'Maria', 'Jerry', 'Heather', 'Tyler', 'Diane',
-            'Aaron', 'Virginia', 'Jose', 'Julie', 'Adam', 'Joyce', 'Henry', 'Victoria',
-            'Nathan', 'Olivia', 'Douglas', 'Kelly', 'Zachary', 'Christina', 'Peter', 'Lauren',
-            'Kyle', 'Joan', 'Walter', 'Evelyn', 'Ethan', 'Judith', 'Jeremy', 'Megan',
-            'Harold', 'Cheryl', 'Keith', 'Andrea', 'Christian', 'Hannah', 'Roger', 'Jacqueline',
-            'Noah', 'Martha', 'Gerald', 'Gloria', 'Carl', 'Teresa', 'Terry', 'Ann',
-            'Sean', 'Sara', 'Austin', 'Madison', 'Arthur', 'Frances', 'Lawrence', 'Kathryn',
-            'Jesse', 'Janice', 'Dylan', 'Jean', 'Bryan', 'Abigail', 'Joe', 'Sophia',
-        */ 'Jordan', 'Judy', 'Billy', 'Theresa', 'Bruce', 'Rose', 'Albert', 'Beverly',
+        'James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda',
+        'William', 'Elizabeth', 'David', 'Barbara', 'Richard', 'Susan', 'Joseph', 'Jessica',
+        'Thomas', 'Sarah', 'Charles', 'Karen', 'Christopher', 'Nancy', 'Daniel', 'Lisa',
+        'Matthew', 'Betty', 'Anthony', 'Margaret', 'Mark', 'Sandra', 'Donald', 'Ashley',
+        'Steven', 'Kimberly', 'Paul', 'Emily', 'Andrew', 'Donna', 'Joshua', 'Michelle',
+        'Kenneth', 'Dorothy', 'Kevin', 'Carol', 'Brian', 'Amanda', 'George', 'Melissa',
+        'Edward', 'Deborah', 'Ronald', 'Stephanie', 'Timothy', 'Rebecca', 'Jason', 'Sharon',
+        'Jeffrey', 'Laura', 'Ryan', 'Cynthia', 'Jacob', 'Kathleen', 'Gary', 'Amy',
+        'Nicholas', 'Shirley', 'Eric', 'Angela', 'Jonathan', 'Helen', 'Stephen', 'Anna',
+        'Larry', 'Brenda', 'Justin', 'Pamela', 'Scott', 'Nicole', 'Brandon', 'Emma',
+        'Benjamin', 'Samantha', 'Samuel', 'Katherine', 'Raymond', 'Christine', 'Gregory', 'Debra',
+        'Frank', 'Rachel', 'Alexander', 'Catherine', 'Patrick', 'Carolyn', 'Raymond', 'Janet',
+        'Jack', 'Ruth', 'Dennis', 'Maria', 'Jerry', 'Heather', 'Tyler', 'Diane',
+        'Aaron', 'Virginia', 'Jose', 'Julie', 'Adam', 'Joyce', 'Henry', 'Victoria',
+        'Nathan', 'Olivia', 'Douglas', 'Kelly', 'Zachary', 'Christina', 'Peter', 'Lauren',
+        'Kyle', 'Joan', 'Walter', 'Evelyn', 'Ethan', 'Judith', 'Jeremy', 'Megan',
+        'Harold', 'Cheryl', 'Keith', 'Andrea', 'Christian', 'Hannah', 'Roger', 'Jacqueline',
+        'Noah', 'Martha', 'Gerald', 'Gloria', 'Carl', 'Teresa', 'Terry', 'Ann',
+        'Sean', 'Sara', 'Austin', 'Madison', 'Arthur', 'Frances', 'Lawrence', 'Kathryn',
+        'Jesse', 'Janice', 'Dylan', 'Jean', 'Bryan', 'Abigail', 'Joe', 'Sophia',
+        'Jordan', 'Judy', 'Billy', 'Theresa', 'Bruce', 'Rose', 'Albert', 'Beverly',
         'Willie', 'Denise', 'Gabriel', 'Marilyn', 'Logan', 'Amber', 'Alan', 'Danielle',
         'Juan', 'Brittany', 'Wayne', 'Diana', 'Roy', 'Natalie', 'Ralph', 'Sophia',
         'Randy', 'Alexis', 'Eugene', 'Lori', 'Vincent', 'Kayla', 'Russell', 'Jane',
@@ -56,61 +58,61 @@ class SearchPatternGenerator {
     ];
     // Common last names (expanded to 500+)
     lastNames = [
-        /*    'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
-            'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas',
-            'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson', 'White',
-            'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson', 'Walker', 'Young',
-            'Allen', 'King', 'Wright', 'Scott', 'Torres', 'Nguyen', 'Hill', 'Flores',
-            'Green', 'Adams', 'Nelson', 'Baker', 'Hall', 'Rivera', 'Campbell', 'Mitchell',
-            'Carter', 'Roberts', 'Gomez', 'Phillips', 'Evans', 'Turner', 'Diaz', 'Parker',
-            'Cruz', 'Edwards', 'Collins', 'Reyes', 'Stewart', 'Morris', 'Morales', 'Murphy',
-            'Cook', 'Rogers', 'Gutierrez', 'Ortiz', 'Morgan', 'Cooper', 'Peterson', 'Bailey',
-            'Reed', 'Kelly', 'Howard', 'Ramos', 'Kim', 'Cox', 'Ward', 'Richardson',
-            'Watson', 'Brooks', 'Chavez', 'Wood', 'James', 'Bennett', 'Gray', 'Mendoza',
-            'Ruiz', 'Hughes', 'Price', 'Alvarez', 'Castillo', 'Sanders', 'Patel', 'Myers',
-            'Long', 'Ross', 'Foster', 'Jimenez', 'Powell', 'Jenkins', 'Perry', 'Russell',
-            'Sullivan', 'Bell', 'Coleman', 'Butler', 'Henderson', 'Barnes', 'Gonzales', 'Fisher',
-            'Vasquez', 'Simmons', 'Romero', 'Jordan', 'Patterson', 'Alexander', 'Hamilton', 'Graham',
-            'Reynolds', 'Griffin', 'Wallace', 'Moreno', 'West', 'Cole', 'Hayes', 'Bryant',
-            'Herrera', 'Gibson', 'Ellis', 'Tran', 'Medina', 'Aguilar', 'Stevens', 'Murray',
-            'Ford', 'Castro', 'Marshall', 'Owens', 'Harrison', 'Fernandez', 'McDonald', 'Woods',
-            'Washington', 'Kennedy', 'Wells', 'Vargas', 'Henry', 'Chen', 'Freeman', 'Webb',
-            'Tucker', 'Guzman', 'Burns', 'Crawford', 'Olson', 'Simpson', 'Porter', 'Hunter',
-            'Gordon', 'Mendez', 'Silva', 'Shaw', 'Snyder', 'Mason', 'Dixon', 'Munoz',
-            'Hunt', 'Hicks', 'Holmes', 'Palmer', 'Wagner', 'Black', 'Robertson', 'Boyd',
-            'Rose', 'Stone', 'Salazar', 'Fox', 'Warren', 'Mills', 'Meyer', 'Rice',
-            'Schmidt', 'Garza', 'Daniels', 'Ferguson', 'Nichols', 'Stephens', 'Soto', 'Weaver',
-            'Ryan', 'Gardner', 'Payne', 'Grant', 'Dunn', 'Kelley', 'Spencer', 'Hawkins',
-            // Additional 300+ names
-            'Lawson', 'Pierce', 'Hart', 'Elliott', 'Cunningham', 'Knight', 'Bradley', 'Carroll',
-            'Hudson', 'Duncan', 'Armstrong', 'Berry', 'Andrews', 'Johnston', 'Ray', 'Lane',
-            'Riley', 'Carpenter', 'Perkins', 'Williamson', 'Hanson', 'Austin', 'Newman', 'Oliver',
-            'Howell', 'Dean', 'Wells', 'Fleming', 'French', 'Cannon', 'Barker', 'Watts',
-            'McCoy', 'McLaughlin', 'Caldwell', 'Chandler', 'Lambert', 'Norton', 'Blake', 'Maxwell',
-            'Carr', 'Walsh', 'Little', 'Park', 'Hodges', 'Haynes', 'Burgess', 'Benson',
-            'Bishop', 'Todd', 'Norris', 'Fuller', 'Barber', 'Lamb', 'Parsons', 'Sutton',
-            'Welch', 'Paul', 'Schwartz', 'Newman', 'Manning', 'Goodman', 'Watkins', 'Lyons',
-            'Dawson', 'Powers', 'Figueroa', 'Nash', 'McKenzie', 'Booth', 'Shelton', 'Moran',
-            'Rojas', 'Frank', 'Conner', 'Brock', 'Hogan', 'Brady', 'McCormick', 'Parks',
-            'Floyd', 'Steele', 'Townsend', 'Valdez', 'Dennis', 'Hale', 'Delgado', 'Sutherland',
-            'Buchanan', 'Marsh', 'Cummings', 'Patton', 'Rowe', 'Hampton', 'Lang', 'Gross',
-            'Garner', 'Vincent', 'Doyle', 'Ramsey', 'Thornton', 'Wolfe', 'Glass', 'McCarthy',
-            'Bowman', 'Luna', 'Norman', 'Pearson', 'Floyd', 'Mullins', 'Gregory', 'Schwartz',
-            'Singleton', 'Wilkins', 'Schneider', 'Bowen', 'Hoffman', 'Logan', 'Cross', 'Moss',
-            'Richards', 'Harmon', 'Brady', 'Rodgers', 'Duran', 'Hubbard', 'Bates', 'Reeves',
-            'Klein', 'Frazier', 'Gibbs', 'Craig', 'Cochran', 'Chase', 'Moss', 'McKinney',
-            'Bauer', 'Robbins', 'Curry', 'Sawyer', 'Powers', 'Jensen', 'Walters', 'Huff',
-            'Aguilar', 'Glover', 'Browning', 'Carson', 'Mack', 'Clayton', 'Fritz', 'Hansen',
-            'Schultz', 'Rich', 'Webster', 'Malone', 'Hammond', 'Flowers', 'Cobb', 'Moody',
-            'Quinn', 'Randall', 'Brewer', 'Hutchinson', 'Holden', 'Wiley', 'Rowland', 'Mejia',
-            'Sweeney', 'Dale', 'Frederick', 'Dalton', 'Logan', 'Sellers', 'Monroe', 'Hickman',
-            'Gill', 'Cannon', 'Savage', 'Ballard', 'Joseph', 'Crosby', 'Drake', 'Vaughn',
-            'Walls', 'Bolton', 'Chan', 'Stokes', 'Bentley', 'Skinner', 'Woodward', 'Brennan',
-            'Hayden', 'Hancock', 'Huang', 'Pearce', 'Ingram', 'Reese', 'Lang', 'Spence',
-            'Carey', 'Bird', 'Hess', 'Morse', 'Santiago', 'Leon', 'Krueger', 'Cochran',
-            'Pratt', 'Valencia', 'Jarvis', 'Sharp', 'Oconnor', 'Levine', 'Flynn', 'Chang',
-            'Yates', 'Nolan', 'Zuniga', 'Maddox', 'Whitehead', 'Gallagher', 'Michael', 'Cooke',
-        */ 'Sanford', 'Pitts', 'Haley', 'Hanna', 'Hatfield', 'Hoover', 'Decker', 'Davila',
+        'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
+        'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas',
+        'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson', 'White',
+        'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson', 'Walker', 'Young',
+        'Allen', 'King', 'Wright', 'Scott', 'Torres', 'Nguyen', 'Hill', 'Flores',
+        'Green', 'Adams', 'Nelson', 'Baker', 'Hall', 'Rivera', 'Campbell', 'Mitchell',
+        'Carter', 'Roberts', 'Gomez', 'Phillips', 'Evans', 'Turner', 'Diaz', 'Parker',
+        'Cruz', 'Edwards', 'Collins', 'Reyes', 'Stewart', 'Morris', 'Morales', 'Murphy',
+        'Cook', 'Rogers', 'Gutierrez', 'Ortiz', 'Morgan', 'Cooper', 'Peterson', 'Bailey',
+        'Reed', 'Kelly', 'Howard', 'Ramos', 'Kim', 'Cox', 'Ward', 'Richardson',
+        'Watson', 'Brooks', 'Chavez', 'Wood', 'James', 'Bennett', 'Gray', 'Mendoza',
+        'Ruiz', 'Hughes', 'Price', 'Alvarez', 'Castillo', 'Sanders', 'Patel', 'Myers',
+        'Long', 'Ross', 'Foster', 'Jimenez', 'Powell', 'Jenkins', 'Perry', 'Russell',
+        'Sullivan', 'Bell', 'Coleman', 'Butler', 'Henderson', 'Barnes', 'Gonzales', 'Fisher',
+        'Vasquez', 'Simmons', 'Romero', 'Jordan', 'Patterson', 'Alexander', 'Hamilton', 'Graham',
+        'Reynolds', 'Griffin', 'Wallace', 'Moreno', 'West', 'Cole', 'Hayes', 'Bryant',
+        'Herrera', 'Gibson', 'Ellis', 'Tran', 'Medina', 'Aguilar', 'Stevens', 'Murray',
+        'Ford', 'Castro', 'Marshall', 'Owens', 'Harrison', 'Fernandez', 'McDonald', 'Woods',
+        'Washington', 'Kennedy', 'Wells', 'Vargas', 'Henry', 'Chen', 'Freeman', 'Webb',
+        'Tucker', 'Guzman', 'Burns', 'Crawford', 'Olson', 'Simpson', 'Porter', 'Hunter',
+        'Gordon', 'Mendez', 'Silva', 'Shaw', 'Snyder', 'Mason', 'Dixon', 'Munoz',
+        'Hunt', 'Hicks', 'Holmes', 'Palmer', 'Wagner', 'Black', 'Robertson', 'Boyd',
+        'Rose', 'Stone', 'Salazar', 'Fox', 'Warren', 'Mills', 'Meyer', 'Rice',
+        'Schmidt', 'Garza', 'Daniels', 'Ferguson', 'Nichols', 'Stephens', 'Soto', 'Weaver',
+        'Ryan', 'Gardner', 'Payne', 'Grant', 'Dunn', 'Kelley', 'Spencer', 'Hawkins',
+        // Additional 300+ names
+        'Lawson', 'Pierce', 'Hart', 'Elliott', 'Cunningham', 'Knight', 'Bradley', 'Carroll',
+        'Hudson', 'Duncan', 'Armstrong', 'Berry', 'Andrews', 'Johnston', 'Ray', 'Lane',
+        'Riley', 'Carpenter', 'Perkins', 'Williamson', 'Hanson', 'Austin', 'Newman', 'Oliver',
+        'Howell', 'Dean', 'Wells', 'Fleming', 'French', 'Cannon', 'Barker', 'Watts',
+        'McCoy', 'McLaughlin', 'Caldwell', 'Chandler', 'Lambert', 'Norton', 'Blake', 'Maxwell',
+        'Carr', 'Walsh', 'Little', 'Park', 'Hodges', 'Haynes', 'Burgess', 'Benson',
+        'Bishop', 'Todd', 'Norris', 'Fuller', 'Barber', 'Lamb', 'Parsons', 'Sutton',
+        'Welch', 'Paul', 'Schwartz', 'Newman', 'Manning', 'Goodman', 'Watkins', 'Lyons',
+        'Dawson', 'Powers', 'Figueroa', 'Nash', 'McKenzie', 'Booth', 'Shelton', 'Moran',
+        'Rojas', 'Frank', 'Conner', 'Brock', 'Hogan', 'Brady', 'McCormick', 'Parks',
+        'Floyd', 'Steele', 'Townsend', 'Valdez', 'Dennis', 'Hale', 'Delgado', 'Sutherland',
+        'Buchanan', 'Marsh', 'Cummings', 'Patton', 'Rowe', 'Hampton', 'Lang', 'Gross',
+        'Garner', 'Vincent', 'Doyle', 'Ramsey', 'Thornton', 'Wolfe', 'Glass', 'McCarthy',
+        'Bowman', 'Luna', 'Norman', 'Pearson', 'Floyd', 'Mullins', 'Gregory', 'Schwartz',
+        'Singleton', 'Wilkins', 'Schneider', 'Bowen', 'Hoffman', 'Logan', 'Cross', 'Moss',
+        'Richards', 'Harmon', 'Brady', 'Rodgers', 'Duran', 'Hubbard', 'Bates', 'Reeves',
+        'Klein', 'Frazier', 'Gibbs', 'Craig', 'Cochran', 'Chase', 'Moss', 'McKinney',
+        'Bauer', 'Robbins', 'Curry', 'Sawyer', 'Powers', 'Jensen', 'Walters', 'Huff',
+        'Aguilar', 'Glover', 'Browning', 'Carson', 'Mack', 'Clayton', 'Fritz', 'Hansen',
+        'Schultz', 'Rich', 'Webster', 'Malone', 'Hammond', 'Flowers', 'Cobb', 'Moody',
+        'Quinn', 'Randall', 'Brewer', 'Hutchinson', 'Holden', 'Wiley', 'Rowland', 'Mejia',
+        'Sweeney', 'Dale', 'Frederick', 'Dalton', 'Logan', 'Sellers', 'Monroe', 'Hickman',
+        'Gill', 'Cannon', 'Savage', 'Ballard', 'Joseph', 'Crosby', 'Drake', 'Vaughn',
+        'Walls', 'Bolton', 'Chan', 'Stokes', 'Bentley', 'Skinner', 'Woodward', 'Brennan',
+        'Hayden', 'Hancock', 'Huang', 'Pearce', 'Ingram', 'Reese', 'Lang', 'Spence',
+        'Carey', 'Bird', 'Hess', 'Morse', 'Santiago', 'Leon', 'Krueger', 'Cochran',
+        'Pratt', 'Valencia', 'Jarvis', 'Sharp', 'Oconnor', 'Levine', 'Flynn', 'Chang',
+        'Yates', 'Nolan', 'Zuniga', 'Maddox', 'Whitehead', 'Gallagher', 'Michael', 'Cooke',
+        'Sanford', 'Pitts', 'Haley', 'Hanna', 'Hatfield', 'Hoover', 'Decker', 'Davila',
         'Vega', 'Stafford', 'Cain', 'Dillon', 'Wiggins', 'Mathews', 'Krause', 'McMillan',
         'Kent', 'Holt', 'Shaffer', 'Dyer', 'Koch', 'Blackburn', 'Riddle', 'Shields',
         'Hendrix', 'Mahoney', 'Morrow', 'Collier', 'Stein', 'Best', 'Blanchard', 'Melton',
@@ -130,28 +132,28 @@ class SearchPatternGenerator {
     ];
     // Austin/Travis County street names (expanded to 150+)
     streetNames = [
-        //    'Main', 'Oak', 'Lamar', 'Congress', 'Guadalupe', 'Burnet', 'Airport', 'Oltorf',
-        //    'Anderson', 'Bee Cave', 'Slaughter', 'William Cannon', 'Research', 'Parmer', 'Braker',
-        //    'Rundberg', 'North Loop', 'South Lamar', 'East Riverside', 'West Anderson',
-        //    'South Congress', 'Red River', 'Rainey', 'Cesar Chavez', 'MLK', 'Dean Keeton',
-        //    'Speedway', 'Duval', 'Shoal Creek', 'Koenig', 'Far West', 'Research Blvd',
-        //    'South First', 'East 7th', 'West 6th', 'Barton Springs', 'Westlake', 'Exposition',
-        //    'Windsor', 'Enfield', 'Balcones', 'Spicewood', 'Capital of Texas', 'Cameron',
-        //    'Metric', 'Dessau', 'Lamar Blvd', 'IH 35', 'Loop 360', 'Wells Branch',
-        //    'McNeil', 'Howard', 'Jollyville', 'Mopac', 'Manchaca', 'Riverside',
-        //    'Guadalupe', 'Rio Grande', 'Nueces', 'San Antonio', 'Lavaca', 'Colorado',
-        //    'Brazos', 'San Jacinto', 'Trinity', 'Neches', 'Sabine', 'Blanco',
-        //   'Manor', 'Martin Luther King', 'Airport', 'Pleasant Valley', 'Springdale',
-        //    'Loyola', 'Berkman', 'Mueller', 'Cherrywood', 'Hancock',
+        'Main', 'Oak', 'Lamar', 'Congress', 'Guadalupe', 'Burnet', 'Airport', 'Oltorf',
+        'Anderson', 'Cave', 'Slaughter', 'Cannon', 'Research', 'Parmer', 'Braker',
+        'Rundberg', 'Loop', 'Lamar', 'Riverside', 'Anderson',
+        'Congress', 'Red R', 'Rainey', 'Chavez', 'MLK', 'Dean',
+        'Speedway', 'Duval', 'Shoal', 'Koenig', 'Far W', 'Research', 'Blvd',
+        'First', 'East 7th', 'West 6th', 'Barton Springs', 'Westlake', 'Exposition',
+        'Windsor', 'Enfield', 'Balcones', 'Spicewood', 'Capital of Texas', 'Cameron',
+        'Metric', 'Dessau', 'Lamar Blvd', 'IH 35', 'Loop 360', 'Wells Branch',
+        'McNeil', 'Howard', 'Jollyville', 'Mopac', 'Manchaca', 'Riverside',
+        'Guadalupe', 'Rio Grande', 'Nueces', 'San Antonio', 'Lavaca', 'Colorado',
+        'Brazos', 'San Jacinto', 'Trinity', 'Neches', 'Sabine', 'Blanco',
+        'Manor', 'Martin Luther King', 'Airport', 'Pleasant Valley', 'Springdale',
+        'Loyola', 'Berkman', 'Mueller', 'Cherrywood', 'Hancock',
         // Additional Austin streets
-        //    'Burnet Road', 'South 1st', 'East 6th', 'West 5th', 'East 11th', 'West 12th',
-        //    'Guadalupe Street', 'Congress Avenue', 'Lavaca Street', 'Brazos Street', 'San Jacinto Boulevard',
-        //    'Red River Street', 'Trinity Street', 'Neches Street', 'Sabine Street', 'Waller Street',
-        //    'San Marcos', 'Cesar Chavez Street', 'East Cesar Chavez', 'Riverside Drive', 'Town Lake',
-        //    'Manor Road', 'Airport Boulevard', 'Koenig Lane', 'North Lamar', 'South Lamar Boulevard',
-        //    'Mopac Expressway', 'Loop 1', 'Highway 183', 'Ben White', 'Highway 290',
-        //    'FM 620', 'FM 2222', 'RM 2244', 'RM 620', 'Lakeline Boulevard',
-        //    'Cedar Park', 'Anderson Lane', 'Steck Avenue', 'Spicewood Springs', 'Mesa Drive',
+        'Burnet Road', 'South 1st', 'East 6th', 'West 5th', 'East 11th', 'West 12th',
+        'Guadalupe', 'Street', 'Avenue', 'Lavaca', 'Street', 'Brazos', 'Boulevard',
+        'Red River', 'Trinity', 'Neches', 'Sabine', 'Waller Street',
+        'San Marcos', 'Cesar Chavez', 'East Cesar Chavez', 'Drive', 'Town Lake',
+        'Manor', 'Airport', 'Koenig Lane', 'North Lamar', 'South Lamar Boulevard',
+        'Mopac Expressway', 'Loop 1', 'Highway 183', 'Ben White', 'Highway 290',
+        'FM 620', 'FM 2222', 'RM 2244', 'RM 620', 'Lakeline Boulevard',
+        'Cedar Park', 'Anderson Lane', 'Steck Avenue', 'Spicewood Springs', 'Mesa Drive',
         'Hill', 'Boulevard', 'Lane', 'Burnet', 'Drive', 'Road', "East", "West", "Avenue", "Ave.",
         'Dittmar', 'Montopolis', 'South', 'North', 'Crossing', 'Fall',
         'Del Valle', 'Webberville', 'Creek', 'Johnny Morris', 'Cameron Road', 'Airport', 'Springdale', 'General',
@@ -160,10 +162,10 @@ class SearchPatternGenerator {
     ];
     // Property types and building names (expanded)
     propertyTypes = [
-        //    'Apartments', 'Condos', 'Townhomes', 'Office', 'Retail', 'Plaza', 'Center',
-        //    'Building', 'Tower', 'Park', 'Ranch', 'Estates', 'Village', 'Square',
-        //    'Commons', 'Crossing', 'Landing', 'Pointe', 'Ridge', 'Creek', 'Hills',
-        //    'Woods', 'Grove', 'Meadows', 'Terrace', 'Court', 'Place',
+        'Apartments', 'Condos', 'Townhomes', 'Office', 'Retail', 'Plaza', 'Center',
+        'Building', 'Tower', 'Park', 'Ranch', 'Estates', 'Village', 'Square',
+        'Commons', 'Crossing', 'Landing', 'Pointe', 'Ridge', 'Creek', 'Hills',
+        'Woods', 'Grove', 'Meadows', 'Terrace', 'Court', 'Place',
         'Lofts', 'Flats', 'Studios', 'Villas', 'Gardens', 'Heights', 'Trails',
         'Vista', 'Reserve', 'Springs', 'Oaks', 'Pines', 'Palms', 'Lake',
         'Ranch', 'Farm', 'Pecan', 'Walnut', 'River', 'Lake', 'Mount', 'Ridge',
@@ -188,21 +190,21 @@ class SearchPatternGenerator {
     ];
     // Austin neighborhoods and subdivisions (expanded to 75+)
     neighborhoods = [
-        //    'Hyde Park', 'Clarksville', 'Bouldin Creek', 'Travis Heights', 'Zilker',
-        //    'Allandale', 'Crestview', 'Rosedale', 'North Loop', 'Mueller',
-        //    'East Austin', 'South Congress', 'Barton Hills', 'Tarrytown', 'West Lake',
-        //    'Circle C', 'Steiner Ranch', 'Avery Ranch', 'Anderson Mill', 'Brushy Creek',
-        //    'Wells Branch', 'Walnut Creek', 'Windsor Park', 'Cherrywood', 'Hancock',
-        //    'Brentwood', 'North Shoal Creek', 'Gracywoods', 'Balcones', 'Great Hills',
+        'Hyde', 'Park', 'Clark', 'ville', 'Bouldin', 'Creek', 'Travis', 'Heights', 'Zilker',
+        'Allandale', 'Crestview', 'Rosedale', 'Loop', 'Mueller',
+        'East Austin', 'South Congress', 'Barton', 'Tarrytown', 'West Lake',
+        'Circle C', 'Ranch', 'Avery', 'Anderson Mill', 'Brushy Creek',
+        'Wells Branch', 'Creek', 'Windsor Park', 'Cherrywood', 'Hancock',
+        'Brentwood', 'Walnut', 'Gracywoods', 'Balcones', 'Great Hills',
         // Additional neighborhoods
-        //    'Onion Creek', 'Barton Creek', 'Oak Hill', 'Sunset Valley', 'Rollingwood',
-        //    'West Campus', 'East Cesar Chavez', 'Holly', 'Govalle', 'Riverside',
-        //    'Montopolis', 'Pleasant Valley', 'Del Valle', 'Dove Springs', 'Southpark Meadows',
-        //    'St. Edwards', 'St. Johns', 'North University', 'Wooten', 'Highland',
-        //    'Heritage Hills', 'Pemberton Heights', 'Old West Austin', 'Bryker Woods', 'Old Enfield',
-        //    'Judges Hill', 'Shoal Crest', 'Northwest Hills', 'Jester Estates', 'Ridgetop',
-        //    'Spicewood at Bull Creek', 'Mesa Park', 'Westover Hills', 'Rollingwood West', 'Lost Creek',
-        //    'Senna Hills', 'Ranch at Cypress Creek', 'Sendero Springs', 'Falconhead', 'Shady Hollow',
+        'Onion Creek', 'Barton Creek', 'Oak Hill', 'Sunset Valley', 'Rollingwood',
+        'West Campus', 'East Cesar Chavez', 'Holly', 'Govalle', 'Riverside',
+        'Montopolis', 'Pleasant Valley', 'Del Valle', 'Dove Springs', 'Southpark Meadows',
+        'St. Edwards', 'St. Johns', 'North University', 'Wooten', 'Highland',
+        'Heritage', 'Pemberton Heights', 'Old West Austin', 'Bryker Woods', 'Old Enfield',
+        'Judges', 'Crest', 'Northwest', 'Estates', 'Ridgetop',
+        'Spicewood', 'Bull', 'Mesa Park', 'Westover Hills', 'Rollingwood West', 'Lost Creek',
+        'Senna', 'Ranch at Cypress Creek', 'Sendero Springs', 'Falconhead', 'Shady Hollow',
         'Eanes', 'Rob Roy', 'Courtyard', 'Sendera',
         'Belterra', 'Canyon', 'Maple Run', 'Common', 'Acres', 'Spring',
     ];
@@ -234,6 +236,10 @@ class SearchPatternGenerator {
             existingTerms.forEach(job => {
                 this.usedTerms.add(job.searchTerm);
             });
+            // Initialize or update the deduplicator with current terms
+            if (!this.deduplicator) {
+                this.deduplicator = new search_term_deduplicator_1.SearchTermDeduplicator(this.usedTerms);
+            }
             const currentCount = this.usedTerms.size;
             const newTermsFound = currentCount - previousCount;
             if (isRefresh) {
@@ -247,7 +253,7 @@ class SearchPatternGenerator {
             this.lastDbRefresh = now;
         }
         catch (error) {
-            logger.error('❌ Failed to load used terms from database:', error);
+            logger.error({ err: error }, '❌ Failed to load used terms from database:');
             throw error;
         }
     }
@@ -269,10 +275,6 @@ class SearchPatternGenerator {
     }
     generateStreetNameOnly() {
         return this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
-    }
-    generateNumberPattern() {
-        const patterns = ['1000', '2000', '3000', '4000', '5000', '6000', '7000', '8000', '9000'];
-        return patterns[Math.floor(Math.random() * patterns.length)];
     }
     generateFourLetterWord() {
         const words = ['Park', 'Lake', 'Hill', 'Wood', 'Glen', 'Dale', 'View', 'Rock', 'Pine', 'Sage'];
@@ -296,48 +298,62 @@ class SearchPatternGenerator {
         // Sometimes use just first word of street name for broader matches
         return Math.random() > 0.3 ? `${number} ${street}` : `${number} ${words[0]}`;
     }
-    // NEW: Generate just street numbers (catches all properties on that block)
-    generateStreetNumber() {
-        // Focus on common street number ranges in Austin
-        const ranges = [
-            () => Math.floor(Math.random() * 1000) + 1, // 1-1000
-            () => Math.floor(Math.random() * 1000) + 1000, // 1000-2000
-            () => Math.floor(Math.random() * 1000) + 2000, // 2000-3000
-            () => Math.floor(Math.random() * 2000) + 3000, // 3000-5000
-            () => Math.floor(Math.random() * 5000) + 5000, // 5000-10000
-        ];
-        const rangeGenerator = ranges[Math.floor(Math.random() * ranges.length)];
-        return rangeGenerator().toString();
+    // OPTIMIZED: Generate first names only (HIGH YIELD - avg 426+ properties)
+    generateFirstNameOnly() {
+        return this.firstNames[Math.floor(Math.random() * this.firstNames.length)];
+    }
+    // OPTIMIZED: Generate common street suffixes (VERY HIGH YIELD - avg 637+ properties)
+    generateStreetSuffix() {
+        const suffixes = ['Avenue', 'Boulevard', 'Court', 'Drive', 'Lane', 'Circle',
+            'Place', 'Way', 'Trail', 'Path', 'Bend', 'Loop', 'Terrace',
+            'Parkway', 'Ridge', 'Hill', 'Manor'];
+        return suffixes[Math.floor(Math.random() * suffixes.length)];
+    }
+    // OPTIMIZED: Generate 4-letter geographic terms (HIGH YIELD - avg 637+ properties)
+    generateGeographicTerm() {
+        const terms = ['Hill', 'Lake', 'Cave', 'Park', 'Glen', 'Dale', 'Ford',
+            'Cove', 'Rock', 'Wood', 'Farm', 'Mill', 'Pond', 'Peak'];
+        return terms[Math.floor(Math.random() * terms.length)];
+    }
+    // OPTIMIZED: Generate Hispanic/Asian surnames (HIGH YIELD - avg 2000+ properties each)
+    generateHispanicAsianSurname() {
+        const names = ['Garcia', 'Hernandez', 'Lopez', 'Gonzalez', 'Perez', 'Sanchez',
+            'Rivera', 'Torres', 'Ramirez', 'Flores', 'Gomez', 'Cruz',
+            'Lee', 'Chen', 'Wang', 'Kim', 'Patel', 'Singh', 'Chang', 'Nguyen'];
+        return names[Math.floor(Math.random() * names.length)];
     }
     async getNextBatch(batchSize) {
         // Load or refresh database terms (automatic hourly refresh)
         await this.loadUsedTermsFromDatabase();
         const batch = [];
-        // Weighted strategies - OPTIMIZED FOR VOLUME based on actual performance data:
-        // Analysis of 3,754 successful searches found:
-        //   - Single Last Names: 70.3 avg properties (BEST)
-        //   - Street Names: 24.4 avg properties (GREAT)
-        //   - Short Codes: 12.6 avg properties (GOOD)
-        //   - Business Names: 6.7 avg properties (OK)
-        //   - Full Names: 4.4 avg properties (INEFFICIENT - removed)
-        //   - Street Addresses: 2.1 avg properties (WORST - removed)
+        // Weighted strategies - OPTIMIZED based on actual performance (286K+ properties analyzed):
+        // Real-world results from database analysis:
+        //   - Street Suffixes: 637.7 avg properties per term (4-char words) - BEST!
+        //   - Common Names: 474.6 avg (6-char), 467.7 avg (5-char) - EXCELLENT
+        //   - First Names: 426.4 avg properties - EXCELLENT (James, John, Robert, etc)
+        //   - Hispanic/Asian Names: 2000-2700 avg each (Garcia, Rodriguez, Lee, Kim, etc)
+        //   - Geographic Terms: 2000-6000 each (Hill, Lake, Cave, etc)
+        //   - Business Entities: Only 2.8 avg - VERY POOR
+        //
+        // Strategy: Focus 85% on 4-6 character single words (proven winners)
         const strategies = [
-            //      { fn: () => this.generateLastNameOnly(), weight: 70 },          // 70.3 avg props - BEST PERFORMER (increased from 60)
-            //      { fn: () => this.generateStreetNameOnly(), weight: 40 },        // 24.4 avg props - GREAT (increased from 35)
-            //      { fn: () => this.generateNeighborhood(), weight: 20 },          // Good for area coverage (increased from 15)
-            { fn: () => this.generateBusinessName(), weight: 20 }, // 6.7 avg props but 26% zero-result rate (reduced from 20)
-            { fn: () => this.generatePropertyType(), weight: 40 }, // Moderate yield
-            // REMOVED inefficient strategies based on monitor analysis (500 recent zero-results):
-            // - generatePropertyWithDescriptor() - 26% zero-result rate, creates patterns like "Landing Space"
-            // - generateTwoLetterCombo() - 73.9% failure rate, alphanumeric codes return zero
-            // - generateThreeLetterCombo() - 73.9% failure rate, alphanumeric codes return zero
-            // - generateFourLetterWord() - 73.9% failure rate, random short codes return zero
-            // - generateFullName() - only 4.4 avg props (16x worse than last names), 26% zero-result rate
-            // - generateStreetAddress() - 44.8% zero-result rate, too specific (number + street)
-            // - generatePartialAddress() - still has numbers, inefficient
-            // - generateStreetNumber() - pure numbers removed as inefficient
-            // - generateNumberPattern() - pure numbers removed as inefficient
-            // - generateCompoundName() - causes JSON parse errors for high-volume results (Estate, Family, Trust)
+            { fn: () => this.generateStreetSuffix(), weight: 50 }, // INCREASED! 1000+ avg - Boulevard, Drive, Lane untried
+            { fn: () => this.generateFirstNameOnly(), weight: 35 }, // INCREASED! 1132 avg last hour - John: 13,393!
+            { fn: () => this.generateLastNameOnly(), weight: 30 }, // REDUCED - Most high-yield names exhausted
+            { fn: () => this.generateGeographicTerm(), weight: 25 }, // GREAT! Rock: 4,615, Mill: 3,778
+            { fn: () => this.generateNeighborhood(), weight: 20 }, // Good for area coverage
+            { fn: () => this.generateHispanicAsianSurname(), weight: 15 }, // 2000+ avg - Garcia, Lee, Kim, etc
+            { fn: () => this.generatePropertyType(), weight: 10 }, // REDUCED - Moderate yield
+            { fn: () => this.generateStreetNameOnly(), weight: 5 }, // REDUCED - Many covered
+            { fn: () => this.generateBusinessName(), weight: 0 }, // ELIMINATED! 13% success, wasted 83% of last hour
+            // REMOVED inefficient strategies:
+            // - generatePropertyWithDescriptor() - 26% zero-result rate
+            // - generateTwoLetterCombo() - 73.9% failure rate
+            // - generateThreeLetterCombo() - 73.9% failure rate
+            // - generateFourLetterWord() - 73.9% failure rate (now covered by generateGeographicTerm)
+            // - generateFullName() - only 4.4 avg props, 26% zero-result rate
+            // - generateStreetAddress() - 44.8% zero-result rate
+            // - generateCompoundName() - causes JSON parse errors
         ];
         // Create weighted array
         const weightedStrategies = [];
@@ -347,45 +363,37 @@ class SearchPatternGenerator {
             }
         });
         let attempts = 0;
-        let duplicatesSkipped = 0;
-        let containmentSkipped = 0;
         const maxAttempts = batchSize * 10;
+        // Reset deduplicator stats for this batch
+        this.deduplicator.resetStats();
         while (batch.length < batchSize && attempts < maxAttempts) {
             attempts++;
             const strategy = weightedStrategies[Math.floor(Math.random() * weightedStrategies.length)];
             const term = strategy();
-            // Check if term is valid and not a duplicate
-            if (term && term.length >= 4) {
-                // Check exact duplicate
-                if (this.usedTerms.has(term)) {
-                    duplicatesSkipped++;
-                    continue;
-                }
-                // CONTAINMENT CHECK DISABLED - Too aggressive with 17k+ terms
-                // With a large used term database, almost every new term contains some substring
-                // Better to rely on database deduplication and accept some overlap
-                // Original logic caused 0-term generation when term database grew too large
-                // Optional: Only filter exact two-word business combinations that are supersets of >=4 characters
-                // Example: Skip "Smith LLC" if "Smith" exists, but not if "LLC" exists
-                const isSimpleBusinessCombo = /^(\w+)\s+(LLC|Inc|LTD)$/i.test(term);
-                if (isSimpleBusinessCombo) {
-                    const baseName = term.split(' ')[0];
-                    if (this.usedTerms.has(baseName)) {
-                        containmentSkipped++;
-                        continue;
-                    }
-                }
-                // Term is unique and doesn't contain previous terms
-                this.usedTerms.add(term);
+            // Use the deduplicator to check if we should skip this term
+            if (!this.deduplicator.shouldSkipTerm(term)) {
+                // Term is unique enough - add it to the batch
+                this.deduplicator.markTermAsUsed(term);
+                this.usedTerms.add(term); // Also update local set for backwards compatibility
                 batch.push(term);
             }
         }
-        // Log statistics about duplicates and containment
-        if (duplicatesSkipped > 0) {
-            logger.info(`   ⚠️  Skipped ${duplicatesSkipped} exact duplicates`);
+        // Log deduplication statistics
+        const stats = this.deduplicator.getStats();
+        if (stats.exactDuplicates > 0) {
+            logger.info(`   ⚠️  Skipped ${stats.exactDuplicates} exact duplicates`);
         }
-        if (containmentSkipped > 0) {
-            logger.info(`   🔍 Skipped ${containmentSkipped} terms containing previous search terms`);
+        if (stats.tooCommonTerms > 0) {
+            logger.info(`   ⏱️  Skipped ${stats.tooCommonTerms} too-common terms (cause API timeouts)`);
+        }
+        if (stats.businessSupersets > 0) {
+            logger.info(`   🏢 Skipped ${stats.businessSupersets} business entity supersets`);
+        }
+        if (stats.twoWordSupersets > 0) {
+            logger.info(`   📝 Skipped ${stats.twoWordSupersets} two-word supersets`);
+        }
+        if (stats.multiWordSupersets > 0) {
+            logger.info(`   📚 Skipped ${stats.multiWordSupersets} multi-word supersets`);
         }
         return batch;
     }
@@ -463,7 +471,7 @@ class ContinuousBatchScraper {
                 this.stats.totalQueued++;
             }
             catch (error) {
-                logger.error(`Failed to queue ${searchTerm}:`, error);
+                logger.error({ err: error }, `Failed to queue ${searchTerm}:`);
             }
         }
         logger.info(`✓ Queued ${searchTerms.length} jobs (Total: ${this.stats.totalQueued})`);
@@ -512,7 +520,7 @@ class ContinuousBatchScraper {
                 }
             }
             catch (error) {
-                logger.error('Monitoring error:', error);
+                logger.error({ err: error }, 'Monitoring error:');
             }
         }, CHECK_INTERVAL);
     }
@@ -554,7 +562,7 @@ class ContinuousBatchScraper {
 // Run the continuous scraper
 const scraper = new ContinuousBatchScraper();
 scraper.run().catch((error) => {
-    logger.error('Fatal error:', error);
+    logger.error({ err: error }, 'Fatal error:');
     process.exit(1);
 });
 //# sourceMappingURL=continuous-batch-scraper.js.map

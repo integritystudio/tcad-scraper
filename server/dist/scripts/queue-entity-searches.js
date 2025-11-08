@@ -1,6 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const scraper_queue_1 = require("../queues/scraper.queue");
+const logger_1 = __importDefault(require("../lib/logger"));
 /**
  * Queue 50 high-yield entity term searches based on optimal search strategy
  *
@@ -64,12 +68,12 @@ const ENTITY_TERMS = [
     'Construction',
 ];
 async function queueEntitySearches() {
-    console.log('🔄 Queuing Entity Term Searches for TCAD Scraper\n');
-    console.log('='.repeat(80) + '\n');
+    logger_1.default.info('🔄 Queuing Entity Term Searches for TCAD Scraper\n');
+    logger_1.default.info('='.repeat(80) + '\n');
     try {
         // Take first 50 entity terms
         const searchTerms = ENTITY_TERMS.slice(0, 50);
-        console.log(`Queuing ${searchTerms.length} high-yield entity term searches...\n`);
+        logger_1.default.info(`Queuing ${searchTerms.length} high-yield entity term searches...\n`);
         const jobs = [];
         let queuedCount = 0;
         let failedCount = 0;
@@ -90,45 +94,45 @@ async function queueEntitySearches() {
                 });
                 jobs.push(job);
                 queuedCount++;
-                console.log(`✅ [${queuedCount}/${searchTerms.length}] Queued: "${searchTerm}" (Job ID: ${job.id})`);
+                logger_1.default.info(`✅ [${queuedCount}/${searchTerms.length}] Queued: "${searchTerm}" (Job ID: ${job.id})`);
             }
             catch (error) {
                 failedCount++;
-                console.error(`❌ Failed to queue "${searchTerm}":`, error instanceof Error ? error.message : 'Unknown error');
+                logger_1.default.error(`❌ Failed to queue "${searchTerm}":`, error instanceof Error ? error.message : 'Unknown error');
             }
         }
-        console.log('\n' + '─'.repeat(80));
-        console.log('QUEUE SUMMARY');
-        console.log('─'.repeat(80) + '\n');
-        console.log(`✅ Successfully queued: ${queuedCount} jobs`);
-        console.log(`❌ Failed to queue: ${failedCount} jobs`);
-        console.log(`📊 Total jobs added: ${queuedCount}`);
+        logger_1.default.info('\n' + '─'.repeat(80));
+        logger_1.default.info('QUEUE SUMMARY');
+        logger_1.default.info('─'.repeat(80) + '\n');
+        logger_1.default.info(`✅ Successfully queued: ${queuedCount} jobs`);
+        logger_1.default.info(`❌ Failed to queue: ${failedCount} jobs`);
+        logger_1.default.info(`📊 Total jobs added: ${queuedCount}`);
         if (queuedCount > 0) {
-            console.log('\n' + '='.repeat(80));
-            console.log('MONITORING');
-            console.log('='.repeat(80) + '\n');
-            console.log('🎯 Bull Board Dashboard: http://localhost:3001/admin/queues');
-            console.log('   Monitor job progress, view completed/failed jobs, and queue stats\n');
-            console.log('📈 Expected Results:');
-            console.log(`   - Entity terms average: ~70 properties/search`);
-            console.log(`   - Estimated total properties: ${queuedCount * 70} (if all succeed)`);
-            console.log(`   - Processing time: ~${Math.ceil(queuedCount / 2 * 15 / 60)} hours (2 concurrent workers)\n`);
+            logger_1.default.info('\n' + '='.repeat(80));
+            logger_1.default.info('MONITORING');
+            logger_1.default.info('='.repeat(80) + '\n');
+            logger_1.default.info('🎯 Bull Board Dashboard: http://localhost:3001/admin/queues');
+            logger_1.default.info('   Monitor job progress, view completed/failed jobs, and queue stats\n');
+            logger_1.default.info('📈 Expected Results:');
+            logger_1.default.info(`   - Entity terms average: ~70 properties/search`);
+            logger_1.default.info(`   - Estimated total properties: ${queuedCount * 70} (if all succeed)`);
+            logger_1.default.info(`   - Processing time: ~${Math.ceil(queuedCount / 2 * 15 / 60)} hours (2 concurrent workers)\n`);
         }
-        console.log('✨ Entity term searches queued successfully!\n');
+        logger_1.default.info('✨ Entity term searches queued successfully!\n');
     }
     catch (error) {
-        console.error('❌ Fatal error:', error);
+        logger_1.default.error('❌ Fatal error:', error);
         process.exit(1);
     }
 }
 // Run the script
 queueEntitySearches()
     .then(() => {
-    console.log('✅ Script completed. Jobs are now processing...');
+    logger_1.default.info('✅ Script completed. Jobs are now processing...');
     process.exit(0);
 })
     .catch((error) => {
-    console.error('❌ Script failed:', error);
+    logger_1.default.error('❌ Script failed:', error);
     process.exit(1);
 });
 //# sourceMappingURL=queue-entity-searches.js.map

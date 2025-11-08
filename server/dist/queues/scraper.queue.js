@@ -10,6 +10,7 @@ const tcad_scraper_1 = require("../lib/tcad-scraper");
 const winston_1 = __importDefault(require("winston"));
 const prisma_1 = require("../lib/prisma");
 const config_1 = require("../config");
+const redis_cache_service_1 = require("../lib/redis-cache.service");
 const logger = winston_1.default.createLogger({
     level: config_1.config.logging.level,
     format: winston_1.default.format.json(),
@@ -40,7 +41,7 @@ exports.scraperQueue = new bull_1.default(config_1.config.queue.name, {
 // Process scraping jobs
 exports.scraperQueue.process(config_1.config.queue.jobName, config_1.config.queue.concurrency, async (job) => {
     const startTime = Date.now();
-    const { searchTerm, userId, scheduled = false } = job.data;
+    const { searchTerm } = job.data;
     logger.info(`Processing scrape job ${job.id} for search term: ${searchTerm}`);
     // Create a job record in the database
     const scrapeJob = await prisma_1.prisma.scrapeJob.create({
@@ -120,6 +121,13 @@ exports.scraperQueue.process(config_1.config.queue.jobName, config_1.config.queu
                 completedAt: new Date(),
             },
         });
+        // Invalidate caches since new properties were added
+        logger.info('Invalidating caches after successful scrape...');
+        await Promise.all([
+            redis_cache_service_1.cacheService.deletePattern('properties:list:*'), // Invalidate all list queries
+            redis_cache_service_1.cacheService.delete('properties:stats:all'), // Invalidate statistics
+        ]);
+        logger.info('Caches invalidated successfully');
         const duration = Date.now() - startTime;
         const result = {
             count: savedProperties.length,

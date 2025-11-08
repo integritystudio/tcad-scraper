@@ -17,6 +17,7 @@ exports.monitoringConfig = exports.frontendConfig = exports.loggingConfig = expo
 exports.validateConfig = validateConfig;
 exports.logConfigSummary = logConfigSummary;
 const dotenv_1 = __importDefault(require("dotenv"));
+const logger_1 = __importDefault(require("../lib/logger"));
 // Load environment variables from .env or Doppler
 dotenv_1.default.config();
 /**
@@ -66,8 +67,8 @@ exports.config = {
     },
     // Server Configuration
     server: {
-        port: parseIntEnv('PORT'),
-        host: process.env.HOST,
+        port: parseIntEnv('PORT', 3001),
+        host: process.env.HOST || '0.0.0.0',
         logLevel: process.env.LOG_LEVEL,
         gracefulShutdownTimeout: parseIntEnv('GRACEFUL_SHUTDOWN_TIMEOUT', 10000),
     },
@@ -276,23 +277,23 @@ function validateConfig() {
  * Log configuration summary (safe for production - no secrets)
  */
 function logConfigSummary() {
-    console.log('=== Configuration Summary ===');
-    console.log(`Environment: ${exports.config.env.nodeEnv}`);
-    console.log(`Server: ${exports.config.server.host}:${exports.config.server.port}`);
-    console.log(`Database: ${exports.config.database.url ? 'Configured' : 'Not configured'}`);
-    console.log(`Redis: ${exports.config.redis.host}:${exports.config.redis.port}`);
-    console.log(`Queue Dashboard: ${exports.config.queue.dashboard.enabled ? exports.config.queue.dashboard.basePath : 'Disabled'}`);
-    console.log(`Auth: ${exports.config.auth.apiKey ? 'API Key configured' : 'No API Key'}, ${exports.config.auth.jwt.secret ? 'JWT configured' : 'No JWT'}`);
-    console.log(`Claude AI: ${exports.config.claude.apiKey ? 'Enabled' : 'Disabled'}`);
-    console.log(`TCAD API Token: ${exports.config.scraper.tcadApiKey ? 'Configured (fast API mode)' : 'Not configured (fallback to browser capture)'}`);
-    console.log(`TCAD Auto Refresh: ${exports.config.scraper.autoRefreshToken ? `Enabled (every ${exports.config.scraper.tokenRefreshInterval / 60000} min)` : 'Disabled'}`);
-    console.log(`Scraper Proxy: ${exports.config.scraper.proxy.enabled ? 'Enabled' : 'Disabled'}`);
-    console.log(`Bright Data: ${exports.config.scraper.brightData.enabled ? 'Enabled' : 'Disabled'}`);
-    console.log(`Monitoring: ${exports.config.monitoring.enabled ? 'Enabled' : 'Disabled'}`);
+    logger_1.default.info('=== Configuration Summary ===');
+    logger_1.default.info(`Environment: ${exports.config.env.nodeEnv}`);
+    logger_1.default.info(`Server: ${exports.config.server.host}:${exports.config.server.port}`);
+    logger_1.default.info(`Database: ${exports.config.database.url ? 'Configured' : 'Not configured'}`);
+    logger_1.default.info(`Redis: ${exports.config.redis.host}:${exports.config.redis.port}`);
+    logger_1.default.info(`Queue Dashboard: ${exports.config.queue.dashboard.enabled ? exports.config.queue.dashboard.basePath : 'Disabled'}`);
+    logger_1.default.info(`Auth: ${exports.config.auth.apiKey ? 'API Key configured' : 'No API Key'}, ${exports.config.auth.jwt.secret ? 'JWT configured' : 'No JWT'}`);
+    logger_1.default.info(`Claude AI: ${exports.config.claude.apiKey ? 'Enabled' : 'Disabled'}`);
+    logger_1.default.info(`TCAD API Token: ${exports.config.scraper.tcadApiKey ? 'Configured (fast API mode)' : 'Not configured (fallback to browser capture)'}`);
+    logger_1.default.info(`TCAD Auto Refresh: ${exports.config.scraper.autoRefreshToken ? `Enabled (every ${exports.config.scraper.tokenRefreshInterval / 60000} min)` : 'Disabled'}`);
+    logger_1.default.info(`Scraper Proxy: ${exports.config.scraper.proxy.enabled ? 'Enabled' : 'Disabled'}`);
+    logger_1.default.info(`Bright Data: ${exports.config.scraper.brightData.enabled ? 'Enabled' : 'Disabled'}`);
+    logger_1.default.info(`Monitoring: ${exports.config.monitoring.enabled ? 'Enabled' : 'Disabled'}`);
     if (exports.config.doppler.enabled) {
-        console.log(`Doppler: ${exports.config.doppler.project}/${exports.config.doppler.config}`);
+        logger_1.default.info(`Doppler: ${exports.config.doppler.project}/${exports.config.doppler.config}`);
     }
-    console.log('============================');
+    logger_1.default.info('============================');
 }
 // Export individual config sections for convenience
 exports.serverConfig = exports.config.server;

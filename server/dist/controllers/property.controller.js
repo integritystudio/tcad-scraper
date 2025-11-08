@@ -4,6 +4,7 @@ exports.propertyController = exports.PropertyController = void 0;
 const scraper_queue_1 = require("../queues/scraper.queue");
 const prisma_1 = require("../lib/prisma");
 const claude_service_1 = require("../lib/claude.service");
+const redis_cache_service_1 = require("../lib/redis-cache.service");
 class PropertyController {
     /**
      * POST /api/properties/scrape - Trigger a new scrape job
@@ -59,28 +60,36 @@ class PropertyController {
     }
     /**
      * GET /api/properties - Get properties from database with filters
+     * Cached for 5 minutes per unique filter combination
      */
     async getProperties(req, res) {
         const filters = req.query;
-        const where = this.buildWhereClause(filters);
-        const [properties, total] = await Promise.all([
-            prisma_1.prismaReadOnly.property.findMany({
-                where,
-                skip: filters.offset,
-                take: filters.limit,
-                orderBy: { scrapedAt: 'desc' },
-            }),
-            prisma_1.prismaReadOnly.property.count({ where }),
-        ]);
-        res.json({
-            data: properties,
-            pagination: {
-                total,
-                limit: filters.limit,
-                offset: filters.offset,
-                hasMore: filters.offset + filters.limit < total,
-            },
-        });
+        // Generate cache key based on filters
+        const cacheKey = `properties:list:${JSON.stringify(filters)}`;
+        // Try to get from cache first (cache-aside pattern)
+        const result = await redis_cache_service_1.cacheService.getOrSet(cacheKey, async () => {
+            const where = this.buildWhereClause(filters);
+            const [properties, total] = await Promise.all([
+                prisma_1.prismaReadOnly.property.findMany({
+                    where,
+                    skip: filters.offset,
+                    take: filters.limit,
+                    orderBy: { scrapedAt: 'desc' },
+                }),
+                prisma_1.prismaReadOnly.property.count({ where }),
+            ]);
+            return {
+                data: properties,
+                pagination: {
+                    total,
+                    limit: filters.limit,
+                    offset: filters.offset,
+                    hasMore: filters.offset + filters.limit < total,
+                },
+            };
+        }, 300 // 5 minutes TTL
+        );
+        res.json(result);
     }
     /**
      * GET /api/properties/search/test - Test Claude API connection
@@ -152,51 +161,58 @@ class PropertyController {
     }
     /**
      * GET /api/properties/stats - Get statistics
+     * Cached for 10 minutes (expensive aggregation queries)
      */
     async getStats(req, res) {
-        const [totalProperties, totalJobs, recentJobs, cityStats, typeStats] = await Promise.all([
-            prisma_1.prismaReadOnly.property.count(),
-            prisma_1.prismaReadOnly.scrapeJob.count(),
-            prisma_1.prismaReadOnly.scrapeJob.count({
-                where: {
-                    startedAt: {
-                        gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+        const cacheKey = 'properties:stats:all';
+        // Cache stats for 10 minutes (600 seconds)
+        const stats = await redis_cache_service_1.cacheService.getOrSet(cacheKey, async () => {
+            const [totalProperties, totalJobs, recentJobs, cityStats, typeStats] = await Promise.all([
+                prisma_1.prismaReadOnly.property.count(),
+                prisma_1.prismaReadOnly.scrapeJob.count(),
+                prisma_1.prismaReadOnly.scrapeJob.count({
+                    where: {
+                        startedAt: {
+                            gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+                        },
                     },
-                },
-            }),
-            prisma_1.prismaReadOnly.property.groupBy({
-                by: ['city'],
-                _count: true,
-                where: {
-                    city: { not: null },
-                },
-                orderBy: {
-                    _count: {
-                        city: 'desc',
+                }),
+                prisma_1.prismaReadOnly.property.groupBy({
+                    by: ['city'],
+                    _count: true,
+                    where: {
+                        city: { not: null },
                     },
-                },
-                take: 10,
-            }),
-            prisma_1.prismaReadOnly.property.groupBy({
-                by: ['propType'],
-                _count: true,
-                _avg: {
-                    appraisedValue: true,
-                },
-                orderBy: {
-                    _count: {
-                        propType: 'desc',
+                    orderBy: {
+                        _count: {
+                            city: 'desc',
+                        },
                     },
-                },
-            }),
-        ]);
-        res.json({
-            totalProperties,
-            totalJobs,
-            recentJobs,
-            cityDistribution: cityStats,
-            propertyTypeDistribution: typeStats,
-        });
+                    take: 10,
+                }),
+                prisma_1.prismaReadOnly.property.groupBy({
+                    by: ['propType'],
+                    _count: true,
+                    _avg: {
+                        appraisedValue: true,
+                    },
+                    orderBy: {
+                        _count: {
+                            propType: 'desc',
+                        },
+                    },
+                }),
+            ]);
+            return {
+                totalProperties,
+                totalJobs,
+                recentJobs,
+                cityDistribution: cityStats,
+                propertyTypeDistribution: typeStats,
+            };
+        }, 600 // 10 minutes TTL
+        );
+        res.json(stats);
     }
     /**
      * POST /api/properties/monitor - Add a search term to monitor

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# TCAD Scraper - Test Database Setup Script
-# This script automates the setup of a local test database for development
+# Test Database Setup Script
+# This script creates and configures the test database for CI/CD and local development
 
 set -e  # Exit on error
 
@@ -12,170 +12,205 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-DB_NAME="${POSTGRES_DB:-tcad_scraper_test}"
-DB_USER="${POSTGRES_USER:-postgres}"
-DB_PASSWORD="${POSTGRES_PASSWORD:-postgres}"
-DB_HOST="${POSTGRES_HOST:-localhost}"
-DB_PORT="${POSTGRES_PORT:-5432}"
-REDIS_HOST="${REDIS_HOST:-localhost}"
-REDIS_PORT="${REDIS_PORT:-6379}"
+DB_NAME="${DATABASE_NAME:-tcad_scraper_test}"
+DB_USER="${DATABASE_USER:-postgres}"
+DB_PASSWORD="${DATABASE_PASSWORD:-postgres}"
+DB_HOST="${DATABASE_HOST:-localhost}"
+DB_PORT="${DATABASE_PORT:-5432}"
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 
-echo "=========================================="
-echo "TCAD Scraper - Test Database Setup"
-echo "=========================================="
+echo -e "${GREEN}=== Test Database Setup ===${NC}"
+echo "Database: $DB_NAME"
+echo "User: $DB_USER"
+echo "Host: $DB_HOST:$DB_PORT"
 echo ""
 
 # Function to check if PostgreSQL is running
 check_postgres() {
-    echo -n "Checking PostgreSQL connection... "
-    if pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" > /dev/null 2>&1; then
-        echo -e "${GREEN}✓${NC} PostgreSQL is running"
+    echo -e "${YELLOW}Checking PostgreSQL connection...${NC}"
+    if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c '\q' 2>/dev/null; then
+        echo -e "${GREEN}✓ PostgreSQL is running${NC}"
         return 0
     else
-        echo -e "${RED}✗${NC} PostgreSQL is not running"
+        echo -e "${RED}✗ Cannot connect to PostgreSQL${NC}"
+        echo "Please ensure PostgreSQL is running:"
+        echo "  - Docker: docker-compose up -d postgres"
+        echo "  - System: sudo systemctl start postgresql"
         return 1
     fi
 }
 
-# Function to check if Redis is running
-check_redis() {
-    echo -n "Checking Redis connection... "
-    if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping > /dev/null 2>&1; then
-        echo -e "${GREEN}✓${NC} Redis is running"
-        return 0
-    else
-        echo -e "${RED}✗${NC} Redis is not running"
-        return 1
-    fi
+# Function to check if database exists
+database_exists() {
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres \
+        -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" | grep -q 1
 }
 
-# Function to create database if it doesn't exist
+# Function to drop database if it exists
+drop_database() {
+    echo -e "${YELLOW}Dropping existing database '$DB_NAME'...${NC}"
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres \
+        -c "DROP DATABASE IF EXISTS \"$DB_NAME\";"
+    echo -e "${GREEN}✓ Database dropped${NC}"
+}
+
+# Function to create database
 create_database() {
-    echo -n "Checking if database '$DB_NAME' exists... "
-
-    # Check if database exists
-    if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -lqt | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
-        echo -e "${YELLOW}⚠${NC} Database already exists"
-    else
-        echo -e "${YELLOW}Creating...${NC}"
-        PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -c "CREATE DATABASE $DB_NAME;" > /dev/null 2>&1
-        echo -e "${GREEN}✓${NC} Database '$DB_NAME' created successfully"
-    fi
+    echo -e "${YELLOW}Creating database '$DB_NAME'...${NC}"
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres \
+        -c "CREATE DATABASE \"$DB_NAME\";"
+    echo -e "${GREEN}✓ Database created${NC}"
 }
 
-# Function to run Prisma migrations
+# Function to run migrations
 run_migrations() {
-    echo "Running Prisma migrations..."
-    export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"
-
-    # Generate Prisma Client
-    echo -n "Generating Prisma Client... "
-    npx prisma generate > /dev/null 2>&1
-    echo -e "${GREEN}✓${NC}"
-
-    # Run migrations
-    echo -n "Deploying migrations... "
-    npx prisma migrate deploy > /dev/null 2>&1
-    echo -e "${GREEN}✓${NC}"
+    echo -e "${YELLOW}Running Prisma migrations...${NC}"
+    cd "$(dirname "$0")/.."
+    DATABASE_URL="$DATABASE_URL" npx prisma migrate deploy
+    echo -e "${GREEN}✓ Migrations applied${NC}"
 }
 
 # Function to verify database schema
 verify_schema() {
-    echo -n "Verifying database schema... "
-    export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"
+    echo -e "${YELLOW}Verifying database schema...${NC}"
 
-    # Count tables
-    TABLE_COUNT=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" | xargs)
+    # Check if main tables exist
+    local tables=("properties" "scrape_jobs" "monitored_searches")
+    for table in "${tables[@]}"; do
+        if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME \
+            -tAc "SELECT 1 FROM information_schema.tables WHERE table_name='$table'" | grep -q 1; then
+            echo -e "${GREEN}  ✓ Table '$table' exists${NC}"
+        else
+            echo -e "${RED}  ✗ Table '$table' missing${NC}"
+            return 1
+        fi
+    done
 
-    if [ "$TABLE_COUNT" -gt 0 ]; then
-        echo -e "${GREEN}✓${NC} Found $TABLE_COUNT tables"
-    else
-        echo -e "${RED}✗${NC} No tables found"
-        return 1
-    fi
+    echo -e "${GREEN}✓ Schema verification passed${NC}"
 }
 
 # Function to seed test data (optional)
 seed_test_data() {
-    echo -n "Would you like to seed test data? (y/N): "
-    read -r response
-    if [[ "$response" =~ ^[Yy]$ ]]; then
-        echo "Seeding test data..."
-        export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"
-        # Add seed script here if needed
-        echo -e "${YELLOW}⚠${NC} Seed script not implemented yet"
+    if [ "$SEED_DATA" = "true" ]; then
+        echo -e "${YELLOW}Seeding test data...${NC}"
+        PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME <<EOF
+-- Insert test property
+INSERT INTO properties (
+    id, property_id, name, prop_type, city, property_address,
+    appraised_value, scraped_at, created_at, updated_at
+) VALUES (
+    gen_random_uuid(),
+    'TEST001',
+    'Test Property Owner',
+    'R',
+    'AUSTIN',
+    '123 Test St, Austin, TX 78701',
+    500000,
+    NOW(),
+    NOW(),
+    NOW()
+) ON CONFLICT (property_id) DO NOTHING;
+EOF
+        echo -e "${GREEN}✓ Test data seeded${NC}"
     fi
 }
 
-# Main setup flow
+# Function to display usage
+show_usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --drop        Drop existing database before creating"
+    echo "  --seed        Seed database with test data"
+    echo "  --verify-only Only verify schema, don't create/migrate"
+    echo "  --help        Show this help message"
+    echo ""
+    echo "Environment variables:"
+    echo "  DATABASE_NAME     (default: tcad_scraper_test)"
+    echo "  DATABASE_USER     (default: postgres)"
+    echo "  DATABASE_PASSWORD (default: postgres)"
+    echo "  DATABASE_HOST     (default: localhost)"
+    echo "  DATABASE_PORT     (default: 5432)"
+}
+
+# Parse command line arguments
+DROP_EXISTING=false
+SEED_DATA=false
+VERIFY_ONLY=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --drop)
+            DROP_EXISTING=true
+            shift
+            ;;
+        --seed)
+            SEED_DATA=true
+            shift
+            ;;
+        --verify-only)
+            VERIFY_ONLY=true
+            shift
+            ;;
+        --help)
+            show_usage
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Main execution
 main() {
-    echo "Configuration:"
-    echo "  Database: $DB_NAME"
-    echo "  User: $DB_USER"
-    echo "  Host: $DB_HOST:$DB_PORT"
-    echo "  Redis: $REDIS_HOST:$REDIS_PORT"
-    echo ""
-
-    # Check prerequisites
-    if ! command -v psql &> /dev/null; then
-        echo -e "${RED}✗${NC} PostgreSQL client (psql) not found. Please install PostgreSQL."
+    # Check if PostgreSQL is running
+    if ! check_postgres; then
         exit 1
     fi
 
-    if ! command -v redis-cli &> /dev/null; then
-        echo -e "${YELLOW}⚠${NC} Redis CLI not found. Skipping Redis check."
+    if [ "$VERIFY_ONLY" = "true" ]; then
+        # Just verify schema
+        if database_exists; then
+            verify_schema
+        else
+            echo -e "${RED}✗ Database '$DB_NAME' does not exist${NC}"
+            exit 1
+        fi
     else
-        check_redis || {
-            echo -e "${YELLOW}⚠${NC} Redis is not running. Tests may fail."
-            echo "  To start Redis: redis-server"
-        }
+        # Full setup
+        if [ "$DROP_EXISTING" = "true" ] && database_exists; then
+            drop_database
+        fi
+
+        # Create database if it doesn't exist
+        if ! database_exists; then
+            create_database
+        else
+            echo -e "${YELLOW}Database '$DB_NAME' already exists, skipping creation${NC}"
+        fi
+
+        # Run migrations
+        run_migrations
+
+        # Verify schema
+        verify_schema
+
+        # Seed test data if requested
+        seed_test_data
     fi
 
-    # Check PostgreSQL
-    check_postgres || {
-        echo ""
-        echo -e "${RED}ERROR:${NC} Cannot connect to PostgreSQL"
-        echo ""
-        echo "To start PostgreSQL:"
-        echo "  - macOS (Homebrew): brew services start postgresql"
-        echo "  - Docker: docker run --name postgres -e POSTGRES_PASSWORD=$DB_PASSWORD -p 5432:5432 -d postgres:16"
-        echo "  - Linux (systemd): sudo systemctl start postgresql"
-        echo ""
-        exit 1
-    }
-
     echo ""
-
-    # Create database
-    create_database
-
+    echo -e "${GREEN}=== Setup Complete ===${NC}"
+    echo "Database URL: $DATABASE_URL"
     echo ""
-
-    # Run migrations
-    run_migrations
-
+    echo "To run tests with this database:"
+    echo "  DATABASE_URL=\"$DATABASE_URL\" npm test"
     echo ""
-
-    # Verify schema
-    verify_schema
-
-    echo ""
-
-    # Optional: Seed data
-    seed_test_data
-
-    echo ""
-    echo "=========================================="
-    echo -e "${GREEN}✓${NC} Test database setup complete!"
-    echo "=========================================="
-    echo ""
-    echo "Database URL: postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"
-    echo ""
-    echo "Next steps:"
-    echo "  1. Run tests: npm test"
-    echo "  2. Start dev server: npm run dev"
-    echo "  3. View database: npm run prisma:studio"
-    echo ""
+    echo "To connect with psql:"
+    echo "  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME"
 }
 
 # Run main function

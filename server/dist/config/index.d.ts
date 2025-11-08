@@ -25,7 +25,7 @@ export declare const config: {
     };
     readonly server: {
         readonly port: number;
-        readonly host: string | undefined;
+        readonly host: string;
         readonly logLevel: string | undefined;
         readonly gracefulShutdownTimeout: number;
     };
@@ -192,7 +192,7 @@ export declare function validateConfig(): void;
 export declare function logConfigSummary(): void;
 export declare const serverConfig: {
     readonly port: number;
-    readonly host: string | undefined;
+    readonly host: string;
     readonly logLevel: string | undefined;
     readonly gracefulShutdownTimeout: number;
 };

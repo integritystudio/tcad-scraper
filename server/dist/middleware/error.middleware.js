@@ -1,6 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notFoundHandler = exports.errorHandler = exports.asyncHandler = void 0;
+const logger_1 = __importDefault(require("../lib/logger"));
 /**
  * Async handler wrapper to catch errors in async route handlers
  */
@@ -14,7 +18,7 @@ exports.asyncHandler = asyncHandler;
  * Global error handling middleware
  */
 const errorHandler = (error, req, res, next) => {
-    console.error('Error:', error);
+    logger_1.default.error('Error:', error);
     // Handle specific error types
     if (error.name === 'ValidationError') {
         return res.status(400).json({

@@ -4,143 +4,147 @@
  * Comprehensive test that simulates the full queue job flow
  * Shows exactly what happens when a scrape job is created
  */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const config_1 = require("../config");
 const tcad_scraper_1 = require("../lib/tcad-scraper");
-console.log('=== Queue Job Flow Simulation ===\n');
-console.log('This simulates what happens when you add a scrape job to the queue.\n');
+const logger_1 = __importDefault(require("../lib/logger"));
+logger_1.default.info('=== Queue Job Flow Simulation ===\n');
+logger_1.default.info('This simulates what happens when you add a scrape job to the queue.\n');
 // Simulate the queue worker processing a job
 async function simulateQueueJobProcessing() {
     const searchTerm = 'TEST_SEARCH_TERM';
     const jobId = 'test-job-123';
-    console.log('Step 1: Queue worker receives job');
-    console.log('----------------------------------');
-    console.log(`Job ID: ${jobId}`);
-    console.log(`Search Term: ${searchTerm}`);
-    console.log(`Status: pending → processing\n`);
-    console.log('Step 2: Create TCADScraper instance');
-    console.log('------------------------------------');
-    console.log('Code: const scraper = new TCADScraper({ headless: true });');
+    logger_1.default.info('Step 1: Queue worker receives job');
+    logger_1.default.info('----------------------------------');
+    logger_1.default.info(`Job ID: ${jobId}`);
+    logger_1.default.info(`Search Term: ${searchTerm}`);
+    logger_1.default.info(`Status: pending → processing\n`);
+    logger_1.default.info('Step 2: Create TCADScraper instance');
+    logger_1.default.info('------------------------------------');
+    logger_1.default.info('Code: const scraper = new TCADScraper({ headless: true });');
     const scraper = new tcad_scraper_1.TCADScraper({
         headless: config_1.config.env.isProduction ? true : config_1.config.scraper.headless,
     });
-    console.log('✅ Scraper instance created\n');
-    console.log('Step 3: Initialize browser');
-    console.log('--------------------------');
-    console.log('Code: await scraper.initialize();');
+    logger_1.default.info('✅ Scraper instance created\n');
+    logger_1.default.info('Step 3: Initialize browser');
+    logger_1.default.info('--------------------------');
+    logger_1.default.info('Code: await scraper.initialize();');
     try {
         await scraper.initialize();
-        console.log('✅ Browser initialized\n');
-        console.log('Step 4: Call scrapePropertiesViaAPI');
-        console.log('------------------------------------');
-        console.log(`Code: await scraper.scrapePropertiesViaAPI('${searchTerm}');`);
-        console.log('');
-        console.log('Inside scrapePropertiesViaAPI (src/lib/tcad-scraper.ts:106):');
-        console.log('  Line 128: let authToken = appConfig.scraper.tcadApiKey || null;');
-        console.log('');
+        logger_1.default.info('✅ Browser initialized\n');
+        logger_1.default.info('Step 4: Call scrapePropertiesViaAPI');
+        logger_1.default.info('------------------------------------');
+        logger_1.default.info(`Code: await scraper.scrapePropertiesViaAPI('${searchTerm}');`);
+        logger_1.default.info('');
+        logger_1.default.info('Inside scrapePropertiesViaAPI (src/lib/tcad-scraper.ts:106):');
+        logger_1.default.info('  Line 128: let authToken = appConfig.scraper.tcadApiKey || null;');
+        logger_1.default.info('');
         if (config_1.config.scraper.tcadApiKey) {
-            console.log('  ✅ authToken = appConfig.scraper.tcadApiKey');
-            console.log(`  ✅ Token value: ${config_1.config.scraper.tcadApiKey.substring(0, 20)}...`);
-            console.log('  ✅ Condition: if (authToken) → TRUE');
-            console.log('');
-            console.log('  Line 131: logger.info("Using pre-fetched TCAD_API_KEY from environment");');
-            console.log('  ✅ Skips lines 133-166 (browser token capture)');
-            console.log('  ✅ Jumps to line 170 (API calls)');
-            console.log('');
-            console.log('  Flow:');
-            console.log('    1. Inject __tcad_search function into page (lines 170-291)');
-            console.log('    2. Call function with pre-fetched token (line 294)');
-            console.log('    3. Function makes API calls to prod-container.trueprodigyapi.com');
-            console.log('    4. Returns property data');
-            console.log('    5. Transform to PropertyData format (lines 299-309)');
-            console.log('');
-            console.log('  ⚡ Performance: FAST (no page load, direct API)');
+            logger_1.default.info('  ✅ authToken = appConfig.scraper.tcadApiKey');
+            logger_1.default.info(`  ✅ Token value: ${config_1.config.scraper.tcadApiKey.substring(0, 20)}...`);
+            logger_1.default.info('  ✅ Condition: if (authToken) → TRUE');
+            logger_1.default.info('');
+            logger_1.default.info('  Line 131: logger.info("Using pre-fetched TCAD_API_KEY from environment");');
+            logger_1.default.info('  ✅ Skips lines 133-166 (browser token capture)');
+            logger_1.default.info('  ✅ Jumps to line 170 (API calls)');
+            logger_1.default.info('');
+            logger_1.default.info('  Flow:');
+            logger_1.default.info('    1. Inject __tcad_search function into page (lines 170-291)');
+            logger_1.default.info('    2. Call function with pre-fetched token (line 294)');
+            logger_1.default.info('    3. Function makes API calls to prod-container.trueprodigyapi.com');
+            logger_1.default.info('    4. Returns property data');
+            logger_1.default.info('    5. Transform to PropertyData format (lines 299-309)');
+            logger_1.default.info('');
+            logger_1.default.info('  ⚡ Performance: FAST (no page load, direct API)');
         }
         else {
-            console.log('  ⚠️  authToken = null');
-            console.log('  ⚠️  Condition: if (authToken) → FALSE');
-            console.log('');
-            console.log('  Line 133: logger.info("No TCAD_API_KEY found, capturing token from browser...");');
-            console.log('  ⚠️  Executes lines 135-166 (browser token capture):');
-            console.log('');
-            console.log('    Lines 142-145: Navigate to https://travis.prodigycad.com/property-search');
-            console.log('    Lines 149-152: Wait for React app to load');
-            console.log('    Lines 155-159: Perform test search to trigger API request');
-            console.log('    Lines 136-140: Capture Authorization header from request');
-            console.log('');
-            console.log('  Then continues to line 170 (API calls) with captured token');
-            console.log('');
-            console.log('  🐌 Performance: SLOW (full page load + test search + token capture)');
+            logger_1.default.info('  ⚠️  authToken = null');
+            logger_1.default.info('  ⚠️  Condition: if (authToken) → FALSE');
+            logger_1.default.info('');
+            logger_1.default.info('  Line 133: logger.info("No TCAD_API_KEY found, capturing token from browser...");');
+            logger_1.default.info('  ⚠️  Executes lines 135-166 (browser token capture):');
+            logger_1.default.info('');
+            logger_1.default.info('    Lines 142-145: Navigate to https://travis.prodigycad.com/property-search');
+            logger_1.default.info('    Lines 149-152: Wait for React app to load');
+            logger_1.default.info('    Lines 155-159: Perform test search to trigger API request');
+            logger_1.default.info('    Lines 136-140: Capture Authorization header from request');
+            logger_1.default.info('');
+            logger_1.default.info('  Then continues to line 170 (API calls) with captured token');
+            logger_1.default.info('');
+            logger_1.default.info('  🐌 Performance: SLOW (full page load + test search + token capture)');
         }
-        console.log('');
-        console.log('Step 5: Save to database');
-        console.log('------------------------');
-        console.log('Code: await prisma.property.upsert(...)');
-        console.log('✅ Properties saved to database');
-        console.log('');
-        console.log('Step 6: Update job status');
-        console.log('-------------------------');
-        console.log('Code: await prisma.scrapeJob.update({ status: "completed" })');
-        console.log('✅ Job marked as completed\n');
+        logger_1.default.info('');
+        logger_1.default.info('Step 5: Save to database');
+        logger_1.default.info('------------------------');
+        logger_1.default.info('Code: await prisma.property.upsert(...)');
+        logger_1.default.info('✅ Properties saved to database');
+        logger_1.default.info('');
+        logger_1.default.info('Step 6: Update job status');
+        logger_1.default.info('-------------------------');
+        logger_1.default.info('Code: await prisma.scrapeJob.update({ status: "completed" })');
+        logger_1.default.info('✅ Job marked as completed\n');
     }
     catch (error) {
-        console.error('❌ Error during simulation:', error);
+        logger_1.default.error('❌ Error during simulation:', error);
     }
     finally {
-        console.log('Step 7: Cleanup');
-        console.log('---------------');
-        console.log('Code: await scraper.cleanup();');
+        logger_1.default.info('Step 7: Cleanup');
+        logger_1.default.info('---------------');
+        logger_1.default.info('Code: await scraper.cleanup();');
         await scraper.cleanup();
-        console.log('✅ Browser closed\n');
+        logger_1.default.info('✅ Browser closed\n');
     }
     // Summary
-    console.log('=== Summary ===\n');
+    logger_1.default.info('=== Summary ===\n');
     if (config_1.config.scraper.tcadApiKey) {
-        console.log('✅ Current Configuration: OPTIMAL');
-        console.log('');
-        console.log('Your scrape jobs will:');
-        console.log('  • Use pre-fetched API token');
-        console.log('  • Skip browser-based token capture');
-        console.log('  • Complete faster');
-        console.log('  • Use fewer resources');
-        console.log('');
-        console.log('Execution Path:');
-        console.log('  Line 128: Get token from config ✅');
-        console.log('  Line 131: Log "Using pre-fetched..." ✅');
-        console.log('  Lines 133-166: SKIPPED ⏭️');
-        console.log('  Line 170+: Direct API calls ✅');
-        console.log('');
-        console.log('Next Steps:');
-        console.log('  1. Replace test token with real token from https://travis.prodigycad.com');
-        console.log('  2. Restart server: pm2 restart ecosystem.config.js');
-        console.log('  3. Run actual scrape job and monitor logs');
+        logger_1.default.info('✅ Current Configuration: OPTIMAL');
+        logger_1.default.info('');
+        logger_1.default.info('Your scrape jobs will:');
+        logger_1.default.info('  • Use pre-fetched API token');
+        logger_1.default.info('  • Skip browser-based token capture');
+        logger_1.default.info('  • Complete faster');
+        logger_1.default.info('  • Use fewer resources');
+        logger_1.default.info('');
+        logger_1.default.info('Execution Path:');
+        logger_1.default.info('  Line 128: Get token from config ✅');
+        logger_1.default.info('  Line 131: Log "Using pre-fetched..." ✅');
+        logger_1.default.info('  Lines 133-166: SKIPPED ⏭️');
+        logger_1.default.info('  Line 170+: Direct API calls ✅');
+        logger_1.default.info('');
+        logger_1.default.info('Next Steps:');
+        logger_1.default.info('  1. Replace test token with real token from https://travis.prodigycad.com');
+        logger_1.default.info('  2. Restart server: pm2 restart ecosystem.config.js');
+        logger_1.default.info('  3. Run actual scrape job and monitor logs');
     }
     else {
-        console.log('⚠️  Current Configuration: FALLBACK MODE');
-        console.log('');
-        console.log('Your scrape jobs will:');
-        console.log('  • Load full webpage');
-        console.log('  • Perform test search');
-        console.log('  • Capture token from browser');
-        console.log('  • Then make API calls');
-        console.log('  • Take longer to complete');
-        console.log('');
-        console.log('Execution Path:');
-        console.log('  Line 128: authToken = null ⚠️');
-        console.log('  Line 133: Log "No TCAD_API_KEY found..." ⚠️');
-        console.log('  Lines 133-166: EXECUTED (browser capture) 🐌');
-        console.log('  Line 170+: API calls with captured token ✅');
-        console.log('');
-        console.log('To Enable Fast Mode:');
-        console.log('  1. Get token from https://travis.prodigycad.com (see docs/TCAD_API_TOKEN_SETUP.md)');
-        console.log('  2. Add to .env: TCAD_API_KEY=your_token_here');
-        console.log('  3. Restart server: pm2 restart ecosystem.config.js');
-        console.log('  4. Re-run this test: npm run test:queue-flow');
+        logger_1.default.info('⚠️  Current Configuration: FALLBACK MODE');
+        logger_1.default.info('');
+        logger_1.default.info('Your scrape jobs will:');
+        logger_1.default.info('  • Load full webpage');
+        logger_1.default.info('  • Perform test search');
+        logger_1.default.info('  • Capture token from browser');
+        logger_1.default.info('  • Then make API calls');
+        logger_1.default.info('  • Take longer to complete');
+        logger_1.default.info('');
+        logger_1.default.info('Execution Path:');
+        logger_1.default.info('  Line 128: authToken = null ⚠️');
+        logger_1.default.info('  Line 133: Log "No TCAD_API_KEY found..." ⚠️');
+        logger_1.default.info('  Lines 133-166: EXECUTED (browser capture) 🐌');
+        logger_1.default.info('  Line 170+: API calls with captured token ✅');
+        logger_1.default.info('');
+        logger_1.default.info('To Enable Fast Mode:');
+        logger_1.default.info('  1. Get token from https://travis.prodigycad.com (see docs/TCAD_API_TOKEN_SETUP.md)');
+        logger_1.default.info('  2. Add to .env: TCAD_API_KEY=your_token_here');
+        logger_1.default.info('  3. Restart server: pm2 restart ecosystem.config.js');
+        logger_1.default.info('  4. Re-run this test: npm run test:queue-flow');
     }
 }
 // Run simulation
 simulateQueueJobProcessing().catch((error) => {
-    console.error('Simulation failed:', error);
+    logger_1.default.error('Simulation failed:', error);
     process.exit(1);
 });
 //# sourceMappingURL=test-queue-job-flow.js.map

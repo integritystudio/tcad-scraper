@@ -6,15 +6,22 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function getSearchTermStats() {
-  const searchTerms = await prisma.searchTerm.findMany({
-    orderBy: { updatedAt: 'desc' },
+  // Get the most recent scrape job for each search term
+  const recentJobs = await prisma.scrapeJob.findMany({
+    orderBy: { startedAt: 'desc' },
     take: 50,
-    include: {
-      _count: {
-        select: { properties: true }
-      }
-    }
+    distinct: ['searchTerm'],
   });
+
+  // Get property counts for each search term
+  const propertyCountsRaw = await prisma.property.groupBy({
+    by: ['searchTerm'],
+    _count: { id: true },
+  });
+
+  const propertyCounts = new Map(
+    propertyCountsRaw.map(pc => [pc.searchTerm, pc._count.id])
+  );
 
   console.log('\\n╔════════════════════════════════════════════════════════════════════════════════════════════════╗');
   console.log('║                         RECENT SEARCH TERMS SUMMARY                                            ║');
@@ -22,11 +29,11 @@ async function getSearchTermStats() {
   console.log('║ Search Term                               ║ Properties   ║ Status        ║ Last Updated      ║');
   console.log('╠═══════════════════════════════════════════╬══════════════╬═══════════════╬═══════════════════╣');
 
-  for (const term of searchTerms) {
-    const searchTerm = term.term.padEnd(41).substring(0, 41);
-    const count = term._count.properties.toString().padStart(12);
-    const status = term.status.padEnd(13).substring(0, 13);
-    const updated = new Date(term.updatedAt).toLocaleString('en-US', {
+  for (const job of recentJobs) {
+    const searchTerm = job.searchTerm.padEnd(41).substring(0, 41);
+    const count = (propertyCounts.get(job.searchTerm) || 0).toString().padStart(12);
+    const status = job.status.padEnd(13).substring(0, 13);
+    const updated = new Date(job.completedAt || job.startedAt).toLocaleString('en-US', {
       month: 'short',
       day: '2-digit',
       hour: '2-digit',
@@ -39,8 +46,8 @@ async function getSearchTermStats() {
   console.log('╚═══════════════════════════════════════════╩══════════════╩═══════════════╩═══════════════════╝');
 
   // Summary stats
-  const totalProperties = searchTerms.reduce((sum, term) => sum + term._count.properties, 0);
-  const avgProperties = (totalProperties / searchTerms.length).toFixed(1);
+  const totalProperties = Array.from(propertyCounts.values()).reduce((sum, count) => sum + count, 0);
+  const avgProperties = recentJobs.length > 0 ? (totalProperties / recentJobs.length).toFixed(1) : '0';
 
   console.log(\`\\nTotal properties from these search terms: \${totalProperties}\`);
   console.log(\`Average properties per search term: \${avgProperties}\`);

@@ -106,9 +106,15 @@ class TCADTokenRefreshService {
             // Set up request interception to capture Authorization header
             page.on('request', (request) => {
                 const headers = request.headers();
-                if (headers['authorization'] && !capturedToken) {
-                    capturedToken = headers['authorization'];
-                    logger.info('Authorization token captured from request');
+                const authHeader = headers['authorization'];
+                // Only capture valid tokens (ignore "null" string and ensure it looks like a JWT)
+                if (authHeader &&
+                    authHeader !== 'null' &&
+                    authHeader.length > 50 &&
+                    authHeader.startsWith('eyJ') &&
+                    !capturedToken) {
+                    capturedToken = authHeader;
+                    logger.info(`Authorization token captured from request: length: ${capturedToken.length}, preview: ${capturedToken.substring(0, 50)}...`);
                 }
             });
             try {

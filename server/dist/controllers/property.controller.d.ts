@@ -13,6 +13,7 @@ export declare class PropertyController {
     }>, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     /**
      * GET /api/properties - Get properties from database with filters
+     * Cached for 5 minutes per unique filter combination
      */
     getProperties(req: Request<{}, {}, {}, PropertyFilters>, res: Response): Promise<void>;
     /**
@@ -29,6 +30,7 @@ export declare class PropertyController {
     getScrapeHistory(req: Request<{}, {}, {}, HistoryQueryParams>, res: Response): Promise<void>;
     /**
      * GET /api/properties/stats - Get statistics
+     * Cached for 10 minutes (expensive aggregation queries)
      */
     getStats(req: Request, res: Response): Promise<void>;
     /**

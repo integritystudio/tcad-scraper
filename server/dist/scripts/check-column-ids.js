@@ -1,8 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const playwright_1 = require("playwright");
+const logger_1 = __importDefault(require("../lib/logger"));
 async function checkColumnIds() {
-    console.log('🔍 Checking actual column IDs...\n');
+    logger_1.default.info('🔍 Checking actual column IDs...\n');
     const browser = await playwright_1.chromium.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -38,21 +42,21 @@ async function checkColumnIds() {
             }));
             return { cellsInfo };
         });
-        console.log('📊 All Column IDs from first row:\n');
+        logger_1.default.info('📊 All Column IDs from first row:\n');
         if ('error' in columnInfo) {
-            console.error(columnInfo.error);
+            logger_1.default.error(columnInfo.error);
         }
         else {
             columnInfo.cellsInfo.forEach((cell, i) => {
-                console.log(`Column ${i + 1}:`);
-                console.log(`  col-id: ${cell.colId}`);
-                console.log(`  text: ${cell.text || '(empty)'}`);
-                console.log(`  aria-colindex: ${cell.ariaColIndex}\n`);
+                logger_1.default.info(`Column ${i + 1}:`);
+                logger_1.default.info(`  col-id: ${cell.colId}`);
+                logger_1.default.info(`  text: ${cell.text || '(empty)'}`);
+                logger_1.default.info(`  aria-colindex: ${cell.ariaColIndex}\n`);
             });
         }
     }
     catch (error) {
-        console.error(`❌ Error: ${error.message}`);
+        logger_1.default.error(`❌ Error: ${error.message}`);
     }
     finally {
         await context.close();

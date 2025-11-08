@@ -15,6 +15,7 @@ exports.generateSecureHtml = generateSecureHtml;
 exports.getInitialAppData = getInitialAppData;
 const crypto_1 = __importDefault(require("crypto"));
 const config_1 = require("../config");
+const logger_1 = __importDefault(require("../lib/logger"));
 /**
  * Generate cryptographically secure nonce for CSP
  */
@@ -48,7 +49,7 @@ function nonceMiddleware(req, res, next) {
 function cspMiddleware(req, res, next) {
     const nonce = res.locals.nonce;
     if (!nonce) {
-        console.warn('CSP middleware called without nonce. Use nonceMiddleware first.');
+        logger_1.default.warn('CSP middleware called without nonce. Use nonceMiddleware first.');
     }
     // CSP Level 3 with nonce support
     if (config_1.config.security.csp.enabled) {

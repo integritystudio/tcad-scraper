@@ -81,8 +81,36 @@ router.post(
 );
 
 /**
- * GET /api/properties/jobs/:jobId
- * Get the status of a specific scrape job
+ * @swagger
+ * /api/properties/jobs/{jobId}:
+ *   get:
+ *     summary: Get scrape job status
+ *     description: Retrieve the current status and details of a specific scrape job
+ *     tags: [Scraping]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: jobId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The job ID returned when the scrape was queued
+ *         example: "12345"
+ *     responses:
+ *       200:
+ *         description: Job status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ScrapeJob'
+ *       404:
+ *         description: Job not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get(
   '/jobs/:jobId',
@@ -90,8 +118,60 @@ router.get(
 );
 
 /**
- * GET /api/properties/history
- * Get scrape job history with pagination
+ * @swagger
+ * /api/properties/history:
+ *   get:
+ *     summary: Get scrape job history
+ *     description: Retrieve paginated scrape job history with optional filters
+ *     tags: [Scraping]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of jobs per page
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *           minimum: 0
+ *         description: Number of jobs to skip
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, processing, completed, failed]
+ *         description: Filter by job status
+ *     responses:
+ *       200:
+ *         description: Job history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ScrapeJob'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     offset:
+ *                       type: integer
+ *                     hasMore:
+ *                       type: boolean
  */
 router.get(
   '/history',
@@ -189,8 +269,58 @@ router.get(
 );
 
 /**
- * POST /api/properties/search
- * Natural language search powered by Claude AI
+ * @swagger
+ * /api/properties/search:
+ *   post:
+ *     summary: Natural language property search
+ *     description: Search properties using natural language queries powered by Claude AI
+ *     tags: [Search]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - query
+ *             properties:
+ *               query:
+ *                 type: string
+ *                 description: Natural language search query
+ *                 example: Find all residential properties in Austin worth more than $500k
+ *               limit:
+ *                 type: integer
+ *                 default: 20
+ *                 minimum: 1
+ *                 maximum: 100
+ *                 description: Maximum number of results to return
+ *     responses:
+ *       200:
+ *         description: Search results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Property'
+ *                 query:
+ *                   type: string
+ *                   description: The original query
+ *                 parsedFilters:
+ *                   type: object
+ *                   description: AI-interpreted filters
+ *       400:
+ *         description: Invalid query
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post(
   '/search',
@@ -199,8 +329,35 @@ router.post(
 );
 
 /**
- * GET /api/properties/search/test
- * Test endpoint for Claude API connection
+ * @swagger
+ * /api/properties/search/test:
+ *   get:
+ *     summary: Test Claude AI connection
+ *     description: Test endpoint to verify Claude AI API connectivity and functionality
+ *     tags: [Search]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Claude AI connection successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Claude AI connection test successful
+ *       500:
+ *         description: Claude AI connection failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get(
   '/search/test',
@@ -212,8 +369,56 @@ router.get(
 // ============================================================================
 
 /**
- * GET /api/properties/stats
- * Get aggregate statistics about properties and scrape jobs
+ * @swagger
+ * /api/properties/stats:
+ *   get:
+ *     summary: Get property statistics
+ *     description: Retrieve aggregate statistics about properties and scrape jobs (cached for 10 minutes)
+ *     tags: [Statistics]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalProperties:
+ *                   type: integer
+ *                   description: Total number of properties in database
+ *                   example: 12345
+ *                 totalJobs:
+ *                   type: integer
+ *                   description: Total number of scrape jobs
+ *                   example: 567
+ *                 jobsByStatus:
+ *                   type: object
+ *                   properties:
+ *                     pending:
+ *                       type: integer
+ *                     processing:
+ *                       type: integer
+ *                     completed:
+ *                       type: integer
+ *                     failed:
+ *                       type: integer
+ *                 propertiesByCity:
+ *                   type: object
+ *                   description: Property count grouped by city
+ *                   additionalProperties:
+ *                     type: integer
+ *                 propertiesByType:
+ *                   type: object
+ *                   description: Property count grouped by type
+ *                   additionalProperties:
+ *                     type: integer
+ *                 averageValue:
+ *                   type: number
+ *                   description: Average appraised value
+ *                   example: 275000
  */
 router.get(
   '/stats',
@@ -225,8 +430,59 @@ router.get(
 // ============================================================================
 
 /**
- * POST /api/properties/monitor
- * Add a search term to the monitoring list
+ * @swagger
+ * /api/properties/monitor:
+ *   post:
+ *     summary: Add monitored search term
+ *     description: Add a search term to the monitoring list for scheduled scraping
+ *     tags: [Monitoring]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - searchTerm
+ *             properties:
+ *               searchTerm:
+ *                 type: string
+ *                 description: Search term to monitor
+ *                 example: Smith
+ *               schedule:
+ *                 type: string
+ *                 description: Cron schedule expression (optional)
+ *                 example: "0 0 * * *"
+ *               enabled:
+ *                 type: boolean
+ *                 description: Whether monitoring is active
+ *                 default: true
+ *     responses:
+ *       201:
+ *         description: Search term added to monitoring list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   format: uuid
+ *                 searchTerm:
+ *                   type: string
+ *                 schedule:
+ *                   type: string
+ *                 enabled:
+ *                   type: boolean
+ *       400:
+ *         description: Invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post(
   '/monitor',
@@ -235,8 +491,43 @@ router.post(
 );
 
 /**
- * GET /api/properties/monitor
- * Get all active monitored search terms
+ * @swagger
+ * /api/properties/monitor:
+ *   get:
+ *     summary: Get monitored search terms
+ *     description: Retrieve all search terms that are actively being monitored
+ *     tags: [Monitoring]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of monitored search terms
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       searchTerm:
+ *                         type: string
+ *                       schedule:
+ *                         type: string
+ *                       enabled:
+ *                         type: boolean
+ *                       lastRun:
+ *                         type: string
+ *                         format: date-time
+ *                       nextRun:
+ *                         type: string
+ *                         format: date-time
  */
 router.get(
   '/monitor',

@@ -1,2 +1,2 @@
-declare function testApi(): Promise<void>;
+export {};
 //# sourceMappingURL=test-api-direct.d.ts.map

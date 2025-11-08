@@ -71,7 +71,7 @@ async function queueBatch() {
         }
         catch (error) {
             failed++;
-            logger.error(`  ✗ ${searchTerm}:`, error);
+            logger.error({ err: error }, `  ✗ ${searchTerm}:`);
         }
     }
     logger.info(`\n✅ Successfully queued ${queued} jobs`);
@@ -90,7 +90,7 @@ async function queueBatch() {
     process.exit(0);
 }
 queueBatch().catch((error) => {
-    logger.error('Fatal error:', error);
+    logger.error({ err: error }, 'Fatal error:');
     process.exit(1);
 });
 //# sourceMappingURL=batch-scrape-100.js.map
