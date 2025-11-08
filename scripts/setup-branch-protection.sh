@@ -57,23 +57,33 @@ gh api \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: 2022-11-28" \
   "/repos/$REPO/branches/$BRANCH/protection" \
-  -f "required_status_checks[strict]=true" \
-  -f "required_status_checks[contexts][]=CI Pipeline Success" \
-  -f "required_status_checks[contexts][]=Lint & Type Check (ubuntu-latest)" \
-  -f "required_status_checks[contexts][]=Build Verification (ubuntu-latest)" \
-  -f "enforce_admins=false" \
-  -f "required_pull_request_reviews[dismiss_stale_reviews]=true" \
-  -f "required_pull_request_reviews[require_code_owner_reviews]=false" \
-  -f "required_pull_request_reviews[required_approving_review_count]=1" \
-  -f "required_pull_request_reviews[require_last_push_approval]=false" \
-  -f "restrictions=null" \
-  -f "required_linear_history=false" \
-  -f "allow_force_pushes=false" \
-  -f "allow_deletions=false" \
-  -f "block_creations=false" \
-  -f "required_conversation_resolution=true" \
-  -f "lock_branch=false" \
-  -f "allow_fork_syncing=true"
+  --input - <<'EOF'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": [
+      "CI Pipeline Success",
+      "Lint & Type Check (ubuntu-latest)",
+      "Build Verification (ubuntu-latest)"
+    ]
+  },
+  "enforce_admins": false,
+  "required_pull_request_reviews": {
+    "dismiss_stale_reviews": true,
+    "require_code_owner_reviews": false,
+    "required_approving_review_count": 1,
+    "require_last_push_approval": false
+  },
+  "restrictions": null,
+  "required_linear_history": false,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "block_creations": false,
+  "required_conversation_resolution": true,
+  "lock_branch": false,
+  "allow_fork_syncing": true
+}
+EOF
 
 echo ""
 echo -e "${GREEN}✓${NC} Branch protection enabled successfully!"

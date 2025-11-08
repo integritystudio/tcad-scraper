@@ -143,15 +143,21 @@
   - ⏳ Phase 4: Final utilities and queue operations (Target: 70%+)
   - **See**: `dev/active/test-coverage-improvement-tasks.md`
 
-- ⏳ Separate integration test suite
-  - Create integration-tests.yml workflow
-  - Run with RUN_INTEGRATION_TESTS=true
-  - Test against real services
+- ✅ Separate integration test suite
+  - ✅ Created integration-tests.yml workflow
+  - ✅ Runs with RUN_INTEGRATION_TESTS=true
+  - ✅ Tests against real services (PostgreSQL 16, Redis 7)
+  - ✅ Nightly scheduled runs at 3 AM UTC
+  - ✅ Manual trigger support with debug mode
+  - ✅ PR label-based triggering (`run-integration-tests`)
+  - ✅ Separate integration coverage reporting
 
-- ⏳ Add coverage thresholds
-  - ✅ Current coverage: 11.67%
-  - Target: 70% minimum
-  - Block PRs below threshold (add to jest.config.js)
+- ✅ Add coverage thresholds **COMPLETED**
+  - ✅ Current coverage: 36.53% statements, 33.11% branches, 38.52% functions, 36.48% lines
+  - ✅ Thresholds added: 35% statements, 32% branches, 37% functions, 35% lines
+  - ✅ Will block PRs that decrease coverage below thresholds
+  - 🔄 Thresholds will be increased incrementally as coverage improves toward 70% target
+  - **Roadmap**: 35% → 45% → 55% → 65% → 70%
 
 ### Low Priority
 - ⏳ Setup Codecov integration
@@ -219,7 +225,11 @@
 - ✅ Security scanning configured
 - ✅ Deployment workflow working
 - ✅ Documentation complete
-- ✅ Branch protection rules documented (script ready to run)
+- ✅ Branch protection rules enabled on main branch
+  - ✅ Requires 1 PR approval
+  - ✅ Requires status checks to pass
+  - ✅ Requires conversation resolution
+  - ✅ Prevents force pushes and deletions
 - ✅ Cross-platform CI testing enabled
 - ✅ Test database setup automation complete
 - ⏳ Required reviewers configured (depends on team setup)

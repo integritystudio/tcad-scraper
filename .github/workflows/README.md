@@ -7,6 +7,7 @@ This directory contains all CI/CD workflows for the TCAD Scraper project.
 | Workflow | File | Trigger | Purpose |
 |----------|------|---------|---------|
 | **CI Pipeline** | `ci.yml` | Push, PR | Runs tests, linting, builds |
+| **Integration Tests** | `integration-tests.yml` | Nightly, Manual, Label | Full integration & E2E tests |
 | **PR Checks** | `pr-checks.yml` | PRs | PR-specific validation |
 | **Security Scanning** | `security.yml` | Push, PR, Schedule | Security scans |
 | **Deployment** | `deploy.yml` | Push to main | Deploy to GitHub Pages |
@@ -15,16 +16,38 @@ This directory contains all CI/CD workflows for the TCAD Scraper project.
 
 ### CI Pipeline (`ci.yml`)
 
-Complete test and build pipeline with 6 jobs:
+Fast test and build pipeline with 6 jobs:
 
-1. **Lint & Type Check** - Code quality validation
+1. **Lint & Type Check** - Code quality validation (multi-platform)
 2. **Unit Tests** - Jest unit tests with coverage
-3. **Integration Tests** - Full system tests with Playwright
-4. **Build Verification** - Frontend and backend builds
+3. **Cross-Platform Tests** - Compatibility tests on Ubuntu, macOS, Windows
+4. **Build Verification** - Frontend and backend builds (multi-platform)
 5. **Security Checks** - npm audit and security tests
 6. **Dependency Review** - PR dependency validation
 
-**Runtime**: ~8-12 minutes
+**Runtime**: ~6-8 minutes
+
+### Integration Tests (`integration-tests.yml`)
+
+Comprehensive integration and E2E test suite:
+
+1. **Check Trigger** - Validates if tests should run
+2. **Integration Tests** - Full system tests with real services
+3. **E2E Tests** - End-to-end user workflow tests (when available)
+
+**Trigger**:
+- Nightly at 3 AM UTC (automatic)
+- Push to main when server code changes
+- PRs with `run-integration-tests` label
+- Manual via "Run workflow" button
+
+**Runtime**: ~10-15 minutes
+
+**Features**:
+- Uses PostgreSQL 16 and Redis 7 service containers
+- Runs database migrations and seeding
+- Generates separate integration coverage
+- Optional debug mode for troubleshooting
 
 ### PR Checks (`pr-checks.yml`)
 
@@ -71,11 +94,23 @@ Check workflow status:
 
 ### Manually Trigger Workflow
 
-Security scanning can be triggered manually:
+Several workflows can be triggered manually:
+
+**Security Scanning**:
 1. Go to Actions tab
 2. Select "Security Scanning"
 3. Click "Run workflow"
 4. Choose branch and run
+
+**Integration Tests**:
+1. Go to Actions tab
+2. Select "Integration Tests"
+3. Click "Run workflow"
+4. Optionally enable debug mode
+5. Choose branch and run
+
+**PR Integration Tests** (without manual trigger):
+- Add the `run-integration-tests` label to any PR
 
 ### View Workflow Logs
 
