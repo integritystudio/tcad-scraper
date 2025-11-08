@@ -1,0 +1,111 @@
+# Prometheus Configuration for TCAD Scraper
+# Configurable and scalable monitoring setup
+
+global:
+  # How frequently to scrape targets
+  scrape_interval: 15s
+  # How frequently to evaluate rules
+  evaluation_interval: 15s
+  # Attach these labels to all time series
+  external_labels:
+    cluster: 'tcad-scraper'
+    environment: 'production'
+
+# Load and evaluate alerting rules
+rule_files:
+  - "prometheus.rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # ===========================================================================
+  # TCAD Scraper Application
+  # ===========================================================================
+  - job_name: 'tcad-scraper-app'
+    # Scrape more frequently for application metrics
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    metrics_path: '/metrics'
+
+    # Static targets - update for production deployment
+    static_configs:
+      - targets:
+          # Docker host networking - adjust based on your setup
+          - 'host.docker.internal:3002'  # macOS/Windows Docker Desktop
+          # - 'tcad-scraper:3002'          # If app is in same Docker network
+          # - 'localhost:3002'             # If running outside Docker
+        labels:
+          service: 'tcad-scraper'
+          tier: 'application'
+
+    # Relabel configs for dynamic service discovery (optional)
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__scheme__]
+        target_label: scheme
+
+  # ===========================================================================
+  # Prometheus Self-Monitoring
+  # ===========================================================================
+  - job_name: 'prometheus'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+          tier: 'monitoring'
+
+  # ===========================================================================
+  # Node Exporter - System Metrics
+  # ===========================================================================
+  - job_name: 'node-exporter'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-exporter'
+          tier: 'system'
+
+  # ===========================================================================
+  # cAdvisor - Container Metrics
+  # ===========================================================================
+  - job_name: 'cadvisor'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: 'cadvisor'
+          tier: 'containers'
+
+  # ===========================================================================
+  # PostgreSQL Exporter (Optional - uncomment if using)
+  # ===========================================================================
+  # - job_name: 'postgres-exporter'
+  #   scrape_interval: 30s
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #       labels:
+  #         service: 'postgres-exporter'
+  #         tier: 'database'
+
+  # ===========================================================================
+  # Redis Exporter (Optional - uncomment if using)
+  # ===========================================================================
+  # - job_name: 'redis-exporter'
+  #   scrape_interval: 30s
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+  #       labels:
+  #         service: 'redis-exporter'
+  #         tier: 'cache'
+
+# Remote write configuration for long-term storage (optional)
+# remote_write:
+#   - url: "https://your-remote-storage/api/v1/write"
+#     basic_auth:
+#       username: "user"
+#       password: "pass"
+
+# Remote read configuration (optional)
+# remote_read:
+#   - url: "https://your-remote-storage/api/v1/read"

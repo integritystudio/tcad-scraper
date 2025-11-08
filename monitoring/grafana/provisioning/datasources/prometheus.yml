@@ -1,0 +1,22 @@
+# Grafana Datasource Provisioning
+# Auto-configures Prometheus datasource on Grafana startup
+
+apiVersion: 1
+
+datasources:
+  # Prometheus datasource for TCAD Scraper metrics
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "300s"
+      httpMethod: "POST"
+      # Enable Prometheus exemplars support
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo  # If using Tempo for tracing
+    version: 1

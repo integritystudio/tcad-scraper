@@ -26,6 +26,9 @@ import {
   flush as sentryFlush,
   getHealth as getSentryHealth,
 } from './lib/sentry.service';
+import { metricsMiddleware } from './middleware/metrics.middleware';
+import { getMetrics, updateQueueMetrics } from './lib/metrics.service';
+import { startPeriodicAnalysis, stopPeriodicAnalysis } from './services/code-complexity.service';
 
 // Initialize Sentry (must be first)
 initializeSentry();
@@ -87,6 +90,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Prometheus metrics middleware
+app.use(metricsMiddleware);
+
 // Rate limiting for API endpoints
 const apiLimiter = rateLimit({
   windowMs: config.rateLimit.api.windowMs,
@@ -110,7 +116,7 @@ if (config.queue.dashboard.enabled) {
   const serverAdapter = new ExpressAdapter();
   serverAdapter.setBasePath(config.queue.dashboard.basePath);
 
-  const { addQueue, removeQueue, setQueues, replaceQueues } = createBullBoard({
+  createBullBoard({
     queues: [new BullAdapter(scraperQueue)],
     serverAdapter,
   });
@@ -165,7 +171,7 @@ logger.info('Swagger API documentation available at /api-docs');
  *                   type: string
  *                   example: production
  */
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -174,7 +180,46 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.get('/health/queue', async (req, res) => {
+/**
+ * @swagger
+ * /health/queue:
+ *   get:
+ *     summary: Queue health check
+ *     description: Returns BullMQ queue health status and job counts
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Queue is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: healthy
+ *                 queue:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                       example: scraper-queue
+ *                     waiting:
+ *                       type: integer
+ *                       description: Number of jobs waiting
+ *                     active:
+ *                       type: integer
+ *                       description: Number of jobs currently processing
+ *                     completed:
+ *                       type: integer
+ *                       description: Number of completed jobs
+ *                     failed:
+ *                       type: integer
+ *                       description: Number of failed jobs
+ *       500:
+ *         description: Queue is unhealthy
+ */
+app.get('/health/queue', async (_req, res) => {
   try {
     const [waiting, active, completed, failed] = await Promise.all([
       scraperQueue.getWaitingCount(),
@@ -194,7 +239,7 @@ app.get('/health/queue', async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error('Queue health check failed:', error);
+    logger.error({ error }, 'Queue health check failed');
     res.status(500).json({
       status: 'unhealthy',
       error: 'Failed to get queue status',
@@ -202,7 +247,43 @@ app.get('/health/queue', async (req, res) => {
   }
 });
 
-app.get('/health/token', async (req, res) => {
+/**
+ * @swagger
+ * /health/token:
+ *   get:
+ *     summary: Token refresh service health check
+ *     description: Returns TCAD token refresh service health status and statistics
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Token service status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   enum: [healthy, unhealthy]
+ *                 tokenRefresh:
+ *                   type: object
+ *                   properties:
+ *                     healthy:
+ *                       type: boolean
+ *                     lastRefresh:
+ *                       type: string
+ *                       format: date-time
+ *                     nextRefresh:
+ *                       type: string
+ *                       format: date-time
+ *                     successCount:
+ *                       type: integer
+ *                     failureCount:
+ *                       type: integer
+ *       500:
+ *         description: Failed to get token status
+ */
+app.get('/health/token', async (_req, res) => {
   try {
     const health = tokenRefreshService.getHealth();
     const stats = tokenRefreshService.getStats();
@@ -215,7 +296,7 @@ app.get('/health/token', async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error('Token health check failed:', error);
+    logger.error({ error }, 'Token health check failed');
     res.status(500).json({
       status: 'unhealthy',
       error: 'Failed to get token status',
@@ -223,7 +304,44 @@ app.get('/health/token', async (req, res) => {
   }
 });
 
-app.get('/health/cache', async (req, res) => {
+/**
+ * @swagger
+ * /health/cache:
+ *   get:
+ *     summary: Redis cache health check
+ *     description: Returns Redis cache connection status and statistics
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Cache service status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   enum: [healthy, unhealthy]
+ *                 cache:
+ *                   type: object
+ *                   properties:
+ *                     connected:
+ *                       type: boolean
+ *                     isConnected:
+ *                       type: boolean
+ *                     hits:
+ *                       type: integer
+ *                       description: Number of cache hits
+ *                     misses:
+ *                       type: integer
+ *                       description: Number of cache misses
+ *                     hitRate:
+ *                       type: number
+ *                       description: Cache hit rate percentage
+ *       500:
+ *         description: Failed to get cache status
+ */
+app.get('/health/cache', async (_req, res) => {
   try {
     const healthy = await cacheService.healthCheck();
     const stats = cacheService.getStats();
@@ -236,7 +354,7 @@ app.get('/health/cache', async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error('Cache health check failed:', error);
+    logger.error({ error }, 'Cache health check failed');
     res.status(500).json({
       status: 'unhealthy',
       error: 'Failed to get cache status',
@@ -244,7 +362,37 @@ app.get('/health/cache', async (req, res) => {
   }
 });
 
-app.get('/health/sentry', (req, res) => {
+/**
+ * @swagger
+ * /health/sentry:
+ *   get:
+ *     summary: Sentry error tracking health check
+ *     description: Returns Sentry error tracking service health status
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Sentry service status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: healthy
+ *                 sentry:
+ *                   type: object
+ *                   properties:
+ *                     enabled:
+ *                       type: boolean
+ *                     environment:
+ *                       type: string
+ *                     release:
+ *                       type: string
+ *       500:
+ *         description: Failed to get Sentry status
+ */
+app.get('/health/sentry', (_req, res) => {
   try {
     const health = getSentryHealth();
 
@@ -253,11 +401,57 @@ app.get('/health/sentry', (req, res) => {
       sentry: health,
     });
   } catch (error) {
-    logger.error('Sentry health check failed:', error);
+    logger.error({ error }, 'Sentry health check failed');
     res.status(500).json({
       status: 'unhealthy',
       error: 'Failed to get Sentry status',
     });
+  }
+});
+
+/**
+ * @swagger
+ * /metrics:
+ *   get:
+ *     summary: Prometheus metrics endpoint
+ *     description: Returns application metrics in Prometheus format for scraping
+ *     tags: [Monitoring]
+ *     responses:
+ *       200:
+ *         description: Prometheus metrics
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: |
+ *                 # HELP tcad_scraper_http_requests_total Total number of HTTP requests
+ *                 # TYPE tcad_scraper_http_requests_total counter
+ *                 tcad_scraper_http_requests_total{method="GET",route="/api/properties",status_code="200"} 42
+ */
+app.get('/metrics', async (_req, res) => {
+  try {
+    // Update queue metrics before returning
+    const [waiting, active, completed, failed] = await Promise.all([
+      scraperQueue.getWaitingCount(),
+      scraperQueue.getActiveCount(),
+      scraperQueue.getCompletedCount(),
+      scraperQueue.getFailedCount(),
+    ]);
+
+    await updateQueueMetrics(waiting, active, completed, failed);
+
+    // Get cache stats and update metrics
+    const cacheStats = cacheService.getStats();
+    const { updateCacheMetrics } = await import('./lib/metrics.service');
+    updateCacheMetrics(cacheStats.hits, cacheStats.misses, 0); // Size not tracked yet
+
+    // Return metrics in Prometheus format
+    const metrics = await getMetrics();
+    res.set('Content-Type', 'text/plain; version=0.0.4');
+    res.send(metrics);
+  } catch (error) {
+    logger.error({ error }, 'Failed to generate metrics');
+    res.status(500).send('Failed to generate metrics');
   }
 });
 
@@ -272,8 +466,8 @@ app.use('/', appRouter);
 app.use(sentryErrorHandler());
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  logger.error('Unhandled error:', err);
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  logger.error({ err }, 'Unhandled error');
 
   res.status(500).json({
     error: 'Internal server error',
@@ -282,7 +476,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 });
 
 // 404 handler
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
@@ -313,6 +507,13 @@ const server = app.listen(config.server.port, config.server.host, () => {
   } else {
     logger.info('TCAD token auto-refresh is disabled');
   }
+
+  // Start periodic code complexity analysis
+  logger.info('Starting periodic code complexity analysis...');
+  startPeriodicAnalysis({
+    updateIntervalMs: 3600000, // 1 hour (configurable)
+  });
+  logger.info('Code complexity analysis will run every 1 hour');
 });
 
 // Graceful shutdown
@@ -336,6 +537,9 @@ process.on('SIGTERM', async () => {
   // Cleanup token refresh service
   await tokenRefreshService.cleanup();
 
+  // Stop code complexity analysis
+  stopPeriodicAnalysis();
+
   process.exit(0);
 });
 
@@ -352,6 +556,7 @@ process.on('SIGINT', async () => {
   await scraperQueue.close();
   scheduledJobs.stop();
   await tokenRefreshService.cleanup();
+  stopPeriodicAnalysis();
 
   process.exit(0);
 });

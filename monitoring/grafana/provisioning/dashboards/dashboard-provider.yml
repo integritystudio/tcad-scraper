@@ -1,0 +1,17 @@
+# Grafana Dashboard Provisioning
+# Auto-loads dashboard JSON files on Grafana startup
+
+apiVersion: 1
+
+providers:
+  # TCAD Scraper dashboards
+  - name: 'TCAD Scraper Dashboards'
+    orgId: 1
+    folder: 'TCAD Scraper'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

@@ -1,0 +1,590 @@
+{
+  "dashboard": {
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 1,
+    "id": null,
+    "links": [],
+    "liveNow": false,
+    "panels": [
+      {
+        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "text": {}
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "rate(tcad_scraper_http_requests_total[5m]) * 60",
+            "refId": "A"
+          }
+        ],
+        "title": "HTTP Requests per Minute",
+        "type": "gauge"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "id": 2,
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "sum(rate(tcad_scraper_http_requests_total{status_code=~\"2..\"}[5m])) / sum(rate(tcad_scraper_http_requests_total[5m])) * 100",
+            "refId": "A"
+          }
+        ],
+        "title": "HTTP Success Rate",
+        "type": "gauge"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "tooltip": false,
+                "viz": false,
+                "legend": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        },
+        "id": 3,
+        "options": {
+          "legend": {
+            "calcs": ["mean", "max"],
+            "displayMode": "table",
+            "placement": "right"
+          },
+          "tooltip": {
+            "mode": "multi",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "histogram_quantile(0.50, sum(rate(tcad_scraper_http_request_duration_seconds_bucket[5m])) by (le, route))",
+            "legendFormat": "p50 - {{route}}",
+            "refId": "A"
+          },
+          {
+            "datasource": "Prometheus",
+            "expr": "histogram_quantile(0.95, sum(rate(tcad_scraper_http_request_duration_seconds_bucket[5m])) by (le, route))",
+            "legendFormat": "p95 - {{route}}",
+            "refId": "B"
+          },
+          {
+            "datasource": "Prometheus",
+            "expr": "histogram_quantile(0.99, sum(rate(tcad_scraper_http_request_duration_seconds_bucket[5m])) by (le, route))",
+            "legendFormat": "p99 - {{route}}",
+            "refId": "C"
+          }
+        ],
+        "title": "HTTP Response Time Percentiles by Route",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "Jobs/sec",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 20,
+              "gradientMode": "none",
+              "hideFrom": {
+                "tooltip": false,
+                "viz": false,
+                "legend": false
+              },
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "normal"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 0,
+          "y": 17
+        },
+        "id": 4,
+        "options": {
+          "legend": {
+            "calcs": ["mean", "last"],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "multi",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "rate(tcad_scraper_jobs_total{status=\"completed\"}[5m])",
+            "legendFormat": "Completed",
+            "refId": "A"
+          },
+          {
+            "datasource": "Prometheus",
+            "expr": "rate(tcad_scraper_jobs_total{status=\"failed\"}[5m])",
+            "legendFormat": "Failed",
+            "refId": "B"
+          }
+        ],
+        "title": "Scrape Job Rate by Status",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 50
+                },
+                {
+                  "color": "red",
+                  "value": 100
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 12,
+          "y": 17
+        },
+        "id": 5,
+        "options": {
+          "displayMode": "lcd",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showUnfilled": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_queue_size{status=\"waiting\"}",
+            "legendFormat": "Waiting",
+            "refId": "A"
+          },
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_active_jobs",
+            "legendFormat": "Active",
+            "refId": "B"
+          },
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_queue_size{status=\"failed\"}",
+            "legendFormat": "Failed",
+            "refId": "C"
+          }
+        ],
+        "title": "Queue Status",
+        "type": "bargauge"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 50
+                },
+                {
+                  "color": "green",
+                  "value": 70
+                }
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 26
+        },
+        "id": 6,
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_cache_hit_rate",
+            "refId": "A"
+          }
+        ],
+        "title": "Cache Hit Rate",
+        "type": "gauge"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 1000
+                },
+                {
+                  "color": "red",
+                  "value": 3600
+                }
+              ]
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 6,
+          "y": 26
+        },
+        "id": 7,
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_token_age_seconds",
+            "refId": "A"
+          }
+        ],
+        "title": "TCAD Token Age",
+        "type": "gauge"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 70
+                },
+                {
+                  "color": "red",
+                  "value": 85
+                }
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 12,
+          "y": 26
+        },
+        "id": 8,
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "(nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes) * 100",
+            "refId": "A"
+          }
+        ],
+        "title": "Node.js Heap Usage",
+        "type": "gauge"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 0.1
+                },
+                {
+                  "color": "red",
+                  "value": 1
+                }
+              ]
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 18,
+          "y": 26
+        },
+        "id": 9,
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "nodejs_eventloop_lag_seconds",
+            "refId": "A"
+          }
+        ],
+        "title": "Event Loop Lag",
+        "type": "gauge"
+      }
+    ],
+    "refresh": "10s",
+    "schemaVersion": 36,
+    "style": "dark",
+    "tags": ["tcad-scraper", "overview"],
+    "templating": {
+      "list": []
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "TCAD Scraper - Overview",
+    "uid": "tcad-overview",
+    "version": 1,
+    "weekStart": ""
+  }
+}

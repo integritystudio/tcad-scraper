@@ -1,0 +1,573 @@
+{
+  "dashboard": {
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 1,
+    "id": null,
+    "links": [],
+    "liveNow": false,
+    "panels": [
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 15
+                },
+                {
+                  "color": "red",
+                  "value": 20
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_cyclomatic",
+            "refId": "A"
+          }
+        ],
+        "title": "Average Cyclomatic Complexity",
+        "type": "gauge"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "id": 2,
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_total_lines",
+            "refId": "A"
+          }
+        ],
+        "title": "Total Lines of Code",
+        "type": "gauge"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "id": 3,
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_total_files",
+            "refId": "A"
+          }
+        ],
+        "title": "Total Files",
+        "type": "gauge"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 250
+                },
+                {
+                  "color": "red",
+                  "value": 400
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "id": 4,
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_max_function_lines",
+            "refId": "A"
+          }
+        ],
+        "title": "Largest Function (Lines)",
+        "type": "gauge"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "Lines of Code",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "tooltip": false,
+                "viz": false,
+                "legend": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        },
+        "id": 5,
+        "options": {
+          "legend": {
+            "calcs": ["mean", "last"],
+            "displayMode": "table",
+            "placement": "right"
+          },
+          "tooltip": {
+            "mode": "multi",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_total_lines",
+            "legendFormat": "Total Lines",
+            "refId": "A"
+          },
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_code_lines",
+            "legendFormat": "Code Lines",
+            "refId": "B"
+          },
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_comment_lines",
+            "legendFormat": "Comment Lines",
+            "refId": "C"
+          }
+        ],
+        "title": "Code Growth Over Time",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "Complexity",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "tooltip": false,
+                "viz": false,
+                "legend": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 0,
+          "y": 17
+        },
+        "id": 6,
+        "options": {
+          "legend": {
+            "calcs": ["mean", "last"],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "multi",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_cyclomatic",
+            "legendFormat": "Avg Cyclomatic",
+            "refId": "A"
+          },
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_max_cyclomatic",
+            "legendFormat": "Max Cyclomatic",
+            "refId": "B"
+          }
+        ],
+        "title": "Cyclomatic Complexity Trend",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "Count",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "tooltip": false,
+                "viz": false,
+                "legend": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 12,
+          "y": 17
+        },
+        "id": 7,
+        "options": {
+          "legend": {
+            "calcs": ["mean", "last"],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "multi",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_total_files",
+            "legendFormat": "Total Files",
+            "refId": "A"
+          },
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_total_functions",
+            "legendFormat": "Total Functions",
+            "refId": "B"
+          },
+          {
+            "datasource": "Prometheus",
+            "expr": "tcad_scraper_code_complexity_total_classes",
+            "legendFormat": "Total Classes",
+            "refId": "C"
+          }
+        ],
+        "title": "Codebase Structure",
+        "type": "timeseries"
+      },
+      {
+        "datasource": "Prometheus",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 250
+                },
+                {
+                  "color": "red",
+                  "value": 400
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 26
+        },
+        "id": 8,
+        "options": {
+          "showHeader": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "datasource": "Prometheus",
+            "expr": "topk(10, tcad_scraper_code_complexity_file_lines)",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "title": "Largest Files (Top 10)",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "Value": "Lines",
+                "file": "File Path"
+              }
+            }
+          }
+        ],
+        "type": "table"
+      }
+    ],
+    "refresh": "1m",
+    "schemaVersion": 36,
+    "style": "dark",
+    "tags": ["tcad-scraper", "code-quality", "complexity"],
+    "templating": {
+      "list": []
+    },
+    "time": {
+      "from": "now-7d",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "TCAD Scraper - Code Complexity",
+    "uid": "tcad-code-complexity",
+    "version": 1,
+    "weekStart": ""
+  }
+}

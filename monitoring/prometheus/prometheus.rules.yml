@@ -1,0 +1,325 @@
+# Prometheus Alerting Rules for TCAD Scraper
+# Configurable thresholds for production monitoring
+
+groups:
+  # ===========================================================================
+  # Application Health Alerts
+  # ===========================================================================
+  - name: application_health
+    interval: 30s
+    rules:
+      # High HTTP error rate (5xx errors)
+      - alert: HighServerErrorRate
+        expr: |
+          (
+            sum(rate(tcad_scraper_http_requests_total{status_code=~"5.."}[5m]))
+            /
+            sum(rate(tcad_scraper_http_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: http
+        annotations:
+          summary: "High server error rate detected"
+          description: "Server error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          dashboard: "http://localhost:3000/d/tcad-overview"
+
+      # High HTTP client error rate (4xx errors)
+      - alert: HighClientErrorRate
+        expr: |
+          (
+            sum(rate(tcad_scraper_http_requests_total{status_code=~"4.."}[5m]))
+            /
+            sum(rate(tcad_scraper_http_requests_total[5m]))
+          ) > 0.20
+        for: 10m
+        labels:
+          severity: warning
+          component: http
+        annotations:
+          summary: "High client error rate detected"
+          description: "Client error rate is {{ $value | humanizePercentage }} (threshold: 20%)"
+
+      # Slow HTTP response times
+      - alert: SlowHttpResponses
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(tcad_scraper_http_request_duration_seconds_bucket[5m])) by (le, route)
+          ) > 3
+        for: 10m
+        labels:
+          severity: warning
+          component: http
+        annotations:
+          summary: "Slow HTTP responses on {{ $labels.route }}"
+          description: "95th percentile response time is {{ $value }}s (threshold: 3s)"
+
+  # ===========================================================================
+  # Scraper Performance Alerts
+  # ===========================================================================
+  - name: scraper_performance
+    interval: 30s
+    rules:
+      # High scrape job failure rate
+      - alert: HighScrapeFailureRate
+        expr: |
+          (
+            sum(rate(tcad_scraper_jobs_total{status="failed"}[10m]))
+            /
+            sum(rate(tcad_scraper_jobs_total[10m]))
+          ) > 0.20
+        for: 5m
+        labels:
+          severity: critical
+          component: scraper
+        annotations:
+          summary: "High scrape job failure rate"
+          description: "Failure rate is {{ $value | humanizePercentage }} (threshold: 20%)"
+          runbook: "Check TCAD website availability and authentication tokens"
+
+      # Scraper jobs taking too long
+      - alert: SlowScrapeJobs
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(tcad_scraper_job_duration_seconds_bucket[10m])) by (le)
+          ) > 300
+        for: 15m
+        labels:
+          severity: warning
+          component: scraper
+        annotations:
+          summary: "Scrape jobs are taking too long"
+          description: "95th percentile job duration is {{ $value }}s (threshold: 300s)"
+
+      # No scraping activity
+      - alert: NoScrapingActivity
+        expr: |
+          rate(tcad_scraper_jobs_total[15m]) == 0
+        for: 30m
+        labels:
+          severity: warning
+          component: scraper
+        annotations:
+          summary: "No scraping activity detected"
+          description: "No scrape jobs have been processed in the last 15 minutes"
+
+  # ===========================================================================
+  # Queue Health Alerts
+  # ===========================================================================
+  - name: queue_health
+    interval: 30s
+    rules:
+      # Queue backing up
+      - alert: QueueBackingUp
+        expr: tcad_scraper_queue_size{status="waiting"} > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: queue
+        annotations:
+          summary: "Job queue is backing up"
+          description: "{{ $value }} jobs waiting in queue (threshold: 100)"
+          action: "Consider scaling up workers or investigating slow jobs"
+
+      # Queue critically backed up
+      - alert: QueueCriticallyBackedUp
+        expr: tcad_scraper_queue_size{status="waiting"} > 500
+        for: 5m
+        labels:
+          severity: critical
+          component: queue
+        annotations:
+          summary: "Job queue critically backed up"
+          description: "{{ $value }} jobs waiting in queue (threshold: 500)"
+          action: "URGENT: Scale up workers immediately"
+
+      # Too many failed jobs
+      - alert: HighFailedJobCount
+        expr: tcad_scraper_queue_size{status="failed"} > 50
+        for: 15m
+        labels:
+          severity: warning
+          component: queue
+        annotations:
+          summary: "High number of failed jobs"
+          description: "{{ $value }} failed jobs in queue (threshold: 50)"
+
+  # ===========================================================================
+  # Database Performance Alerts
+  # ===========================================================================
+  - name: database_performance
+    interval: 30s
+    rules:
+      # Slow database queries
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(tcad_scraper_db_query_duration_seconds_bucket[5m])) by (le, operation)
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query time for {{ $labels.operation }} is {{ $value }}s (threshold: 2s)"
+          action: "Review query performance and indexes"
+
+      # High database error rate
+      - alert: HighDatabaseErrorRate
+        expr: |
+          (
+            sum(rate(tcad_scraper_db_queries_total{status="error"}[5m]))
+            /
+            sum(rate(tcad_scraper_db_queries_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "High database error rate"
+          description: "Database error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+  # ===========================================================================
+  # Cache Performance Alerts
+  # ===========================================================================
+  - name: cache_performance
+    interval: 30s
+    rules:
+      # Low cache hit rate
+      - alert: LowCacheHitRate
+        expr: tcad_scraper_cache_hit_rate < 50
+        for: 15m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value }}% (threshold: 50%)"
+          action: "Review cache TTL settings and usage patterns"
+
+      # Cache critically unhealthy
+      - alert: CacheCriticallyUnhealthy
+        expr: tcad_scraper_cache_hit_rate < 20
+        for: 10m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Cache critically unhealthy"
+          description: "Cache hit rate is {{ $value }}% (threshold: 20%)"
+          action: "URGENT: Check Redis connectivity and health"
+
+  # ===========================================================================
+  # External Service Alerts
+  # ===========================================================================
+  - name: external_services
+    interval: 30s
+    rules:
+      # Token refresh failures
+      - alert: TokenRefreshFailures
+        expr: rate(tcad_scraper_token_refresh_total{status="failure"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: token-refresh
+        annotations:
+          summary: "TCAD token refresh failures detected"
+          description: "Token refresh is failing - scraping will stop working"
+          action: "URGENT: Check TCAD authentication and credentials"
+
+      # Token is old
+      - alert: TokenIsOld
+        expr: tcad_scraper_token_age_seconds > 7200  # 2 hours
+        for: 10m
+        labels:
+          severity: warning
+          component: token-refresh
+        annotations:
+          summary: "TCAD authentication token is old"
+          description: "Token age is {{ $value | humanizeDuration }}"
+          action: "Check token refresh service health"
+
+      # High Claude AI error rate
+      - alert: HighClaudeErrorRate
+        expr: |
+          (
+            sum(rate(tcad_scraper_claude_requests_total{status="error"}[5m]))
+            /
+            sum(rate(tcad_scraper_claude_requests_total[5m]))
+          ) > 0.20
+        for: 10m
+        labels:
+          severity: warning
+          component: claude-ai
+        annotations:
+          summary: "High Claude AI error rate"
+          description: "Claude AI error rate is {{ $value | humanizePercentage }}"
+
+  # ===========================================================================
+  # System Resource Alerts
+  # ===========================================================================
+  - name: system_resources
+    interval: 30s
+    rules:
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            nodejs_heap_size_used_bytes
+            /
+            nodejs_heap_size_total_bytes
+          ) > 0.90
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High Node.js memory usage"
+          description: "Heap usage is {{ $value | humanizePercentage }} (threshold: 90%)"
+          action: "Check for memory leaks or increase heap size"
+
+      # Event loop lag
+      - alert: HighEventLoopLag
+        expr: nodejs_eventloop_lag_seconds > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High Node.js event loop lag"
+          description: "Event loop lag is {{ $value }}s (threshold: 1s)"
+          action: "Check for blocking operations or CPU-intensive tasks"
+
+  # ===========================================================================
+  # Code Complexity Alerts (Will be added after implementing complexity metrics)
+  # ===========================================================================
+  - name: code_quality
+    interval: 1h
+    rules:
+      # High cyclomatic complexity
+      - alert: HighCyclomaticComplexity
+        expr: tcad_scraper_code_complexity_cyclomatic > 20
+        for: 1h
+        labels:
+          severity: info
+          component: code-quality
+        annotations:
+          summary: "High cyclomatic complexity detected"
+          description: "Average cyclomatic complexity is {{ $value }} (threshold: 20)"
+          action: "Consider refactoring complex functions"
+
+      # Technical debt increasing
+      - alert: TechnicalDebtIncreasing
+        expr: |
+          delta(tcad_scraper_code_complexity_total_lines[24h]) > 1000
+        for: 1h
+        labels:
+          severity: info
+          component: code-quality
+        annotations:
+          summary: "Significant code growth detected"
+          description: "Code base grew by {{ $value }} lines in 24 hours"
+          action: "Review recent changes for code quality"
