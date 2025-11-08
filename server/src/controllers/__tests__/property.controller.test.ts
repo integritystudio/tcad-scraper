@@ -292,8 +292,17 @@ describe('PropertyController', () => {
           id: '1',
           propertyId: 'PROP-1',
           name: 'John Smith',
+          propType: 'R',
+          city: 'AUSTIN',
           propertyAddress: '123 Main St',
+          assessedValue: 480000,
           appraisedValue: 500000,
+          geoId: 'GEO123',
+          description: 'Residential Property',
+          searchTerm: 'Smith',
+          scrapedAt: new Date('2025-01-01T00:00:00.000Z'),
+          createdAt: new Date('2025-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2025-01-01T00:00:00.000Z'),
         },
       ];
 
@@ -402,9 +411,17 @@ describe('PropertyController', () => {
           id: '1',
           propertyId: 'PROP-1',
           name: 'Luxury Estate',
-          propertyAddress: '100 Rich St',
-          appraisedValue: 750000,
+          propType: 'R',
           city: 'AUSTIN',
+          propertyAddress: '100 Rich St',
+          assessedValue: 720000,
+          appraisedValue: 750000,
+          geoId: 'GEO456',
+          description: 'Luxury Residential Property',
+          searchTerm: 'properties in Austin worth more than $500k',
+          scrapedAt: new Date('2025-01-01T00:00:00.000Z'),
+          createdAt: new Date('2025-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2025-01-01T00:00:00.000Z'),
         },
       ];
 
@@ -425,8 +442,25 @@ describe('PropertyController', () => {
         skip: 0,
         take: 100,
       });
+
+      // Expect transformed snake_case data
       expect(jsonMock).toHaveBeenCalledWith({
-        data: mockProperties,
+        data: [{
+          id: '1',
+          property_id: 'PROP-1',
+          name: 'Luxury Estate',
+          prop_type: 'R',
+          city: 'AUSTIN',
+          property_address: '100 Rich St',
+          assessed_value: 720000,
+          appraised_value: 750000,
+          geo_id: 'GEO456',
+          description: 'Luxury Residential Property',
+          search_term: 'properties in Austin worth more than $500k',
+          scraped_at: '2025-01-01T00:00:00.000Z',
+          created_at: '2025-01-01T00:00:00.000Z',
+          updated_at: '2025-01-01T00:00:00.000Z',
+        }],
         pagination: {
           total: 1,
           limit: 100,
