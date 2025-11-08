@@ -112,15 +112,10 @@ jobs:
         working-directory: ./server
         env:
           NODE_ENV: test
-          DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
-          DATABASE_READ_ONLY_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
-          REDIS_HOST: ${{ env.REDIS_HOST }}
-          REDIS_PORT: ${{ env.REDIS_PORT }}
           SENTRY_DSN: ""
           CLAUDE_API_KEY: "test-key"
-          RUN_INTEGRATION_TESTS: "false"
-        run: npm run test:coverage
-        continue-on-error: true
+        run: npm run test:unit:coverage
+        continue-on-error: false
 
       - name: Upload Coverage Reports
         uses: codecov/codecov-action@v4
@@ -207,7 +202,16 @@ jobs:
           REDIS_PORT: ${{ env.REDIS_PORT }}
           SENTRY_DSN: ""
           CLAUDE_API_KEY: "test-key"
-        run: npm run test -- --testPathPattern=integration
+        run: npm run test:integration:coverage
+        continue-on-error: true
+
+      - name: Upload Integration Coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-coverage-report
+          path: ./server/coverage/integration/
+          retention-days: 7
 
   # Job 4: Cross-Platform Compatibility Tests
   cross-platform-tests:

@@ -3,35 +3,42 @@
  */
 
 import { describe, test, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { ClaudeSearchService } from '../claude.service';
-import Anthropic from '@anthropic-ai/sdk';
 
-// Mock the Anthropic SDK
-jest.mock('@anthropic-ai/sdk');
+// Mock the config module before importing claude.service
+jest.mock('../../config', () => ({
+  config: {
+    claude: {
+      apiKey: 'test-api-key',
+      model: 'claude-3-haiku-20240307',
+      maxTokens: 1024,
+    },
+  },
+}));
+
+// Mock Anthropic SDK
+const mockCreate = jest.fn();
+jest.mock('@anthropic-ai/sdk', () => {
+  return jest.fn().mockImplementation(() => ({
+    messages: {
+      create: mockCreate,
+    },
+  }));
+});
+
+// Import after mocks are set up
+import { ClaudeSearchService } from '../claude.service';
 
 describe('ClaudeSearchService', () => {
   let service: ClaudeSearchService;
-  let mockCreate: jest.Mock;
 
   beforeEach(() => {
     // Reset mocks before each test
     jest.clearAllMocks();
-
-    // Create a mock for the messages.create method
-    mockCreate = jest.fn();
-
-    // Mock the Anthropic constructor
-    (Anthropic as jest.MockedClass<typeof Anthropic>).mockImplementation(() => ({
-      messages: {
-        create: mockCreate,
-      },
-    } as any));
-
     service = new ClaudeSearchService();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('parseNaturalLanguageQuery', () => {
