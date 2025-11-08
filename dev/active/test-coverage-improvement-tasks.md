@@ -1,8 +1,8 @@
 # Test Coverage Improvement - Task List
 
-**Last Updated**: 2025-11-08 14:30 CST (Session 3 Complete)
-**Status**: Phase 3 Complete ✅ - Moving to Phase 4
-**Current Coverage**: 51.72% (Target: 70%)
+**Last Updated**: 2025-11-08 14:50 CST (Session 5 - Test Fixes Complete)
+**Status**: Phase 4 In Progress - Ready for Service Testing ✅
+**Current Coverage**: 34.55% actual (Target: 70%)
 
 ---
 
@@ -13,12 +13,44 @@
 | Phase 1 | 11-15% | ✅ Complete | 84 tests | 3 hours |
 | Phase 2 | 22-25% | ✅ Complete | 65 tests | 3 hours |
 | Phase 3 | 50-55% | ✅ Complete | 58 tests | 2 hours |
-| Phase 4 | 60-70% | 🔶 Next Up | 0 tests | 0 hours |
+| Phase 4 | 60-70% | 🔶 In Progress | 36 tests | 1.5 hours |
 | Phase 5 | 70%+ | ⬜ Not Started | 0 tests | 0 hours |
 
-**Current**: 51.72% coverage (+29.16 from Session 3 start!)
-**Next Milestone**: 60-70% coverage (Service Layer Testing)
-**MAJOR MILESTONE**: >50% coverage achieved! 🎉
+**Current**: 34.55% coverage (356/397 tests passing)
+**Next Milestone**: 60-70% coverage (Continue Service Layer Testing)
+**Session 5 Achievement**: Fixed all property.routes.claude.test.ts failures (26/26 passing) 🎉
+**Session 4 Achievement**: metrics.service.ts 0% → 100% coverage (36 tests)
+
+---
+
+## Session 5 Quick Summary (2025-11-08 14:50)
+
+### ✅ Test Failure Fixes (COMPLETE)
+**File**: `server/src/routes/__tests__/property.routes.claude.test.ts`
+**Achievement**: 6/26 passing → 26/26 passing ✅
+**Time**: 20 minutes
+
+**Root Causes Fixed**:
+1. Missing mocks for redis-cache and scraper.queue
+2. Error handler not added to test app
+3. Test expectations didn't match actual middleware behavior
+4. Prisma mocks not reset between tests (changed beforeAll → beforeEach)
+5. Incorrect test logic for validation boundary cases
+
+**Key Pattern Established**:
+```typescript
+// Always mock BEFORE importing
+jest.mock('../../lib/redis-cache.service');
+jest.mock('../../queues/scraper.queue');
+
+// Import AFTER mocks
+import { propertyRouter } from '../property.routes';
+import { errorHandler } from '../../middleware/error.middleware';
+
+// Add error handler LAST
+app.use('/api/properties', propertyRouter);
+app.use(errorHandler);
+```
 
 ---
 
@@ -413,30 +445,84 @@ const mockPlaywright = {
 ## Phase 4: Service Layer (Target: 60-70% coverage)
 
 **Estimated Time**: 6-8 hours
-**Status**: 🔶 Next Up
+**Status**: 🔶 In Progress (Metrics Service Complete!)
 
-### ⬜ Metrics Service (~565 lines, 0% → 70%+)
-**Impact**: +10-12% coverage
-**Time Estimate**: 2-3 hours
+### ✅ Metrics Service (~610 lines, 0% → 100%)
+**Impact**: +1-2% coverage (isolated service)
+**Actual Time**: 1 hour
+**Status**: ✅ COMPLETE - 100% coverage achieved!
 
-**File to Test**: `src/lib/metrics.service.ts`
+**File Tested**: `server/src/lib/metrics.service.ts`
+**Test File Created**: `server/src/lib/__tests__/metrics.service.test.ts`
+**Tests Written**: 36 comprehensive tests
 
-**Tests to Write**:
-- [ ] POST /api/properties/monitor - Add monitored search
-  - [ ] Happy path - create
-  - [ ] Update existing
-  - [ ] Validation errors
+**Completed Tests**:
+- [x] Registry Tests (2 tests)
+  - [x] Valid registry validation
+  - [x] Prometheus format output
 
-- [ ] GET /api/properties/monitor - List monitored searches
-  - [ ] Happy path with results
-  - [ ] Empty results
-  - [ ] Active only filter
+- [x] HTTP Metrics (3 tests)
+  - [x] Record HTTP requests
+  - [x] Record multiple HTTP requests
+  - [x] Record HTTP request durations
 
-**Mock Examples**:
+- [x] Scrape Job Metrics (4 tests)
+  - [x] Record completed scrape job with properties
+  - [x] Record failed scrape job
+  - [x] Record job durations
+  - [x] Handle completed job without property count
+
+- [x] Queue Metrics (2 tests)
+  - [x] Update queue metrics (waiting, active, completed, failed)
+  - [x] Update queue metrics to zero
+
+- [x] Database Metrics (3 tests)
+  - [x] Record successful database query
+  - [x] Record failed database query
+  - [x] Track different database operations (select, insert, update, delete)
+
+- [x] Cache Metrics (7 tests)
+  - [x] Record cache hit
+  - [x] Record cache miss
+  - [x] Record cache set operations
+  - [x] Record cache delete operations
+  - [x] Update cache metrics with hit rate calculation
+  - [x] Handle zero total for hit rate
+  - [x] Calculate hit rate correctly
+
+- [x] Error Metrics (2 tests)
+  - [x] Record errors by type and source
+  - [x] Track multiple error types
+
+- [x] Code Complexity Metrics (3 tests)
+  - [x] Update all code complexity metrics
+  - [x] Update optional code complexity metrics
+  - [x] Update per-file metrics
+
+- [x] Reset Functionality (2 tests)
+  - [x] Reset all metrics
+  - [x] Allow recording after reset
+
+- [x] Metrics Export (2 tests)
+  - [x] Export metrics in Prometheus format
+  - [x] Include default Node.js metrics
+
+- [x] Edge Cases (4 tests)
+  - [x] Handle zero duration for HTTP requests
+  - [x] Handle large durations
+  - [x] Handle various HTTP status codes (200, 404, 500)
+  - [x] Handle zero queue sizes
+
+- [x] Concurrent Operations (2 tests)
+  - [x] Handle multiple concurrent HTTP requests
+  - [x] Handle multiple scrape jobs
+
+**Key Testing Pattern**:
 ```typescript
-const mockPrisma = {
-  property: {
-    findMany: jest.fn(),
+// Use registry API instead of direct metric access
+const metrics = await getMetrics();
+expect(metrics).toContain('tcad_scraper_http_requests_total');
+expect(metrics).toContain('method="GET"');
     count: jest.fn(),
     aggregate: jest.fn(),
   },

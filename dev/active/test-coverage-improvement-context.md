@@ -1,8 +1,266 @@
 # Test Coverage Improvement - Context Document
 
-**Last Updated**: 2025-11-08 14:30 CST (Session 3 Complete)
-**Status**: Phase 3 Complete - 51.72% Coverage Achieved ✅✅✅
+**Last Updated**: 2025-11-08 14:50 CST (Session 5 - Test Fixes Complete)
+**Status**: Phase 4 In Progress - Ready for Service Layer Testing ✅
 **Next Session Goal**: Continue to 60-70% coverage (Phase 4 - Services Layer)
+
+---
+
+## Session 5 Summary (2025-11-08 Test Failure Fixes)
+
+### FIXED ALL PROPERTY.ROUTES.CLAUDE.TEST.TS FAILURES! 🎉
+
+**Achievement**: 6/26 tests passing → **26/26 tests passing** ✅
+**Time**: ~20 minutes
+**Impact**: Maintained baseline coverage at 34.55%, all route tests now passing
+
+### Root Causes Identified and Fixed
+
+#### 1. Error Response Format Mismatches
+**Problem**: Tests expected custom error formats that didn't match actual middleware
+**Solution**: Updated test expectations to match real middleware behavior
+- Validation errors (Zod): `{error: "Invalid request data", details: [...]}`
+- Server errors: `{error: "Internal server error", message: "..."}`
+
+#### 2. Missing Mock Setup
+**Problem**: Test file missing critical mocks, causing imports to fail
+**Solution**: Added mocks BEFORE route import
+```typescript
+jest.mock('../../lib/redis-cache.service', () => ({
+  cacheService: {
+    getOrSet: jest.fn((key, fn) => fn()),
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock('../../queues/scraper.queue', () => ({
+  scraperQueue: {
+    add: jest.fn().mockResolvedValue({ id: '123' }),
+    getJob: jest.fn().mockResolvedValue(null),
+  },
+  canScheduleJob: jest.fn().mockResolvedValue(true),
+}));
+
+// Import AFTER mocks
+import { propertyRouter } from '../property.routes';
+import { errorHandler } from '../../middleware/error.middleware';
+```
+
+#### 3. Error Handler Missing from Test App
+**Problem**: Error middleware not added to Express test app
+**Solution**: Added error handler AFTER routes (must be last)
+```typescript
+beforeAll(() => {
+  app = express();
+  app.use(express.json());
+  app.use('/api/properties', propertyRouter);
+  app.use(errorHandler); // ✅ Must be last
+});
+```
+
+#### 4. Prisma Mock Configuration Issues
+**Problem**: Nested `beforeAll` blocks weren't properly resetting mocks
+**Solution**: Changed to `beforeEach` with `.mockClear()`:
+```typescript
+beforeEach(() => {
+  const { prismaReadOnly } = require('../../lib/prisma');
+  prismaReadOnly.property.findMany.mockClear();
+  prismaReadOnly.property.count.mockClear();
+
+  prismaReadOnly.property.findMany.mockResolvedValue([...data]);
+  prismaReadOnly.property.count.mockResolvedValue(1);
+});
+```
+
+#### 5. Incorrect Test Logic
+**Test**: "should limit maximum results to 1000"
+**Problem**: Validation middleware rejects limit > 1000, so expecting 200 was wrong
+**Solution**:
+```typescript
+// ❌ BEFORE
+expect(response.status).toBe(200);
+
+// ✅ AFTER
+expect(response.status).toBe(400);
+expect(response.body).toHaveProperty('error', 'Invalid request data');
+```
+
+### Files Modified This Session
+1. `server/src/routes/__tests__/property.routes.claude.test.ts`
+   - Lines 1-50: Added missing mocks (redis-cache, scraper.queue)
+   - Line 58: Added error handler middleware
+   - Lines 70-117: Fixed error response expectations
+   - Lines 130-142: Fixed validation error expectations
+   - Lines 250-260: Fixed limit test logic
+   - Lines 302-314: Fixed error gracefully test
+   - Lines 451-457: Added beforeEach to Edge Cases
+   - Lines 122-147: Changed POST tests to beforeEach
+   - Lines 351-357: Changed Query Types to beforeEach
+
+### Key Lessons Learned
+
+#### 1. Test Mocking Order Matters
+**Rule**: Always mock BEFORE importing modules that use those dependencies
+**Why**: Imports happen at module load time before mocks are set up
+```typescript
+// ✅ CORRECT ORDER
+jest.mock('../../lib/redis-cache.service');
+jest.mock('../../queues/scraper.queue');
+import { propertyRouter } from '../property.routes';
+
+// ❌ WRONG ORDER
+import { propertyRouter } from '../property.routes';
+jest.mock('../../lib/redis-cache.service');
+```
+
+#### 2. Match Actual Middleware Behavior
+**Don't assume** error formats - check the actual middleware implementation
+- Zod validation: `{error: "Invalid request data", details: [...]}`
+- Error middleware: `{error: "Internal server error", message: "..."}`
+
+#### 3. Prisma Mock Reset Patterns
+For integration tests:
+- Use `beforeEach` instead of `beforeAll`
+- Always call `.mockClear()` before `.mockResolvedValue()`
+- Apply to ALL describe blocks (including edge cases)
+
+#### 4. Error Handler Must Be Last
+```typescript
+app.use('/api/properties', propertyRouter);
+app.use(errorHandler); // Must be last in middleware chain
+```
+
+### Current Test Status
+- **Total Tests**: 397 tests
+- **Passing**: 356 tests ✅
+- **Failing**: 40 tests (all in redis-cache.service.test.ts - known issue from Session 4)
+- **Coverage**: 34.55% (baseline maintained)
+
+### No New Blockers! 🎉
+All test fixes completed. Redis cache tests still have the known mock issue from Session 4, but this doesn't affect Phase 4 work.
+
+---
+
+## Session 4 Summary (2025-11-08 Metrics Service Testing)
+
+### METRICS SERVICE - 0% → 100% COVERAGE! 🎉
+
+**File**: `server/src/lib/metrics.service.ts`
+**Coverage Improvement**: 0% → **100%** (all metrics: statements, branches, functions, lines)
+**Tests Added**: 36 comprehensive tests
+**Test File**: `server/src/lib/__tests__/metrics.service.test.ts`
+
+### Key Implementation Details
+
+#### Challenge Discovered
+- Initial approach tried to access internal Prometheus metric objects directly
+- This failed because prom-client library doesn't expose internal hashMap structure in the way expected
+- **Solution**: Use the Prometheus registry's `getMetrics()` API to validate metrics in Prometheus text format
+
+#### Testing Pattern Used
+```typescript
+// ❌ WRONG - Direct internal access doesn't work
+const counterValue = httpRequestsTotal['hashMap']['method:GET,route:/api/properties,status_code:200'].value;
+
+// ✅ CORRECT - Use registry API
+const metrics = await getMetrics();
+expect(metrics).toContain('tcad_scraper_http_requests_total');
+expect(metrics).toContain('method="GET"');
+expect(metrics).toContain('route="/api/properties"');
+```
+
+#### Test Coverage Categories (All 36 Tests)
+1. **Registry Tests** (2 tests)
+   - Registry validation
+   - Prometheus format output
+
+2. **HTTP Metrics** (3 tests)
+   - Request counting
+   - Multiple concurrent requests
+   - Duration histograms
+
+3. **Scrape Job Metrics** (4 tests)
+   - Completed jobs with property counts
+   - Failed jobs
+   - Job duration tracking
+   - Jobs without property counts
+
+4. **Queue Metrics** (2 tests)
+   - Queue size updates (waiting, active, completed, failed)
+   - Zero values handling
+
+5. **Database Metrics** (3 tests)
+   - Successful queries
+   - Failed queries
+   - Multiple operation types (select, insert, update, delete)
+
+6. **Cache Metrics** (7 tests)
+   - Cache hits
+   - Cache misses
+   - Set operations
+   - Delete operations
+   - Hit rate calculations (80% example)
+   - Zero total handling
+   - Various hit rate percentages
+
+7. **Error Metrics** (2 tests)
+   - Errors by type and source
+   - Multiple error types tracking
+
+8. **Code Complexity Metrics** (3 tests)
+   - All standard metrics update
+   - Optional metrics (maintainability index, technical debt ratio)
+   - Per-file metrics
+
+9. **Reset Functionality** (2 tests)
+   - Full metric reset
+   - Recording after reset
+
+10. **Metrics Export** (2 tests)
+    - Prometheus format export
+    - Default Node.js metrics inclusion
+
+11. **Edge Cases** (4 tests)
+    - Zero duration requests
+    - Large duration requests (300s)
+    - Various HTTP status codes (200, 404, 500)
+    - Zero queue sizes
+
+12. **Concurrent Operations** (2 tests)
+    - Multiple concurrent HTTP requests to different routes
+    - Multiple scrape jobs with property counting
+
+### Monitoring Stack Updates
+
+#### Port Conflict Resolution
+- **Issue**: Grafana default port 3000 conflicted with another application
+- **Solution**: Updated `docker-compose.monitoring.yml`
+  - Changed Grafana port mapping: `3000:3000` → `3456:3000`
+  - Updated `GF_SERVER_ROOT_URL` environment variable to `http://localhost:3456`
+- **Status**: Monitoring stack restarted successfully with new port
+
+#### Tailscale Access Configured
+- **Machine IP**: 100.82.64.39 (macbook-air-2)
+- **Grafana**: http://100.82.64.39:3456 (admin/admin)
+- **Prometheus**: http://100.82.64.39:9090
+- **cAdvisor**: http://100.82.64.39:8080
+- **Node Exporter**: http://100.82.64.39:9100/metrics
+
+### Files Modified This Session
+1. ✅ Created `server/src/lib/__tests__/metrics.service.test.ts` (443 lines, 36 tests)
+2. ✅ Updated `docker-compose.monitoring.yml` (Grafana port 3000→3456)
+
+### Background Processes Running
+- Test watcher running for metrics service (2 instances - can clean up one)
+- Docker containers: grafana, prometheus, cadvisor, node-exporter (all healthy)
+
+### Next Steps for Phase 4
+- Continue with other service layer tests
+- Target files with 0% coverage in src/lib/:
+  - `prisma.ts` (0% coverage)
+  - `sentry.service.ts` (0% coverage)
+  - Potentially `redis-cache.service.ts` (20.74% coverage - needs improvement)
 
 ---
 
