@@ -56,6 +56,7 @@
     "test:auth-db:integration": "jest --config jest.integration.config.js src/__tests__/auth-database.integration.test.ts",
     "test:auth-db:watch": "jest --config jest.integration.config.js --watch src/__tests__/auth-database",
     "test:enqueue": "jest --config jest.integration.config.js src/__tests__/enqueue.test.ts",
+    "setup:test-db": "tsx scripts/setup-test-db.ts",
     "test:token-config": "tsx src/scripts/test-api-token-config.ts",
     "test:queue-flow": "tsx src/scripts/test-queue-job-flow.ts",
     "test:token-refresh": "tsx src/scripts/test-token-refresh.ts",
