@@ -21,7 +21,7 @@ fi
 
 # Update Doppler
 echo "📝 Updating Doppler..."
-doppler secrets set TCAD_API_KEY="$NEW_TOKEN" --silent
+doppler secrets set TCAD_API_KEY="$NEW_TOKEN" --project tcad-scraper --config dev --silent 2>/dev/null || echo "   Note: Doppler update skipped (token saved to ~/.env)"
 
 # Update ~/.env file
 echo "📝 Updating ~/.env..."

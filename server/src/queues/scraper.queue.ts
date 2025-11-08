@@ -5,6 +5,7 @@ import winston from 'winston';
 import { prisma } from '../lib/prisma';
 import { config } from '../config';
 import { cacheService } from '../lib/redis-cache.service';
+import { searchTermOptimizer } from '../services/search-term-optimizer';
 
 const logger = winston.createLogger({
   level: config.logging.level,
@@ -154,6 +155,13 @@ scraperQueue.process(config.queue.jobName, config.queue.concurrency, async (job)
       },
     });
 
+    // Update search term analytics for optimization
+    await searchTermOptimizer.updateAnalytics(
+      searchTerm,
+      savedProperties.length,
+      true // wasSuccessful
+    );
+
     // Invalidate caches since new properties were added
     logger.info('Invalidating caches after successful scrape...');
     await Promise.all([
@@ -186,6 +194,14 @@ scraperQueue.process(config.queue.jobName, config.queue.concurrency, async (job)
         completedAt: new Date(),
       },
     });
+
+    // Update search term analytics for failed job
+    await searchTermOptimizer.updateAnalytics(
+      searchTerm,
+      0, // resultCount
+      false, // wasSuccessful
+      error instanceof Error ? error.message : 'Unknown error'
+    );
 
     throw error;
 
