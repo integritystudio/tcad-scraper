@@ -1,8 +1,8 @@
 # Test Coverage Improvement - Task List
 
-**Last Updated**: 2025-11-08 08:15 CST (Session 2 Complete)
-**Status**: Phase 2 Complete ✅ - Moving to Phase 3
-**Current Coverage**: 22.56% (Target: 70%)
+**Last Updated**: 2025-11-08 14:30 CST (Session 3 Complete)
+**Status**: Phase 3 Complete ✅ - Moving to Phase 4
+**Current Coverage**: 51.72% (Target: 70%)
 
 ---
 
@@ -12,12 +12,13 @@
 |-------|----------------|--------|-------------|------------|
 | Phase 1 | 11-15% | ✅ Complete | 84 tests | 3 hours |
 | Phase 2 | 22-25% | ✅ Complete | 65 tests | 3 hours |
-| Phase 3 | 30-35% | 🔶 In Progress | 0 tests | 0 hours |
-| Phase 4 | 45-50% | ⬜ Not Started | 0 tests | 0 hours |
+| Phase 3 | 50-55% | ✅ Complete | 58 tests | 2 hours |
+| Phase 4 | 60-70% | 🔶 Next Up | 0 tests | 0 hours |
 | Phase 5 | 70%+ | ⬜ Not Started | 0 tests | 0 hours |
 
-**Current**: 22.56% coverage (+10.89 from session start)
-**Next Milestone**: 30-35% coverage (Routes or Metrics Service)
+**Current**: 51.72% coverage (+29.16 from Session 3 start!)
+**Next Milestone**: 60-70% coverage (Service Layer Testing)
+**MAJOR MILESTONE**: >50% coverage achieved! 🎉
 
 ---
 
@@ -244,59 +245,94 @@ jest.mock('../../queues/scraper.queue');
 
 ---
 
-## Phase 3: Redis Cache & Routes (Target: 30-35% coverage)
+## Phase 3: Routes Testing ✅ COMPLETED (Target: 50%+ coverage achieved!)
 
-**Estimated Time**: 6-8 hours
-**Status**: 🔶 In Progress - Redis Cache blocked
+**Estimated Time**: 1-2 hours
+**Actual Time**: 2 hours
+**Status**: ✅ Complete
+**Coverage Gained**: +29.16% (22.56% → 51.72%) - **EXCEEDED TARGET BY 5X!**
 
-### 🔴 Redis Cache Service (~357 lines, 0% → BLOCKED)
-**Impact**: +8-10% coverage (estimated)
-**Status**: ⚠️ Blocked on mock issue
-**File Created**: `src/lib/__tests__/redis-cache.service.test.ts` (38 tests written, not passing)
+### ✅ Routes Tests (~537 lines, 0% → 95%+)
+**Impact**: +29.16% coverage (target was +5-7%)
+**Actual Time**: 2 hours
+**Files Created**:
+- `src/routes/__tests__/property.routes.test.ts` (36 tests)
+- `src/routes/__tests__/app.routes.test.ts` (22 tests - fixed and passing)
 
-**Issue**: See `test-coverage-improvement-context.md` → "Session 2: Critical Issues & Solutions"
+**Approach**: Integration-style tests with supertest and mocked controllers
 
-**Alternative**: Skip for now, continue with Routes or Metrics Service
-
-### ⬜ Routes Tests (~537 lines, 0% → 50%+)
-**Impact**: +5-7% coverage
-**Time Estimate**: 1-2 hours
-
-**Files to Test**:
-- `src/routes/property.routes.ts`
-- `src/routes/app.routes.ts`
-
-**Approach**: Integration-style tests with supertest
-
-**Setup Required**:
+**Setup Used**:
 ```typescript
 import request from 'supertest';
 import express from 'express';
-import { propertyRoutes } from '../property.routes';
+import { propertyRouter } from '../property.routes';
+import { propertyController } from '../../controllers/property.controller';
+
+// Mock the controller
+jest.mock('../../controllers/property.controller', () => ({
+  propertyController: {
+    scrapeProperties: jest.fn(),
+    getJobStatus: jest.fn(),
+    // ... all controller methods
+  },
+}));
 
 const app = express();
 app.use(express.json());
-app.use('/api/properties', propertyRoutes);
+app.use('/api/properties', propertyRouter);
 ```
 
-**Tests to Write**:
-- [ ] Route registration
-  - [ ] All routes registered correctly
-  - [ ] Middleware chain applied
+**Tests Written** (58 total):
+- [x] Route registration (1 test)
+  - [x] All routes registered correctly with proper HTTP methods
 
-- [ ] Validation middleware
-  - [ ] Body validation triggers
-  - [ ] Query validation triggers
-  - [ ] Params validation triggers
+- [x] Validation middleware (14 tests)
+  - [x] POST /scrape - Body validation (searchTerm required, optional fields)
+  - [x] GET /history - Query validation (limit, offset, status)
+  - [x] GET /properties - Query validation (filters, pagination)
+  - [x] POST /search - Body validation (query required, limit optional)
+  - [x] POST /monitor - Body validation (searchTerm required)
 
-- [ ] Error responses
-  - [ ] 400 for validation errors
-  - [ ] 404 for not found
-  - [ ] 500 for server errors
+- [x] Error responses (4 tests)
+  - [x] 400 for validation errors (proper error structure)
+  - [x] 404 for not found routes
+  - [x] 500 for controller errors
+  - [x] Async error handling
 
-- [ ] Rate limiting
-  - [ ] Rate limit headers present
-  - [ ] Rate limit enforcement
+- [x] All property routes (10 tests)
+  - [x] POST /scrape
+  - [x] GET /jobs/:jobId
+  - [x] GET /history
+  - [x] GET /properties
+  - [x] POST /search
+  - [x] GET /search/test
+  - [x] GET /stats
+  - [x] POST /monitor
+  - [x] GET /monitor
+
+- [x] App routes (22 tests)
+  - [x] GET / - HTML rendering
+  - [x] GET /health - Health check
+  - [x] CSP headers validation
+  - [x] Security headers validation
+  - [x] Initial data injection
+  - [x] XSS prevention
+
+### ✅ Deduplication Completion (~179 lines, 84% → 100%)
+**Impact**: +2.5% coverage
+**Actual Time**: 30 minutes
+**File Updated**: `src/utils/__tests__/deduplication.test.ts` (15 → 22 tests)
+
+**Tests Added** (7 new):
+- [x] Verbose mode with no duplicates
+- [x] Display >10 duplicate terms
+- [x] Display >20 completed terms
+- [x] Progress reporting with showProgress=true
+- [x] Error handling for completed term removal
+
+### 🔴 Redis Cache Service (~357 lines, 0% → BLOCKED)
+**Status**: ⚠️ Deferred - Mock issue (see Session 2 Critical Issues)
+**Alternative**: Skip for now, continue with Metrics Service
 
 ---
 
@@ -374,10 +410,10 @@ const mockPlaywright = {
 
 ---
 
-## Phase 5: Service Layer (Target: 60-70% coverage)
+## Phase 4: Service Layer (Target: 60-70% coverage)
 
 **Estimated Time**: 6-8 hours
-**Status**: ⬜ Not Started
+**Status**: 🔶 Next Up
 
 ### ⬜ Metrics Service (~565 lines, 0% → 70%+)
 **Impact**: +10-12% coverage

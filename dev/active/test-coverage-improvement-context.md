@@ -1,14 +1,49 @@
 # Test Coverage Improvement - Context Document
 
-**Last Updated**: 2025-11-08 08:15 CST (Session 2 Complete)
-**Status**: Phase 2 Complete - 22.56% Coverage Achieved ✅
-**Next Session Goal**: Continue to 30-35% coverage (Phase 3 - Redis Cache & Routes)
+**Last Updated**: 2025-11-08 14:30 CST (Session 3 Complete)
+**Status**: Phase 3 Complete - 51.72% Coverage Achieved ✅✅✅
+**Next Session Goal**: Continue to 60-70% coverage (Phase 4 - Services Layer)
 
 ---
 
-## Session 2 Summary (2025-11-08 Continuation)
+## Session 3 Summary (2025-11-08 Routes Testing)
 
-### Major Accomplishments
+### MAJOR BREAKTHROUGH - Coverage More Than Doubled!
+
+**Coverage Improvement**: 22.56% → **51.72%** (+129% increase!)
+- **Statement Coverage**: 22.56% → **51.72%** (+29.16 points) 🚀
+- **Branch Coverage**: 21.38% → 39.3% (+17.92 points)
+- **Function Coverage**: 27.73% → 49.6% (+21.87 points)
+- **Line Coverage**: 22.19% → 51.43% (+29.24 points)
+
+**Tests Added**: 229 passing → **287 passing** (+58 new tests)
+**Test Suites**: 10 passing → **12 passing** (+2 route test files)
+**Test Failures**: 0 (all tests passing cleanly)
+
+### Routes Tested (Session 3)
+1. **`src/routes/__tests__/property.routes.test.ts`** - 36 NEW tests
+   - All 10 property API routes tested comprehensively
+   - Validation middleware tested (400 errors)
+   - 404 handling tested
+   - Error handling tested (500 errors)
+   - Route registration verified
+
+2. **`src/routes/__tests__/app.routes.test.ts`** - 22 FIXED tests
+   - Main application route (/)
+   - Health check endpoint
+   - CSP headers and nonce generation
+   - Security headers validation
+   - Initial data injection
+   - XSS prevention
+
+3. **`src/utils/__tests__/deduplication.test.ts`** - Updated to **100% coverage** (22 tests)
+   - Added 7 new tests for verbose mode, progress reporting, error handling
+   - Achieved 100% statement coverage (was 84.37%)
+
+### Files Achieving 100% Coverage (Session 3)
+1. ✅ `src/utils/deduplication.ts` - 22 tests, 100% statement coverage (improved from 84%)
+
+### Session 2 Summary (2025-11-08 Continuation)
 
 **Coverage Improvement**: 11.67% → 22.56% (+93% increase)
 - Statement Coverage: 11.67% → 22.56% (+10.89 points)
@@ -18,12 +53,11 @@
 
 **Tests Added**: 165 passing → 229 passing (+64 new tests)
 **Test Suites**: 9 passing → 10 passing (+1 new test file)
-**Test Failures**: 0 (all tests passing cleanly)
 
 ### Files Achieving 100% Coverage (Session 2)
 1. `src/controllers/property.controller.ts` - 18 tests, 100% statement coverage
 2. `src/utils/json-ld.utils.ts` - 51 tests total (32 added), 100% statement coverage
-3. `src/utils/deduplication.ts` - 15 tests, 84.37% statement coverage
+3. `src/utils/deduplication.ts` - 15 tests, 84.37% statement coverage (now 100% in Session 3!)
 
 ### Session 1 Summary (2025-11-08 Initial)
 
@@ -366,58 +400,133 @@ coverageThreshold: {
 
 ## Roadmap to 70% Coverage
 
-### Phase 1: Completed ✅ (11.67% achieved)
+### Phase 1: ✅ COMPLETED (11.67% achieved)
 - ✅ All middleware files (99.16% coverage)
-- ✅ JSON-LD utilities (28.84% coverage)
+- ✅ JSON-LD utilities (100% coverage - completed Session 2)
 - ✅ Search term constants (8.75% coverage)
 
-### Phase 2: High-Impact Targets (Target: 35-40%)
-**Estimated**: 4-6 hours
-1. Property Controller (~328 lines) → +8-10%
-2. TCAD Scraper (~653 lines) → +15-18%
-3. Routes (~537 lines) → +5-7%
+### Phase 2: ✅ COMPLETED (22.56% achieved)
+- ✅ Property Controller (100% coverage) - 18 tests
+- ✅ JSON-LD Utils completion (100% coverage) - 51 tests total
+- ✅ Deduplication Utils (84% → 100% coverage) - 22 tests
 
-### Phase 3: Service Layer (Target: 55-60%)
+### Phase 3: ✅ COMPLETED (51.72% achieved) 🎉
+- ✅ Routes (~537 lines) → **+29.16%** (exceeded target of +5-7% by 5x!)
+  - property.routes.ts: 36 tests
+  - app.routes.ts: 22 tests (fixed and passing)
+- ✅ Deduplication completion (100% coverage) - 7 additional tests
+
+**MAJOR MILESTONE: >50% coverage achieved!**
+
+### Phase 4: Service Layer (Target: 60-70%)
 **Estimated**: 6-8 hours
-4. Redis Cache Service (~357 lines) → +8-10%
-5. Metrics Service (~565 lines) → +10-12%
-6. Token Refresh Service (~329 lines) → +6-8%
+**Status**: ⏳ NEXT UP
+1. Metrics Service (~565 lines) → +10-12%
+2. Token Refresh Service (~329 lines) → +6-8%
+3. Sentry Service (~328 lines) → +6-8%
+4. Redis Cache Service (~357 lines) → +8-10% (has blocker - see below)
 
-### Phase 4: Final Push (Target: 70%+)
-**Estimated**: 4-6 hours
-7. Complete JSON-LD Utils (28.84% → 70%+) → +3-4%
-8. Deduplication Utils (~179 lines) → +4-5%
-9. Queue Operations (~240 lines) → +5-6%
+### Phase 5: Final Push to 70%+ (Target: 70%+)
+**Estimated**: 2-4 hours
+5. Queue Operations (~240 lines) → +5-6%
+6. Scraper Scheduler (~200 lines) → +3-4%
+7. Code Complexity Service → +2-3%
 
-**Total Time to 70%**: 14-20 hours across multiple sessions
+**Revised Time to 70%**: 8-12 hours remaining (down from original 14-20)
 
 ---
 
 ## Key Learnings for Future Tests
 
-### 1. Start with Pure Functions
+### Session 3: Route Testing Patterns
+
+#### 1. Supertest for Route Testing
+**Pattern**: Use supertest with mocked controllers for comprehensive route testing
+```typescript
+import request from 'supertest';
+import express from 'express';
+import { propertyRouter } from '../property.routes';
+
+const app = express();
+app.use(express.json());
+app.use('/api/properties', propertyRouter);
+
+// Mock the controller
+jest.mock('../../controllers/property.controller');
+
+// Test routes
+await request(app)
+  .post('/api/properties/scrape')
+  .send({ searchTerm: 'Smith' })
+  .expect(202);
+```
+
+#### 2. Validation Error Response Structure
+**Discovery**: Zod validation middleware returns consistent error structure
+```typescript
+// Actual error response format
+{
+  "error": "Invalid request data",
+  "details": [
+    { "message": "Required", "path": "searchTerm" }
+  ]
+}
+
+// Test assertion
+expect(response.body).toHaveProperty('error', 'Invalid request data');
+expect(response.body).toHaveProperty('details');
+```
+
+#### 3. Route Registration Testing
+**Pattern**: Verify routes are registered with correct HTTP methods
+```typescript
+const routes = propertyRouter.stack
+  .filter(layer => layer.route)
+  .map(layer => ({
+    path: layer.route.path,
+    methods: Object.keys(layer.route.methods),
+  }));
+
+expect(routes).toContainEqual({ path: '/scrape', methods: ['post'] });
+```
+
+#### 4. Jest Config for Routes Tests
+**Issue**: Routes were being ignored by `testPathIgnorePatterns`
+**Solution**: Remove `/src/routes/__tests__/` from ignore patterns
+```javascript
+testPathIgnorePatterns: [
+  '/node_modules/',
+  '\\.integration\\.test\\.ts$',
+  // DO NOT include '/src/routes/__tests__/' here
+],
+```
+
+### General Testing Patterns
+
+#### 1. Start with Pure Functions
 Pure functions (no I/O, no side effects) are easiest to test and provide quick coverage gains.
 
-### 2. Middleware is High-Value
-Middleware files are:
-- Isolated (few dependencies)
-- Well-defined inputs/outputs
-- Critical to security and performance
-- Easy to achieve 100% coverage
+#### 2. Routes are High-Value Targets
+Route testing provides excellent coverage gains because:
+- Tests validation middleware
+- Tests controller integration
+- Tests error handling
+- Tests HTTP response codes
+- **Result**: +29% coverage from one test file!
 
-### 3. Mock Early, Mock Often
+#### 3. Mock Early, Mock Often
 Set up comprehensive mocks before writing tests. Better to over-mock initially than deal with real dependencies.
 
-### 4. Test Happy Paths First
+#### 4. Test Happy Paths First
 For quick coverage gains, test successful scenarios before edge cases and error handling.
 
-### 5. Use TypeScript Strict Mode
+#### 5. Use TypeScript Strict Mode
 Strict typing catches issues in tests before runtime:
 ```typescript
 mockReq as Request  // Type assertions are your friend
 ```
 
-### 6. Group Related Tests
+#### 6. Group Related Tests
 Use nested `describe` blocks for organization:
 ```typescript
 describe('Module', () => {
@@ -434,71 +543,87 @@ describe('Module', () => {
 
 ---
 
-## Uncommitted Changes
+## Git Commits (All Sessions)
 
-### All Changes Committed
-No uncommitted changes. All test files and documentation updates should be committed before context reset.
-
-### Recommended Commit Message
+### Session 3 Commits ✅
 ```
-test: increase coverage from 5.46% to 11.67% (+114%)
+Commit 394170d: test: add comprehensive routes testing with supertest (+29.16% coverage)
+- Created property.routes.test.ts with 36 passing tests
+- Fixed app.routes.test.ts (22 passing tests)
+- Updated jest.config.js to enable routes tests
+- Coverage: 22.56% → 51.72% (+29.16 points)
+```
 
+```
+Commit 5aed536: test: improve deduplication test coverage from 84% to 100%
+- Added 7 new tests (15 → 22 tests total)
+- Achieve 100% statement coverage
+- Coverage improvements across all metrics
+```
+
+### Session 2 Commits ✅
+```
+Commit: test: Phase 2 complete - Property Controller, JSON-LD, Deduplication
+- Property controller at 100% coverage (18 tests)
+- JSON-LD utils at 100% coverage (51 tests)
+- Deduplication at 84% coverage (15 tests)
+- Coverage: 11.67% → 22.56% (+10.89 points)
+```
+
+### Session 1 Commits ✅
+```
+Commit: test: increase coverage from 5.46% to 11.67% (+114%)
 - Add comprehensive middleware tests (99.16% coverage)
-  - auth.ts: 24 tests (100% coverage)
-  - error.middleware.ts: 12 tests (100% coverage)
-  - validation.middleware.ts: 21 tests (100% coverage)
-  - metrics.middleware.ts: 13 tests (100% coverage)
-
-- Add utility tests
-  - json-ld.utils.ts: 19 tests (28.84% coverage)
-  - search-term-optimizer.ts: 6 tests (8.75% coverage)
-
-- Update TEST-STATUS.md with:
-  - Session summary and accomplishments
-  - Detailed roadmap to 70% coverage
-  - Phase-by-phase breakdown
-
-Total: 84 new tests, 9 passing test suites
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
+- All middleware at 100% coverage
+- Total: 84 new tests, 9 passing test suites
 ```
 
 ---
 
-## Context for Next Developer/Session
+## Context for Next Developer/Session (Session 4)
 
 ### Current State
+- **MAJOR MILESTONE: 51.72% coverage achieved!** 🎉
 - All middleware fully tested (99%+ coverage)
+- All routes comprehensively tested (58 tests)
+- Property controller at 100% coverage
+- JSON-LD utils at 100% coverage
+- Deduplication at 100% coverage
 - Test infrastructure solidified
-- Testing patterns established
 - Clear roadmap to 70% coverage documented
 
-### What to Do Next (Session 3)
-1. Read this context document
-2. Review `docs/TEST-STATUS.md` for detailed roadmap
-3. **PRIORITY**: Fix Redis Cache Service mock issue (see below)
-4. Continue with Phase 3 testing (routes or alternative targets)
-5. Follow established testing patterns from controller/utils tests
+### What to Do Next (Session 4)
+1. Read this context document for Session 3 achievements
+2. Review `docs/TEST-STATUS.md` for updated roadmap
+3. **PRIORITY**: Continue Phase 4 - Service Layer Testing
+   - Metrics Service (~565 lines) → +10-12% coverage
+   - Token Refresh Service (~329 lines) → +6-8% coverage
+   - Sentry Service (~328 lines) → +6-8% coverage
+4. **OPTIONAL**: Fix Redis Cache Service mock issue (has blocker - see Session 2 notes)
+5. Follow established patterns from routes and controller tests
 
 ### Quick Start Commands
 ```bash
-# Verify current state
+# Verify current state (should show ~51.72% coverage)
 cd /Users/alyshialedlie/code/ISPublicSites/tcad-scraper/server
 npm test -- --coverage
 
-# Check Redis cache test (needs mock fix)
-npm test -- --testPathPattern="redis-cache.service"
+# Check routes tests (should have 58 passing tests)
+npm test -- --testPathPattern="routes"
+
+# Use routes tests as reference for comprehensive testing
+code src/routes/__tests__/property.routes.test.ts
 
 # Use property controller tests as reference for service mocking
 code src/controllers/__tests__/property.controller.test.ts
 ```
 
 ### Important Files to Reference
+- `src/routes/__tests__/property.routes.test.ts` - Comprehensive route testing with supertest
+- `src/routes/__tests__/app.routes.test.ts` - Security headers and CSP testing
 - `src/controllers/__tests__/property.controller.test.ts` - Service mocking example
-- `src/utils/__tests__/deduplication.test.ts` - Queue mocking pattern
-- `src/utils/__tests__/json-ld.utils.test.ts` - Pure function testing
+- `src/utils/__tests__/deduplication.test.ts` - Queue mocking pattern (100% coverage)
+- `src/utils/__tests__/json-ld.utils.test.ts` - Pure function testing (100% coverage)
 - `docs/TEST-STATUS.md` - Roadmap and status
 - `jest.config.js` - Test configuration
 
