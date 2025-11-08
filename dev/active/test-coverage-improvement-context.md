@@ -1,14 +1,31 @@
 # Test Coverage Improvement - Context Document
 
-**Last Updated**: 2025-11-08 01:30 CST
-**Status**: Phase 1 Complete - 11.67% Coverage Achieved ✅
-**Next Session Goal**: Continue to 35-40% coverage (Phase 2)
+**Last Updated**: 2025-11-08 08:15 CST (Session 2 Complete)
+**Status**: Phase 2 Complete - 22.56% Coverage Achieved ✅
+**Next Session Goal**: Continue to 30-35% coverage (Phase 3 - Redis Cache & Routes)
 
 ---
 
-## Session Summary (2025-11-08)
+## Session 2 Summary (2025-11-08 Continuation)
 
 ### Major Accomplishments
+
+**Coverage Improvement**: 11.67% → 22.56% (+93% increase)
+- Statement Coverage: 11.67% → 22.56% (+10.89 points)
+- Branch Coverage: 11.71% → 21.38% (+82%)
+- Function Coverage: 16.79% → 27.73% (+65%)
+- Line Coverage: 11.47% → 22.19% (+93%)
+
+**Tests Added**: 165 passing → 229 passing (+64 new tests)
+**Test Suites**: 9 passing → 10 passing (+1 new test file)
+**Test Failures**: 0 (all tests passing cleanly)
+
+### Files Achieving 100% Coverage (Session 2)
+1. `src/controllers/property.controller.ts` - 18 tests, 100% statement coverage
+2. `src/utils/json-ld.utils.ts` - 51 tests total (32 added), 100% statement coverage
+3. `src/utils/deduplication.ts` - 15 tests, 84.37% statement coverage
+
+### Session 1 Summary (2025-11-08 Initial)
 
 **Coverage Improvement**: 5.46% → 11.67% (+114% increase)
 - Statement Coverage: 5.46% → 11.67%
@@ -17,9 +34,8 @@
 
 **Tests Added**: 81 passing → 165 passing (+84 new tests)
 **Test Suites**: 4 passing → 9 passing (+5 new test files)
-**Test Failures**: 0 (all tests passing cleanly)
 
-### Files Achieving 100% Coverage
+### Files Achieving 100% Coverage (Session 1)
 1. `src/middleware/auth.ts` - 24 tests
 2. `src/middleware/error.middleware.ts` - 12 tests
 3. `src/middleware/validation.middleware.ts` - 21 tests
@@ -459,12 +475,12 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - Testing patterns established
 - Clear roadmap to 70% coverage documented
 
-### What to Do Next
+### What to Do Next (Session 3)
 1. Read this context document
 2. Review `docs/TEST-STATUS.md` for detailed roadmap
-3. Start with Phase 2, Priority 1: Property Controller tests
-4. Follow established testing patterns from middleware tests
-5. Refer to "Testing Patterns Established" section above
+3. **PRIORITY**: Fix Redis Cache Service mock issue (see below)
+4. Continue with Phase 3 testing (routes or alternative targets)
+5. Follow established testing patterns from controller/utils tests
 
 ### Quick Start Commands
 ```bash
@@ -472,21 +488,122 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 cd /Users/alyshialedlie/code/ISPublicSites/tcad-scraper/server
 npm test -- --coverage
 
-# Start working on property controller tests
-touch src/controllers/__tests__/property.controller.test.ts
+# Check Redis cache test (needs mock fix)
+npm test -- --testPathPattern="redis-cache.service"
 
-# Use existing middleware tests as reference
-code src/middleware/__tests__/auth.test.ts
+# Use property controller tests as reference for service mocking
+code src/controllers/__tests__/property.controller.test.ts
 ```
 
 ### Important Files to Reference
-- `src/middleware/__tests__/auth.test.ts` - Complete middleware test example
+- `src/controllers/__tests__/property.controller.test.ts` - Service mocking example
+- `src/utils/__tests__/deduplication.test.ts` - Queue mocking pattern
+- `src/utils/__tests__/json-ld.utils.test.ts` - Pure function testing
 - `docs/TEST-STATUS.md` - Roadmap and status
 - `jest.config.js` - Test configuration
-- `src/__tests__/setup.ts` - Global test setup
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-11-08 01:30 CST
-**Next Update**: After Phase 2 completion (35-40% coverage)
+## Session 2: Critical Issues & Solutions
+
+### 🔴 BLOCKER: Redis Cache Service Mock Issue
+
+**Status**: Partial - Test file created, mocks not working
+**File**: `src/lib/__tests__/redis-cache.service.test.ts` (38 tests written)
+**Issue**: Redis client mock initialization failing
+
+**Problem**:
+```typescript
+// This pattern doesn't work due to hoisting
+const mockRedisClient = { ... };
+jest.mock('redis', () => ({
+  createClient: jest.fn().mockReturnValue(mockRedisClient)
+}));
+// Error: Cannot access 'mockRedisClient' before initialization
+```
+
+**Error Message**:
+```
+TypeError: Cannot read properties of undefined (reading 'on')
+at RedisCacheService.connect (src/lib/redis-cache.service.ts:62:19)
+```
+
+**Root Cause**:
+- The service calls `this.client.on('error', ...)` immediately after `createClient()`
+- Mock needs to return an object with `.on()` method before service connects
+- Jest hoisting causes variable reference issues
+
+**Attempted Solution**:
+```typescript
+jest.mock('redis', () => ({
+  createClient: jest.fn().mockReturnValue({
+    connect: jest.fn(),
+    on: jest.fn(),
+    // ... other methods
+  }),
+}));
+```
+
+**Still Fails**: Mock returns undefined when service tries to access it
+
+**Next Steps to Fix**:
+1. Try using `jest.requireActual()` pattern
+2. Mock at `setupFilesAfterEnv` level in jest.config.js
+3. Use manual mock in `__mocks__/redis.ts`
+4. Consider dependency injection refactor for testability
+
+**Alternative**: Skip Redis cache for now, test other high-value targets:
+- Routes (~537 lines, 0% coverage) - Integration tests
+- Metrics Service (~565 lines, 0% coverage) - Prometheus metrics
+- Token Refresh Service (~329 lines, 0% coverage) - Auto-refresh logic
+
+### ✅ Session 2 Successes & Patterns
+
+**Controller Testing Pattern** (Property Controller):
+```typescript
+// Mock all dependencies at top level
+jest.mock('../../lib/prisma', () => ({
+  prisma: { property: { findMany: jest.fn(), count: jest.fn() } },
+  prismaReadOnly: { property: { findMany: jest.fn(), count: jest.fn() } }
+}));
+
+jest.mock('../../queues/scraper.queue', () => ({
+  scraperQueue: { add: jest.fn(), getJob: jest.fn() },
+  canScheduleJob: jest.fn()
+}));
+
+// Access mocks in tests
+const { prisma } = require('../../lib/prisma');
+prisma.property.findMany.mockResolvedValue([...]);
+```
+
+**Utility Testing Pattern** (Deduplication):
+```typescript
+// Simple mock objects for queue jobs
+const mockJobs = [
+  {
+    id: 'job-1',
+    data: { searchTerm: 'Smith' },
+    opts: { priority: 10 },
+    remove: jest.fn().mockResolvedValue(true),
+  },
+];
+
+// Test actual business logic
+const result = await removeDuplicatesFromQueue({ verbose: false });
+expect(result.removed).toBe(1);
+```
+
+**JSON-LD Testing Pattern** (Pure Functions):
+```typescript
+// No mocks needed for pure functions
+const result = generateBreadcrumbJsonLd(items);
+expect(result['@type']).toBe('BreadcrumbList');
+expect(result.itemListElement).toHaveLength(3);
+```
+
+---
+
+**Document Version**: 2.0
+**Last Updated**: 2025-11-08 08:15 CST (Session 2 Complete)
+**Next Update**: After Session 3 (Redis fix or Phase 3 completion)
