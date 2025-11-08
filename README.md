@@ -1159,9 +1159,11 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[REFACTORING-SUMMARY.md](REFACTORING-SUMMARY.md)** - Recent refactoring summary
 - **[doppler-setup.md](docs/doppler-setup.md)** - Doppler CLI installation and configuration
 
+---
+
 ## Contributing
 
-Server Configuration and Archicture: Micah Linsay
+Server Configuration and Architecture: Micah Linsay
 Front-end Architecture and initial tcad scraping logic: John Skelton
 Authentication, API, Queue Management & Batch Optimization: Alyshia Ledlie
 

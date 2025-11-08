@@ -4,6 +4,7 @@
 
 import { Router, Request, Response } from 'express';
 import {
+import logger from '../lib/logger';
   nonceMiddleware,
   cspMiddleware,
   generateSecureHtml,
