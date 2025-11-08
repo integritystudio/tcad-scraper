@@ -143,7 +143,7 @@ export declare const config: {
         };
     };
     readonly claude: {
-        readonly apiKey: string | undefined;
+        readonly apiKey: any;
         readonly model: string;
         readonly maxTokens: number;
         readonly timeout: number;
@@ -310,7 +310,7 @@ export declare const scraperConfig: {
     };
 };
 export declare const claudeConfig: {
-    readonly apiKey: string | undefined;
+    readonly apiKey: any;
     readonly model: string;
     readonly maxTokens: number;
     readonly timeout: number;
