@@ -338,6 +338,30 @@ describe('removeDuplicatesFromQueue', () => {
       expect(result.failed).toBe(2);
       expect(result.removed).toBe(0);
     });
+
+    it('should handle failures when removing completed terms', async () => {
+      // Use only one job to avoid duplicate removal logic
+      const mockJobs = [
+        {
+          id: 'job-1',
+          data: { searchTerm: 'CompletedTerm' },
+          opts: { priority: 10 },
+          remove: jest.fn().mockRejectedValue(new Error('Remove failed for completed term')),
+        },
+      ];
+
+      scraperQueue.getWaiting.mockResolvedValue(mockJobs);
+      scraperQueue.getDelayed.mockResolvedValue([]);
+      prisma.scrapeJob.findMany.mockResolvedValue([
+        { searchTerm: 'CompletedTerm' },
+      ]);
+
+      const result = await removeDuplicatesFromQueue({ verbose: true, showProgress: false });
+
+      expect(result.failed).toBe(1);
+      expect(result.removed).toBe(0);
+      expect(logger.error).toHaveBeenCalled();
+    });
   });
 
   describe('verbose logging', () => {
@@ -379,6 +403,18 @@ describe('removeDuplicatesFromQueue', () => {
       expect(logger.info).not.toHaveBeenCalled();
     });
 
+    it('should log "No duplicates found" when verbose and queue is clean', async () => {
+      scraperQueue.getWaiting.mockResolvedValue([]);
+      scraperQueue.getDelayed.mockResolvedValue([]);
+      prisma.scrapeJob.findMany.mockResolvedValue([]);
+
+      await removeDuplicatesFromQueue({ verbose: true });
+
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('No duplicates or completed terms found')
+      );
+    });
+
     it('should log errors for failed removals when verbose', async () => {
       const mockJobs = [
         {
@@ -402,6 +438,145 @@ describe('removeDuplicatesFromQueue', () => {
       await removeDuplicatesFromQueue({ verbose: true, showProgress: false });
 
       expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('should show "... and X more" when more than 10 duplicate terms', async () => {
+      // Create 15 different search terms, each with 2 duplicate jobs
+      const mockJobs = [];
+      for (let i = 0; i < 15; i++) {
+        mockJobs.push(
+          {
+            id: `job-${i}-1`,
+            data: { searchTerm: `Term${i}` },
+            opts: { priority: 10 },
+            remove: jest.fn().mockResolvedValue(true),
+          },
+          {
+            id: `job-${i}-2`,
+            data: { searchTerm: `Term${i}` },
+            opts: { priority: 15 },
+            remove: jest.fn().mockResolvedValue(true),
+          }
+        );
+      }
+
+      scraperQueue.getWaiting.mockResolvedValue(mockJobs);
+      scraperQueue.getDelayed.mockResolvedValue([]);
+      prisma.scrapeJob.findMany.mockResolvedValue([]);
+
+      await removeDuplicatesFromQueue({ verbose: true, showProgress: true });
+
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('... and 5 more')
+      );
+    });
+
+    it('should show "... and X more" when more than 20 completed terms', async () => {
+      // Create 25 different completed terms, each with 1 pending job
+      const mockJobs = [];
+      const completedTerms = [];
+      for (let i = 0; i < 25; i++) {
+        mockJobs.push({
+          id: `job-${i}`,
+          data: { searchTerm: `CompletedTerm${i}` },
+          opts: { priority: 10 },
+          remove: jest.fn().mockResolvedValue(true),
+        });
+        completedTerms.push({ searchTerm: `CompletedTerm${i}` });
+      }
+
+      scraperQueue.getWaiting.mockResolvedValue(mockJobs);
+      scraperQueue.getDelayed.mockResolvedValue([]);
+      prisma.scrapeJob.findMany.mockResolvedValue(completedTerms);
+
+      await removeDuplicatesFromQueue({ verbose: true, showProgress: true });
+
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('... and 5 more')
+      );
+    });
+  });
+
+  describe('progress reporting', () => {
+    it('should show progress when showProgress is true and removing many jobs', async () => {
+      // Create enough duplicate jobs to trigger progress reporting (10+ removals)
+      const mockJobs = [];
+      for (let i = 0; i < 12; i++) {
+        mockJobs.push(
+          {
+            id: `job-${i}-1`,
+            data: { searchTerm: 'DuplicateTerm' },
+            opts: { priority: 10 },
+            remove: jest.fn().mockResolvedValue(true),
+          }
+        );
+      }
+
+      // Mock process.stdout.write to verify progress output
+      const stdoutWriteSpy = jest.spyOn(process.stdout, 'write').mockImplementation();
+
+      scraperQueue.getWaiting.mockResolvedValue(mockJobs);
+      scraperQueue.getDelayed.mockResolvedValue([]);
+      prisma.scrapeJob.findMany.mockResolvedValue([]);
+
+      await removeDuplicatesFromQueue({ verbose: true, showProgress: true });
+
+      // Should have written progress at 10 removals
+      expect(stdoutWriteSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Progress: 10/')
+      );
+
+      stdoutWriteSpy.mockRestore();
+    });
+
+    it('should not show progress when showProgress is false', async () => {
+      const mockJobs = [];
+      for (let i = 0; i < 12; i++) {
+        mockJobs.push(
+          {
+            id: `job-${i}-1`,
+            data: { searchTerm: 'DuplicateTerm' },
+            opts: { priority: 10 },
+            remove: jest.fn().mockResolvedValue(true),
+          }
+        );
+      }
+
+      const stdoutWriteSpy = jest.spyOn(process.stdout, 'write').mockImplementation();
+
+      scraperQueue.getWaiting.mockResolvedValue(mockJobs);
+      scraperQueue.getDelayed.mockResolvedValue([]);
+      prisma.scrapeJob.findMany.mockResolvedValue([]);
+
+      await removeDuplicatesFromQueue({ verbose: true, showProgress: false });
+
+      // Should not have written any progress
+      expect(stdoutWriteSpy).not.toHaveBeenCalled();
+
+      stdoutWriteSpy.mockRestore();
+    });
+
+    it('should log new line after progress when verbose and showProgress', async () => {
+      const mockJobs = [];
+      for (let i = 0; i < 12; i++) {
+        mockJobs.push({
+          id: `job-${i}`,
+          data: { searchTerm: 'CompletedTerm' },
+          opts: { priority: 10 },
+          remove: jest.fn().mockResolvedValue(true),
+        });
+      }
+
+      scraperQueue.getWaiting.mockResolvedValue(mockJobs);
+      scraperQueue.getDelayed.mockResolvedValue([]);
+      prisma.scrapeJob.findMany.mockResolvedValue([
+        { searchTerm: 'CompletedTerm' },
+      ]);
+
+      await removeDuplicatesFromQueue({ verbose: true, showProgress: true });
+
+      // Should log empty string for new line after progress (line 172)
+      expect(logger.info).toHaveBeenCalledWith('');
     });
   });
 
