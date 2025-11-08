@@ -111,7 +111,7 @@ describe('App Routes', () => {
   });
 
   describe('Initial Data', () => {
-    test('should include apiUrl in initial data', async () => {
+    test('should include version in initial data', async () => {
       const response = await request(app).get('/');
       const dataMatch = response.text.match(
         /<script type="application\/json" id="initial-data"[^>]*>\s*({[\s\S]*?})\s*<\/script>/
@@ -119,7 +119,7 @@ describe('App Routes', () => {
       expect(dataMatch).toBeTruthy();
 
       const data = JSON.parse(dataMatch![1]);
-      expect(data).toHaveProperty('apiUrl');
+      expect(data).toHaveProperty('version');
     });
 
     test('should include environment in initial data', async () => {
