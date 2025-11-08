@@ -11,6 +11,7 @@ const winston_1 = __importDefault(require("winston"));
 const prisma_1 = require("../lib/prisma");
 const config_1 = require("../config");
 const redis_cache_service_1 = require("../lib/redis-cache.service");
+const search_term_optimizer_1 = require("../services/search-term-optimizer");
 const logger = winston_1.default.createLogger({
     level: config_1.config.logging.level,
     format: winston_1.default.format.json(),
@@ -121,6 +122,9 @@ exports.scraperQueue.process(config_1.config.queue.jobName, config_1.config.queu
                 completedAt: new Date(),
             },
         });
+        // Update search term analytics for optimization
+        await search_term_optimizer_1.searchTermOptimizer.updateAnalytics(searchTerm, savedProperties.length, true // wasSuccessful
+        );
         // Invalidate caches since new properties were added
         logger.info('Invalidating caches after successful scrape...');
         await Promise.all([
@@ -149,6 +153,10 @@ exports.scraperQueue.process(config_1.config.queue.jobName, config_1.config.queu
                 completedAt: new Date(),
             },
         });
+        // Update search term analytics for failed job
+        await search_term_optimizer_1.searchTermOptimizer.updateAnalytics(searchTerm, 0, // resultCount
+        false, // wasSuccessful
+        error instanceof Error ? error.message : 'Unknown error');
         throw error;
     }
     finally {

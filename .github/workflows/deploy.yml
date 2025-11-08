@@ -39,9 +39,9 @@ jobs:
         run: |
           # Fetch API URL from Doppler (or use default)
           if [ -n "$DOPPLER_TOKEN" ]; then
-            export VITE_API_URL=$(doppler secrets get API_URL --plain 2>/dev/null || echo "https://api.alephatx.info")
+            export VITE_API_URL=$(doppler secrets get API_URL --plain 2>/dev/null || echo "https://api.alephatx.info/api")
           else
-            export VITE_API_URL="https://api.alephatx.info"
+            export VITE_API_URL="https://api.alephatx.info/api"
           fi
 
           echo "Building with API_URL: $VITE_API_URL"

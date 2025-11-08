@@ -15,6 +15,7 @@ A production-grade web scraping system for automated collection of property tax 
 - [Running the Scraper](#running-the-scraper)
 - [Docker Services](#docker-services)
 - [Monitoring & Metrics](#monitoring--metrics)
+- [Analytics](#analytics)
 - [Troubleshooting](#troubleshooting)
 - [Known Issues](#known-issues)
 - [Documentation](#documentation)
@@ -935,6 +936,95 @@ GROUP BY city
 ORDER BY count DESC;
 ```
 
+## Analytics
+
+The TCAD Scraper frontend implements comprehensive user behavior tracking using **Google Analytics 4 (GA4)** and **Meta Pixel** to monitor application usage, search patterns, and user engagement.
+
+### Tracking Overview
+
+**Active Tracking IDs:**
+- Google Analytics 4: `G-J7TL7PQH7S`
+- Meta Pixel: `25629020546684786`
+
+**Events Tracked:**
+1. **Page Views** - Initial application loads
+2. **Search Events** - Property search queries
+3. **Search Results** - Results count and AI explanation presence
+4. **Property Views** - Individual property card impressions
+5. **Example Query Clicks** - Usage of example queries
+6. **Error Events** - React errors via ErrorBoundary
+7. **Custom Engagement** - User interaction metrics
+
+### Features
+
+✅ **Dual Platform Tracking** - GA4 for detailed analytics + Meta Pixel for marketing insights
+✅ **User Journey Tracking** - Complete flow from page load to property views
+✅ **Error Monitoring** - Automatic tracking of React errors
+✅ **Development Mode** - Console logging for debugging (disabled in production)
+✅ **Performance Optimized** - Async script loading, minimal overhead
+✅ **Type Safe** - Full TypeScript coverage
+
+### Dashboards
+
+**Google Analytics 4:**
+- Access: https://analytics.google.com/
+- Property: TCAD Scraper (G-J7TL7PQH7S)
+- Real-time Events: Reports → Real-Time → Events
+- Custom Reports: 4 pre-configured reports (Search Performance, Property Engagement, User Journey Funnel, Error Monitoring)
+
+**Meta Events Manager:**
+- Access: https://business.facebook.com/events_manager
+- Pixel: 25629020546684786
+- Test Events: Real-time event verification
+- Custom Conversions: Successful searches, high engagement sessions
+
+### Implementation
+
+Analytics are implemented using:
+- **Core Library**: `src/lib/analytics.ts` (201 lines)
+- **React Hook**: `src/hooks/useAnalytics.ts` (58 lines)
+- **Error Boundary**: `src/components/ErrorBoundary.tsx`
+- **Tracking Scripts**: Loaded in `index.html` (GA4 + Meta Pixel)
+
+Components with integrated tracking:
+- `App.tsx` - Page view tracking
+- `PropertySearchContainer.tsx` - Search and results tracking
+- `PropertyCard.tsx` - Property view tracking
+- `ExampleQueries.tsx` - Example click tracking
+
+### Documentation
+
+For complete analytics implementation details, dashboard configuration, troubleshooting, and privacy compliance:
+
+📖 **[docs/ANALYTICS.md](docs/ANALYTICS.md)** - Comprehensive analytics guide (1,052 lines)
+
+Includes:
+- Event tracking reference with parameters
+- GA4 custom reports setup (step-by-step)
+- Meta Pixel configuration guide
+- Development & testing workflows
+- Troubleshooting common issues
+- Privacy & GDPR compliance
+- Best practices for maintenance
+
+### Quick Verification
+
+**Development Mode:**
+```bash
+npm run dev
+# Open http://localhost:5173
+# Check browser console for: [Analytics Event: ...]
+```
+
+**Production Testing:**
+```bash
+npm run build && npm run preview
+# Open http://localhost:4174
+# Check Network tab for requests to:
+#   - google-analytics.com/g/collect
+#   - facebook.com/tr
+```
+
 ## Troubleshooting
 
 ### Scraper Issues
@@ -1150,6 +1240,7 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[Swagger API Docs](http://localhost:3002/api-docs)** ⭐ **NEW!** - Interactive API documentation (when server is running)
 - **[PROMETHEUS_SETUP.md](server/PROMETHEUS_SETUP.md)** ⭐ **NEW!** - Prometheus monitoring setup guide
 - **[Metrics Endpoint](http://localhost:3002/metrics)** ⭐ **NEW!** - Prometheus metrics (when server is running)
+- **[ANALYTICS.md](docs/ANALYTICS.md)** ⭐ **NEW!** - Comprehensive analytics implementation guide (GA4 + Meta Pixel)
 
 ### Technical Documentation
 - **[API_TOKEN_IMPLEMENTATION.md](docs/API_TOKEN_IMPLEMENTATION.md)** - API token authentication implementation

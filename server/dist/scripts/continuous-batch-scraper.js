@@ -7,6 +7,7 @@ const scraper_queue_1 = require("../queues/scraper.queue");
 const prisma_1 = require("../lib/prisma");
 const winston_1 = __importDefault(require("winston"));
 const search_term_deduplicator_1 = require("../lib/search-term-deduplicator");
+const search_term_optimizer_1 = require("../services/search-term-optimizer");
 const logger = winston_1.default.createLogger({
     level: 'info',
     format: winston_1.default.format.combine(winston_1.default.format.timestamp(), winston_1.default.format.simple()),
@@ -15,10 +16,10 @@ const logger = winston_1.default.createLogger({
         new winston_1.default.transports.File({ filename: 'logs/continuous-scraper.log' }),
     ],
 });
-const TARGET_PROPERTIES = 400000;
+const TARGET_PROPERTIES = 451339;
 // Using API-based scraping (1000+ results per search). Optimized for high-yield search terms.
-// Batch size kept moderate since each successful search now returns 50-1000x more results.
-const BATCH_SIZE = 75;
+// Batch size reduced to enable more frequent optimizations (every 50 jobs = ~2-3 batches)
+const BATCH_SIZE = 25; // Reduced from 75 to 25 for faster optimization cycles
 const DELAY_BETWEEN_BATCHES = 30000; // 30 seconds
 const CHECK_INTERVAL = 60000; // Check every minute
 // Generate diverse search patterns
@@ -28,6 +29,9 @@ class SearchPatternGenerator {
     dbTermsLoaded = false;
     lastDbRefresh = 0;
     DB_REFRESH_INTERVAL = 60 * 60 * 1000; // Refresh every hour
+    optimizer;
+    jobsProcessedSinceLastOptimization = 0;
+    OPTIMIZATION_INTERVAL = 50; // Optimize after every 50 jobs
     // Common first names (top 200)
     firstNames = [
         'James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda',
@@ -214,6 +218,9 @@ class SearchPatternGenerator {
         'Residence', 'Unit', 'Suite', 'Space', 'Commercial', 'Residential',
         'Condo', 'Comm', 'Ste.'
     ];
+    constructor() {
+        this.optimizer = search_term_optimizer_1.searchTermOptimizer;
+    }
     // Load all previously used search terms from database to avoid duplicates
     async loadUsedTermsFromDatabase(forceRefresh = false) {
         const now = Date.now();
@@ -322,9 +329,57 @@ class SearchPatternGenerator {
             'Lee', 'Chen', 'Wang', 'Kim', 'Patel', 'Singh', 'Chang', 'Nguyen'];
         return names[Math.floor(Math.random() * names.length)];
     }
+    /**
+     * Optimize search strategy based on actual performance data every 50 jobs
+     * This analyzes completed jobs and suggests high-performing terms
+     */
+    async optimizeStrategy() {
+        logger.info('\n🔧 Optimizing search strategy based on performance data...');
+        try {
+            // Get performance stats
+            const stats = await this.optimizer.getPerformanceStats();
+            logger.info(`📊 Analyzed ${stats.totalSearchTerms} unique search terms`);
+            logger.info(`   Avg efficiency: ${stats.avgEfficiency.toFixed(2)}`);
+            logger.info(`   Avg success rate: ${(stats.avgSuccessRate * 100).toFixed(1)}%`);
+            logger.info(`   Avg results per search: ${stats.avgResultsPerSearch.toFixed(1)}`);
+            // Get top performers
+            if (stats.topPerformers.length > 0) {
+                logger.info(`\n🏆 Top 5 performing search terms:`);
+                stats.topPerformers.slice(0, 5).forEach((term, i) => {
+                    logger.info(`   ${i + 1}. "${term.searchTerm}" - ${term.avgResultsPerSearch.toFixed(0)} avg results, ${(term.successRate * 100).toFixed(0)}% success`);
+                });
+            }
+            // Get optimized terms for next batch
+            const optimizedTerms = await this.optimizer.getOptimizedTerms({
+                minEfficiency: 5.0,
+                minSuccessRate: 0.5,
+                maxTermsToReturn: 30,
+                excludeRecentlyUsed: true,
+                recentDays: 1, // Only exclude terms used in last 24 hours
+            });
+            // Get suggested new terms based on successful patterns
+            const suggestedTerms = await this.optimizer.suggestNewTerms(20);
+            logger.info(`✨ Generated ${optimizedTerms.length} high-efficiency terms to prioritize`);
+            logger.info(`💡 Suggested ${suggestedTerms.length} new terms based on successful patterns\n`);
+            // Reset the counter
+            this.jobsProcessedSinceLastOptimization = 0;
+            // Combine optimized and suggested terms
+            return [...optimizedTerms, ...suggestedTerms];
+        }
+        catch (error) {
+            logger.error({ err: error }, '❌ Failed to optimize strategy:');
+            return [];
+        }
+    }
     async getNextBatch(batchSize) {
         // Load or refresh database terms (automatic hourly refresh)
         await this.loadUsedTermsFromDatabase();
+        // Check if we should optimize strategy every 50 jobs
+        this.jobsProcessedSinceLastOptimization++;
+        let optimizedTerms = [];
+        if (this.jobsProcessedSinceLastOptimization >= this.OPTIMIZATION_INTERVAL) {
+            optimizedTerms = await this.optimizeStrategy();
+        }
         const batch = [];
         // Weighted strategies - OPTIMIZED based on actual performance (286K+ properties analyzed):
         // Real-world results from database analysis:
@@ -366,6 +421,21 @@ class SearchPatternGenerator {
         const maxAttempts = batchSize * 10;
         // Reset deduplicator stats for this batch
         this.deduplicator.resetStats();
+        // First, prioritize optimized terms (if available)
+        if (optimizedTerms.length > 0) {
+            logger.info(`🎯 Prioritizing ${optimizedTerms.length} high-performing terms in this batch`);
+            for (const term of optimizedTerms) {
+                if (batch.length >= batchSize)
+                    break;
+                // Use the deduplicator to check if we should skip this term
+                if (!this.deduplicator.shouldSkipTerm(term)) {
+                    this.deduplicator.markTermAsUsed(term);
+                    this.usedTerms.add(term);
+                    batch.push(term);
+                }
+            }
+        }
+        // Fill remaining slots with random strategy-generated terms
         while (batch.length < batchSize && attempts < maxAttempts) {
             attempts++;
             const strategy = weightedStrategies[Math.floor(Math.random() * weightedStrategies.length)];
@@ -412,6 +482,16 @@ class ContinuousBatchScraper {
         logger.info('║   CONTINUOUS BATCH SCRAPER - VOLUME OPTIMIZED         ║');
         logger.info('║   Target: 400,000 | Focus: High-Yield Search Terms    ║');
         logger.info('╚════════════════════════════════════════════════════════╝\n');
+        // Clear pending jobs from queue to start fresh with optimized strategy
+        logger.info('🧹 Clearing pending jobs from queue...');
+        const pendingCount = await scraper_queue_1.scraperQueue.getWaitingCount();
+        if (pendingCount > 0) {
+            await scraper_queue_1.scraperQueue.clean(0, 'wait'); // Remove all waiting jobs
+            logger.info(`✓ Cleared ${pendingCount} pending jobs\n`);
+        }
+        else {
+            logger.info('✓ No pending jobs to clear\n');
+        }
         // Get starting property count
         this.stats.startingPropertyCount = await prisma_1.prisma.property.count();
         logger.info(`Starting property count: ${this.stats.startingPropertyCount.toLocaleString()}`);
