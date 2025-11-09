@@ -182,12 +182,6 @@ export default function PropertySearch() {
                     <span className="detail-label">Appraised Value</span>
                     <span className="detail-value">{formatCurrency(property.appraised_value)}</span>
                   </div>
-                  {property.assessed_value && (
-                    <div className="detail-item">
-                      <span className="detail-label">Assessed Value</span>
-                      <span className="detail-value">{formatCurrency(property.assessed_value)}</span>
-                    </div>
-                  )}
                   <div className="detail-item">
                     <span className="detail-label">Property ID</span>
                     <span className="detail-value mono">{property.property_id}</span>

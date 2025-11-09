@@ -6,7 +6,7 @@ interface PropertyTableProps {
   properties: Property[];
 }
 
-type SortField = 'name' | 'property_address' | 'city' | 'appraised_value' | 'assessed_value' | 'prop_type';
+type SortField = 'name' | 'property_address' | 'city' | 'appraised_value' | 'prop_type';
 type SortDirection = 'asc' | 'desc';
 
 function PropertyTable({ properties }: PropertyTableProps) {
@@ -118,16 +118,13 @@ function PropertyTable({ properties }: PropertyTableProps) {
               <th onClick={() => handleSort('appraised_value')} className="sortable numeric">
                 Appraised Value <SortIcon field="appraised_value" />
               </th>
-              <th onClick={() => handleSort('assessed_value')} className="sortable numeric">
-                Assessed Value <SortIcon field="assessed_value" />
-              </th>
               <th>Property ID</th>
             </tr>
           </thead>
           <tbody>
             {paginatedProperties.length === 0 ? (
               <tr>
-                <td colSpan={7} className="no-data">
+                <td colSpan={6} className="no-data">
                   No properties found matching your filters
                 </td>
               </tr>
@@ -141,7 +138,6 @@ function PropertyTable({ properties }: PropertyTableProps) {
                     <span className="property-type-badge">{property.prop_type}</span>
                   </td>
                   <td className="numeric">{formatCurrency(property.appraised_value)}</td>
-                  <td className="numeric">{formatCurrency(property.assessed_value)}</td>
                   <td className="property-id">{property.property_id}</td>
                 </tr>
               ))
