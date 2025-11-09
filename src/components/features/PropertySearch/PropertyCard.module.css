@@ -60,3 +60,38 @@
   font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
   font-size: 0.8125rem;
 }
+
+/* New styles for expansion */
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.expandButtonContainer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .owner {
+    font-size: 1rem;
+  }
+
+  .expandButtonContainer {
+    width: 100%;
+  }
+
+  .expandButtonContainer button {
+    width: 100%;
+    justify-content: center;
+  }
+}

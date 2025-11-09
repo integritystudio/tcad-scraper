@@ -1,0 +1,54 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.timestampItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--neutral-100, #f3f4f6);
+}
+
+.timestampItem:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 0.875rem;
+  color: var(--neutral-600, #4b5563);
+  flex-shrink: 0;
+}
+
+.timeContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+}
+
+.relativeTime {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--neutral-900, #111827);
+}
+
+.absoluteTime {
+  font-size: 0.75rem;
+  color: var(--neutral-400, #9ca3af);
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .timestampItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .timeContainer {
+    align-items: flex-start;
+  }
+}

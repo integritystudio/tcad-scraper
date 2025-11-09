@@ -1,23 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Property } from '../../../types';
 import { useFormatting, useAnalytics } from '../../../hooks';
 import { Card, CardHeader, CardBody } from '../../ui/Card';
 import { Badge } from '../../ui/Badge';
 import { Icon } from '../../ui/Icon';
+import { ExpandButton } from './components/ExpandButton';
+import { PropertyDetails } from './PropertyDetails';
 import styles from './PropertyCard.module.css';
 
 interface PropertyCardProps {
   property: Property;
+  defaultExpanded?: boolean;
 }
 
-export const PropertyCard = ({ property }: PropertyCardProps) => {
+export const PropertyCard = ({ property, defaultExpanded = false }: PropertyCardProps) => {
   const { formatCurrency } = useFormatting();
   const { logPropertyView } = useAnalytics();
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   // Track property view when card is rendered
   useEffect(() => {
     logPropertyView(property.property_id, property.property_address);
   }, [property.property_id, property.property_address, logPropertyView]);
+
+  const handleToggleExpand = () => {
+    setIsExpanded(!isExpanded);
+  };
 
   return (
     <Card variant="elevated" className={styles.card}>
@@ -37,7 +45,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
           {property.city && `, ${property.city}`}
         </div>
 
-        <div className={styles.details}>
+        <div className={styles.summary}>
           <div className={styles.detailItem}>
             <span className={styles.detailLabel}>Appraised Value</span>
             <span className={styles.detailValue}>
@@ -45,22 +53,19 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
             </span>
           </div>
 
-          {property.assessed_value && (
-            <div className={styles.detailItem}>
-              <span className={styles.detailLabel}>Assessed Value</span>
-              <span className={styles.detailValue}>
-                {formatCurrency(property.assessed_value)}
-              </span>
-            </div>
-          )}
-
-          <div className={styles.detailItem}>
-            <span className={styles.detailLabel}>Property ID</span>
-            <span className={`${styles.detailValue} ${styles.mono}`}>
-              {property.property_id}
-            </span>
+          <div className={styles.expandButtonContainer}>
+            <ExpandButton
+              isExpanded={isExpanded}
+              onToggle={handleToggleExpand}
+              size="sm"
+            />
           </div>
         </div>
+
+        <PropertyDetails
+          property={property}
+          isExpanded={isExpanded}
+        />
       </CardBody>
     </Card>
   );
