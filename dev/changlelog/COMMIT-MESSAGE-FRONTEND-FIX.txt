@@ -1,0 +1,49 @@
+fix: transform property API responses to snake_case for frontend compatibility
+
+Problem:
+- PropertyCard displayed "$NaN" for appraised values
+- PropertyCard showed blank property IDs
+- Frontend could not read property data correctly
+
+Root Cause:
+- Backend Prisma ORM returns camelCase objects (propertyId, appraisedValue)
+- Frontend TypeScript expects snake_case (property_id, appraised_value)
+- Type mismatch caused undefined values in components
+
+Solution:
+- Added transformation layer in server/src/controllers/property.controller.ts
+- Transforms Prisma camelCase objects to frontend snake_case format
+- Applied to both GET and POST property endpoints:
+  - GET /api/properties
+  - POST /api/properties/search
+
+Changes:
+- server/src/controllers/property.controller.ts: Added camelCase → snake_case transformation
+- docs/FRONTEND.md: NEW comprehensive frontend architecture guide (600+ lines)
+- dev/SESSION-2025-11-08-FRONTEND-FIX.md: NEW detailed session documentation
+- dev/QUICK-CONTEXT-FRONTEND-FIX.md: NEW quick reference guide
+- dev/HANDOFF.md: Updated with Session 7 summary
+
+Testing:
+- Verified backend API returns correct snake_case format
+- Confirmed transformation logic with curl tests
+- Ready for frontend display verification
+
+Documentation:
+- Created comprehensive FRONTEND.md covering:
+  - Component hierarchy and data flow
+  - Type system architecture
+  - Analytics integration
+  - Build and deployment
+  - Troubleshooting guide
+
+Next Steps:
+- Test frontend property card display
+- Verify no $NaN or blank IDs
+- Scrape new properties with real values (current data has $0 values)
+
+See: dev/SESSION-2025-11-08-FRONTEND-FIX.md for complete details
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
