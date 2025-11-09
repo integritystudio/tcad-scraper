@@ -8,6 +8,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
     "scrape": "doppler run -- tsx scraper.ts",
     "scrape:db": "doppler run -- tsx scraper-with-db.ts",
     "scrape:batch": "cd server && doppler run -- npm run scrape:batch",
@@ -38,8 +41,11 @@
   "devDependencies": {
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@vitest/ui": "^4.0.8",
+    "jsdom": "^27.1.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.8"
   },
   "optionalDependencies": {
     "@rollup/rollup-darwin-arm64": "^4.53.0"
