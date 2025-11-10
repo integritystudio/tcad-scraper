@@ -1,0 +1,3 @@
+local.file_match "LABEL" {
+  path_targets = [{"__path__" = DOUBLESTAR_PATH}]
+}

@@ -34,6 +34,8 @@ export const SearchBox = ({
         <Icon name="search" />
       </div>
       <input
+        id="property-search-input"
+        name="propertySearch"
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -41,6 +43,7 @@ export const SearchBox = ({
         placeholder={placeholder}
         className={styles.searchInput}
         disabled={loading}
+        autoComplete="off"
       />
       <Button
         onClick={handleSearch}
