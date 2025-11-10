@@ -205,7 +205,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./server
-        run: npm ci
+        run: npm install
 
       - name: Run security tests
         working-directory: ./server
@@ -234,8 +234,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
-          cd server && npm ci
+          npm install
+          cd server && npm install
 
       - name: Check licenses
         run: |

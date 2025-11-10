@@ -34,11 +34,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install root dependencies
-        run: npm ci
+        run: npm install
 
       - name: Install server dependencies
         working-directory: ./server
-        run: npm ci
+        run: npm install
 
       - name: Run ESLint (Root)
         run: npm run lint --if-present
@@ -96,7 +96,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./server
-        run: npm ci
+        run: npm install
 
       - name: Generate Prisma Client
         working-directory: ./server
@@ -157,7 +157,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./server
-        run: npm ci
+        run: npm install
 
       - name: Generate Prisma Client
         working-directory: ./server
@@ -192,11 +192,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install root dependencies
-        run: npm ci
+        run: npm install
 
       - name: Install server dependencies
         working-directory: ./server
-        run: npm ci
+        run: npm install
 
       - name: Build Frontend
         env:
@@ -246,7 +246,7 @@ jobs:
       - name: Run Security Tests
         working-directory: ./server
         run: |
-          npm ci
+          npm install
           npm run test:security
         env:
           NODE_ENV: test
