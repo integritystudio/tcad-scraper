@@ -7,7 +7,7 @@ module.exports = {
   coverageDirectory: 'coverage-client',
   coverageReporters: ['text', 'lcov', 'html'],
   verbose: true,
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest_test/jest.setup.js'],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },

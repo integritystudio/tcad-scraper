@@ -1,3 +1,6 @@
+#Internal dev docs
+dev/
+
 node_modules/
 .env
 logs/
@@ -23,7 +26,7 @@ dist/
 .next/
 out/
 repomix-output.xml
-*repomix-output.xml
+*-output.xml
 
 # IDE
 .vscode/

@@ -10,16 +10,17 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  roots: ['<rootDir>/../src'],
 
   // Only run integration tests
   testMatch: [
-    '**/__tests__/**/*.integration.test.ts',
-    '**/src/__tests__/integration.test.ts',
-    '**/src/__tests__/enqueue.test.ts',
-    '**/src/__tests__/api.test.ts',
-    '**/src/__tests__/auth-database.connection.test.ts',
-    '**/src/routes/__tests__/*.test.ts',
-    '**/src/__tests__/security.test.ts',
+    '<rootDir>/../**/__tests__/**/*.integration.test.ts',
+    '<rootDir>/../src/__tests__/integration.test.ts',
+    '<rootDir>/../src/__tests__/enqueue.test.ts',
+    '<rootDir>/../src/__tests__/api.test.ts',
+    '<rootDir>/../src/__tests__/auth-database.connection.test.ts',
+    '<rootDir>/../src/routes/__tests__/*.test.ts',
+    '<rootDir>/../src/__tests__/security.test.ts',
   ],
 
   // TypeScript transformation
@@ -31,25 +32,25 @@ module.exports = {
 
   // Module paths
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/(.*)$': '<rootDir>/../src/$1',
   },
 
   // Setup file
-  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/../src/__tests__/setup.ts'],
 
   // Coverage
   collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/**/*.test.ts',
-    '!src/**/*.integration.test.ts',
-    '!src/index.ts',
-    '!src/scripts/**',
-    '!src/cli/**',
-    '!src/__tests__/**',
+    '../src/**/*.ts',
+    '!../src/**/*.d.ts',
+    '!../src/**/*.test.ts',
+    '!../src/**/*.integration.test.ts',
+    '!../src/index.ts',
+    '!../src/scripts/**',
+    '!../src/cli/**',
+    '!../src/__tests__/**',
   ],
 
-  coverageDirectory: 'coverage/integration',
+  coverageDirectory: '../coverage/integration',
   coverageReporters: ['text', 'lcov', 'html'],
 
   // Stability settings

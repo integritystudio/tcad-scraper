@@ -208,6 +208,9 @@ tcad-scraper/
 │   │   │   └── test-*.ts                     # Various test scripts
 │   │   └── types/
 │   │       └── index.ts             # TypeScript type definitions
+│   ├── jest_test/                   # Jest test configuration
+│   │   ├── jest.config.js           # Unit test configuration
+│   │   └── jest.integration.config.js # Integration test configuration
 │   ├── prisma/
 │   │   └── schema.prisma            # Database schema
 │   ├── logs/                        # Application logs
@@ -219,6 +222,10 @@ tcad-scraper/
 │   ├── components/                  # React components
 │   ├── types/                       # Frontend type definitions
 │   └── main.tsx                     # React entry point
+├── jest_test/                       # Jest test configuration (root)
+│   ├── jest.setup.js                # Jest setup file
+│   ├── jest.config.cjs              # Jest config for server tests from root
+│   └── jest.client.config.js        # Jest config for client tests
 ├── docs/                            # Documentation
 │   ├── MODERNIZATION_REPORT.md      # Architecture modernization guide
 │   ├── DATABASE.md                  # Database documentation

@@ -12,7 +12,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
+  roots: ['<rootDir>/../src'],
 
   // Match unit tests only (exclude integration tests)
   testMatch: [
@@ -38,17 +38,17 @@ module.exports = {
   },
 
   collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/**/__tests__/**',
-    '!src/**/*.integration.test.ts',
-    '!src/index.ts',
-    '!src/scripts/**',
-    '!src/cli/**',
+    '../src/**/*.ts',
+    '!../src/**/*.d.ts',
+    '!../src/**/__tests__/**',
+    '!../src/**/*.integration.test.ts',
+    '!../src/index.ts',
+    '!../src/scripts/**',
+    '!../src/cli/**',
   ],
 
   moduleFileExtensions: ['ts', 'js', 'json'],
-  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/../src/__tests__/setup.ts'],
 
   // Unit tests should be fast
   testTimeout: 10000, // 10 seconds
