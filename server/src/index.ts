@@ -42,6 +42,9 @@ logConfigSummary();
 // Create Express app
 const app = express();
 
+// Trust proxy - required for X-Forwarded-For header handling behind reverse proxy
+app.set('trust proxy', true);
+
 // Sentry request handler MUST be the first middleware
 app.use(sentryRequestHandler());
 
