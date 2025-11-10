@@ -15,6 +15,7 @@ import { chromium, Browser } from 'playwright';
 import winston from 'winston';
 import cron from 'node-cron';
 import { config } from '../config';
+import { suppressBrowserConsoleWarnings } from '../utils/browser-console-suppression';
 
 const logger = winston.createLogger({
   level: config.logging.level || 'info',
@@ -137,6 +138,9 @@ export class TCADTokenRefreshService {
         }
         return false;
       };
+
+      // Suppress browser console warnings from TCAD website
+      suppressBrowserConsoleWarnings(page, logger);
 
       // Strategy 1: Capture from REQUEST headers (multiple possible header names)
       page.on('request', (request) => {

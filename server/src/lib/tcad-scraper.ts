@@ -4,6 +4,7 @@ import { ScraperConfig, PropertyData } from '../types';
 import { config as appConfig } from '../config';
 import { scrapeDOMFallback } from './fallback/dom-scraper';
 import { tokenRefreshService } from '../services/token-refresh.service';
+import { suppressBrowserConsoleWarnings } from '../utils/browser-console-suppression';
 
 const logger = winston.createLogger({
   level: appConfig.logging.level,
@@ -136,6 +137,9 @@ export class TCADScraper {
         });
 
         const page = await context.newPage();
+
+        // Suppress browser console warnings from TCAD website
+        suppressBrowserConsoleWarnings(page, logger);
 
         try {
           // Step 1: Get auth token - priority order:
@@ -440,6 +444,9 @@ export class TCADScraper {
 
     const page = await context.newPage();
 
+    // Suppress browser console warnings from TCAD website
+    suppressBrowserConsoleWarnings(page, logger);
+
     // Capture all network requests
     const apiRequests: Array<{ url: string; method: string; postData?: string; response?: any }> = [];
 
@@ -641,6 +648,9 @@ export class TCADScraper {
       await this.initialize();
       const context = await this.browser!.newContext();
       const page = await context.newPage();
+
+      // Suppress browser console warnings from TCAD website
+      suppressBrowserConsoleWarnings(page);
 
       const response = await page.goto('https://travis.prodigycad.com/property-search', {
         waitUntil: 'domcontentloaded',

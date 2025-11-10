@@ -26,6 +26,7 @@ import { Browser, Page } from 'playwright';
 import winston from 'winston';
 import { PropertyData, ScraperConfig } from '../../types';
 import { config as appConfig } from '../../config';
+import { suppressBrowserConsoleWarnings } from '../../utils/browser-console-suppression';
 
 const logger = winston.createLogger({
   level: appConfig.logging.level,
@@ -174,6 +175,9 @@ export async function scrapeDOMFallback(
       });
 
       const page = await context.newPage();
+
+      // Suppress browser console warnings from TCAD website
+      suppressBrowserConsoleWarnings(page, logger);
 
       await page.setExtraHTTPHeaders({
         'Accept-Language': 'en-US,en;q=0.9',
