@@ -4,6 +4,7 @@ This file provides guidance to Claude Code when working with the TCAD Scraper da
 
 **Last Updated**: November 10, 2025
 
+
 ---
 
 ## Project Overview
