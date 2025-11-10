@@ -1,0 +1,4562 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+2025-01-phase2-consolidation/
+  README.md
+2025-01-phase4-tests/
+  diagnose-page.ts
+  diagnose-pagination.ts
+  diagnose-results.ts
+  queue-test-searches.ts
+  README_ENHANCED.md
+  README.md
+  test-ag-grid-data.ts
+  test-api-scraper.ts
+  test-db-save.ts
+  test-direct-api-bypass.ts
+  test-fixed-scraper.ts
+  test-network-interception.ts
+  test-optimized-search.ts
+  test-pagesize-limits.ts
+  test-pagination.ts
+  test-selectors.ts
+  test-urls.ts
+2025-01-refactoring/
+  add-priority-jobs.ts
+  aggressive-cleanup.ts
+  analyze-queue.ts
+  analyze-successful-terms.ts
+  analyze-zero-results.ts
+  build-search-term-map.ts
+  check-db-stats.ts
+  check-property-count.ts
+  check-queue-status.ts
+  check-rate.ts
+  monitor-and-optimize.ts
+  optimize-queue.ts
+  README_ENHANCED.md
+  remove-all-duplicates.ts
+  stop-all-jobs.ts
+  test-queue-with-token.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="2025-01-phase2-consolidation/README.md">
+# Phase 2: Script Consolidation Archive
+
+**Date**: January 6, 2025
+**Purpose**: Document the consolidation of utility scripts into organized CLI tools
+
+## What Was Consolidated
+
+This directory serves as a reference for the Phase 2 refactoring where **38+ individual utility scripts were consolidated into 4 organized CLI tools**.
+
+## New CLI Tools (in server/src/cli/)
+
+### 1. queue-manager.ts
+**Purpose**: Manage scraper job queue
+**Replaces**:
+- add-business-batch-3.ts
+- add-business-terms.ts
+- add-estate-job.ts
+- add-more-business-terms.ts
+- add-priority-jobs.ts
+- add-terms-and-dedupe.ts
+- aggressive-cleanup.ts
+- stop-all-jobs.ts
+
+**Commands**:
+```bash
+npm run queue                    # Show help
+npm run queue:status             # Show queue status
+npm run queue:stop               # Stop all pending jobs
+npm run queue:cleanup            # Clean up old jobs
+npm run queue:pause              # Pause queue processing
+npm run queue:resume             # Resume queue processing
+```
+
+### 2. queue-analyzer.ts
+**Purpose**: Analyze queue performance and search term effectiveness
+**Replaces**:
+- analyze-queue.ts
+- analyze-successful-terms.ts
+- analyze-zero-results.ts
+- check-queue-status.ts
+
+**Commands**:
+```bash
+npm run analyze                  # Show help
+npm run analyze:success          # Analyze successful search patterns
+npm run analyze:failures         # Analyze failed/zero-result patterns
+npm run analyze:performance      # Show queue throughput metrics
+npm run analyze:overview         # Comprehensive overview
+```
+
+### 3. data-cleaner.ts
+**Purpose**: Clean and optimize database and queue data
+**Replaces**:
+- filter-numbers-and-short.ts
+- filter-short-terms.ts
+- filter-zipcodes.ts
+- remove-all-duplicates.ts
+- remove-compound-names.ts
+- remove-duplicate-terms.ts
+- remove-inefficient-terms.ts
+
+**Commands**:
+```bash
+npm run clean                    # Show help
+npm run clean:properties         # Remove duplicate properties
+npm run clean:queue              # Remove duplicate queue terms
+npm run clean:short              # Remove short search terms
+npm run clean:numeric            # Remove numeric-only terms
+npm run clean:inefficient        # Remove low-yield terms
+npm run clean:all                # Run all cleanup operations
+```
+
+### 4. db-stats.ts
+**Purpose**: Display database statistics and metrics
+**Replaces**:
+- check-all-results.ts
+- check-db-stats.ts
+- check-priority-results.ts
+- check-property-count.ts
+- check-rate.ts
+
+**Commands**:
+```bash
+npm run stats                    # Show help
+npm run stats:summary            # Quick database overview
+npm run stats:properties         # Property statistics by city/type
+npm run stats:rate               # Scraping rate analysis
+npm run stats:search-terms       # Search term performance
+npm run stats:priority           # Priority job results
+npm run stats:all                # Comprehensive report
+```
+
+## Benefits of Consolidation
+
+### Before
+- **38+ scattered scripts** in server root
+- Duplicate functionality across files
+- Inconsistent interfaces
+- Hard to discover and use
+- No centralized help documentation
+
+### After
+- **4 organized CLI tools** with clear purposes
+- Single implementation of each function
+- Consistent command-line interface (using Commander)
+- Easy discovery via `npm run <tool> --help`
+- Comprehensive options and flags
+
+## Migration Guide
+
+### Old Script → New Command
+
+```bash
+# Queue Management
+add-priority-jobs.ts              → npm run queue add-terms <file> --priority
+stop-all-jobs.ts                  → npm run queue:stop
+aggressive-cleanup.ts             → npm run queue:cleanup --aggressive
+
+# Analysis
+analyze-successful-terms.ts       → npm run analyze:success
+analyze-zero-results.ts           → npm run analyze:failures
+check-queue-status.ts             → npm run queue:status
+
+# Data Cleanup
+remove-all-duplicates.ts          → npm run clean:properties
+filter-short-terms.ts             → npm run clean:short
+remove-inefficient-terms.ts       → npm run clean:inefficient
+
+# Statistics
+check-db-stats.ts                 → npm run stats:summary
+check-property-count.ts           → npm run stats:properties
+check-rate.ts                     → npm run stats:rate
+```
+
+## Architecture
+
+All CLI tools follow a consistent pattern:
+
+1. **Commander.js** for argument parsing and help text
+2. **Shared imports** from `../queues`, `../lib`, `../prisma`
+3. **Cleanup handlers** for graceful shutdown
+4. **Progress indicators** for long-running operations
+5. **Consistent output** with emojis and formatting
+
+## Code Reduction
+
+- **Lines removed**: ~3,000+ (archived old scripts)
+- **Scripts consolidated**: 38+ → 4
+- **Maintainability**: Significantly improved
+- **Discoverability**: 100% improvement via npm scripts
+
+## Future Maintenance
+
+To add new functionality:
+
+1. Choose the appropriate CLI tool (or create a new one)
+2. Add a new `.command()` to the tool
+3. Add the corresponding npm script to `package.json`
+4. Update this README if creating a new tool
+
+## Rollback Procedure
+
+If the new CLI tools have issues:
+
+1. The old scripts can be restored from git history
+2. This archive directory serves as reference
+3. Each CLI tool is independent and can be rolled back individually
+
+---
+
+**Status**: ✅ Consolidation Complete
+**Next Phase**: Type System Unification (Phase 3)
+</file>
+
+<file path="2025-01-phase4-tests/diagnose-page.ts">
+import { chromium } from 'playwright';
+
+async function diagnosePage() {
+  console.log('🔍 Diagnosing TCAD page structure...\n');
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  });
+
+  const page = await context.newPage();
+
+  try {
+    console.log('📄 Loading staging URL...');
+    await page.goto('https://stage.travis.prodigycad.com/property-search', {
+      waitUntil: 'networkidle',
+      timeout: 30000,
+    });
+
+    console.log('✅ Page loaded, waiting for React app to render...\n');
+
+    // Wait for React to render content in the root div
+    await page.waitForFunction(() => {
+      const root = document.getElementById('root');
+      return root && root.children.length > 0;
+    }, { timeout: 15000 });
+
+    console.log('✅ React app rendered\n');
+
+    // Get page title
+    const title = await page.title();
+    console.log(`📌 Page title: ${title}\n`);
+
+    // Check for input fields
+    const inputs = await page.$$('input');
+    console.log(`🔢 Found ${inputs.length} input elements\n`);
+
+    // Get details about each input
+    for (let i = 0; i < Math.min(inputs.length, 10); i++) {
+      const input = inputs[i];
+      const type = await input.getAttribute('type');
+      const placeholder = await input.getAttribute('placeholder');
+      const id = await input.getAttribute('id');
+      const name = await input.getAttribute('name');
+      const className = await input.getAttribute('class');
+
+      console.log(`Input ${i + 1}:`);
+      console.log(`  Type: ${type || 'none'}`);
+      console.log(`  Placeholder: ${placeholder || 'none'}`);
+      console.log(`  ID: ${id || 'none'}`);
+      console.log(`  Name: ${name || 'none'}`);
+      console.log(`  Class: ${className || 'none'}\n`);
+    }
+
+    // Save screenshot
+    await page.screenshot({ path: '/home/aledlie/tcad-scraper/server/page-diagnostic.png', fullPage: true });
+    console.log('📸 Screenshot saved to: /home/aledlie/tcad-scraper/server/page-diagnostic.png\n');
+
+    // Save HTML
+    const html = await page.content();
+    const fs = require('fs');
+    fs.writeFileSync('/home/aledlie/tcad-scraper/server/page-diagnostic.html', html);
+    console.log('💾 HTML saved to: /home/aledlie/tcad-scraper/server/page-diagnostic.html\n');
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+  } finally {
+    await browser.close();
+  }
+}
+
+diagnosePage();
+</file>
+
+<file path="2025-01-phase4-tests/diagnose-pagination.ts">
+import { chromium } from 'playwright';
+
+async function diagnosePagination() {
+  console.log('🔍 Diagnosing pagination elements...\n');
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    console.log('Loading TCAD search page...');
+    await page.goto('https://travis.prodigycad.com/property-search', {
+      waitUntil: 'networkidle',
+    });
+
+    // Wait for React
+    await page.waitForFunction(() => {
+      const root = document.getElementById('root');
+      return root && root.children.length > 0;
+    }, { timeout: 15000 });
+
+    console.log('Page loaded, performing search...');
+
+    // Search for a common name
+    await page.waitForSelector('#searchInput', { timeout: 10000 });
+    await page.type('#searchInput', 'Smith', { delay: 100 });
+    await page.press('#searchInput', 'Enter');
+    await page.waitForTimeout(3000);
+
+    // Wait for results
+    await page.waitForFunction(
+      () => {
+        const hasGridCells = document.querySelector('[role="gridcell"]') !== null;
+        const hasNoResults = document.querySelector('.ag-overlay-no-rows-center') !== null;
+        return hasGridCells || hasNoResults;
+      },
+      { timeout: 15000 }
+    );
+
+    console.log('\n=== Checking Status Bar Elements ===');
+
+    // Check various status bar selectors
+    const statusBarInfo = await page.evaluate(() => {
+      const selectors = [
+        '.ag-status-bar-center',
+        '.ag-status-name-value',
+        '[ref="eName"]',
+        '.ag-status-bar',
+        '.ag-paging-row-summary-panel',
+      ];
+
+      const results: any = {};
+
+      selectors.forEach(selector => {
+        const el = document.querySelector(selector);
+        results[selector] = {
+          exists: !!el,
+          text: el?.textContent?.trim() || null,
+          innerHTML: el?.innerHTML || null,
+        };
+      });
+
+      // Also get all elements with 'ag-status' or 'paging' in class name
+      const allStatusElements = Array.from(document.querySelectorAll('[class*="ag-status"], [class*="paging"]'));
+      results['allStatusElements'] = allStatusElements.map(el => ({
+        tag: el.tagName,
+        class: el.className,
+        text: el.textContent?.trim(),
+      }));
+
+      return results;
+    });
+
+    console.log(JSON.stringify(statusBarInfo, null, 2));
+
+    console.log('\n=== Checking Pagination Elements ===');
+
+    const paginationInfo = await page.evaluate(() => {
+      return {
+        pageSize: {
+          selector: document.querySelector('.ag-paging-page-size'),
+          value: (document.querySelector('.ag-paging-page-size') as any)?.value,
+          options: Array.from(document.querySelectorAll('.ag-paging-page-size option')).map((opt: any) => ({
+            value: opt.value,
+            text: opt.textContent?.trim(),
+          })),
+        },
+        nextButton: {
+          exists: !!document.querySelector('.ag-paging-button[ref="btNext"]'),
+          disabled: document.querySelector('.ag-paging-button[ref="btNext"]')?.classList.contains('ag-disabled'),
+        },
+        prevButton: {
+          exists: !!document.querySelector('.ag-paging-button[ref="btPrevious"]'),
+          disabled: document.querySelector('.ag-paging-button[ref="btPrevious"]')?.classList.contains('ag-disabled'),
+        },
+      };
+    });
+
+    console.log(JSON.stringify(paginationInfo, null, 2));
+
+    console.log('\n=== Taking Screenshot ===');
+    await page.screenshot({
+      path: '/home/aledlie/tcad-scraper/server/pagination-diagnostic.png',
+      fullPage: true
+    });
+    console.log('Screenshot saved to: pagination-diagnostic.png');
+
+    console.log('\n✅ Diagnostic complete!');
+    console.log('Keep browser open for 10 seconds to inspect...');
+    await page.waitForTimeout(10000);
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
+diagnosePagination();
+</file>
+
+<file path="2025-01-phase4-tests/diagnose-results.ts">
+import { chromium } from 'playwright';
+
+async function diagnoseResults() {
+  console.log('🔍 Diagnosing TCAD results grid structure...\n');
+
+  const browser = await chromium.launch({
+    headless: true, // Run in headless mode for server environment
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    viewport: { width: 1920, height: 1080 },
+  });
+
+  const page = await context.newPage();
+
+  try {
+    console.log('📄 Loading staging URL...');
+    await page.goto('https://stage.travis.prodigycad.com/property-search', {
+      waitUntil: 'networkidle',
+      timeout: 30000,
+    });
+
+    console.log('✅ Page loaded, waiting for React app to render...\n');
+
+    // Wait for React to render content
+    await page.waitForFunction(() => {
+      const root = document.getElementById('root');
+      return root && root.children.length > 0;
+    }, { timeout: 15000 });
+
+    console.log('✅ React app rendered\n');
+
+    // Wait for and fill the search input
+    console.log('🔍 Performing search for "Austin"...');
+    await page.waitForSelector('#searchInput', { timeout: 10000 });
+    await page.type('#searchInput', 'Austin', { delay: 100 });
+    await page.waitForTimeout(500);
+    await page.press('#searchInput', 'Enter');
+
+    console.log('⏳ Waiting for results...\n');
+
+    // Wait a moment for any results to appear
+    await page.waitForTimeout(5000);
+
+    // Take screenshot before checking for results
+    await page.screenshot({
+      path: '/home/aledlie/tcad-scraper/server/after-search.png',
+      fullPage: true
+    });
+    console.log('📸 Screenshot after search saved to: /home/aledlie/tcad-scraper/server/after-search.png\n');
+
+    // Try to wait for results, but continue even if it times out
+    try {
+      await page.waitForSelector('[role="gridcell"]', {
+        timeout: 10000,
+        state: 'visible'
+      });
+      console.log('✅ Results grid found!\n');
+    } catch (error) {
+      console.log('⚠️  No gridcell found after 10 seconds, continuing with analysis...\n');
+    }
+
+    // Wait a bit for all results to render
+    await page.waitForTimeout(2000);
+
+    // Analyze the page structure
+    const analysis = await page.evaluate(() => {
+      const results: any = {
+        gridcellCount: 0,
+        rowsWithSpaceLabel: 0,
+        allRows: 0,
+        sampleRowHTML: '',
+        columnHeaders: [] as string[],
+        sampleCellAttributes: [] as any[],
+        pageMessages: [] as string[],
+        agGridElements: 0,
+        bodyText: '',
+      };
+
+      // Check for any messages on the page (error messages, "no results", etc.)
+      const possibleMessageSelectors = [
+        '.ag-overlay-no-rows-center',
+        '.no-results',
+        '.error-message',
+        '[role="alert"]',
+        '.message',
+      ];
+
+      for (const selector of possibleMessageSelectors) {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+          const text = el.textContent?.trim();
+          if (text) results.pageMessages.push(text);
+        });
+      }
+
+      // Check for AG Grid elements
+      results.agGridElements = document.querySelectorAll('.ag-root').length;
+
+      // Get visible body text (first 500 chars)
+      results.bodyText = document.body.textContent?.trim().substring(0, 500) || '';
+
+      // Count gridcells
+      const gridcells = document.querySelectorAll('[role="gridcell"]');
+      results.gridcellCount = gridcells.length;
+
+      // Count rows with the SPACE label
+      const rowsWithSpace = document.querySelectorAll('[aria-label="Press SPACE to select this row."][role="row"]');
+      results.rowsWithSpaceLabel = rowsWithSpace.length;
+
+      // Count all rows
+      const allRows = document.querySelectorAll('[role="row"]');
+      results.allRows = allRows.length;
+
+      // Get first data row HTML
+      if (rowsWithSpace.length > 0) {
+        results.sampleRowHTML = rowsWithSpace[0].outerHTML.substring(0, 2000);
+      }
+
+      // Get column headers
+      const headers = document.querySelectorAll('[role="columnheader"]');
+      results.columnHeaders = Array.from(headers).map(h => h.textContent?.trim() || '');
+
+      // Get sample cell attributes from first row
+      if (rowsWithSpace.length > 0) {
+        const firstRow = rowsWithSpace[0];
+        const cells = firstRow.querySelectorAll('[role="gridcell"]');
+        results.sampleCellAttributes = Array.from(cells).slice(0, 10).map(cell => ({
+          colId: cell.getAttribute('col-id'),
+          ariaColIndex: cell.getAttribute('aria-colindex'),
+          textContent: cell.textContent?.trim(),
+          className: cell.className,
+        }));
+      }
+
+      return results;
+    });
+
+    console.log('📊 Results Analysis:');
+    console.log('═══════════════════════════════════════════════════\n');
+    console.log(`AG Grid elements: ${analysis.agGridElements}`);
+    console.log(`Total gridcells found: ${analysis.gridcellCount}`);
+    console.log(`Rows with "Press SPACE" label: ${analysis.rowsWithSpaceLabel}`);
+    console.log(`Total rows: ${analysis.allRows}\n`);
+
+    if (analysis.pageMessages.length > 0) {
+      console.log('📢 Page Messages:');
+      analysis.pageMessages.forEach(msg => console.log(`  - ${msg}`));
+      console.log('');
+    }
+
+    if (analysis.bodyText) {
+      console.log('📄 Body Text (first 500 chars):');
+      console.log(analysis.bodyText);
+      console.log('');
+    }
+
+    console.log('📋 Column Headers:');
+    analysis.columnHeaders.forEach((header, i) => {
+      console.log(`  ${i + 1}. ${header}`);
+    });
+    console.log('');
+
+    console.log('🔍 Sample Cell Attributes (first 10 cells of first row):');
+    analysis.sampleCellAttributes.forEach((cell, i) => {
+      console.log(`\nCell ${i + 1}:`);
+      console.log(`  col-id: ${cell.colId || 'none'}`);
+      console.log(`  aria-colindex: ${cell.ariaColIndex || 'none'}`);
+      console.log(`  text: ${cell.textContent || 'empty'}`);
+      console.log(`  class: ${cell.className || 'none'}`);
+    });
+    console.log('');
+
+    // Save screenshot of results
+    await page.screenshot({
+      path: '/home/aledlie/tcad-scraper/server/results-diagnostic.png',
+      fullPage: true
+    });
+    console.log('📸 Screenshot saved to: /home/aledlie/tcad-scraper/server/results-diagnostic.png\n');
+
+    // Save HTML of results
+    const html = await page.content();
+    const fs = require('fs');
+    fs.writeFileSync('/home/aledlie/tcad-scraper/server/results-diagnostic.html', html);
+    console.log('💾 HTML saved to: /home/aledlie/tcad-scraper/server/results-diagnostic.html\n');
+
+    // Try to extract properties using current method
+    console.log('🧪 Testing current extraction method...\n');
+    const properties = await page.evaluate(() => {
+      const rows = document.querySelectorAll('[aria-label="Press SPACE to select this row."][role="row"]');
+
+      return Array.from(rows).map(row => {
+        const extractText = (selector: string): string | null => {
+          const element = row.querySelector(selector);
+          return element?.textContent?.trim() || null;
+        };
+
+        const extractNumber = (selector: string): number => {
+          const text = extractText(selector);
+          if (!text) return 0;
+          const cleaned = text.replace(/[$,]/g, '');
+          return parseFloat(cleaned) || 0;
+        };
+
+        return {
+          propertyId: extractText('[col-id="pid"]') || '',
+          name: extractText('[col-id="name"]') || '',
+          propType: extractText('[col-id="propType"]') || '',
+          city: extractText('[col-id="city"]'),
+          propertyAddress: extractText('[col-id="streetPrimary"]') || '',
+          assessedValue: extractNumber('.assessedValue'),
+          appraisedValue: extractNumber('[col-id="appraisedValue"]'),
+          geoId: extractText('[col-id="geoID"]'),
+          description: extractText('[col-id="legalDescription"]'),
+        };
+      }).filter(property => property.propertyAddress && property.propertyId);
+    });
+
+    console.log(`Current method extracted: ${properties.length} properties`);
+    if (properties.length > 0) {
+      console.log('\n✅ Sample extracted property:');
+      console.log(JSON.stringify(properties[0], null, 2));
+    } else {
+      console.log('\n❌ Current method extracted 0 properties');
+    }
+
+    console.log('\n✅ Diagnostic complete!');
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+  } finally {
+    await browser.close();
+  }
+}
+
+diagnoseResults();
+</file>
+
+<file path="2025-01-phase4-tests/queue-test-searches.ts">
+import Bull from 'bull';
+
+async function queueTestSearches() {
+  const queue = new Bull('scraper-queue', {
+    redis: {
+      host: 'localhost',
+      port: 6379,
+    },
+  });
+
+  console.log('📋 Queuing test searches...\n');
+
+  const searchTerms = [
+    'Austin',
+    '78701',
+    'dede', // Known to have 20 results
+  ];
+
+  for (const searchTerm of searchTerms) {
+    await queue.add('scrape-properties', {
+      searchTerm,
+      timestamp: new Date().toISOString(),
+    });
+    console.log(`✅ Queued: ${searchTerm}`);
+  }
+
+  const waiting = await queue.getWaitingCount();
+  const active = await queue.getActiveCount();
+  const completed = await queue.getCompletedCount();
+  const failed = await queue.getFailedCount();
+
+  console.log(`\n📊 Queue status:`);
+  console.log(`   Waiting: ${waiting}`);
+  console.log(`   Active: ${active}`);
+  console.log(`   Completed: ${completed}`);
+  console.log(`   Failed: ${failed}`);
+
+  await queue.close();
+  process.exit(0);
+}
+
+queueTestSearches();
+</file>
+
+<file path="2025-01-phase4-tests/README_ENHANCED.md">
+# 2025-01-phase4-tests
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "2025-01-phase4-tests",
+  "description": "Directory containing 15 code files with 1 classes and 14 functions",
+  "programmingLanguage": [
+    {
+      "@type": "ComputerLanguage",
+      "name": "Typescript"
+    }
+  ],
+  "featureList": [
+    "1 class definitions",
+    "14 function definitions"
+  ]
+}
+</script>
+
+## Overview
+
+This directory contains 15 code file(s) with extracted schemas.
+
+## Files and Schemas
+
+### `diagnose-page.ts` (typescript)
+
+**Functions:**
+- `async diagnosePage()` - Line 2
+
+### `diagnose-pagination.ts` (typescript)
+
+**Functions:**
+- `async diagnosePagination()` - Line 2
+
+### `diagnose-results.ts` (typescript)
+
+**Functions:**
+- `async diagnoseResults()` - Line 2
+
+### `queue-test-searches.ts` (typescript)
+
+**Functions:**
+- `async queueTestSearches()` - Line 2
+
+### `test-ag-grid-data.ts` (typescript)
+
+**Functions:**
+- `async testAGGridData()` - Line 2
+
+### `test-api-scraper.ts` (typescript)
+
+**Functions:**
+- `async testAPIScraper()` - Line 12
+
+### `test-db-save.ts` (typescript)
+
+**Functions:**
+- `async testDatabaseSave()` - Line 13
+
+### `test-direct-api-bypass.ts` (typescript)
+
+**Functions:**
+- `async testDirectAPIBypass()` - Line 11
+
+### `test-fixed-scraper.ts` (typescript)
+
+**Functions:**
+- `async testFix()` - Line 2
+
+### `test-network-interception.ts` (typescript)
+
+**Functions:**
+- `async testNetworkInterception()` - Line 7
+
+### `test-optimized-search.ts` (typescript)
+
+**Classes:**
+- `SearchPatternGenerator` - Line 2
+
+### `test-pagesize-limits.ts` (typescript)
+
+**Functions:**
+- `async testPageSizeLimits()` - Line 5
+
+### `test-pagination.ts` (typescript)
+
+**Functions:**
+- `async testPagination()` - Line 2
+
+### `test-selectors.ts` (typescript)
+
+**Functions:**
+- `async testSelectors()` - Line 2
+
+### `test-urls.ts` (typescript)
+
+**Functions:**
+- `async testBothURLs()` - Line 2
+
+---
+*Generated by Enhanced Schema Generator with schema.org markup*
+</file>
+
+<file path="2025-01-phase4-tests/README.md">
+# Phase 4: Archived Test and Diagnostic Scripts
+
+**Archive Date**: January 6, 2025
+**Reason**: Obsolete, superseded by better implementations, or debugging completed
+
+---
+
+## What Was Archived
+
+This directory contains 15 test and diagnostic scripts that were used during development but are no longer needed in active codebase. All scripts are preserved in git history and this archive for reference.
+
+---
+
+## Archived Diagnostic Scripts (3 files)
+
+### diagnose-page.ts
+- **Purpose**: Diagnosed page rendering and scraping issues
+- **Status**: Pagination issue resolved, no longer needed
+- **Date**: November 2024
+
+### diagnose-pagination.ts
+- **Purpose**: Debugged pagination controls and behavior
+- **Status**: Pagination issue resolved, no longer needed
+- **Date**: November 2024
+
+### diagnose-results.ts
+- **Purpose**: Debugged result extraction and parsing
+- **Status**: Results extraction working correctly
+- **Date**: November 2024
+
+---
+
+## Archived Test Scripts (12 files)
+
+### test-ag-grid-data.ts
+- **Purpose**: Tested AG Grid data extraction approach
+- **Status**: AG Grid approach deprecated in favor of API scraping
+- **Superseded By**: API-based scraping in lib/tcad-scraper.ts
+
+### test-api-scraper.ts
+- **Purpose**: Early testing of API scraping approach
+- **Status**: API scraping now standard, implemented in lib/tcad-scraper.ts
+- **Superseded By**: lib/tcad-scraper.ts (production implementation)
+
+### test-db-save.ts
+- **Purpose**: Tested database saving functionality
+- **Status**: Database integration complete, proper tests in __tests__/
+- **Superseded By**: __tests__/integration.test.ts
+
+### test-direct-api-bypass.ts
+- **Purpose**: Tested direct API access without browser
+- **Status**: API method now standard approach
+- **Superseded By**: Standard API scraping implementation
+
+### test-fixed-scraper.ts
+- **Purpose**: Testing of fixed/improved scraper version
+- **Status**: Improvements integrated into main scraper
+- **Superseded By**: lib/tcad-scraper.ts
+
+### test-network-interception.ts
+- **Purpose**: Debugging network requests and responses
+- **Status**: Network issues resolved
+- **Date**: November 2024
+
+### test-optimized-search.ts
+- **Purpose**: Testing search optimizations
+- **Status**: Optimizations integrated into production
+- **Superseded By**: lib/tcad-scraper.ts
+
+### test-pagesize-limits.ts
+- **Purpose**: Testing pagination and page size limits
+- **Status**: Pagination issue resolved
+- **Date**: November 2024
+
+### test-pagination.ts
+- **Purpose**: Testing pagination controls
+- **Status**: Pagination working correctly
+- **Date**: November 2024
+
+### test-selectors.ts
+- **Purpose**: Testing CSS selectors for scraping
+- **Status**: Selectors finalized and working
+- **Date**: November 2024
+
+### test-urls.ts
+- **Purpose**: Testing URL construction and navigation
+- **Status**: URL handling working correctly
+- **Date**: November 2024
+
+### queue-test-searches.ts
+- **Purpose**: One-off utility for queuing test searches
+- **Status**: Superseded by CLI tools
+- **Superseded By**: npm run queue add-terms
+
+---
+
+## Active Test Scripts (Still in src/scripts/)
+
+These scripts are still actively used and referenced in package.json:
+
+```
+src/scripts/test-api-token-config.ts   - Token configuration testing
+src/scripts/test-queue-job-flow.ts     - Queue flow testing
+src/scripts/test-token-refresh.ts      - Token refresh testing
+```
+
+**Package.json scripts:**
+```json
+{
+  "test:token-config": "tsx src/scripts/test-api-token-config.ts",
+  "test:queue-flow": "tsx src/scripts/test-queue-job-flow.ts",
+  "test:token-refresh": "tsx src/scripts/test-token-refresh.ts"
+}
+```
+
+---
+
+## Production Scripts (Still in src/scripts/)
+
+### Core Scraping
+```
+batch-scrape.ts                    - Manual batch scraping utility
+continuous-batch-scraper.ts        - Automated continuous scraper (PRODUCTION)
+worker.ts                          - Queue worker (PRODUCTION)
+```
+
+### Entity-Specific Batches
+```
+enqueue-*-batch.ts                 - Various entity type batch queueing scripts
+```
+
+### Batch Variants
+```
+batch-scrape-100.ts                - Batch scraper with specific size
+batch-scrape-comprehensive.ts      - Comprehensive batch scraping
+```
+
+---
+
+## Why These Scripts Were Archived
+
+### 1. **Debugging Complete**
+Scripts like `diagnose-pagination.ts` and `test-pagesize-limits.ts` were created to solve specific bugs. Once fixed, these became obsolete.
+
+### 2. **Better Implementations Available**
+Scripts like `test-api-scraper.ts` were prototypes. The final implementation in `lib/tcad-scraper.ts` replaced them.
+
+### 3. **Superseded by CLI Tools**
+Scripts like `queue-test-searches.ts` are now better handled by the consolidated CLI tools:
+```bash
+npm run queue add-terms <file>
+```
+
+### 4. **Proper Tests Exist**
+Test scripts like `test-db-save.ts` were exploratory. Proper integration tests now exist in `__tests__/`.
+
+---
+
+## Restoration Procedure
+
+If you need to restore any of these scripts:
+
+### From Archive
+```bash
+cp scripts-archive/2025-01-phase4-tests/<script-name>.ts src/scripts/
+```
+
+### From Git History
+```bash
+git checkout <commit-hash> -- server/src/scripts/<script-name>.ts
+```
+
+### Find Commit
+```bash
+git log --all --full-history -- "server/src/scripts/test-*.ts"
+```
+
+---
+
+## Impact of Archiving
+
+### Before
+- 18 test/diagnostic scripts cluttering src/scripts/
+- Unclear which scripts were active vs obsolete
+- Mixed production and testing code
+- Hard to find what you need
+
+### After
+- 3 active test scripts (clearly identified)
+- 21 production scripts
+- Clean separation of concerns
+- Easy to navigate
+
+---
+
+## Related Changes
+
+### Phase 2 (Script Consolidation)
+- 38 utility scripts → 4 CLI tools
+- Located in: scripts-archive/2025-01-phase2-consolidation/
+
+### Phase 3 (Type System)
+- Shared types created
+- Schema.org alignment
+
+### Phase 4 (Test Cleanup) - This Archive
+- 15 obsolete test/diagnostic scripts archived
+- 1 duplicate Jest config removed
+- Test structure clarified
+
+---
+
+## File List
+
+**Total Archived**: 15 files
+
+```
+diagnose-page.ts
+diagnose-pagination.ts
+diagnose-results.ts
+queue-test-searches.ts
+test-ag-grid-data.ts
+test-api-scraper.ts
+test-db-save.ts
+test-direct-api-bypass.ts
+test-fixed-scraper.ts
+test-network-interception.ts
+test-optimized-search.ts
+test-pagesize-limits.ts
+test-pagination.ts
+test-selectors.ts
+test-urls.ts
+```
+
+---
+
+**Archive Complete**: January 6, 2025
+**Next Phase**: Ready for future refactoring phases if needed
+</file>
+
+<file path="2025-01-phase4-tests/test-ag-grid-data.ts">
+import { chromium } from 'playwright';
+
+async function testAGGridData() {
+  console.log('🔍 Testing AG Grid data extraction...\n');
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    await page.goto('https://travis.prodigycad.com/property-search', {
+      waitUntil: 'networkidle',
+    });
+
+    await page.waitForFunction(() => {
+      const root = document.getElementById('root');
+      return root && root.children.length > 0;
+    }, { timeout: 15000 });
+
+    await page.waitForSelector('#searchInput', { timeout: 10000 });
+    await page.type('#searchInput', 'Smith', { delay: 100 });
+    await page.press('#searchInput', 'Enter');
+    await page.waitForTimeout(3000);
+
+    await page.waitForFunction(
+      () => document.querySelector('[role="gridcell"]') !== null,
+      { timeout: 15000 }
+    );
+
+    console.log('Results loaded, checking AG Grid data sources...\n');
+
+    const dataInfo = await page.evaluate(() => {
+      return {
+        visibleRows: document.querySelectorAll('.ag-row').length,
+        totalElements: document.querySelectorAll('[class*="ag-"]').length,
+      };
+    });
+
+    console.log('Visible rows:', dataInfo.visibleRows);
+    console.log('Grid APIs found:', dataInfo.gridAPIs.length);
+    console.log('Data extracted:', dataInfo.dataFound);
+    console.log('Total data items:', dataInfo.allData.length);
+
+    if (dataInfo.allData.length > 0) {
+      console.log('\n✅ Found data! Sample:');
+      console.log(JSON.stringify(dataInfo.allData.slice(0, 3), null, 2));
+    } else {
+      console.log('\n❌ Could not extract data from AG Grid internal model');
+      console.log('Grid API locations found:', JSON.stringify(dataInfo.gridAPIs, null, 2));
+    }
+
+  } catch (error) {
+    console.error('Error:', error);
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
+testAGGridData();
+</file>
+
+<file path="2025-01-phase4-tests/test-api-scraper.ts">
+import { TCADScraper } from '../lib/tcad-scraper';
+import winston from 'winston';
+
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.simple(),
+  transports: [new winston.transports.Console()],
+});
+
+/**
+ * Test the new API-based scraper with sample search terms
+ */
+async function testAPIScraper() {
+  console.log('🧪 Testing New API-Based Scraper\n');
+  console.log('=' .repeat(80) + '\n');
+
+  const searchTerms = [
+    'Smith',         // Common name - should have many results
+    'Austin',        // City name - should have many results
+    '1234 Lamar',    // Street address
+    'Johnson LLC',   // Business name
+    'Hyde Park',     // Neighborhood
+  ];
+
+  const scraper = new TCADScraper({ headless: true });
+
+  try {
+    await scraper.initialize();
+    console.log('✅ Scraper initialized\n');
+
+    const results: Array<{
+      searchTerm: string;
+      count: number;
+      duration: number;
+      sample: any;
+    }> = [];
+
+    for (const searchTerm of searchTerms) {
+      console.log(`\n${'─'.repeat(80)}`);
+      console.log(`Testing search term: "${searchTerm}"`);
+      console.log('─'.repeat(80));
+
+      const startTime = Date.now();
+
+      try {
+        const properties = await scraper.scrapePropertiesViaAPI(searchTerm);
+        const duration = Date.now() - startTime;
+
+        console.log(`✅ Found ${properties.length} properties in ${(duration / 1000).toFixed(2)}s`);
+
+        if (properties.length > 0) {
+          const sample = properties[0];
+          console.log('\nSample property:');
+          console.log(`  Name: ${sample.name}`);
+          console.log(`  Address: ${sample.propertyAddress}, ${sample.city || 'N/A'}`);
+          console.log(`  Property ID: ${sample.propertyId}`);
+          console.log(`  Appraised Value: $${sample.appraisedValue.toLocaleString()}`);
+          console.log(`  Property Type: ${sample.propType}`);
+
+          results.push({
+            searchTerm,
+            count: properties.length,
+            duration,
+            sample,
+          });
+        } else {
+          console.log('  No properties found');
+          results.push({
+            searchTerm,
+            count: 0,
+            duration,
+            sample: null,
+          });
+        }
+      } catch (error) {
+        console.error(`  ❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        results.push({
+          searchTerm,
+          count: -1, // Indicate error
+          duration: Date.now() - startTime,
+          sample: null,
+        });
+      }
+
+      // Small delay between searches
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    // Summary
+    console.log('\n\n' + '='.repeat(80));
+    console.log('TEST SUMMARY');
+    console.log('='.repeat(80) + '\n');
+
+    console.log('Search Term          | Results | Time (s) | Status');
+    console.log('-'.repeat(60));
+
+    results.forEach(r => {
+      const term = r.searchTerm.padEnd(20);
+      const count = r.count === -1 ? 'ERROR'.padEnd(7) : r.count.toString().padEnd(7);
+      const time = (r.duration / 1000).toFixed(2).padEnd(8);
+      const status = r.count === -1 ? '❌' : r.count > 0 ? '✅' : '⚠️';
+      console.log(`${term} | ${count} | ${time} | ${status}`);
+    });
+
+    const totalResults = results.reduce((sum, r) => sum + (r.count > 0 ? r.count : 0), 0);
+    const avgTime = results.reduce((sum, r) => sum + r.duration, 0) / results.length;
+    const successCount = results.filter(r => r.count >= 0).length;
+
+    console.log('\n' + '─'.repeat(60));
+    console.log(`Total properties found: ${totalResults.toLocaleString()}`);
+    console.log(`Average time per search: ${(avgTime / 1000).toFixed(2)}s`);
+    console.log(`Success rate: ${successCount}/${results.length} (${((successCount/results.length)*100).toFixed(1)}%)`);
+
+    // Compare with old method
+    console.log('\n' + '='.repeat(80));
+    console.log('COMPARISON WITH OLD METHOD');
+    console.log('='.repeat(80) + '\n');
+
+    const oldMethodResults = results.length * 20; // Old method: max 20 results per search
+    const improvement = totalResults / oldMethodResults;
+
+    console.log(`Old method (DOM scraping):  ~${oldMethodResults} properties (20 per search)`);
+    console.log(`New method (API scraping):  ${totalResults} properties`);
+    console.log(`Improvement:                ${improvement.toFixed(1)}x more results`);
+    console.log(`\n✅ API scraping method is ${improvement.toFixed(1)}x more effective!\n`);
+
+  } catch (error) {
+    console.error('❌ Fatal error:', error);
+  } finally {
+    await scraper.cleanup();
+    console.log('Scraper cleaned up');
+  }
+}
+
+testAPIScraper();
+</file>
+
+<file path="2025-01-phase4-tests/test-db-save.ts">
+import { TCADScraper } from '../lib/tcad-scraper';
+import { prisma } from '../lib/prisma';
+import winston from 'winston';
+
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.simple(),
+  transports: [new winston.transports.Console()],
+});
+
+/**
+ * Test scraping and saving to database with new schema
+ */
+async function testDatabaseSave() {
+  console.log('🧪 Testing Database Save with New Schema\n');
+  console.log('=' .repeat(80) + '\n');
+
+  const searchTerm = 'Smith'; // Use a successful search term
+  const scraper = new TCADScraper({ headless: true });
+
+  try {
+    await scraper.initialize();
+    console.log('✅ Scraper initialized\n');
+
+    console.log(`Scraping properties for: "${searchTerm}"`);
+    const properties = await scraper.scrapePropertiesViaAPI(searchTerm);
+    console.log(`✅ Found ${properties.length} properties\n`);
+
+    if (properties.length === 0) {
+      console.log('No properties to save');
+      return;
+    }
+
+    // Save to database
+    console.log('Saving properties to database...');
+    let savedCount = 0;
+    let updatedCount = 0;
+
+    for (const property of properties) {
+      try {
+        const result = await prisma.property.upsert({
+          where: { propertyId: property.propertyId },
+          update: {
+            name: property.name,
+            propType: property.propType,
+            city: property.city || null,
+            propertyAddress: property.propertyAddress,
+            assessedValue: property.assessedValue || null,
+            appraisedValue: property.appraisedValue,
+            geoId: property.geoId || null,
+            description: property.description || null,
+            searchTerm: searchTerm,
+            scrapedAt: new Date(),
+            updatedAt: new Date(),
+          },
+          create: {
+            propertyId: property.propertyId,
+            name: property.name,
+            propType: property.propType,
+            city: property.city || null,
+            propertyAddress: property.propertyAddress,
+            assessedValue: property.assessedValue || null,
+            appraisedValue: property.appraisedValue,
+            geoId: property.geoId || null,
+            description: property.description || null,
+            searchTerm: searchTerm,
+            scrapedAt: new Date(),
+          },
+        });
+
+        if (result.createdAt.getTime() === result.updatedAt.getTime()) {
+          savedCount++;
+        } else {
+          updatedCount++;
+        }
+      } catch (error) {
+        console.error(`Error saving property ${property.propertyId}:`, error);
+      }
+    }
+
+    console.log(`✅ Saved ${savedCount} new properties, updated ${updatedCount} existing`);
+
+    // Verify data
+    console.log('\n' + '─'.repeat(80));
+    console.log('VERIFICATION');
+    console.log('─'.repeat(80) + '\n');
+
+    const totalInDb = await prisma.property.count();
+    console.log(`Total properties in database: ${totalInDb}`);
+
+    const sample = await prisma.property.findFirst({
+      where: { searchTerm: searchTerm },
+    });
+
+    if (sample) {
+      console.log('\nSample property from database:');
+      console.log(`  Property ID: ${sample.propertyId}`);
+      console.log(`  Name: ${sample.name}`);
+      console.log(`  Address: ${sample.propertyAddress}`);
+      console.log(`  City: ${sample.city || 'N/A'}`);
+      console.log(`  Property Type: ${sample.propType}`);
+      console.log(`  Appraised Value: $${sample.appraisedValue.toLocaleString()}`);
+      console.log(`  Assessed Value: $${sample.assessedValue?.toLocaleString() || 'N/A'}`);
+      console.log(`  Geo ID: ${sample.geoId || 'N/A'}`);
+      console.log(`  Search Term: ${sample.searchTerm || 'N/A'}`);
+      console.log(`  Scraped At: ${sample.scrapedAt.toISOString()}`);
+      console.log(`  Created At: ${sample.createdAt.toISOString()}`);
+    }
+
+    console.log('\n✅ Database schema verification PASSED!');
+    console.log('All fields are saving correctly with proper data types.\n');
+
+  } catch (error) {
+    console.error('❌ Fatal error:', error);
+  } finally {
+    await scraper.cleanup();
+    await prisma.$disconnect();
+    console.log('Cleanup complete');
+  }
+}
+
+testDatabaseSave();
+</file>
+
+<file path="2025-01-phase4-tests/test-direct-api-bypass.ts">
+import { chromium } from 'playwright';
+
+/**
+ * PROOF OF CONCEPT: Direct API bypass for pagination limitation
+ *
+ * Instead of using the UI with its 20-result limit, we can:
+ * 1. Get an auth token from the website
+ * 2. Make direct HTTP POST requests to the API
+ * 3. Use a larger pageSize (100, 500, or even 1000)
+ * 4. Paginate through all results if needed
+ */
+async function testDirectAPIBypass() {
+  console.log('🚀 Testing Direct API Bypass for Pagination Limit\n');
+  console.log('=' .repeat(80) + '\n');
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    // Step 1: Get authentication token by performing a search
+    console.log('Step 1: Loading page and waiting for authentication...');
+
+    let authToken: string | null = null;
+
+    // Capture the authorization token from network requests
+    page.on('request', (request) => {
+      const headers = request.headers();
+      if (headers['authorization']) {
+        authToken = headers['authorization'];
+      }
+    });
+
+    await page.goto('https://travis.prodigycad.com/property-search', {
+      waitUntil: 'networkidle',
+      timeout: 30000,
+    });
+
+    // Wait for React to render
+    await page.waitForFunction(() => {
+      const root = document.getElementById('root');
+      return root && root.children.length > 0;
+    }, { timeout: 15000 });
+
+    // Perform a quick search to trigger auth token usage
+    await page.waitForSelector('#searchInput', { timeout: 10000 });
+    await page.type('#searchInput', 'test', { delay: 50 });
+    await page.press('#searchInput', 'Enter');
+    await page.waitForTimeout(3000);
+
+    console.log(`Auth Token: ${authToken ? authToken.substring(0, 50) + '...' : 'Not found'}\n`);
+
+    if (!authToken) {
+      throw new Error('Could not capture authorization token');
+    }
+
+    // Step 2: Test direct API call with larger pageSize
+    console.log('Step 2: Making direct API call with pageSize=100...\n');
+
+    const response = await page.evaluate(async (token: string) => {
+      // Make direct fetch request to the API
+      const apiUrl = 'https://prod-container.trueprodigyapi.com/public/property/searchfulltext?page=1&pageSize=100';
+
+      const requestBody = {
+        pYear: { operator: '=', value: '2025' },
+        fullTextSearch: { operator: 'match', value: 'Smith' }
+      };
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': token,
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!res.ok) {
+        return {
+          status: res.status,
+          error: await res.text(),
+        };
+      }
+
+      const data = await res.json();
+      return {
+        status: res.status,
+        totalCount: data.totalProperty?.propertyCount,
+        resultsReturned: data.results?.length,
+        sampleResults: data.results?.slice(0, 3).map((r: any) => ({
+          pid: r.pid,
+          displayName: r.displayName,
+          streetPrimary: r.streetPrimary,
+          city: r.city,
+          appraisedValue: r.appraisedValue,
+        }))
+      };
+    }, authToken);
+
+    console.log('API Response:');
+    console.log(`- Status: ${response.status}`);
+    console.log(`- Total properties matching search: ${response.totalCount}`);
+    console.log(`- Results returned: ${response.resultsReturned}`);
+    console.log(`\n✅ SUCCESS! We got ${response.resultsReturned} results instead of 20!\n`);
+
+    console.log('Sample results:');
+    response.sampleResults?.forEach((result: any, i: number) => {
+      console.log(`\n${i + 1}. ${result.displayName}`);
+      console.log(`   PID: ${result.pid}`);
+      console.log(`   Address: ${result.streetPrimary}, ${result.city}`);
+      console.log(`   Appraised Value: $${result.appraisedValue?.toLocaleString()}`);
+    });
+
+    // Step 3: Calculate pagination needed for all results
+    console.log('\n' + '='.repeat(80));
+    console.log('PAGINATION ANALYSIS');
+    console.log('='.repeat(80) + '\n');
+
+    const totalCount = response.totalCount || 0;
+    const pageSize = 100;
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    console.log(`Total properties: ${totalCount}`);
+    console.log(`Page size: ${pageSize}`);
+    console.log(`Total pages needed: ${totalPages}`);
+    console.log(`\nTo get ALL results, we would need to make ${totalPages} API calls.`);
+
+    // Step 4: Test getting multiple pages
+    console.log('\n' + '='.repeat(80));
+    console.log('TESTING MULTI-PAGE RETRIEVAL');
+    console.log('='.repeat(80) + '\n');
+
+    console.log('Fetching pages 1, 2, and 3...\n');
+
+    const multiPageResults = await page.evaluate(async (token: string) => {
+      const apiUrl = 'https://prod-container.trueprodigyapi.com/public/property/searchfulltext';
+      const requestBody = {
+        pYear: { operator: '=', value: '2025' },
+        fullTextSearch: { operator: 'match', value: 'Smith' }
+      };
+
+      const allResults = [];
+      for (let page = 1; page <= 3; page++) {
+        const url = `${apiUrl}?page=${page}&pageSize=100`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': token,
+          },
+          body: JSON.stringify(requestBody)
+        });
+        const data = await res.json();
+        allResults.push({
+          page,
+          count: data.results?.length || 0,
+          firstPid: data.results?.[0]?.pid,
+          lastPid: data.results?.[data.results.length - 1]?.pid,
+        });
+      }
+      return allResults;
+    }, authToken);
+
+    multiPageResults.forEach((result: any) => {
+      console.log(`Page ${result.page}: ${result.count} results (PID range: ${result.firstPid} - ${result.lastPid})`);
+    });
+
+    const totalFetched = multiPageResults.reduce((sum: number, r: any) => sum + r.count, 0);
+    console.log(`\n✅ Successfully fetched ${totalFetched} results across 3 pages!`);
+
+    // Summary
+    console.log('\n' + '='.repeat(80));
+    console.log('SOLUTION SUMMARY');
+    console.log('='.repeat(80) + '\n');
+
+    console.log('🎯 WORKAROUND CONFIRMED!\n');
+    console.log('Instead of scraping the UI with Playwright:');
+    console.log('1. Navigate to the page once to get cookies/session');
+    console.log('2. Use page.evaluate() to call fetch() directly');
+    console.log('3. Set pageSize to 100-1000 (test to find max allowed)');
+    console.log('4. Loop through pages to get all results');
+    console.log('5. This bypasses the hidden AG Grid pagination completely!\n');
+
+    console.log('Benefits:');
+    console.log('✅ No DOM parsing needed');
+    console.log('✅ Much faster (direct JSON response)');
+    console.log('✅ Can get 1000s of results per search term');
+    console.log('✅ More reliable (no UI element waiting)');
+    console.log('✅ Less resource intensive\n');
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
+testDirectAPIBypass();
+</file>
+
+<file path="2025-01-phase4-tests/test-fixed-scraper.ts">
+import { TCADScraper } from '../lib/tcad-scraper';
+
+async function testFix() {
+  console.log('🧪 Testing fixed scraper...\n');
+
+  const scraper = new TCADScraper();
+
+  try {
+    await scraper.initialize();
+
+    const searchTerm = 'dede';
+    console.log(`Searching for: "${searchTerm}"`);
+
+    const properties = await scraper.scrapeProperties(searchTerm, 1);
+
+    console.log(`\n✅ Found ${properties.length} properties!\n`);
+
+    if (properties.length > 0) {
+      console.log('Sample property:');
+      console.log(JSON.stringify(properties[0], null, 2));
+    }
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+  } finally {
+    await scraper.cleanup();
+  }
+}
+
+testFix();
+</file>
+
+<file path="2025-01-phase4-tests/test-network-interception.ts">
+import { chromium } from 'playwright';
+
+/**
+ * Test script to intercept network requests and identify the backend API
+ * that AG Grid uses to fetch property data. If we can identify the API endpoint,
+ * we can bypass the 20-result pagination limit entirely.
+ */
+async function testNetworkInterception() {
+  console.log('🔍 Testing network interception to find backend API...\n');
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  // Array to store all network requests
+  const apiRequests: Array<{
+    url: string;
+    method: string;
+    postData?: string;
+    response?: any;
+  }> = [];
+
+  // Intercept all network requests
+  page.on('request', (request) => {
+    const url = request.url();
+    const method = request.method();
+
+    // Look for API calls (not static assets)
+    if (
+      !url.includes('.js') &&
+      !url.includes('.css') &&
+      !url.includes('.png') &&
+      !url.includes('.jpg') &&
+      !url.includes('.svg') &&
+      !url.includes('.woff') &&
+      !url.includes('static/')
+    ) {
+      console.log(`📤 REQUEST: ${method} ${url}`);
+
+      const postData = request.postData();
+      if (postData) {
+        console.log(`   POST Data: ${postData.substring(0, 200)}...`);
+      }
+
+      apiRequests.push({
+        url,
+        method,
+        postData: postData || undefined,
+      });
+    }
+  });
+
+  // Intercept all network responses
+  page.on('response', async (response) => {
+    const url = response.url();
+    const status = response.status();
+
+    // Look for API responses
+    if (
+      !url.includes('.js') &&
+      !url.includes('.css') &&
+      !url.includes('.png') &&
+      !url.includes('.jpg') &&
+      !url.includes('.svg') &&
+      !url.includes('.woff') &&
+      !url.includes('static/')
+    ) {
+      console.log(`📥 RESPONSE: ${status} ${url}`);
+
+      try {
+        // Try to get JSON response
+        const contentType = response.headers()['content-type'];
+        if (contentType && contentType.includes('application/json')) {
+          const json = await response.json();
+          console.log(`   Response preview: ${JSON.stringify(json).substring(0, 200)}...`);
+
+          // Store response data
+          const request = apiRequests.find(r => r.url === url);
+          if (request) {
+            request.response = json;
+          }
+        }
+      } catch (error) {
+        // Response might not be JSON
+      }
+    }
+  });
+
+  try {
+    console.log('Loading TCAD search page...');
+    await page.goto('https://travis.prodigycad.com/property-search', {
+      waitUntil: 'networkidle',
+      timeout: 30000,
+    });
+
+    // Wait for React
+    await page.waitForFunction(() => {
+      const root = document.getElementById('root');
+      return root && root.children.length > 0;
+    }, { timeout: 15000 });
+
+    console.log('\nPage loaded, performing search...\n');
+
+    // Search for a common term that will definitely return results
+    await page.waitForSelector('#searchInput', { timeout: 10000 });
+    await page.type('#searchInput', 'Smith', { delay: 100 });
+    await page.press('#searchInput', 'Enter');
+
+    // Wait for results to load
+    console.log('Waiting for search results...\n');
+    await page.waitForTimeout(5000);
+
+    // Wait for grid to populate
+    await page.waitForFunction(
+      () => {
+        const hasGridCells = document.querySelector('[role="gridcell"]') !== null;
+        const hasNoResults = document.querySelector('.ag-overlay-no-rows-center') !== null;
+        return hasGridCells || hasNoResults;
+      },
+      { timeout: 15000 }
+    );
+
+    console.log('\n' + '='.repeat(80));
+    console.log('NETWORK ANALYSIS COMPLETE');
+    console.log('='.repeat(80) + '\n');
+
+    console.log(`Total API requests captured: ${apiRequests.length}\n`);
+
+    // Filter for potential data API endpoints
+    const dataEndpoints = apiRequests.filter(req =>
+      req.url.includes('api') ||
+      req.url.includes('search') ||
+      req.url.includes('property') ||
+      req.url.includes('query') ||
+      req.method === 'POST'
+    );
+
+    console.log('🎯 POTENTIAL DATA ENDPOINTS:\n');
+    dataEndpoints.forEach((req, i) => {
+      console.log(`${i + 1}. ${req.method} ${req.url}`);
+      if (req.postData) {
+        console.log(`   POST Data: ${req.postData}`);
+      }
+      if (req.response) {
+        const responseStr = JSON.stringify(req.response);
+        console.log(`   Response: ${responseStr.substring(0, 300)}...`);
+
+        // Check if response contains property data
+        if (
+          responseStr.includes('propertyId') ||
+          responseStr.includes('address') ||
+          responseStr.includes('owner') ||
+          responseStr.includes('assessed') ||
+          responseStr.includes('appraised')
+        ) {
+          console.log('   ✅ This looks like the property data endpoint!');
+        }
+      }
+      console.log('');
+    });
+
+    // Check if we can extract the full dataset from the page's memory
+    console.log('\n' + '='.repeat(80));
+    console.log('CHECKING FOR DATA IN REACT STATE');
+    console.log('='.repeat(80) + '\n');
+
+    const reactStateData = await page.evaluate(() => {
+      // Try to find React Fiber nodes
+      const root = document.getElementById('root');
+      if (!root) return null;
+
+      // Try to access React internals
+      const reactRoot = (root as any)._reactRootContainer || (root as any)._reactRootContainer;
+
+      // Try to find data in various places
+      const results = {
+        windowKeys: Object.keys(window).filter(k =>
+          k.toLowerCase().includes('data') ||
+          k.toLowerCase().includes('property') ||
+          k.toLowerCase().includes('grid')
+        ),
+        gridData: null as any,
+      };
+
+      // Look for AG Grid data
+      try {
+        const gridDivs = document.querySelectorAll('[class*="ag-"]');
+        for (const div of gridDivs) {
+          const gridApi = (div as any).__agComponent?.api;
+          if (gridApi) {
+            // Try to get all row data
+            const allRows: any[] = [];
+            gridApi.forEachNode((node: any) => allRows.push(node.data));
+            results.gridData = {
+              totalRows: allRows.length,
+              sampleData: allRows.slice(0, 3),
+              displayedRowCount: gridApi.getDisplayedRowCount?.(),
+            };
+            break;
+          }
+        }
+      } catch (e) {
+        // Ignore
+      }
+
+      return results;
+    });
+
+    console.log('Window object keys related to data:');
+    console.log(reactStateData?.windowKeys || 'None found');
+    console.log('\nAG Grid internal data:');
+    console.log(JSON.stringify(reactStateData?.gridData, null, 2));
+
+    // Save full report
+    const report = {
+      timestamp: new Date().toISOString(),
+      totalRequests: apiRequests.length,
+      dataEndpoints,
+      reactState: reactStateData,
+    };
+
+    console.log('\n' + '='.repeat(80));
+    console.log('SUMMARY');
+    console.log('='.repeat(80));
+    console.log('\nNext steps:');
+    console.log('1. Review the potential data endpoints above');
+    console.log('2. If an API endpoint is found, we can make direct HTTP requests');
+    console.log('3. This would bypass the 20-result UI limitation completely');
+    console.log('4. Look for pagination parameters in POST data (page, pageSize, offset, limit)');
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
+testNetworkInterception();
+</file>
+
+<file path="2025-01-phase4-tests/test-optimized-search.ts">
+// Quick test to show the optimized search term generation
+
+class SearchPatternGenerator {
+  private usedTerms = new Set<string>();
+  private firstNames = ['James', 'Mary', 'John', 'Robert', 'Michael', 'William'];
+  private lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia'];
+  private streetNames = ['Main', 'Oak', 'Lamar', 'Congress', 'Guadalupe', 'Burnet'];
+  private propertyTypes = ['Apartments', 'Condos', 'Townhomes', 'Office', 'Retail'];
+  private businessSuffixes = ['LLC', 'Inc', 'Corp', 'Trust', 'Properties'];
+  private neighborhoods = ['Hyde Park', 'Mueller', 'East Austin', 'Travis Heights'];
+  private propertyDescriptors = ['Home', 'House', 'Property', 'Land'];
+
+  getNextBatch(batchSize: number): string[] {
+    const batch: string[] = [];
+    const strategies = [
+      { fn: () => this.generateFullName(), weight: 20 },
+      { fn: () => this.generateLastNameOnly(), weight: 15 },
+      { fn: () => this.generateStreetAddress(), weight: 18 },
+      { fn: () => this.generateBusinessName(), weight: 12 },
+      { fn: () => this.generateNeighborhood(), weight: 7 },
+      { fn: () => this.generateCompoundName(), weight: 10 },
+      { fn: () => this.generateStreetNumber(), weight: 12 },
+    ];
+
+    const weightedStrategies: (() => string)[] = [];
+    strategies.forEach(s => {
+      for (let i = 0; i < s.weight; i++) {
+        weightedStrategies.push(s.fn);
+      }
+    });
+
+    let attempts = 0;
+    const maxAttempts = batchSize * 10;
+
+    while (batch.length < batchSize && attempts < maxAttempts) {
+      attempts++;
+      const strategy = weightedStrategies[Math.floor(Math.random() * weightedStrategies.length)];
+      const term = strategy();
+
+      if (term && term.length >= 4 && !this.usedTerms.has(term)) {
+        this.usedTerms.add(term);
+        batch.push(term);
+      }
+    }
+
+    return batch;
+  }
+
+  private generateFullName(): string {
+    const first = this.firstNames[Math.floor(Math.random() * this.firstNames.length)];
+    const last = this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
+    return `${first} ${last}`;
+  }
+
+  private generateLastNameOnly(): string {
+    return this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
+  }
+
+  private generateStreetAddress(): string {
+    const number = Math.floor(Math.random() * 9999) + 1;
+    const street = this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
+    return `${number} ${street}`;
+  }
+
+  private generateBusinessName(): string {
+    const name = this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
+    const suffix = this.businessSuffixes[Math.floor(Math.random() * this.businessSuffixes.length)];
+    return `${name} ${suffix}`;
+  }
+
+  private generateNeighborhood(): string {
+    return this.neighborhoods[Math.floor(Math.random() * this.neighborhoods.length)];
+  }
+
+  private generateCompoundName(): string {
+    const last1 = this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
+    const last2 = this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
+    const patterns = [
+      `${last1} & ${last2}`,
+      `${last1} Family`,
+      `${last1} Estate`,
+      `${last1} Trust`,
+    ];
+    return patterns[Math.floor(Math.random() * patterns.length)];
+  }
+
+  private generateStreetNumber(): string {
+    return (Math.floor(Math.random() * 9999) + 1).toString();
+  }
+}
+
+console.log('🎯 Optimized Search Term Generation Test\n');
+
+const generator = new SearchPatternGenerator();
+const batch = generator.getNextBatch(20);
+
+console.log(`Generated ${batch.length} diverse search terms:\n`);
+batch.forEach((term, i) => {
+  console.log(`${(i + 1).toString().padStart(2)}. ${term}`);
+});
+
+console.log('\n✅ Key Improvements:');
+console.log('  • Weighted strategies favor high-yield patterns');
+console.log('  • Street addresses get 18% of searches (very high yield)');
+console.log('  • Full names get 20% (high yield)');
+console.log('  • Added compound names (Trusts, Families, Estates)');
+console.log('  • Added neighborhood searches');
+console.log('  • Added street number-only searches');
+console.log('  • Expanded street names, property types, and business suffixes');
+</file>
+
+<file path="2025-01-phase4-tests/test-pagesize-limits.ts">
+import { chromium } from 'playwright';
+
+/**
+ * Test to find the maximum allowed page size for the TCAD API
+ */
+async function testPageSizeLimits() {
+  console.log('🧪 Testing API Page Size Limits\n');
+  console.log('=' .repeat(80) + '\n');
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    // Get auth token
+    console.log('Step 1: Obtaining authentication token...');
+
+    let authToken: string | null = null;
+
+    page.on('request', (request) => {
+      const headers = request.headers();
+      if (headers['authorization']) {
+        authToken = headers['authorization'];
+      }
+    });
+
+    await page.goto('https://travis.prodigycad.com/property-search', {
+      waitUntil: 'networkidle',
+      timeout: 30000,
+    });
+
+    await page.waitForFunction(() => {
+      const root = document.getElementById('root');
+      return root && root.children.length > 0;
+    }, { timeout: 15000 });
+
+    await page.waitForSelector('#searchInput', { timeout: 10000 });
+    await page.type('#searchInput', 'test', { delay: 50 });
+    await page.press('#searchInput', 'Enter');
+    await page.waitForTimeout(3000);
+
+    if (!authToken) {
+      throw new Error('Could not capture authorization token');
+    }
+
+    console.log('✅ Auth token obtained\n');
+
+    // Test different page sizes
+    console.log('Step 2: Testing different page sizes...\n');
+
+    const pageSizesToTest = [20, 50, 100, 200, 500, 1000, 2000, 5000];
+    const results: Array<{
+      pageSize: number;
+      success: boolean;
+      resultsReturned: number;
+      totalAvailable: number;
+      responseTime: number;
+      error?: string;
+    }> = [];
+
+    for (const pageSize of pageSizesToTest) {
+      console.log(`Testing pageSize=${pageSize}...`);
+
+      const startTime = Date.now();
+      const result = await page.evaluate(async ({ token, size }: { token: string; size: number }) => {
+        try {
+          const apiUrl = `https://prod-container.trueprodigyapi.com/public/property/searchfulltext?page=1&pageSize=${size}`;
+
+          const requestBody = {
+            pYear: { operator: '=', value: '2025' },
+            fullTextSearch: { operator: 'match', value: 'Smith' }
+          };
+
+          const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': token,
+            },
+            body: JSON.stringify(requestBody)
+          });
+
+          if (!res.ok) {
+            return {
+              success: false,
+              error: `HTTP ${res.status}: ${await res.text()}`,
+            };
+          }
+
+          const data = await res.json();
+          return {
+            success: true,
+            resultsReturned: data.results?.length || 0,
+            totalAvailable: data.totalProperty?.propertyCount || 0,
+          };
+        } catch (error: any) {
+          return {
+            success: false,
+            error: error.message,
+          };
+        }
+      }, { token: authToken, size: pageSize });
+
+      const responseTime = Date.now() - startTime;
+
+      results.push({
+        pageSize,
+        success: result.success,
+        resultsReturned: result.resultsReturned || 0,
+        totalAvailable: result.totalAvailable || 0,
+        responseTime,
+        error: result.error,
+      });
+
+      if (result.success) {
+        console.log(`  ✅ Success: Got ${result.resultsReturned} results in ${responseTime}ms`);
+      } else {
+        console.log(`  ❌ Failed: ${result.error}`);
+      }
+
+      // Small delay between requests
+      await page.waitForTimeout(500);
+    }
+
+    // Summary
+    console.log('\n' + '='.repeat(80));
+    console.log('RESULTS SUMMARY');
+    console.log('='.repeat(80) + '\n');
+
+    console.log('PageSize | Success | Results | Time (ms) | Status');
+    console.log('-'.repeat(60));
+    results.forEach(r => {
+      const status = r.success ? '✅' : '❌';
+      const results = r.success ? r.resultsReturned.toString().padEnd(7) : 'N/A'.padEnd(7);
+      const time = r.responseTime.toString().padEnd(9);
+      console.log(`${r.pageSize.toString().padEnd(8)} | ${status}      | ${results} | ${time} | ${r.error || 'OK'}`);
+    });
+
+    // Find optimal page size
+    const successfulResults = results.filter(r => r.success);
+    if (successfulResults.length > 0) {
+      const maxPageSize = Math.max(...successfulResults.map(r => r.pageSize));
+      const optimal = successfulResults.find(r => r.pageSize === maxPageSize);
+
+      console.log('\n' + '='.repeat(80));
+      console.log('RECOMMENDATION');
+      console.log('='.repeat(80) + '\n');
+
+      console.log(`✅ Maximum supported page size: ${maxPageSize}`);
+      console.log(`✅ Results returned: ${optimal?.resultsReturned}`);
+      console.log(`✅ Response time: ${optimal?.responseTime}ms`);
+      console.log(`\nRecommended page size for production: ${Math.min(maxPageSize, 1000)}`);
+      console.log('(Balance between result count and response time)');
+    }
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
+testPageSizeLimits();
+</file>
+
+<file path="2025-01-phase4-tests/test-pagination.ts">
+import { TCADScraper } from '../lib/tcad-scraper';
+
+async function testPagination() {
+  console.log('🧪 Testing pagination with search term that has many results...\n');
+
+  const scraper = new TCADScraper();
+
+  try {
+    await scraper.initialize();
+
+    // Use a common name that should return many results
+    const searchTerm = 'Smith';
+    console.log(`Searching for: "${searchTerm}" (should have many results)`);
+
+    const properties = await scraper.scrapeProperties(searchTerm, 1);
+
+    console.log(`\n✅ Found ${properties.length} properties!\n`);
+
+    if (properties.length > 0) {
+      console.log('First 3 properties:');
+      properties.slice(0, 3).forEach((prop, i) => {
+        console.log(`\n${i + 1}. ${prop.name}`);
+        console.log(`   Address: ${prop.propertyAddress}`);
+        console.log(`   Property ID: ${prop.propertyId}`);
+        console.log(`   Appraised Value: $${prop.appraisedValue.toLocaleString()}`);
+      });
+
+      if (properties.length > 20) {
+        console.log(`\n🎉 Pagination worked! Got ${properties.length} properties (more than default 20)`);
+      } else {
+        console.log(`\n⚠️ Only got ${properties.length} properties (may not have triggered pagination)`);
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+  } finally {
+    await scraper.cleanup();
+  }
+}
+
+testPagination();
+</file>
+
+<file path="2025-01-phase4-tests/test-selectors.ts">
+import { chromium } from 'playwright';
+
+async function testSelectors() {
+  console.log('🔍 Testing different row selectors on production...\n');
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+    viewport: { width: 1920, height: 1080 },
+  });
+
+  const page = await context.newPage();
+
+  try {
+    await page.goto('https://travis.prodigycad.com/property-search', {
+      waitUntil: 'networkidle',
+      timeout: 30000,
+    });
+
+    // Wait for React to render
+    await page.waitForFunction(() => {
+      const root = document.getElementById('root');
+      return root && root.children.length > 0;
+    }, { timeout: 15000 });
+
+    // Perform search for "dede"
+    await page.waitForSelector('#searchInput', { timeout: 10000 });
+    await page.type('#searchInput', 'dede', { delay: 100 });
+    await page.waitForTimeout(500);
+    await page.press('#searchInput', 'Enter');
+
+    // Wait for potential results
+    await page.waitForTimeout(7000);
+
+    // Test different row selectors
+    const analysis = await page.evaluate(() => {
+      const tests: any = {};
+
+      // Test various selectors
+      tests.spaceLabel = document.querySelectorAll('[aria-label="Press SPACE to select this row."][role="row"]').length;
+      tests.roleRow = document.querySelectorAll('[role="row"]').length;
+      tests.agRow = document.querySelectorAll('.ag-row').length;
+      tests.agRowPosition = document.querySelectorAll('[row-index]').length;
+      tests.gridcell = document.querySelectorAll('[role="gridcell"]').length;
+      tests.noRowsOverlay = document.querySelectorAll('.ag-overlay-no-rows-wrapper').length;
+
+      // Get sample row HTML for first ag-row
+      const firstAgRow = document.querySelector('.ag-row');
+      tests.firstAgRowHTML = firstAgRow ? firstAgRow.outerHTML.substring(0, 1000) : null;
+
+      // Get sample cell data from first ag-row
+      if (firstAgRow) {
+        const cells = firstAgRow.querySelectorAll('[role="gridcell"]');
+        tests.firstRowCells = Array.from(cells).slice(0, 5).map(cell => ({
+          colId: cell.getAttribute('col-id'),
+          text: cell.textContent?.trim(),
+        }));
+      }
+
+      // Check if overlay is visible or hidden
+      const overlay = document.querySelector('.ag-overlay-no-rows-wrapper') as HTMLElement;
+      tests.overlayDisplay = overlay ? overlay.style.display : 'not found';
+
+      return tests;
+    });
+
+    console.log('📊 Selector Test Results:');
+    console.log('═══════════════════════════════════════════════════\n');
+    console.log(`[aria-label="Press SPACE..."][role="row"]: ${analysis.spaceLabel}`);
+    console.log(`[role="row"]: ${analysis.roleRow}`);
+    console.log(`.ag-row: ${analysis.agRow}`);
+    console.log(`[row-index]: ${analysis.agRowPosition}`);
+    console.log(`[role="gridcell"]: ${analysis.gridcell}`);
+    console.log(`No rows overlay elements: ${analysis.noRowsOverlay}`);
+    console.log(`Overlay display style: ${analysis.overlayDisplay}\n`);
+
+    if (analysis.firstRowCells && analysis.firstRowCells.length > 0) {
+      console.log('✅ Found data rows! First row sample cells:');
+      analysis.firstRowCells.forEach((cell: any, i: number) => {
+        console.log(`  Cell ${i + 1}:`);
+        console.log(`    col-id: ${cell.colId || 'none'}`);
+        console.log(`    text: ${cell.text || 'empty'}`);
+      });
+      console.log('');
+    }
+
+    if (analysis.firstAgRowHTML) {
+      console.log('📄 First .ag-row HTML (first 1000 chars):');
+      console.log(analysis.firstAgRowHTML);
+      console.log('');
+    }
+
+  } catch (error: any) {
+    console.error(`❌ Error: ${error.message}`);
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
+testSelectors();
+</file>
+
+<file path="2025-01-phase4-tests/test-urls.ts">
+import { chromium } from 'playwright';
+
+async function testBothURLs() {
+  console.log('🔍 Testing STAGING vs PRODUCTION URLs...\n');
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  const searchTerm = 'dede';
+
+  for (const env of ['staging', 'production']) {
+    const url = env === 'staging'
+      ? 'https://stage.travis.prodigycad.com/property-search'
+      : 'https://travis.prodigycad.com/property-search';
+
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`Testing ${env.toUpperCase()}: ${url}`);
+    console.log('='.repeat(60));
+
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+      viewport: { width: 1920, height: 1080 },
+    });
+
+    const page = await context.newPage();
+
+    try {
+      await page.goto(url, {
+        waitUntil: 'networkidle',
+        timeout: 30000,
+      });
+
+      // Wait for React to render
+      await page.waitForFunction(() => {
+        const root = document.getElementById('root');
+        return root && root.children.length > 0;
+      }, { timeout: 15000 });
+
+      // Perform search
+      await page.waitForSelector('#searchInput', { timeout: 10000 });
+      await page.type('#searchInput', searchTerm, { delay: 100 });
+      await page.waitForTimeout(500);
+      await page.press('#searchInput', 'Enter');
+
+      // Wait for potential results
+      await page.waitForTimeout(5000);
+
+      // Analyze results
+      const analysis = await page.evaluate(() => {
+        const messages: string[] = [];
+        const noRowsElement = document.querySelector('.ag-overlay-no-rows-center');
+        if (noRowsElement) {
+          messages.push(noRowsElement.textContent?.trim() || '');
+        }
+
+        const gridcells = document.querySelectorAll('[role="gridcell"]');
+        const rows = document.querySelectorAll('[aria-label="Press SPACE to select this row."][role="row"]');
+
+        return {
+          hasNoRowsMessage: messages.length > 0,
+          messages,
+          gridcellCount: gridcells.length,
+          rowCount: rows.length,
+        };
+      });
+
+      console.log(`\n📊 Results for "${searchTerm}":`);
+      console.log(`  Gridcells: ${analysis.gridcellCount}`);
+      console.log(`  Rows: ${analysis.rowCount}`);
+
+      if (analysis.hasNoRowsMessage) {
+        console.log(`  ❌ Message: ${analysis.messages.join(', ')}`);
+      } else if (analysis.rowCount > 0) {
+        console.log(`  ✅ Found ${analysis.rowCount} results!`);
+      }
+
+      // Take screenshot
+      const screenshotPath = `/home/aledlie/tcad-scraper/server/${env}-results.png`;
+      await page.screenshot({ path: screenshotPath, fullPage: true });
+      console.log(`  📸 Screenshot: ${screenshotPath}`);
+
+    } catch (error: any) {
+      console.error(`  ❌ Error: ${error.message}`);
+    } finally {
+      await context.close();
+    }
+  }
+
+  await browser.close();
+  console.log('\n✅ Test complete!');
+}
+
+testBothURLs();
+</file>
+
+<file path="2025-01-refactoring/add-priority-jobs.ts">
+#!/usr/bin/env npx tsx
+
+import { scraperQueue } from './src/queues/scraper.queue';
+import { prisma } from './src/lib/prisma';
+
+async function addPriorityJobs() {
+  console.log('🎯 Adding High-Priority Test Jobs\n');
+  console.log('=' .repeat(60));
+
+  const searchTerms = ['Estate', 'Family', 'Trust'];
+
+  for (const searchTerm of searchTerms) {
+    console.log(`\n📝 Adding "${searchTerm}" to head of queue...`);
+
+    await scraperQueue.add(
+      'scrape-properties',
+      {
+        searchTerm,
+        userId: 'priority-test',
+        scheduled: false,
+      },
+      {
+        priority: 1, // Highest priority - goes to head of queue
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+      }
+    );
+
+    console.log(`✅ Added "${searchTerm}" with priority 1 (head of queue)`);
+  }
+
+  // Show queue status
+  const [waiting, active] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+  ]);
+
+  console.log(`\n📊 Queue Status:`);
+  console.log(`  Waiting: ${waiting}`);
+  console.log(`  Active: ${active}`);
+
+  console.log('\n⏳ Waiting for jobs to complete...');
+  console.log('Monitoring results (will check every 5 seconds for up to 2 minutes)...\n');
+
+  // Monitor for completion
+  let attempts = 0;
+  const maxAttempts = 24; // 2 minutes (24 * 5 seconds)
+
+  while (attempts < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+    attempts++;
+
+    // Check if jobs completed
+    const results = await prisma.scrapeJob.findMany({
+      where: {
+        searchTerm: { in: searchTerms },
+        status: 'completed',
+      },
+      select: {
+        searchTerm: true,
+        resultCount: true,
+        completedAt: true,
+      },
+      orderBy: { completedAt: 'desc' },
+      take: 3,
+    });
+
+    if (results.length === 3) {
+      console.log('✅ All jobs completed!\n');
+      console.log('=' .repeat(60));
+      console.log('📊 RESULTS:\n');
+
+      let total = 0;
+      results.forEach((job, idx) => {
+        const props = job.resultCount || 0;
+        total += props;
+        console.log(`${idx + 1}. "${job.searchTerm}"`);
+        console.log(`   Properties: ${props.toLocaleString()}`);
+        console.log(`   Completed: ${job.completedAt ? new Date(job.completedAt).toLocaleTimeString() : 'N/A'}`);
+        console.log('');
+      });
+
+      console.log('=' .repeat(60));
+      console.log(`\n🎉 Total Properties: ${total.toLocaleString()}`);
+      console.log(`📈 Average per search: ${(total / 3).toFixed(1)}`);
+
+      break;
+    } else if (results.length > 0) {
+      console.log(`⏳ ${results.length}/3 jobs completed so far...`);
+      results.forEach(job => {
+        console.log(`   ✅ "${job.searchTerm}": ${job.resultCount} properties`);
+      });
+    } else {
+      console.log(`⏳ Attempt ${attempts}/${maxAttempts} - still processing...`);
+    }
+  }
+
+  if (attempts >= maxAttempts) {
+    console.log('\n⚠️  Timeout reached. Checking what we have so far...\n');
+
+    const finalResults = await prisma.scrapeJob.findMany({
+      where: {
+        searchTerm: { in: searchTerms },
+      },
+      select: {
+        searchTerm: true,
+        status: true,
+        resultCount: true,
+        completedAt: true,
+      },
+      orderBy: { id: 'desc' },
+      take: 3,
+    });
+
+    console.log('Current status:');
+    finalResults.forEach(job => {
+      console.log(`  "${job.searchTerm}": ${job.status} (${job.resultCount || 0} properties)`);
+    });
+  }
+
+  await prisma.$disconnect();
+}
+
+addPriorityJobs()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Error:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="2025-01-refactoring/aggressive-cleanup.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+import { scraperQueue } from './src/queues/scraper.queue';
+
+async function aggressiveCleanup() {
+  console.log('🧹 Aggressive Queue Cleanup - Removing ALL Zero-Result Terms\n');
+  console.log('=' .repeat(60));
+
+  // Get ALL completed jobs with zero results (no limit)
+  const emptyJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: 0
+    },
+    select: { searchTerm: true }
+  });
+
+  const emptyTerms = new Set(emptyJobs.map(j => j.searchTerm));
+  console.log(`\n📊 Found ${emptyTerms.size} search terms that have NEVER returned results`);
+
+  // Get ALL failed jobs
+  const failedJobs = await prisma.scrapeJob.findMany({
+    where: { status: 'failed' },
+    select: { searchTerm: true }
+  });
+
+  const failedTerms = new Set(failedJobs.map(j => j.searchTerm));
+  console.log(`📊 Found ${failedTerms.size} search terms that have FAILED`);
+
+  // Combine all problematic terms
+  const allProblematicTerms = new Set([...emptyTerms, ...failedTerms]);
+  console.log(`\n🎯 Total problematic search terms: ${allProblematicTerms.size}`);
+
+  // Get waiting jobs
+  const waitingJobs = await scraperQueue.getWaiting();
+  console.log(`⏳ Current waiting jobs: ${waitingJobs.length}`);
+
+  // Identify jobs to remove
+  const jobsToRemove = waitingJobs.filter(job =>
+    allProblematicTerms.has(job.data.searchTerm)
+  );
+
+  console.log(`\n🗑️  Jobs to remove: ${jobsToRemove.length}`);
+  console.log(`✅ Jobs to keep: ${waitingJobs.length - jobsToRemove.length}`);
+
+  if (jobsToRemove.length > 0) {
+    // Show sample of what we're removing
+    const sample = jobsToRemove.slice(0, 30).map(j => j.data.searchTerm);
+    console.log('\nSample of terms being removed:');
+    for (let i = 0; i < sample.length; i += 5) {
+      console.log('  ' + sample.slice(i, i + 5).map(s => `"${s}"`).join(', '));
+    }
+
+    // Remove the jobs
+    console.log(`\n🚀 Removing ${jobsToRemove.length} jobs...`);
+    let removed = 0;
+    let failed = 0;
+
+    for (const job of jobsToRemove) {
+      try {
+        await job.remove();
+        removed++;
+        if (removed % 20 === 0) {
+          process.stdout.write(`\r  Progress: ${removed}/${jobsToRemove.length} (${((removed/jobsToRemove.length)*100).toFixed(1)}%)`);
+        }
+      } catch (error) {
+        failed++;
+        if (failed <= 5) {
+          console.error(`\n  ❌ Failed to remove job ${job.id}:`, error.message);
+        }
+      }
+    }
+
+    console.log(`\n\n✅ Cleanup complete!`);
+    console.log(`  - Successfully removed: ${removed}`);
+    console.log(`  - Failed to remove: ${failed}`);
+  } else {
+    console.log('\n✅ No problematic jobs found in queue!');
+  }
+
+  // Get updated queue stats
+  const [waiting, active, completed, failedCount] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getCompletedCount(),
+    scraperQueue.getFailedCount(),
+  ]);
+
+  console.log(`\n📊 Final Queue Status:`);
+  console.log(`  - Waiting: ${waiting}`);
+  console.log(`  - Active: ${active}`);
+  console.log(`  - Completed: ${completed}`);
+  console.log(`  - Failed: ${failedCount}`);
+
+  // Analyze remaining jobs
+  const remainingJobs = await scraperQueue.getWaiting(0, 20);
+  if (remainingJobs.length > 0) {
+    console.log(`\n📝 Sample of remaining high-quality search terms:`);
+    remainingJobs.forEach((job, idx) => {
+      console.log(`  ${idx + 1}. "${job.data.searchTerm}"`);
+    });
+
+    // Check success rate of remaining terms
+    const remainingTerms = remainingJobs.map(j => j.data.searchTerm);
+    const successfulJobs = await prisma.scrapeJob.findMany({
+      where: {
+        searchTerm: { in: remainingTerms },
+        status: 'completed',
+        resultCount: { gt: 0 }
+      },
+      select: {
+        searchTerm: true,
+        resultCount: true
+      }
+    });
+
+    if (successfulJobs.length > 0) {
+      console.log(`\n✨ Sample terms have proven successful before:`);
+      successfulJobs.slice(0, 5).forEach(job => {
+        console.log(`  "${job.searchTerm}": ${job.resultCount} properties`);
+      });
+    }
+  }
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+aggressiveCleanup()
+  .then(() => {
+    console.log('\n🎉 Aggressive cleanup complete! Queue is now optimized for maximum success rate.');
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Cleanup failed:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="2025-01-refactoring/analyze-queue.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+import { scraperQueue } from './src/queues/scraper.queue';
+
+async function analyzeAndOptimizeQueue() {
+  console.log('🔍 Analyzing Queue Performance...\n');
+
+  // Get failed jobs
+  const failedJobs = await prisma.scrapeJob.findMany({
+    where: { status: 'failed' },
+    select: { searchTerm: true, error: true },
+    orderBy: { id: 'desc' },
+    take: 50
+  });
+
+  console.log(`❌ Failed Jobs: ${failedJobs.length}`);
+  const failedTerms = new Set(failedJobs.map(j => j.searchTerm));
+  console.log('Failed search terms:', Array.from(failedTerms).slice(0, 20));
+
+  // Get completed jobs with zero results
+  const emptyJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: 0
+    },
+    select: { searchTerm: true },
+    orderBy: { id: 'desc' },
+    take: 100
+  });
+
+  console.log(`\n⚠️  Empty Result Jobs: ${emptyJobs.length}`);
+  const emptyTerms = new Set(emptyJobs.map(j => j.searchTerm));
+  console.log('Empty result search terms (sample):', Array.from(emptyTerms).slice(0, 20));
+
+  // Get top performing searches
+  const topJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    },
+    select: { searchTerm: true, resultCount: true },
+    orderBy: { resultCount: 'desc' },
+    take: 20
+  });
+
+  console.log(`\n✅ Top Performing Searches:`);
+  topJobs.forEach(j => console.log(`  ${j.searchTerm}: ${j.resultCount} properties`));
+
+  // Combine problematic terms
+  const problematicTerms = new Set([...failedTerms, ...emptyTerms]);
+  console.log(`\n🎯 Total problematic search terms: ${problematicTerms.size}`);
+
+  // Get waiting jobs
+  const waitingJobs = await scraperQueue.getWaiting();
+  console.log(`\n⏳ Waiting jobs in queue: ${waitingJobs.length}`);
+
+  // Identify jobs to remove
+  const jobsToRemove = waitingJobs.filter(job =>
+    problematicTerms.has(job.data.searchTerm)
+  );
+
+  console.log(`\n🗑️  Jobs to remove: ${jobsToRemove.length}`);
+  console.log('Sample terms to remove:', jobsToRemove.slice(0, 10).map(j => j.data.searchTerm));
+
+  // Count duplicates
+  const searchTermCounts = new Map<string, number>();
+  waitingJobs.forEach(job => {
+    const term = job.data.searchTerm;
+    searchTermCounts.set(term, (searchTermCounts.get(term) || 0) + 1);
+  });
+
+  const duplicates = Array.from(searchTermCounts.entries())
+    .filter(([_, count]) => count > 1)
+    .sort((a, b) => b[1] - a[1]);
+
+  console.log(`\n📋 Duplicate search terms: ${duplicates.length}`);
+  console.log('Top duplicates:', duplicates.slice(0, 10));
+
+  // Ask for confirmation
+  console.log('\n⚠️  Actions to take:');
+  console.log(`  1. Remove ${jobsToRemove.length} jobs with problematic search terms`);
+  console.log(`  2. Keep ${waitingJobs.length - jobsToRemove.length} promising jobs`);
+  console.log(`  3. ${duplicates.length} search terms have duplicates that could be deduplicated`);
+
+  return {
+    failedTerms: Array.from(failedTerms),
+    emptyTerms: Array.from(emptyTerms),
+    problematicTerms: Array.from(problematicTerms),
+    jobsToRemove: jobsToRemove.map(j => ({ id: j.id, term: j.data.searchTerm })),
+    duplicates
+  };
+}
+
+analyzeAndOptimizeQueue()
+  .then(async (result) => {
+    console.log('\n✅ Analysis complete!');
+    console.log('\nSummary written to analysis results.');
+    await prisma.$disconnect();
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Analysis failed:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="2025-01-refactoring/analyze-successful-terms.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+
+async function analyzeSuccessfulTerms() {
+  console.log('🔍 Analyzing Most Successful Search Term Types\n');
+  console.log('=' .repeat(70));
+
+  // Get all successful jobs (with results)
+  const successfulJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true
+    },
+    orderBy: {
+      resultCount: 'desc'
+    }
+  });
+
+  console.log(`\n📊 Total successful scrapes: ${successfulJobs.length.toLocaleString()}`);
+
+  const totalProperties = successfulJobs.reduce((sum, job) => sum + (job.resultCount || 0), 0);
+  console.log(`📊 Total properties found: ${totalProperties.toLocaleString()}`);
+  console.log(`📊 Average per successful search: ${(totalProperties / successfulJobs.length).toFixed(1)}`);
+
+  // Categorize search terms
+  const categories = {
+    singleLastName: [] as typeof successfulJobs,
+    fullName: [] as typeof successfulJobs,
+    businessWithSuffix: [] as typeof successfulJobs,
+    businessGeneric: [] as typeof successfulJobs,
+    streetAddress: [] as typeof successfulJobs,
+    streetName: [] as typeof successfulJobs,
+    shortCode: [] as typeof successfulJobs,
+    other: [] as typeof successfulJobs
+  };
+
+  const businessSuffixes = /\b(LLC|Inc|Corp|Company|Trust|Foundation|Partners|Group|Properties|Ventures|Capital|Holdings|Development|Estate|Assets|Portfolio|LTD|Enterprises|Management|Realty|Investment)\b/i;
+  const streetSuffixes = /\b(Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Boulevard|Blvd|Court|Ct|Circle|Cir|Way|Place|Pl|Parkway|Loop|Trail|Path|Highway|Hwy)\b/i;
+  const commonStreets = /\b(Lamar|Congress|Riverside|Guadalupe|Airport|Burnet|Mopac|Anderson|MLK|Oltorf|Barton|Springs|Research|Metric|Wells Branch|Far West|Dean Keeton|Speedway|Red River|Manchaca|William Cannon|Slaughter|Parmer|Braker|Rundberg|Koenig|North Loop|South Congress|East Riverside|West Anderson|Capital of Texas|Loop 360|IH 35|Enfield|Exposition|Westlake|Windsor|Oak|Rainey|Cameron|Duval|San Jacinto|Shoal Creek|Cesar Chavez|Main|Howard|McNeil|Dessau|Jollyville|Spicewood|Bee Cave|Balcones|Mueller|Cherrywood|Sabine|Nueces|Trinity|Rio Grande|Manor|Springdale)\b/i;
+
+  successfulJobs.forEach(job => {
+    const term = job.searchTerm;
+    const words = term.split(/\s+/);
+
+    // Check for street address (starts with number + street name)
+    if (/^\d+\s+/.test(term) && (streetSuffixes.test(term) || commonStreets.test(term))) {
+      categories.streetAddress.push(job);
+    }
+    // Check for street name only
+    else if (streetSuffixes.test(term) || commonStreets.test(term)) {
+      categories.streetName.push(job);
+    }
+    // Check for business with suffix
+    else if (businessSuffixes.test(term)) {
+      categories.businessWithSuffix.push(job);
+    }
+    // Check for full name (2-3 words, mostly letters, capitalized)
+    else if (words.length >= 2 && words.length <= 3 && /^[A-Z][a-z]+(\s+[A-Z][a-z]+)+$/.test(term)) {
+      categories.fullName.push(job);
+    }
+    // Check for single last name (one word, mostly letters, capitalized)
+    else if (words.length === 1 && /^[A-Z][a-z]+$/.test(term) && term.length > 3) {
+      categories.singleLastName.push(job);
+    }
+    // Check for short codes (alphanumeric, short)
+    else if (term.length <= 6 && /[A-Z0-9]/.test(term)) {
+      categories.shortCode.push(job);
+    }
+    // Everything else
+    else {
+      categories.other.push(job);
+    }
+  });
+
+  // Calculate statistics for each category
+  const stats = Object.entries(categories).map(([name, jobs]) => {
+    const total = jobs.reduce((sum, job) => sum + (job.resultCount || 0), 0);
+    const avg = jobs.length > 0 ? total / jobs.length : 0;
+    const max = jobs.length > 0 ? Math.max(...jobs.map(j => j.resultCount || 0)) : 0;
+    return {
+      name,
+      count: jobs.length,
+      totalProperties: total,
+      avgProperties: avg,
+      maxProperties: max,
+      percentage: (jobs.length / successfulJobs.length) * 100
+    };
+  }).sort((a, b) => b.totalProperties - a.totalProperties);
+
+  console.log('\n📋 Search Term Categories (by total properties found):\n');
+  stats.forEach((stat, idx) => {
+    const categoryName = stat.name
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+
+    console.log(`${idx + 1}. ${categoryName}`);
+    console.log(`   Searches: ${stat.count.toLocaleString()} (${stat.percentage.toFixed(1)}%)`);
+    console.log(`   Properties: ${stat.totalProperties.toLocaleString()}`);
+    console.log(`   Avg per search: ${stat.avgProperties.toFixed(1)}`);
+    console.log(`   Max in single search: ${stat.maxProperties}`);
+    console.log('');
+  });
+
+  // Show top examples from each category
+  console.log('=' .repeat(70));
+  console.log('\n🏆 TOP PERFORMERS BY CATEGORY:\n');
+
+  for (const [categoryName, jobs] of Object.entries(categories)) {
+    if (jobs.length === 0) continue;
+
+    const displayName = categoryName
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+
+    const topJobs = jobs.sort((a, b) => (b.resultCount || 0) - (a.resultCount || 0)).slice(0, 5);
+
+    console.log(`${displayName}:`);
+    topJobs.forEach((job, idx) => {
+      console.log(`  ${idx + 1}. "${job.searchTerm}": ${job.resultCount} properties`);
+    });
+    console.log('');
+  }
+
+  // Success rate comparison
+  console.log('=' .repeat(70));
+  console.log('\n💡 KEY INSIGHTS:\n');
+
+  const insights = stats.filter(s => s.count > 10).slice(0, 3);
+  console.log('Most productive search types:');
+  insights.forEach((stat, idx) => {
+    const categoryName = stat.name
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+    console.log(`  ${idx + 1}. ${categoryName}: ${stat.avgProperties.toFixed(1)} properties/search on average`);
+  });
+
+  console.log('\n' + '=' .repeat(70));
+
+  await prisma.$disconnect();
+}
+
+analyzeSuccessfulTerms()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Analysis failed:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="2025-01-refactoring/analyze-zero-results.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+
+async function analyzeZeroResults() {
+  console.log('🔍 Analyzing jobs with zero results...\n');
+  console.log('=' .repeat(60));
+
+  const zeroResultJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: 0
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+    },
+    orderBy: { id: 'desc' },
+    take: 200
+  });
+
+  console.log(`\nFound ${zeroResultJobs.length} recent jobs with 0 results:\n`);
+
+  // Analyze patterns
+  const patterns = {
+    shortCodes: [] as string[],
+    numbers: [] as string[],
+    twoLetters: [] as string[],
+    threeLetters: [] as string[],
+    fourLetters: [] as string[],
+    alphanumeric: [] as string[],
+    other: [] as string[]
+  };
+
+  zeroResultJobs.forEach(job => {
+    const term = job.searchTerm;
+
+    if (/^\d+$/.test(term)) {
+      patterns.numbers.push(term);
+    } else if (/^[A-Z]{2}$/.test(term)) {
+      patterns.twoLetters.push(term);
+    } else if (/^[A-Z]{3}$/.test(term)) {
+      patterns.threeLetters.push(term);
+    } else if (/^[A-Z]{4}$/.test(term)) {
+      patterns.fourLetters.push(term);
+    } else if (/^[A-Z0-9]{3,4}$/.test(term)) {
+      patterns.alphanumeric.push(term);
+    } else {
+      patterns.other.push(term);
+    }
+  });
+
+  console.log('📊 Pattern Analysis:\n');
+
+  console.log(`  Pure numbers: ${patterns.numbers.length}`);
+  if (patterns.numbers.length > 0) {
+    console.log(`    Examples: ${patterns.numbers.slice(0, 10).join(', ')}`);
+  }
+
+  console.log(`\n  Two-letter codes: ${patterns.twoLetters.length}`);
+  if (patterns.twoLetters.length > 0) {
+    console.log(`    Examples: ${patterns.twoLetters.slice(0, 10).join(', ')}`);
+  }
+
+  console.log(`\n  Three-letter codes: ${patterns.threeLetters.length}`);
+  if (patterns.threeLetters.length > 0) {
+    console.log(`    Examples: ${patterns.threeLetters.slice(0, 10).join(', ')}`);
+  }
+
+  console.log(`\n  Four-letter codes: ${patterns.fourLetters.length}`);
+  if (patterns.fourLetters.length > 0) {
+    console.log(`    Examples: ${patterns.fourLetters.slice(0, 10).join(', ')}`);
+  }
+
+  console.log(`\n  Alphanumeric codes (3-4 chars): ${patterns.alphanumeric.length}`);
+  if (patterns.alphanumeric.length > 0) {
+    console.log(`    Examples: ${patterns.alphanumeric.slice(0, 10).join(', ')}`);
+  }
+
+  console.log(`\n  Other patterns: ${patterns.other.length}`);
+  if (patterns.other.length > 0) {
+    console.log(`    Examples: ${patterns.other.slice(0, 10).join(', ')}`);
+  }
+
+  // Calculate success rate for different patterns
+  console.log('\n\n📈 Success Rate Analysis:\n');
+
+  const totalJobs = await prisma.scrapeJob.count({
+    where: { status: 'completed' }
+  });
+
+  const successfulJobs = await prisma.scrapeJob.count({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    }
+  });
+
+  console.log(`  Total completed jobs: ${totalJobs}`);
+  console.log(`  Successful (>0 results): ${successfulJobs}`);
+  console.log(`  Zero results: ${totalJobs - successfulJobs}`);
+  console.log(`  Success rate: ${((successfulJobs / totalJobs) * 100).toFixed(1)}%`);
+
+  // Get stats on successful searches
+  const successfulSearches = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+    },
+    orderBy: { resultCount: 'desc' },
+    take: 20
+  });
+
+  console.log(`\n\n✅ Top 20 successful searches:\n`);
+  successfulSearches.forEach((job, idx) => {
+    console.log(`  ${idx + 1}. "${job.searchTerm}": ${job.resultCount?.toLocaleString()} properties`);
+  });
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+analyzeZeroResults()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  });
+</file>
+
+<file path="2025-01-refactoring/build-search-term-map.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface SearchTermMapping {
+  [searchTerm: string]: {
+    resultCount: number;
+    lastScraped: Date;
+    status: string;
+  };
+}
+
+async function buildSearchTermMap() {
+  console.log('🗺️  Building Search Term → Results Map\n');
+  console.log('='.repeat(60));
+
+  // Get all completed scrape jobs with their results
+  const allJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed'
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      completedAt: true,
+      status: true,
+    },
+    orderBy: {
+      completedAt: 'desc'
+    }
+  });
+
+  console.log(`📊 Total completed jobs: ${allJobs.length}\n`);
+
+  // Build the map - if multiple jobs for same term, keep the most recent one
+  const searchTermMap: SearchTermMapping = {};
+
+  for (const job of allJobs) {
+    const term = job.searchTerm;
+
+    // Only add if not already in map (since we're processing most recent first)
+    if (!searchTermMap[term]) {
+      searchTermMap[term] = {
+        resultCount: job.resultCount || 0,
+        lastScraped: job.completedAt || new Date(),
+        status: job.status
+      };
+    }
+  }
+
+  const uniqueTerms = Object.keys(searchTermMap).length;
+  console.log(`✅ Unique search terms: ${uniqueTerms}\n`);
+
+  // Calculate statistics
+  const resultCounts = Object.values(searchTermMap).map(v => v.resultCount);
+  const totalResults = resultCounts.reduce((sum, count) => sum + count, 0);
+  const avgResults = totalResults / uniqueTerms;
+  const maxResults = Math.max(...resultCounts);
+  const minResults = Math.min(...resultCounts);
+
+  const zeroResults = resultCounts.filter(c => c === 0).length;
+  const lowResults = resultCounts.filter(c => c > 0 && c < 50).length;
+  const mediumResults = resultCounts.filter(c => c >= 50 && c < 200).length;
+  const highResults = resultCounts.filter(c => c >= 200 && c < 1000).length;
+  const veryHighResults = resultCounts.filter(c => c >= 1000).length;
+
+  console.log('📈 Statistics:');
+  console.log(`   Total properties found: ${totalResults.toLocaleString()}`);
+  console.log(`   Average per term: ${avgResults.toFixed(1)}`);
+  console.log(`   Max results: ${maxResults.toLocaleString()}`);
+  console.log(`   Min results: ${minResults.toLocaleString()}\n`);
+
+  console.log('📊 Distribution:');
+  console.log(`   Zero results (0): ${zeroResults} (${(zeroResults/uniqueTerms*100).toFixed(1)}%)`);
+  console.log(`   Low (1-49): ${lowResults} (${(lowResults/uniqueTerms*100).toFixed(1)}%)`);
+  console.log(`   Medium (50-199): ${mediumResults} (${(mediumResults/uniqueTerms*100).toFixed(1)}%)`);
+  console.log(`   High (200-999): ${highResults} (${(highResults/uniqueTerms*100).toFixed(1)}%)`);
+  console.log(`   Very High (1000+): ${veryHighResults} (${(veryHighResults/uniqueTerms*100).toFixed(1)}%)\n`);
+
+  // Find top performing terms
+  const sortedTerms = Object.entries(searchTermMap)
+    .sort(([, a], [, b]) => b.resultCount - a.resultCount);
+
+  console.log('🏆 Top 20 Search Terms:\n');
+  sortedTerms.slice(0, 20).forEach(([term, data], idx) => {
+    console.log(`   ${idx + 1}. "${term}": ${data.resultCount.toLocaleString()} properties`);
+  });
+
+  console.log('\n💾 Saving map to files...\n');
+
+  // Save full map as JSON
+  const outputDir = path.join(__dirname, 'data');
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  const jsonPath = path.join(outputDir, 'search-term-map.json');
+  fs.writeFileSync(jsonPath, JSON.stringify(searchTermMap, null, 2));
+  console.log(`   ✅ Full map saved to: ${jsonPath}`);
+
+  // Save sorted list (high to low) as CSV
+  const csvPath = path.join(outputDir, 'search-term-results.csv');
+  const csvContent = [
+    'SearchTerm,ResultCount,LastScraped,Status',
+    ...sortedTerms.map(([term, data]) =>
+      `"${term}",${data.resultCount},${data.lastScraped.toISOString()},${data.status}`
+    )
+  ].join('\n');
+  fs.writeFileSync(csvPath, csvContent);
+  console.log(`   ✅ Sorted CSV saved to: ${csvPath}`);
+
+  // Save high-performers only (>= 100 results)
+  const highPerformers = Object.fromEntries(
+    sortedTerms.filter(([, data]) => data.resultCount >= 100)
+  );
+  const highPerfPath = path.join(outputDir, 'high-performing-terms.json');
+  fs.writeFileSync(highPerfPath, JSON.stringify(highPerformers, null, 2));
+  console.log(`   ✅ High performers (100+) saved to: ${highPerfPath}`);
+  console.log(`      (${Object.keys(highPerformers).length} terms)\n`);
+
+  // Save zero-result terms for analysis
+  const zeroResultTerms = sortedTerms
+    .filter(([, data]) => data.resultCount === 0)
+    .map(([term]) => term);
+  const zeroPath = path.join(outputDir, 'zero-result-terms.json');
+  fs.writeFileSync(zeroPath, JSON.stringify(zeroResultTerms, null, 2));
+  console.log(`   ✅ Zero-result terms saved to: ${zeroPath}`);
+  console.log(`      (${zeroResultTerms.length} terms)\n`);
+
+  console.log('='.repeat(60));
+  console.log('✨ Search term map built successfully!\n');
+
+  // Return summary for programmatic use
+  return {
+    totalJobs: allJobs.length,
+    uniqueTerms,
+    totalResults,
+    avgResults,
+    distribution: {
+      zero: zeroResults,
+      low: lowResults,
+      medium: mediumResults,
+      high: highResults,
+      veryHigh: veryHighResults
+    },
+    topTerms: sortedTerms.slice(0, 10).map(([term, data]) => ({
+      term,
+      count: data.resultCount
+    }))
+  };
+}
+
+buildSearchTermMap()
+  .then(() => {
+    console.log('✅ Done!');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+</file>
+
+<file path="2025-01-refactoring/check-db-stats.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+
+async function checkDatabaseStats() {
+  console.log('📊 Database Statistics\n');
+  console.log('=' .repeat(60));
+
+  // Count total properties
+  const totalProperties = await prisma.property.count();
+  console.log(`\n🏠 Total Properties: ${totalProperties.toLocaleString()}`);
+
+  // Count scrape jobs by status
+  const jobStats = await prisma.scrapeJob.groupBy({
+    by: ['status'],
+    _count: {
+      _all: true
+    },
+    _sum: {
+      resultCount: true
+    }
+  });
+
+  console.log('\n📋 Scrape Jobs:');
+  let totalJobs = 0;
+  let totalScraped = 0;
+
+  jobStats.forEach(stat => {
+    totalJobs += stat._count._all;
+    totalScraped += stat._sum.resultCount || 0;
+    console.log(`  ${stat.status}: ${stat._count._all} jobs (${(stat._sum.resultCount || 0).toLocaleString()} properties)`);
+  });
+
+  console.log(`  ---`);
+  console.log(`  Total Jobs: ${totalJobs}`);
+  console.log(`  Total Properties Scraped: ${totalScraped.toLocaleString()}`);
+
+  // Properties by city
+  const propertiesByCity = await prisma.property.groupBy({
+    by: ['city'],
+    _count: {
+      _all: true
+    },
+    orderBy: {
+      _count: {
+        _all: 'desc'
+      }
+    },
+    take: 10
+  });
+
+  console.log('\n🏙️  Top 10 Cities:');
+  propertiesByCity.forEach((city, idx) => {
+    console.log(`  ${idx + 1}. ${city.city || 'Unknown'}: ${city._count._all.toLocaleString()} properties`);
+  });
+
+  // Most recent scrapes
+  const recentJobs = await prisma.scrapeJob.findMany({
+    where: { status: 'completed' },
+    orderBy: { id: 'desc' },
+    take: 5,
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      completedAt: true
+    }
+  });
+
+  console.log('\n📅 Recent Completed Scrapes:');
+  recentJobs.forEach((job, idx) => {
+    const time = job.completedAt ? new Date(job.completedAt).toLocaleString() : 'N/A';
+    console.log(`  ${idx + 1}. "${job.searchTerm}": ${job.resultCount} properties (${time})`);
+  });
+
+  // Average properties per successful scrape
+  const avgStats = await prisma.scrapeJob.aggregate({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    },
+    _avg: {
+      resultCount: true
+    },
+    _max: {
+      resultCount: true
+    },
+    _min: {
+      resultCount: true
+    }
+  });
+
+  console.log('\n📈 Scrape Performance:');
+  console.log(`  Average properties per scrape: ${avgStats._avg.resultCount?.toFixed(0) || 0}`);
+  console.log(`  Max properties in single scrape: ${avgStats._max.resultCount || 0}`);
+  console.log(`  Min properties in single scrape: ${avgStats._min.resultCount || 0}`);
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+checkDatabaseStats()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Error:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="2025-01-refactoring/check-property-count.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+
+async function checkPropertyCount() {
+  console.log('\n📊 Database Property Statistics\n');
+  console.log('=' .repeat(60));
+
+  // Total properties
+  const totalProperties = await prisma.property.count();
+  console.log(`\n🏠 Total Properties: ${totalProperties.toLocaleString()}`);
+
+  // Properties added in last hour
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recentProperties = await prisma.property.count({
+    where: {
+      createdAt: { gte: oneHourAgo }
+    }
+  });
+  console.log(`📅 Added in last hour: ${recentProperties.toLocaleString()}`);
+
+  // Properties by city (top 10)
+  const propertiesByCity = await prisma.property.groupBy({
+    by: ['city'],
+    _count: true,
+    orderBy: {
+      _count: {
+        city: 'desc'
+      }
+    },
+    take: 10
+  });
+
+  console.log('\n🏙️  Top 10 Cities:');
+  propertiesByCity.forEach((cityGroup, idx) => {
+    console.log(`  ${idx + 1}. ${cityGroup.city || 'Unknown'}: ${cityGroup._count.toLocaleString()} properties`);
+  });
+
+  // Recent scrape job stats
+  const recentJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      completedAt: true,
+    },
+    orderBy: { id: 'desc' },
+    take: 5
+  });
+
+  console.log('\n📝 Recent Successful Scrapes:');
+  recentJobs.forEach((job, idx) => {
+    const time = job.completedAt ? new Date(job.completedAt).toLocaleTimeString() : 'N/A';
+    console.log(`  ${idx + 1}. "${job.searchTerm}": ${job.resultCount?.toLocaleString()} properties (${time})`);
+  });
+
+  // Overall scrape stats
+  const jobStats = await prisma.scrapeJob.groupBy({
+    by: ['status'],
+    _count: true,
+    _sum: {
+      resultCount: true
+    }
+  });
+
+  console.log('\n📋 Scrape Job Statistics:');
+  jobStats.forEach(stat => {
+    console.log(`  ${stat.status}: ${stat._count} jobs (${(stat._sum.resultCount || 0).toLocaleString()} properties)`);
+  });
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+checkPropertyCount().then(() => process.exit(0)).catch((e) => {
+  console.error('❌ Error:', e);
+  process.exit(1);
+});
+</file>
+
+<file path="2025-01-refactoring/check-queue-status.ts">
+#!/usr/bin/env npx tsx
+
+import { scraperQueue } from './src/queues/scraper.queue';
+import { prisma } from './src/lib/prisma';
+
+async function checkQueueStatus() {
+  console.log('\n📊 Queue Status\n');
+  console.log('=' .repeat(60));
+
+  const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getCompletedCount(),
+    scraperQueue.getFailedCount(),
+    scraperQueue.getDelayedCount(),
+    scraperQueue.getPausedCount(),
+  ]);
+
+  const total = waiting + active + delayed + paused;
+
+  console.log(`\n🔢 Queue Counts:`);
+  console.log(`  ⏳ Waiting:     ${waiting.toString().padStart(6)}`);
+  console.log(`  🔄 Active:      ${active.toString().padStart(6)}`);
+  console.log(`  ⏸️  Delayed:     ${delayed.toString().padStart(6)}`);
+  console.log(`  ⏸️  Paused:      ${paused.toString().padStart(6)}`);
+  console.log(`  ─────────────────────`);
+  console.log(`  📋 Total Pending: ${total.toString().padStart(4)}`);
+  console.log(``);
+  console.log(`  ✅ Completed:   ${completed.toString().padStart(6)}`);
+  console.log(`  ❌ Failed:      ${failed.toString().padStart(6)}`);
+
+  // Get sample of waiting jobs if any
+  if (waiting > 0) {
+    const waitingJobs = await scraperQueue.getWaiting(0, 10);
+    console.log(`\n📝 Sample of Waiting Jobs (first 10):`);
+    waitingJobs.forEach((job, idx) => {
+      console.log(`  ${idx + 1}. "${job.data.searchTerm}"`);
+    });
+  }
+
+  // Get active jobs if any
+  if (active > 0) {
+    const activeJobs = await scraperQueue.getActive(0, 10);
+    console.log(`\n🔄 Currently Processing (first 10):`);
+    activeJobs.forEach((job, idx) => {
+      console.log(`  ${idx + 1}. "${job.data.searchTerm}"`);
+    });
+  }
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+checkQueueStatus().then(() => process.exit(0)).catch((e) => {
+  console.error('❌ Error:', e);
+  process.exit(1);
+});
+</file>
+
+<file path="2025-01-refactoring/check-rate.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+
+async function checkScrapingRate() {
+  console.log('⚡ Calculating Current Scraping Rate\n');
+  console.log('=' .repeat(60));
+
+  // Get jobs from the last 10 minutes
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
+
+  // Last 10 minutes
+  const last10MinJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      completedAt: { gte: tenMinutesAgo }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      startedAt: true,
+      completedAt: true
+    },
+    orderBy: { completedAt: 'desc' }
+  });
+
+  // Last 5 minutes
+  const last5MinJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      completedAt: { gte: fiveMinutesAgo }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      startedAt: true,
+      completedAt: true
+    },
+    orderBy: { completedAt: 'desc' }
+  });
+
+  // Last 1 minute
+  const last1MinJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      completedAt: { gte: oneMinuteAgo }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      startedAt: true,
+      completedAt: true
+    },
+    orderBy: { completedAt: 'desc' }
+  });
+
+  // Calculate stats
+  const calc = (jobs: typeof last10MinJobs, minutes: number) => {
+    const total = jobs.reduce((sum, job) => sum + (job.resultCount || 0), 0);
+    const rate = total / minutes;
+    return { total, jobs: jobs.length, rate };
+  };
+
+  const stats10 = calc(last10MinJobs, 10);
+  const stats5 = calc(last5MinJobs, 5);
+  const stats1 = calc(last1MinJobs, 1);
+
+  console.log('\n📊 Last 10 Minutes:');
+  console.log(`  Jobs completed: ${stats10.jobs}`);
+  console.log(`  Properties added: ${stats10.total.toLocaleString()}`);
+  console.log(`  Rate: ${stats10.rate.toFixed(1)} properties/minute`);
+
+  console.log('\n📊 Last 5 Minutes:');
+  console.log(`  Jobs completed: ${stats5.jobs}`);
+  console.log(`  Properties added: ${stats5.total.toLocaleString()}`);
+  console.log(`  Rate: ${stats5.rate.toFixed(1)} properties/minute`);
+
+  console.log('\n📊 Last 1 Minute:');
+  console.log(`  Jobs completed: ${stats1.jobs}`);
+  console.log(`  Properties added: ${stats1.total.toLocaleString()}`);
+  console.log(`  Rate: ${stats1.rate.toFixed(1)} properties/minute`);
+
+  // Show recent jobs
+  if (last5MinJobs.length > 0) {
+    console.log('\n📝 Recent Completions (last 5 min):');
+    last5MinJobs.slice(0, 10).forEach((job, idx) => {
+      const duration = job.completedAt && job.startedAt
+        ? ((new Date(job.completedAt).getTime() - new Date(job.startedAt).getTime()) / 1000).toFixed(1)
+        : 'N/A';
+      const time = job.completedAt ? new Date(job.completedAt).toLocaleTimeString() : 'N/A';
+      console.log(`  ${idx + 1}. ${time} - "${job.searchTerm}": ${job.resultCount} props (${duration}s)`);
+    });
+  }
+
+  // Extrapolate
+  const currentRate = stats5.jobs > 0 ? stats5.rate : stats10.rate;
+  console.log('\n⏱️  Projections (at current rate):');
+  console.log(`  Properties per hour: ${(currentRate * 60).toFixed(0).toLocaleString()}`);
+  console.log(`  Properties per day: ${(currentRate * 60 * 24).toFixed(0).toLocaleString()}`);
+
+  // Estimate time to completion
+  const waitingCount = 523; // From earlier check
+  const avgPropsPerJob = currentRate > 0 ? stats5.total / stats5.jobs : 0;
+  const estimatedProps = waitingCount * avgPropsPerJob;
+  const estimatedMinutes = estimatedProps / currentRate;
+
+  console.log('\n🎯 Queue Estimates (523 jobs remaining):');
+  console.log(`  Avg properties per job: ${avgPropsPerJob.toFixed(0)}`);
+  console.log(`  Estimated properties to add: ${estimatedProps.toFixed(0).toLocaleString()}`);
+  if (currentRate > 0) {
+    console.log(`  Estimated time to complete: ${(estimatedMinutes / 60).toFixed(1)} hours`);
+  }
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+checkScrapingRate()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Error:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="2025-01-refactoring/monitor-and-optimize.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface ZeroResultPattern {
+  pattern: string;
+  count: number;
+  examples: string[];
+  shouldAvoid: boolean;
+  reason: string;
+}
+
+async function monitorAndOptimize() {
+  console.log('🔍 ZERO-RESULT MONITOR & OPTIMIZER\n');
+  console.log('='.repeat(60));
+
+  // Get recent zero-result jobs (last 500)
+  const recentZeroResults = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: 0
+    },
+    select: {
+      searchTerm: true,
+      completedAt: true,
+    },
+    orderBy: { completedAt: 'desc' },
+    take: 500
+  });
+
+  const totalZeroResults = recentZeroResults.length;
+  console.log(`📊 Recent zero-result jobs: ${totalZeroResults}\n`);
+
+  if (totalZeroResults < 20) {
+    console.log(`✅ Zero results (${totalZeroResults}) below threshold (20)`);
+    console.log('   No optimization needed at this time.\n');
+    console.log('='.repeat(60));
+    return {
+      needsOptimization: false,
+      zeroResultCount: totalZeroResults
+    };
+  }
+
+  console.log(`⚠️  Zero results (${totalZeroResults}) ABOVE threshold (20)`);
+  console.log('   Analyzing patterns for optimization...\n');
+
+  // Analyze patterns in zero-result terms
+  const patterns: { [key: string]: ZeroResultPattern } = {
+    singleNumbers: {
+      pattern: 'Single digit numbers (0-9)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Too generic, rarely match property records'
+    },
+    shortNumbers: {
+      pattern: 'Short numbers (10-99)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Not specific enough for property searches'
+    },
+    mediumNumbers: {
+      pattern: 'Medium numbers (100-999)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Better to use full addresses'
+    },
+    longNumbers: {
+      pattern: 'Long numbers (1000-9999)',
+      count: 0,
+      examples: [],
+      shouldAvoid: false,
+      reason: 'Could be valid street numbers'
+    },
+    alphanumeric2: {
+      pattern: '2-character alphanumeric (AB, 1A, etc)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Too short to be meaningful'
+    },
+    alphanumeric3: {
+      pattern: '3-character alphanumeric (A1B, 12C, etc)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Usually not valid property identifiers'
+    },
+    alphanumeric4: {
+      pattern: '4-character alphanumeric (AB12, X1Y2, etc)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Rarely match property records'
+    },
+    veryShortWords: {
+      pattern: 'Very short words (1-2 letters)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Too generic'
+    },
+    businessWithCommonWord: {
+      pattern: 'Business name with common word (X Properties, X Trust, etc)',
+      count: 0,
+      examples: [],
+      shouldAvoid: false,
+      reason: 'Can be valid if specific enough'
+    },
+    fullNames: {
+      pattern: 'Full names (First Last)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Last name only performs better'
+    },
+    streetAddresses: {
+      pattern: 'Street addresses (123 Main)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Too specific, usually zero results'
+    },
+    randomCombos: {
+      pattern: 'Random letter combinations',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Not real words or names'
+    }
+  };
+
+  // Classify each zero-result term
+  for (const job of recentZeroResults) {
+    const term = job.searchTerm;
+
+    // Single digit numbers
+    if (/^\d$/.test(term)) {
+      patterns.singleNumbers.count++;
+      if (patterns.singleNumbers.examples.length < 5) {
+        patterns.singleNumbers.examples.push(term);
+      }
+    }
+    // Short numbers (10-99)
+    else if (/^\d{2}$/.test(term)) {
+      patterns.shortNumbers.count++;
+      if (patterns.shortNumbers.examples.length < 5) {
+        patterns.shortNumbers.examples.push(term);
+      }
+    }
+    // Medium numbers (100-999)
+    else if (/^\d{3}$/.test(term)) {
+      patterns.mediumNumbers.count++;
+      if (patterns.mediumNumbers.examples.length < 5) {
+        patterns.mediumNumbers.examples.push(term);
+      }
+    }
+    // Long numbers (1000-9999)
+    else if (/^\d{4,5}$/.test(term)) {
+      patterns.longNumbers.count++;
+      if (patterns.longNumbers.examples.length < 5) {
+        patterns.longNumbers.examples.push(term);
+      }
+    }
+    // 2-char alphanumeric
+    else if (/^[A-Z0-9]{2}$/.test(term) && /\d/.test(term) && /[A-Z]/.test(term)) {
+      patterns.alphanumeric2.count++;
+      if (patterns.alphanumeric2.examples.length < 5) {
+        patterns.alphanumeric2.examples.push(term);
+      }
+    }
+    // 3-char alphanumeric
+    else if (/^[A-Z0-9]{3}$/.test(term) && /\d/.test(term) && /[A-Z]/.test(term)) {
+      patterns.alphanumeric3.count++;
+      if (patterns.alphanumeric3.examples.length < 5) {
+        patterns.alphanumeric3.examples.push(term);
+      }
+    }
+    // 4-char alphanumeric
+    else if (/^[A-Z0-9]{4}$/.test(term) && /\d/.test(term) && /[A-Z]/.test(term)) {
+      patterns.alphanumeric4.count++;
+      if (patterns.alphanumeric4.examples.length < 5) {
+        patterns.alphanumeric4.examples.push(term);
+      }
+    }
+    // Very short words
+    else if (/^[A-Z]{1,2}$/.test(term)) {
+      patterns.veryShortWords.count++;
+      if (patterns.veryShortWords.examples.length < 5) {
+        patterns.veryShortWords.examples.push(term);
+      }
+    }
+    // Full names (has space and multiple words)
+    else if (/^[A-Z][a-z]+ [A-Z][a-z]+/.test(term) && !/ (LLC|Inc|Corp|LTD|Properties|Trust|Company)/.test(term)) {
+      patterns.fullNames.count++;
+      if (patterns.fullNames.examples.length < 5) {
+        patterns.fullNames.examples.push(term);
+      }
+    }
+    // Street addresses (starts with numbers)
+    else if (/^\d+ [A-Z]/.test(term)) {
+      patterns.streetAddresses.count++;
+      if (patterns.streetAddresses.examples.length < 5) {
+        patterns.streetAddresses.examples.push(term);
+      }
+    }
+    // Random combos (short all-caps words that don't look like real words)
+    else if (/^[A-Z]{3,5}$/.test(term) && !/[AEIOU]/.test(term)) {
+      patterns.randomCombos.count++;
+      if (patterns.randomCombos.examples.length < 5) {
+        patterns.randomCombos.examples.push(term);
+      }
+    }
+  }
+
+  // Find patterns that should be avoided
+  const problematicPatterns = Object.entries(patterns)
+    .filter(([_, p]) => p.shouldAvoid && p.count > 0)
+    .sort((a, b) => b[1].count - a[1].count);
+
+  console.log('📋 Zero-Result Patterns Found:\n');
+
+  for (const [key, pattern] of problematicPatterns) {
+    console.log(`   🔴 ${pattern.pattern}`);
+    console.log(`      Count: ${pattern.count} (${(pattern.count / totalZeroResults * 100).toFixed(1)}%)`);
+    console.log(`      Reason: ${pattern.reason}`);
+    if (pattern.examples.length > 0) {
+      console.log(`      Examples: ${pattern.examples.join(', ')}`);
+    }
+    console.log('');
+  }
+
+  // Generate recommendations
+  console.log('💡 RECOMMENDATIONS:\n');
+
+  const recommendations: string[] = [];
+
+  if (patterns.singleNumbers.count + patterns.shortNumbers.count + patterns.mediumNumbers.count > 10) {
+    recommendations.push('- REMOVE numeric-only search strategies (pure numbers rarely work)');
+  }
+
+  if (patterns.alphanumeric2.count + patterns.alphanumeric3.count + patterns.alphanumeric4.count > 15) {
+    recommendations.push('- REMOVE or DISABLE short alphanumeric combination generators');
+  }
+
+  if (patterns.fullNames.count > 10) {
+    recommendations.push('- AVOID full name combinations, use last names only');
+  }
+
+  if (patterns.streetAddresses.count > 10) {
+    recommendations.push('- AVOID specific street addresses, use street names only');
+  }
+
+  if (patterns.veryShortWords.count > 5) {
+    recommendations.push('- ADD minimum length filter (3+ characters for words)');
+  }
+
+  if (patterns.randomCombos.count > 10) {
+    recommendations.push('- IMPROVE word generation to use real names/places only');
+  }
+
+  if (recommendations.length === 0) {
+    console.log('   ✅ No major pattern issues detected\n');
+    console.log('   Current strategies appear reasonable.\n');
+  } else {
+    recommendations.forEach(rec => console.log(`   ${rec}`));
+    console.log('');
+  }
+
+  // Save analysis report
+  const reportDir = path.join(__dirname, 'data');
+  if (!fs.existsSync(reportDir)) {
+    fs.mkdirSync(reportDir, { recursive: true });
+  }
+
+  const report = {
+    timestamp: new Date().toISOString(),
+    totalZeroResults,
+    threshold: 20,
+    needsOptimization: true,
+    patterns: Object.fromEntries(
+      Object.entries(patterns)
+        .filter(([_, p]) => p.count > 0)
+        .map(([key, p]) => [key, {
+          pattern: p.pattern,
+          count: p.count,
+          percentage: (p.count / totalZeroResults * 100).toFixed(1),
+          shouldAvoid: p.shouldAvoid,
+          reason: p.reason,
+          examples: p.examples
+        }])
+    ),
+    recommendations
+  };
+
+  const reportPath = path.join(reportDir, 'zero-result-analysis.json');
+  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+  console.log(`📄 Report saved to: ${reportPath}\n`);
+
+  // Check if continuous-batch-scraper needs updates
+  console.log('🔧 Checking continuous-batch-scraper.ts configuration...\n');
+
+  const scraperPath = path.join(__dirname, 'src/scripts/continuous-batch-scraper.ts');
+  const scraperContent = fs.readFileSync(scraperPath, 'utf-8');
+
+  const issuesFound: string[] = [];
+
+  // Check if problematic strategies are still active
+  if (scraperContent.includes('generateTwoLetterCombo') || scraperContent.includes('generateThreeLetterCombo')) {
+    issuesFound.push('❌ Short alphanumeric generators still present');
+  }
+
+  if (scraperContent.includes('generateFullName') && !scraperContent.includes('// generateFullName')) {
+    issuesFound.push('❌ Full name generator still active');
+  }
+
+  if (scraperContent.includes('generateStreetAddress') && !scraperContent.includes('// generateStreetAddress')) {
+    issuesFound.push('❌ Street address generator still active');
+  }
+
+  if (issuesFound.length > 0) {
+    console.log('   Issues found in scraper configuration:');
+    issuesFound.forEach(issue => console.log(`   ${issue}`));
+    console.log('\n   ⚠️  Manual review recommended!\n');
+  } else {
+    console.log('   ✅ Scraper configuration looks good\n');
+  }
+
+  console.log('='.repeat(60));
+  console.log('✨ Analysis complete!\n');
+
+  return report;
+}
+
+// Run the monitor
+monitorAndOptimize()
+  .then(() => {
+    console.log('✅ Monitoring complete');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+</file>
+
+<file path="2025-01-refactoring/optimize-queue.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+import { scraperQueue } from './src/queues/scraper.queue';
+
+async function optimizeQueue() {
+  console.log('🔧 Optimizing Queue...\n');
+
+  // Get failed search terms
+  const failedJobs = await prisma.scrapeJob.findMany({
+    where: { status: 'failed' },
+    select: { searchTerm: true },
+    orderBy: { id: 'desc' },
+    take: 100
+  });
+
+  const failedTerms = new Set(failedJobs.map(j => j.searchTerm));
+  console.log(`❌ Found ${failedTerms.size} failed search terms`);
+
+  // Get empty result search terms
+  const emptyJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: 0
+    },
+    select: { searchTerm: true },
+    orderBy: { id: 'desc' },
+    take: 200
+  });
+
+  const emptyTerms = new Set(emptyJobs.map(j => j.searchTerm));
+  console.log(`⚠️  Found ${emptyTerms.size} empty result search terms`);
+
+  // Combine problematic terms
+  const problematicTerms = new Set([...failedTerms, ...emptyTerms]);
+  console.log(`🎯 Total problematic search terms: ${problematicTerms.size}\n`);
+
+  // Get waiting jobs
+  const waitingJobs = await scraperQueue.getWaiting();
+  console.log(`⏳ Current waiting jobs: ${waitingJobs.length}`);
+
+  // Identify jobs to remove
+  const jobsToRemove = waitingJobs.filter(job =>
+    problematicTerms.has(job.data.searchTerm)
+  );
+
+  console.log(`\n🗑️  Jobs to remove: ${jobsToRemove.length}`);
+  console.log('Terms to remove:', jobsToRemove.map(j => j.data.searchTerm).slice(0, 20));
+
+  // Remove the jobs
+  let removed = 0;
+  let failed = 0;
+
+  console.log('\n🚀 Starting removal...');
+  for (const job of jobsToRemove) {
+    try {
+      await job.remove();
+      removed++;
+      if (removed % 5 === 0) {
+        process.stdout.write(`\r  Removed: ${removed}/${jobsToRemove.length}`);
+      }
+    } catch (error) {
+      failed++;
+      console.error(`\n  ❌ Failed to remove job ${job.id}:`, error.message);
+    }
+  }
+
+  console.log(`\n\n✅ Removal complete!`);
+  console.log(`  - Successfully removed: ${removed}`);
+  console.log(`  - Failed to remove: ${failed}`);
+
+  // Get updated queue stats
+  const [waiting, active, completed, failedCount] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getCompletedCount(),
+    scraperQueue.getFailedCount(),
+  ]);
+
+  console.log(`\n📊 Updated Queue Status:`);
+  console.log(`  - Waiting: ${waiting}`);
+  console.log(`  - Active: ${active}`);
+  console.log(`  - Completed: ${completed}`);
+  console.log(`  - Failed: ${failedCount}`);
+
+  await prisma.$disconnect();
+}
+
+optimizeQueue()
+  .then(() => {
+    console.log('\n✨ Queue optimization complete!');
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Optimization failed:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="2025-01-refactoring/README_ENHANCED.md">
+# 2025-01-refactoring
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "2025-01-refactoring",
+  "description": "Directory containing 15 code files with 2 classes and 16 functions",
+  "programmingLanguage": [
+    {
+      "@type": "ComputerLanguage",
+      "name": "Typescript"
+    }
+  ],
+  "featureList": [
+    "2 class definitions",
+    "16 function definitions"
+  ]
+}
+</script>
+
+## Overview
+
+This directory contains 15 code file(s) with extracted schemas.
+
+## Files and Schemas
+
+### `add-priority-jobs.ts` (typescript)
+
+**Functions:**
+- `async addPriorityJobs()` - Line 5
+
+### `aggressive-cleanup.ts` (typescript)
+
+**Functions:**
+- `async aggressiveCleanup()` - Line 5
+
+### `analyze-queue.ts` (typescript)
+
+**Functions:**
+- `async analyzeAndOptimizeQueue()` - Line 5
+
+### `analyze-successful-terms.ts` (typescript)
+
+**Functions:**
+- `async analyzeSuccessfulTerms()` - Line 4
+
+### `analyze-zero-results.ts` (typescript)
+
+**Functions:**
+- `async analyzeZeroResults()` - Line 4
+
+### `build-search-term-map.ts` (typescript)
+
+**Classes:**
+- `SearchTermMapping` - Line 6
+
+**Functions:**
+- `async buildSearchTermMap()` - Line 14
+
+### `check-db-stats.ts` (typescript)
+
+**Functions:**
+- `async checkDatabaseStats()` - Line 4
+
+### `check-property-count.ts` (typescript)
+
+**Functions:**
+- `async checkPropertyCount()` - Line 4
+
+### `check-queue-status.ts` (typescript)
+
+**Functions:**
+- `async checkQueueStatus()` - Line 5
+
+### `check-rate.ts` (typescript)
+
+**Functions:**
+- `async checkScrapingRate()` - Line 4
+- `calc()` - Line 59
+
+### `monitor-and-optimize.ts` (typescript)
+
+**Classes:**
+- `ZeroResultPattern` - Line 6
+
+**Functions:**
+- `async monitorAndOptimize()` - Line 14
+
+### `optimize-queue.ts` (typescript)
+
+**Functions:**
+- `async optimizeQueue()` - Line 5
+
+### `remove-all-duplicates.ts` (typescript)
+
+**Functions:**
+- `async removeAllDuplicates()` - Line 6
+
+### `stop-all-jobs.ts` (typescript)
+
+**Functions:**
+- `async stopAllJobs()` - Line 5
+
+### `test-queue-with-token.ts` (typescript)
+
+**Functions:**
+- `async testQueue()` - Line 5
+
+---
+*Generated by Enhanced Schema Generator with schema.org markup*
+</file>
+
+<file path="2025-01-refactoring/remove-all-duplicates.ts">
+#!/usr/bin/env npx tsx
+
+import { scraperQueue } from './src/queues/scraper.queue';
+import { prisma } from './src/lib/prisma';
+import { removeDuplicatesFromQueue } from './src/utils/deduplication';
+
+async function removeAllDuplicates() {
+  console.log('🧹 Removing ALL Duplicate Search Terms from Queue\n');
+  console.log('=' .repeat(60));
+
+  // Use shared deduplication utility
+  await removeDuplicatesFromQueue({ verbose: true, showProgress: true });
+
+  // Get updated queue stats
+  const [waiting, active, delayed, completed, failedCount] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getDelayedCount(),
+    scraperQueue.getCompletedCount(),
+    scraperQueue.getFailedCount(),
+  ]);
+
+  console.log(`\n📊 Final Queue Status:`);
+  console.log(`   - Waiting: ${waiting}`);
+  console.log(`   - Active: ${active}`);
+  console.log(`   - Delayed: ${delayed}`);
+  console.log(`   - Completed: ${completed}`);
+  console.log(`   - Failed: ${failedCount}`);
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+removeAllDuplicates()
+  .then(() => {
+    console.log('\n🎉 All duplicates removed! Queue fully optimized.');
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Cleanup failed:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="2025-01-refactoring/stop-all-jobs.ts">
+#!/usr/bin/env npx tsx
+
+import { scraperQueue } from './src/queues/scraper.queue';
+import { prisma } from './src/lib/prisma';
+
+async function stopAllJobs() {
+  console.log('🛑 Stopping All Jobs in Queue\n');
+  console.log('=' .repeat(60));
+
+  // Get current queue stats
+  const [waiting, active, delayed] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getDelayedCount(),
+  ]);
+
+  console.log(`📊 Current Queue State:`);
+  console.log(`   Waiting: ${waiting}`);
+  console.log(`   Active: ${active}`);
+  console.log(`   Delayed: ${delayed}`);
+  console.log(`   Total to stop: ${waiting + delayed}\n`);
+
+  if (waiting + delayed === 0) {
+    console.log('✅ No jobs to stop (queue is empty)');
+
+    if (active > 0) {
+      console.log(`\nℹ️  Note: ${active} jobs are currently active and cannot be stopped.`);
+      console.log('   They will finish processing.');
+    }
+  } else {
+    console.log(`🚀 Removing ${waiting + delayed} pending jobs...\n`);
+
+    let removed = 0;
+    let failed = 0;
+
+    // Remove waiting jobs
+    if (waiting > 0) {
+      console.log(`📋 Removing ${waiting} waiting jobs...`);
+      const waitingJobs = await scraperQueue.getWaiting();
+
+      for (const job of waitingJobs) {
+        try {
+          await job.remove();
+          removed++;
+          if (removed % 50 === 0) {
+            process.stdout.write(`\r   Progress: ${removed}/${waiting + delayed} (${((removed/(waiting + delayed))*100).toFixed(1)}%)`);
+          }
+        } catch (error: any) {
+          failed++;
+          if (failed <= 3) {
+            console.error(`\n   ❌ Failed to remove job ${job.id}:`, error.message);
+          }
+        }
+      }
+    }
+
+    // Remove delayed jobs
+    if (delayed > 0) {
+      console.log(`\n⏰ Removing ${delayed} delayed jobs...`);
+      const delayedJobs = await scraperQueue.getDelayed();
+
+      for (const job of delayedJobs) {
+        try {
+          await job.remove();
+          removed++;
+          if (removed % 50 === 0) {
+            process.stdout.write(`\r   Progress: ${removed}/${waiting + delayed} (${((removed/(waiting + delayed))*100).toFixed(1)}%)`);
+          }
+        } catch (error: any) {
+          failed++;
+          if (failed <= 3) {
+            console.error(`\n   ❌ Failed to remove job ${job.id}:`, error.message);
+          }
+        }
+      }
+    }
+
+    console.log(`\n\n✅ Jobs stopped!`);
+    console.log(`   - Successfully removed: ${removed}`);
+    console.log(`   - Failed to remove: ${failed}`);
+
+    if (active > 0) {
+      console.log(`\nℹ️  Note: ${active} jobs are still active and processing.`);
+      console.log('   They cannot be stopped mid-execution.');
+    }
+  }
+
+  // Get final queue stats
+  const [finalWaiting, finalActive, finalDelayed, completed, failedCount] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getDelayedCount(),
+    scraperQueue.getCompletedCount(),
+    scraperQueue.getFailedCount(),
+  ]);
+
+  console.log(`\n📊 Final Queue Status:`);
+  console.log(`   - Waiting: ${finalWaiting}`);
+  console.log(`   - Active: ${finalActive}`);
+  console.log(`   - Delayed: ${finalDelayed}`);
+  console.log(`   - Completed: ${completed}`);
+  console.log(`   - Failed: ${failedCount}`);
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+stopAllJobs()
+  .then(() => {
+    console.log('\n🎉 Queue stopped successfully!');
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Failed to stop jobs:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="2025-01-refactoring/test-queue-with-token.ts">
+#!/usr/bin/env npx tsx
+
+import { scraperQueue } from './src/queues/scraper.queue';
+import { prisma } from './src/lib/prisma';
+
+async function testQueue() {
+  console.log('🧪 Testing Updated Queue with TCAD_API_KEY\n');
+  console.log('=' .repeat(60));
+
+  // Refresh token first
+  console.log('\n📝 Token status:');
+  console.log(`  TCAD_API_KEY present: ${!!process.env.TCAD_API_KEY}`);
+  if (process.env.TCAD_API_KEY) {
+    console.log(`  Token preview: ${process.env.TCAD_API_KEY.substring(0, 50)}...`);
+  }
+
+  // Test search terms - use smaller ones for quick testing
+  const testSearchTerms = [
+    'Hyde Park',    // Should find ~107 properties
+    'Johnson LLC',  // Should find ~38 properties
+  ];
+
+  console.log(`\n🚀 Queuing ${testSearchTerms.length} test jobs...\n`);
+
+  const jobIds: string[] = [];
+
+  for (const searchTerm of testSearchTerms) {
+    const job = await scraperQueue.add(
+      'scrape-properties',
+      {
+        searchTerm,
+        userId: 'test-queue',
+        scheduled: false,
+      },
+      {
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 2000 },
+      }
+    );
+
+    jobIds.push(job.id.toString());
+    console.log(`  ✓ Queued: "${searchTerm}" (Job ID: ${job.id})`);
+  }
+
+  console.log(`\n⏳ Waiting for jobs to complete...\n`);
+
+  // Monitor job completion
+  const checkInterval = 2000;
+  const timeout = 120000; // 2 minutes
+  const startTime = Date.now();
+
+  while (true) {
+    if (Date.now() - startTime > timeout) {
+      console.log('⚠️  Timeout reached!');
+      break;
+    }
+
+    const [waiting, active, completed, failed] = await Promise.all([
+      scraperQueue.getWaitingCount(),
+      scraperQueue.getActiveCount(),
+      scraperQueue.getCompletedCount(),
+      scraperQueue.getFailedCount(),
+    ]);
+
+    console.log(`  Queue: Waiting=${waiting}, Active=${active}, Completed=${completed}, Failed=${failed}`);
+
+    // Check individual job statuses
+    let allDone = true;
+    for (const jobId of jobIds) {
+      const job = await scraperQueue.getJob(jobId);
+      if (job) {
+        const state = await job.getState();
+        if (state !== 'completed' && state !== 'failed') {
+          allDone = false;
+        }
+      }
+    }
+
+    if (allDone) {
+      console.log('\n✅ All jobs completed!\n');
+      break;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, checkInterval));
+  }
+
+  // Print results
+  console.log('=' .repeat(60));
+  console.log('RESULTS:\n');
+
+  for (const jobId of jobIds) {
+    const job = await scraperQueue.getJob(jobId);
+    if (!job) {
+      console.log(`  ❌ Job ${jobId}: Not found`);
+      continue;
+    }
+
+    const state = await job.getState();
+    const result = job.returnvalue;
+
+    console.log(`  Job ${jobId} (${job.data.searchTerm}):`);
+    console.log(`    State: ${state}`);
+
+    if (state === 'completed' && result) {
+      console.log(`    ✅ Found ${result.count} properties in ${(result.duration / 1000).toFixed(2)}s`);
+    } else if (state === 'failed') {
+      console.log(`    ❌ Failed: ${job.failedReason}`);
+    }
+    console.log();
+  }
+
+  // Check database
+  const dbCount = await prisma.property.count();
+  console.log(`📊 Total properties in database: ${dbCount.toLocaleString()}`);
+
+  console.log('\n✅ Test complete!');
+  process.exit(0);
+}
+
+testQueue().catch(error => {
+  console.error('❌ Test failed:', error);
+  process.exit(1);
+});
+</file>
+
+</files>

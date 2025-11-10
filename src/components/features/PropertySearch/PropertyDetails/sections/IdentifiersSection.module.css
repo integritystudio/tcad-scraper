@@ -26,8 +26,8 @@
 .code {
   font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
   font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--neutral-900, #111827);
+  font-weight: 600;
+  color: #111827;
   background: var(--neutral-100, #f3f4f6);
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;

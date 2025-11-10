@@ -1,0 +1,226 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+Dockerfile
+index.js
+package.json
+README_ENHANCED.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="Dockerfile">
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --production --omit=optional --no-optional
+
+COPY index.js ./
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
+</file>
+
+<file path="index.js">
+const http = require('http');
+const { Queue } = require('bullmq');
+
+const PORT = process.env.PORT || 3000;
+const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+const REDIS_PORT = process.env.REDIS_PORT || 6379;
+
+const connection = {
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+};
+
+const queues = new Map();
+
+function getQueue(queueName) {
+  if (!queues.has(queueName)) {
+    const queue = new Queue(queueName, { connection });
+    queues.set(queueName, queue);
+  }
+  return queues.get(queueName);
+}
+
+async function discoverQueues() {
+  try {
+    const Redis = require('ioredis');
+    const redis = new Redis(connection);
+    const keys = await redis.keys('bull:*:meta');
+    const queueNames = new Set();
+
+    keys.forEach(key => {
+      const match = key.match(/^bull:([^:]+):meta$/);
+      if (match) {
+        queueNames.add(match[1]);
+      }
+    });
+
+    await redis.quit();
+    return Array.from(queueNames);
+  } catch (error) {
+    console.error('Error discovering queues:', error);
+    return [];
+  }
+}
+
+const server = http.createServer(async (req, res) => {
+  try {
+    if (req.url === '/metrics' && req.method === 'GET') {
+      const queueNames = await discoverQueues();
+
+      if (queueNames.length === 0) {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        return res.end('# No queues found\n');
+      }
+
+      let allMetrics = '';
+      for (const queueName of queueNames) {
+        try {
+          const queue = getQueue(queueName);
+          const metrics = await queue.exportPrometheusMetrics();
+          allMetrics += metrics + '\n';
+        } catch (error) {
+          console.error(`Error getting metrics for queue ${queueName}:`, error);
+        }
+      }
+
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end(allMetrics);
+    }
+    else if (req.url === '/health' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+    }
+    else if (req.url === '/queues' && req.method === 'GET') {
+      const queueNames = await discoverQueues();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ queues: queueNames }));
+    }
+    else {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not Found');
+    }
+  } catch (error) {
+    console.error('Request error:', error);
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end(`Error: ${error.message}`);
+  }
+});
+
+server.listen(PORT, () => {
+  console.log(`BullMQ Prometheus metrics exporter running on port ${PORT}`);
+  console.log(`Metrics available at http://localhost:${PORT}/metrics`);
+  console.log(`Health check at http://localhost:${PORT}/health`);
+  console.log(`Queue list at http://localhost:${PORT}/queues`);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close();
+  for (const queue of queues.values()) {
+    await queue.close();
+  }
+  process.exit(0);
+});
+</file>
+
+<file path="package.json">
+{
+  "name": "bullmq-metrics-exporter",
+  "version": "1.0.0",
+  "description": "BullMQ Prometheus metrics exporter",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "bullmq": "5.28.2",
+    "ioredis": "5.4.1"
+  }
+}
+</file>
+
+<file path="README_ENHANCED.md">
+# bullmq-exporter
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "bullmq-exporter",
+  "description": "Directory containing 1 code files with 0 classes and 2 functions",
+  "programmingLanguage": [
+    {
+      "@type": "ComputerLanguage",
+      "name": "Typescript"
+    }
+  ],
+  "featureList": [
+    "2 function definitions"
+  ]
+}
+</script>
+
+## Overview
+
+This directory contains 1 code file(s) with extracted schemas.
+
+## Files and Schemas
+
+### `index.js` (typescript)
+
+**Functions:**
+- `getQueue()` - Line 14
+- `async discoverQueues()` - Line 22
+
+---
+*Generated by Enhanced Schema Generator with schema.org markup*
+</file>
+
+</files>

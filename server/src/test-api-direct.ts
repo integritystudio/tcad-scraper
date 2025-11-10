@@ -1,4 +1,4 @@
-import logger from '../lib/logger';
+import logger from './lib/logger';
 async function testApi() {
   logger.info('Testing TCAD API directly...\n');
 

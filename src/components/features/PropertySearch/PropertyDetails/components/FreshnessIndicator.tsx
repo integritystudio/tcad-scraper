@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Badge } from '../../../../../ui/Badge';
+import { Badge } from '../../../../ui/Badge';
 import styles from './FreshnessIndicator.module.css';
 
 interface FreshnessIndicatorProps {

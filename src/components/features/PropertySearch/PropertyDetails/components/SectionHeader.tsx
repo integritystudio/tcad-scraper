@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Icon, IconName } from '../../../../../ui/Icon';
+import { Icon, IconName } from '../../../../ui/Icon';
 import styles from './SectionHeader.module.css';
 
 interface SectionHeaderProps {

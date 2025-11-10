@@ -1,0 +1,613 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+Badge/
+  Badge.module.css
+  Badge.tsx
+  index.ts
+Button/
+  Button.module.css
+  Button.tsx
+  index.ts
+Card/
+  Card.module.css
+  Card.tsx
+  index.ts
+Icon/
+  Icon.tsx
+  icons.ts
+  index.ts
+Input/
+  index.ts
+  Input.module.css
+  Input.tsx
+index.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="Badge/Badge.module.css">
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Sizes */
+.sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.md {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.lg {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+/* Variants */
+.default {
+  background: var(--neutral-100, #f3f4f6);
+  color: var(--neutral-700, #374151);
+}
+
+.success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+</file>
+
+<file path="Badge/Badge.tsx">
+import { ReactNode } from 'react';
+import styles from './Badge.module.css';
+
+type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info';
+type BadgeSize = 'sm' | 'md' | 'lg';
+
+interface BadgeProps {
+  variant?: BadgeVariant;
+  size?: BadgeSize;
+  children: ReactNode;
+  className?: string;
+}
+
+export const Badge = ({
+  variant = 'default',
+  size = 'md',
+  children,
+  className = '',
+}: BadgeProps) => {
+  const classes = [
+    styles.badge,
+    styles[variant],
+    styles[size],
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return <span className={classes}>{children}</span>;
+};
+</file>
+
+<file path="Badge/index.ts">
+export { Badge } from './Badge';
+</file>
+
+<file path="Button/Button.module.css">
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--primary, #2563eb);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Sizes */
+.sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.md {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.lg {
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+/* Variants */
+.primary {
+  background: var(--primary, #2563eb);
+  color: white;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--primary-dark, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.secondary {
+  background: var(--neutral-200, #e5e7eb);
+  color: var(--neutral-900, #111827);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--neutral-300, #d1d5db);
+}
+
+.outline {
+  background: transparent;
+  border: 2px solid var(--primary, #2563eb);
+  color: var(--primary, #2563eb);
+}
+
+.outline:hover:not(:disabled) {
+  background: var(--primary, #2563eb);
+  color: white;
+}
+
+.ghost {
+  background: transparent;
+  color: var(--neutral-700, #374151);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--neutral-100, #f3f4f6);
+}
+
+.fullWidth {
+  width: 100%;
+}
+</file>
+
+<file path="Button/Button.tsx">
+import { ReactNode, ButtonHTMLAttributes } from 'react';
+import styles from './Button.module.css';
+
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+type ButtonSize = 'sm' | 'md' | 'lg';
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  children: ReactNode;
+  fullWidth?: boolean;
+}
+
+export const Button = ({
+  variant = 'primary',
+  size = 'md',
+  children,
+  fullWidth = false,
+  className = '',
+  disabled,
+  ...props
+}: ButtonProps) => {
+  const classes = [
+    styles.button,
+    styles[variant],
+    styles[size],
+    fullWidth && styles.fullWidth,
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <button className={classes} disabled={disabled} {...props}>
+      {children}
+    </button>
+  );
+};
+</file>
+
+<file path="Button/index.ts">
+export { Button } from './Button';
+</file>
+
+<file path="Card/Card.module.css">
+.card {
+  background: white;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.default {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.elevated {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.elevated:hover {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.outlined {
+  border: 1px solid var(--neutral-200, #e5e7eb);
+  box-shadow: none;
+}
+
+/* Padding variants */
+.padding-sm {
+  padding: 1rem;
+}
+
+.padding-md {
+  padding: 1.5rem;
+}
+
+.padding-lg {
+  padding: 2rem;
+}
+
+/* Card sections */
+.header {
+  margin-bottom: 1rem;
+}
+
+.body {
+  flex: 1;
+}
+
+.footer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--neutral-200, #e5e7eb);
+}
+</file>
+
+<file path="Card/Card.tsx">
+import { ReactNode, HTMLAttributes } from 'react';
+import styles from './Card.module.css';
+
+type CardVariant = 'default' | 'elevated' | 'outlined';
+
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: CardVariant;
+  children: ReactNode;
+  padding?: 'sm' | 'md' | 'lg';
+}
+
+export const Card = ({
+  variant = 'default',
+  children,
+  padding = 'md',
+  className = '',
+  ...props
+}: CardProps) => {
+  const classes = [
+    styles.card,
+    styles[variant],
+    styles[`padding-${padding}`],
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <div className={classes} {...props}>
+      {children}
+    </div>
+  );
+};
+
+interface CardHeaderProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export const CardHeader = ({ children, className = '' }: CardHeaderProps) => {
+  return <div className={`${styles.header} ${className}`}>{children}</div>;
+};
+
+interface CardBodyProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export const CardBody = ({ children, className = '' }: CardBodyProps) => {
+  return <div className={`${styles.body} ${className}`}>{children}</div>;
+};
+
+interface CardFooterProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export const CardFooter = ({ children, className = '' }: CardFooterProps) => {
+  return <div className={`${styles.footer} ${className}`}>{children}</div>;
+};
+</file>
+
+<file path="Card/index.ts">
+export { Card, CardHeader, CardBody, CardFooter } from './Card';
+</file>
+
+<file path="Icon/Icon.tsx">
+import { iconPaths, IconName } from './icons';
+
+interface IconProps {
+  name: IconName;
+  size?: number;
+  color?: string;
+  className?: string;
+  'aria-hidden'?: boolean;
+}
+
+export const Icon = ({
+  name,
+  size = 24,
+  color = 'currentColor',
+  className = '',
+  'aria-hidden': ariaHidden = true,
+}: IconProps) => {
+  const pathData = iconPaths[name];
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden={ariaHidden}
+    >
+      <path d={pathData} />
+    </svg>
+  );
+};
+</file>
+
+<file path="Icon/icons.ts">
+/**
+ * SVG icon paths as string data
+ * Centralizes all icon definitions
+ */
+
+export const iconPaths: Record<string, string> = {
+  search: 'M11 11m-8 0a8 8 0 1 0 16 0a8 8 0 1 0 -16 0M21 21l-4.35-4.35',
+  location: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0zM12 10m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0',
+  chevronRight: 'M9 18l6-6l-6-6',
+  calendar: 'M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6zM16 2v4M8 2v4M3 10h18',
+  check: 'M20 6L9 17l-5-5',
+  x: 'M18 6L6 18M6 6l12 12',
+  alertCircle: 'M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0 -20 0M12 8v4M12 16h0.01',
+  info: 'M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0 -20 0M12 16v-4M12 8h0.01',
+  arrowUp: 'M12 19V5',
+  arrowDown: 'M12 5v14',
+  loader: 'M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83',
+  filter: 'M22 3H2l8 9.46V19l4 2V12.46L22 3z',
+  download: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5l5-5M12 15V3',
+  refresh: 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15',
+};
+
+export type IconName = keyof typeof iconPaths;
+</file>
+
+<file path="Icon/index.ts">
+export { Icon } from './Icon';
+export { iconPaths, type IconName } from './icons';
+</file>
+
+<file path="Input/index.ts">
+export { Input } from './Input';
+</file>
+
+<file path="Input/Input.module.css">
+.inputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--neutral-700, #374151);
+}
+
+.inputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--neutral-300, #d1d5db);
+  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input.withIcon {
+  padding-left: 3rem;
+}
+
+.input.error {
+  border-color: #ef4444;
+}
+
+.input.error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.icon {
+  position: absolute;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  color: var(--neutral-500, #6b7280);
+  pointer-events: none;
+}
+
+.errorText {
+  font-size: 0.875rem;
+  color: #ef4444;
+}
+
+.input:disabled {
+  background: var(--neutral-100, #f3f4f6);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+</file>
+
+<file path="Input/Input.tsx">
+import { InputHTMLAttributes, ReactNode } from 'react';
+import styles from './Input.module.css';
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+  icon?: ReactNode;
+}
+
+export const Input = ({
+  label,
+  error,
+  icon,
+  id,
+  className = '',
+  ...props
+}: InputProps) => {
+  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+
+  return (
+    <div className={`${styles.inputWrapper} ${className}`}>
+      {label && (
+        <label htmlFor={inputId} className={styles.label}>
+          {label}
+        </label>
+      )}
+      <div className={styles.inputContainer}>
+        {icon && <div className={styles.icon}>{icon}</div>}
+        <input
+          id={inputId}
+          className={`${styles.input} ${icon ? styles.withIcon : ''} ${
+            error ? styles.error : ''
+          }`}
+          {...props}
+        />
+      </div>
+      {error && <span className={styles.errorText}>{error}</span>}
+    </div>
+  );
+};
+</file>
+
+<file path="index.ts">
+// UI Component Library Barrel Export
+export { Icon, iconPaths, type IconName } from './Icon';
+export { Button } from './Button';
+export { Card, CardHeader, CardBody, CardFooter } from './Card';
+export { Badge } from './Badge';
+export { Input } from './Input';
+</file>
+
+</files>

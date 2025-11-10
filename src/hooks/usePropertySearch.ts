@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Property } from '../types';
 import { getApiBaseUrl } from '../lib/api-config';
 
@@ -24,6 +24,7 @@ interface UsePropertySearchReturn {
   explanation: string;
   search: (query: string, limit?: number) => Promise<void>;
   clearResults: () => void;
+  initialLoad: boolean;
 }
 
 /**
@@ -36,6 +37,7 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
   const [error, setError] = useState('');
   const [totalResults, setTotalResults] = useState(0);
   const [explanation, setExplanation] = useState('');
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const search = useCallback(async (query: string, limit = 50) => {
     if (!query.trim()) return;
@@ -86,6 +88,38 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
     setTotalResults(0);
   }, []);
 
+  // Load initial properties on mount
+  useEffect(() => {
+    const loadInitialProperties = async () => {
+      setLoading(true);
+      try {
+        const apiBaseUrl = getApiBaseUrl();
+        const response = await fetch(`${apiBaseUrl}/properties?limit=50`);
+
+        if (!response.ok) {
+          throw new Error('Failed to load properties');
+        }
+
+        const data = await response.json();
+
+        if (data && data.data && data.pagination) {
+          setResults(data.data);
+          setTotalResults(data.pagination.total);
+          setExplanation('Showing all properties');
+        }
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to load properties';
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+        setInitialLoad(false);
+      }
+    };
+
+    loadInitialProperties();
+  }, []);
+
   return {
     results,
     loading,
@@ -94,5 +128,6 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
     explanation,
     search,
     clearResults,
+    initialLoad,
   };
 };
