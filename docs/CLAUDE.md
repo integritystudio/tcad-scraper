@@ -3,8 +3,6 @@
 This file provides guidance to Claude Code when working with the TCAD Scraper database and codebase.
 
 **Last Updated**: November 10, 2025
-
-
 ---
 
 ## Project Overview
@@ -668,6 +666,7 @@ docker-compose stop postgres
 docker-compose rm -f postgres
 ```
 
+<<<<<<< HEAD
 ---
 
 ## Production Deployment
@@ -762,6 +761,8 @@ ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust prox
 - ✅ Resolved 502 errors caused by missing dependencies
 - ✅ Verified production API successfully serving 373K+ properties
 
+=======
+>>>>>>> 97dde79 (make identifiers font darker)
 ---
 
 ## Next Steps for Scaling
@@ -1030,11 +1031,19 @@ This section provides a complete file tree of the TCAD Scraper project for refer
 
 ---
 
+<<<<<<< HEAD
 **Document Version**: 1.4
 **Last Migration**: November 6, 2025
 **Database Version**: PostgreSQL (via Prisma schema 20251028203525_init)
 **Database Location**: Remote server via Tailscale (LOCAL POSTGRES DISABLED)
 **Configuration Updated**: November 10, 2025 - Added production deployment section and Express trust proxy configuration
+=======
+**Document Version**: 1.3
+**Last Migration**: November 6, 2025
+**Database Version**: PostgreSQL (via Prisma schema 20251028203525_init)
+**Database Location**: Remote server via Tailscale (LOCAL POSTGRES DISABLED)
+**Configuration Updated**: November 9, 2025 - Added development database URLs (MAC_DB_URL, HOBBES_DB_URL)
+>>>>>>> 97dde79 (make identifiers font darker)
 **File Tree Last Updated**: November 9, 2025
 
 ---
