@@ -1,0 +1,149 @@
+version: '3.8'
+
+# Development environment configuration
+# Extends docker-compose.base.yml with development-specific overrides
+# Usage: docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up
+
+services:
+  # ============================================
+  # PostgreSQL - Development
+  # ============================================
+  postgres:
+    environment:
+      # Use simpler credentials in development
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      # Expose initialization scripts for development
+      - ./server/prisma/migrations:/docker-entrypoint-initdb.d
+    ports:
+      # Expose on standard port for local access
+      - "5432:5432"
+
+  # ============================================
+  # Redis - Development
+  # ============================================
+  redis:
+    ports:
+      - "6379:6379"
+    # Use less restrictive memory settings in dev
+    command: redis-server --appendonly yes
+
+  # ============================================
+  # Backend - Development with Hot Reload
+  # ============================================
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: development  # Use development stage
+    container_name: tcad-backend-dev
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      # Enable verbose Prisma logging
+      - DEBUG=prisma:*
+    volumes:
+      # Mount source code for hot reload
+      - ./server/src:/app/src:ro
+      - ./server/prisma:/app/prisma:ro
+      - ./server/package.json:/app/package.json:ro
+      - ./server/tsconfig.json:/app/tsconfig.json:ro
+      # Preserve node_modules from container
+      - /app/node_modules
+      # Mount results directory
+      - ./results:/app/results
+    ports:
+      - "3000:3000"
+      # Expose debugger port
+      - "9229:9229"
+    command: npx tsx watch --inspect=0.0.0.0:9229 src/index.ts
+
+  # ============================================
+  # Frontend - Development with Vite HMR
+  # ============================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development  # Use development stage
+    container_name: tcad-frontend-dev
+    environment:
+      - NODE_ENV=development
+      # Vite specific
+      - VITE_API_URL=http://localhost:3000
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/app/src:ro
+      - ./public:/app/public:ro
+      - ./index.html:/app/index.html:ro
+      - ./vite.config.ts:/app/vite.config.ts:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./package.json:/app/package.json:ro
+      # Preserve node_modules from container
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    command: npm run dev -- --host 0.0.0.0
+
+  # ============================================
+  # BullMQ Metrics - Development
+  # ============================================
+  bullmq-metrics:
+    container_name: tcad-bullmq-metrics-dev
+    ports:
+      - "4000:3000"
+
+  # ============================================
+  # Prometheus - Development (Optional)
+  # ============================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tcad-prometheus-dev
+    networks:
+      - tcad-network
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    depends_on:
+      - bullmq-metrics
+
+  # ============================================
+  # Grafana - Development (Optional)
+  # ============================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tcad-grafana-dev
+    networks:
+      - tcad-network
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+networks:
+  tcad-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:

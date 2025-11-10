@@ -1,0 +1,254 @@
+version: '3.8'
+
+# Production environment configuration
+# Extends docker-compose.base.yml with production-specific overrides
+# Usage: docker-compose -f docker-compose.base.yml -f docker-compose.prod.yml up -d
+
+services:
+  # ============================================
+  # PostgreSQL - Production
+  # ============================================
+  postgres:
+    environment:
+      # Use strong password from environment
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+    # Don't expose to host in production (only internal network)
+    ports: []
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Backup location
+      - ./backups/postgres:/backups
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    restart: always
+
+  # ============================================
+  # Redis - Production
+  # ============================================
+  redis:
+    # Don't expose to host in production
+    ports: []
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+      # Backup location
+      - ./backups/redis:/backups
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    restart: always
+
+  # ============================================
+  # Backend - Production
+  # ============================================
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: production  # Use production stage
+    container_name: tcad-backend-prod
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public&connection_limit=10
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - CONCURRENT_WORKERS=${CONCURRENT_WORKERS:-5}
+      - BATCH_SIZE=${BATCH_SIZE:-20}
+      - LOG_FILES_ENABLED=true
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - TCAD_API_KEY=${TCAD_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SENTRY_DSN=${SENTRY_DSN}
+      # Rate limiting
+      - RATE_LIMIT_WINDOW_MS=900000
+      - RATE_LIMIT_MAX_REQUESTS=100
+    # Only expose internally
+    ports: []
+    volumes:
+      # Results and logs
+      - ./results:/app/results
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    restart: always
+    # Run database migrations on startup
+    command: sh -c "npx prisma migrate deploy && node dist/index.js"
+
+  # ============================================
+  # Frontend - Production with Nginx
+  # ============================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production  # Use production stage with Nginx
+    container_name: tcad-frontend-prod
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_HTTPS_PORT:-443}:443"
+    volumes:
+      # SSL certificates (if using HTTPS)
+      - ./ssl:/etc/nginx/ssl:ro
+      # Custom nginx config
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    restart: always
+    depends_on:
+      - backend
+
+  # ============================================
+  # BullMQ Metrics - Production
+  # ============================================
+  bullmq-metrics:
+    container_name: tcad-bullmq-metrics-prod
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    # Only expose internally or via reverse proxy
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    restart: always
+
+  # ============================================
+  # Prometheus - Production
+  # ============================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tcad-prometheus-prod
+    networks:
+      - tcad-network
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+      - ./backups/prometheus:/backups
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    # Don't expose externally
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    restart: always
+    depends_on:
+      - bullmq-metrics
+
+  # ============================================
+  # Grafana - Production
+  # ============================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tcad-grafana-prod
+    networks:
+      - tcad-network
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL}
+      - GF_SECURITY_SECRET_KEY=${GRAFANA_SECRET_KEY}
+      - GF_INSTALL_PLUGINS=redis-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./backups/grafana:/backups
+    # Don't expose externally (use reverse proxy)
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    restart: always
+    depends_on:
+      - prometheus
+
+  # ============================================
+  # Nginx Reverse Proxy (Optional)
+  # ============================================
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: tcad-nginx-proxy
+    networks:
+      - tcad-network
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/proxy.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx-logs:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+      - grafana
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+networks:
+  tcad-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+  nginx-logs:

@@ -1,0 +1,85 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# package-lock.json is REQUIRED for npm ci - do not exclude
+
+# Development files
+.git/
+.github/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.doppler.yaml
+
+# Build outputs
+dist/
+build/
+.cache/
+*.log
+
+# Testing
+coverage/
+.nyc_output/
+*.test.ts
+*.spec.ts
+__tests__/
+test/
+tests/
+
+# Documentation (not needed in container)
+*.md
+docs/
+dev/
+analytics/
+
+# Docker files (don't need Docker in Docker)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Database
+*.sql
+*.db
+*.sqlite
+
+# Monitoring configs (included separately)
+monitoring/
+prometheus.yml
+grafana/
+
+# Scripts (deployment-specific)
+scripts/
+*.sh
+
+# Server directory (has its own Dockerfile)
+server/
+
+# BullMQ exporter (has its own Dockerfile)
+bullmq-exporter/
+
+# Results and data files
+results/
+repomix-output.xml
+repomix.config.json
+# DO NOT exclude package.json or package-lock.json - they are required for npm install/ci
+
+# TypeScript config (not needed at runtime)
+tsconfig*.json
+
+# Jest config
+jest*.config.*
+
+# Misc
+.DS_Store
+.repomixignore
+.mcp.json
+CNAME

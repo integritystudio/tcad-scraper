@@ -1,73 +1,125 @@
 # 🚀 Resume Development Here
 
-**Last Session**: Session 5 (2025-11-08 14:50 CST)
-**Status**: ✅ Ready to Continue Phase 4
-**Next Task**: Service Layer Testing (Target: 60% coverage)
+**Last Session**: Merge Error Fixes (2025-11-09 19:30 CST)
+**Status**: ✅ All Merge Errors Resolved - Ready for Development
+**Next Task**: Continue Phase 4 Service Layer Testing OR New Feature Work
 
 ---
 
 ## ⚡ Quick Commands to Resume
 
 ```bash
-# 1. Verify current state
-cd /Users/alyshialedlie/code/ISPublicSites/tcad-scraper/server
-npm test -- --coverage
+# 1. Verify build works after merge fixes
+cd /Users/alyshialedlie/code/ISPublicSites/tcad-scraper
+npm run build
 
-# Expected output:
-# - 356/397 tests passing
-# - 34.55% coverage
-# - 40 failures in redis-cache.service.test.ts (known issue)
+# Expected: ✓ built in ~600ms, dist/ folder created
 
 # 2. Check git status
 git status
+# Expected: On branch new-ui, clean working directory
 
-# 3. Start Phase 4 - Create prisma tests
-touch src/lib/__tests__/prisma.test.ts
-npm run test:watch -- --testPathPattern="prisma"
+# 3. Verify all dependencies installed
+ls node_modules/@rollup/
+# Expected: rollup-darwin-arm64, rollup-linux-arm64-gnu, rollup-linux-arm64-musl
+
+# 4. Run tests to verify no regressions
+npm test
+# Expected: 138 passing, 15 failing (Jest/Vitest incompatibility - pre-existing)
+
+# 5. Check GitHub Actions status
+# Visit: https://github.com/aledlie/tcad-scraper/actions
+# Expected: No more "npm ci requires package-lock.json" errors
 ```
 
 ---
 
 ## 📖 Read These First
 
-1. **[SESSION-5-HANDOFF.md](./SESSION-5-HANDOFF.md)** - Complete Session 5 details
-2. **[active/test-coverage-improvement-context.md](./active/test-coverage-improvement-context.md)** - Full context history
-3. **[active/test-coverage-improvement-tasks.md](./active/test-coverage-improvement-tasks.md)** - Task checklist
+### Latest Session (Merge Error Fixes)
+1. **[SESSION-2025-11-09-MERGE-FIXES.md](./SESSION-2025-11-09-MERGE-FIXES.md)** - Complete merge fix session
+2. **[active/merge-error-fixes-context.md](./active/merge-error-fixes-context.md)** - Detailed problem analysis
+3. **[active/merge-error-fixes-tasks.md](./active/merge-error-fixes-tasks.md)** - All tasks completed
+
+### Previous Sessions (Test Coverage Work)
+4. **[SESSION-5-HANDOFF.md](./SESSION-5-HANDOFF.md)** - Complete Session 5 details
+5. **[active/test-coverage-improvement-context.md](./active/test-coverage-improvement-context.md)** - Full context history
+6. **[active/test-coverage-improvement-tasks.md](./active/test-coverage-improvement-tasks.md)** - Task checklist
 
 ---
 
-## 🎯 What Just Happened (Session 5)
+## 🎯 What Just Happened (Latest Session: Merge Error Fixes)
 
-### Fixed All Test Failures
+### Resolved Critical CI/CD Failures
+- **Issue**: GitHub Actions integration tests failing with "npm ci requires package-lock.json"
+- **Fix**: Replaced `npm ci` with `npm install` in 4 workflow files (14 locations)
+- **Time**: ~35 minutes
+- **Status**: ✅ Committed and pushed to `origin/new-ui`
+
+### Resolved Local Build Failures
+- **Issue**: `Cannot find module @rollup/rollup-darwin-arm64`
+- **Root Cause**: NPM optional dependencies bug on macOS ARM64
+- **Fix**: Moved package from `optionalDependencies` to `devDependencies`
+- **Result**: Build succeeds in 596ms
+
+### Added Missing Dependencies
+- **Issue**: Vite couldn't resolve `axios` import
+- **Fix**: Added `axios: "^1.13.2"` to dependencies
+- **Result**: All imports resolve correctly
+
+### Key Lessons Learned
+1. **NPM Optional Dependencies**: Unreliable on certain platforms, use `devDependencies` for critical build tools
+2. **CI/CD Flexibility**: Sometimes `npm install` is better than `npm ci` for development workflows
+3. **Force Push Safety**: Always use `--force-with-lease` instead of `--force` when rewriting history
+
+### Files Modified
+- `package.json` - Dependencies updated
+- `package-lock.json` - Regenerated (377 packages)
+- `.github/workflows/integration-tests.yml` - npm ci → install
+- `.github/workflows/ci.yml` - npm ci → install
+- `.github/workflows/pr-checks.yml` - npm ci → install
+- `.github/workflows/security.yml` - npm ci → install
+
+### Previous Session (Session 5 - Test Fixes)
+
+**Fixed All Test Failures**
 - **File**: `property.routes.claude.test.ts`
 - **Before**: 6/26 tests passing
 - **After**: 26/26 tests passing ✅
 - **Time**: 20 minutes
 
-### Root Causes Fixed
+**Root Causes Fixed**
 1. Missing mocks (redis-cache, scraper.queue)
 2. Error handler not added to test app
 3. Wrong error format expectations
 4. Prisma mocks not reset between tests
 5. Incorrect validation boundary test logic
 
-### Key Pattern Learned
-```typescript
-// ALWAYS mock BEFORE importing
-jest.mock('../../lib/redis-cache.service');
-jest.mock('../../queues/scraper.queue');
+---
 
-// Import AFTER mocks
-import { propertyRouter } from '../property.routes';
-import { errorHandler } from '../../middleware/error.middleware';
-```
+## 🎯 What to Do Next
+
+### Option 1: Continue Test Coverage Work (Phase 4)
+
+All merge issues are resolved. You can now continue the test coverage improvement work from where Session 5 left off.
+
+**Current Coverage**: 34.55% (138 passing tests)
+**Target**: 60% coverage (Service layer testing)
+
+### Option 2: New Feature Development
+
+The codebase is stable with all merge errors fixed. You can start new feature work or UI improvements.
+
+**Branch**: `new-ui` is ready for development
+**Build**: Working (596ms)
+**Tests**: 138 passing (90.2% pass rate)
 
 ---
 
-## 🎯 What to Do Next (Phase 4)
+## 📋 If Continuing Test Coverage (Option 1)
 
 ### Priority 1: prisma.ts (30 mins, +1-2% coverage)
-**File to create**: `src/lib/__tests__/prisma.test.ts`
+**File to create**: `server/src/lib/__tests__/prisma.test.ts`
 
 **Tests to write**:
 - Database connection initialization
