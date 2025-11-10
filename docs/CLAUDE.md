@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code when working with the TCAD Scraper database and codebase.
 
-**Last Updated**: November 9, 2025
+**Last Updated**: November 10, 2025
 
 ---
 
@@ -669,6 +669,100 @@ docker-compose rm -f postgres
 
 ---
 
+## Production Deployment
+
+### Server Configuration (Hobbes)
+
+**Production Server**: hobbes (accessed via SSH: `ssh aledlie@hobbes`)
+**Branch**: `linux-env`
+**Process Manager**: PM2
+**Reverse Proxy**: nginx
+
+### Express Trust Proxy Configuration
+
+**⚠️ REQUIRED for production behind nginx**
+
+The Express server must be configured to trust the reverse proxy for proper client IP detection and rate limiting:
+
+```typescript
+// server/src/index.ts
+app.set('trust proxy', 1);  // Trust only the first proxy (nginx)
+```
+
+**Why this is needed**:
+- nginx forwards requests with `X-Forwarded-For` headers
+- Express rate limiting uses client IP for request throttling
+- Without trust proxy, rate limiting fails with ValidationError
+- Setting to `1` trusts only nginx (prevents IP spoofing)
+
+### Production Deployment Workflow
+
+1. **Make changes locally** (on `linux-env` or feature branch)
+2. **Commit and push** to GitHub
+3. **Pull on hobbes**:
+   ```bash
+   ssh aledlie@hobbes "cd /home/aledlie/tcad-scraper && git pull origin linux-env"
+   ```
+4. **Install dependencies** (if package.json changed):
+   ```bash
+   ssh aledlie@hobbes "cd /home/aledlie/tcad-scraper/server && npm install"
+   ```
+5. **Restart backend service**:
+   ```bash
+   ssh aledlie@hobbes "pm2 restart tcad-api"
+   ```
+
+### Verifying Production Deployment
+
+```bash
+# Check service status
+ssh aledlie@hobbes "pm2 status tcad-api"
+
+# Check logs for errors
+ssh aledlie@hobbes "pm2 logs tcad-api --lines 50 --nostream --err"
+
+# Test API endpoint
+curl -s "https://api.alephatx.info/api/properties?limit=1" | jq '.data[0].name'
+```
+
+### Common Production Issues
+
+#### Rate Limiting ValidationError
+
+**Symptom**: Backend logs show:
+```
+ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false
+```
+
+**Solution**: Ensure `app.set('trust proxy', 1)` is configured in `server/src/index.ts`
+
+**Location**: server/src/index.ts:47
+
+#### Backend Service Won't Start
+
+**Check for**:
+1. Missing dependencies: `cd server && npm install`
+2. TypeScript compilation errors: Check PM2 error logs
+3. Port conflicts: Verify port 3001 is available
+4. Database connectivity: Ensure PostgreSQL is running on localhost:5432
+
+#### Frontend Can't Reach API
+
+**Verify**:
+1. nginx configuration is correct
+2. Backend service is running: `pm2 status tcad-api`
+3. API URL in frontend build: Check `VITE_API_URL` in deploy.yml
+4. CORS settings allow frontend origin
+
+### Recent Production Fixes
+
+**November 10, 2025**:
+- ✅ Fixed Express trust proxy configuration for rate limiting
+- ✅ Resolved 502 errors caused by missing dependencies
+- ✅ Verified production API successfully serving 373K+ properties
+
+---
+
 ## Next Steps for Scaling
 
 See `/home/aledlie/tcad-scraper/docs/ARCHITECTURE_SUMMARY.md` for the comprehensive 6-phase optimization plan to reach 400,000 properties.
@@ -935,11 +1029,11 @@ This section provides a complete file tree of the TCAD Scraper project for refer
 
 ---
 
-**Document Version**: 1.3
+**Document Version**: 1.4
 **Last Migration**: November 6, 2025
 **Database Version**: PostgreSQL (via Prisma schema 20251028203525_init)
 **Database Location**: Remote server via Tailscale (LOCAL POSTGRES DISABLED)
-**Configuration Updated**: November 9, 2025 - Added development database URLs (MAC_DB_URL, HOBBES_DB_URL)
+**Configuration Updated**: November 10, 2025 - Added production deployment section and Express trust proxy configuration
 **File Tree Last Updated**: November 9, 2025
 
 ---
