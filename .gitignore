@@ -21,6 +21,8 @@ server/*.deb
 dist/
 .next/
 out/
+repomix-output.xml
+*repomix-output.xml
 
 # IDE
 .vscode/
