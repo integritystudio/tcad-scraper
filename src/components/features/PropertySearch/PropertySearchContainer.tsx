@@ -3,6 +3,7 @@ import { usePropertySearch, useAnalytics } from '../../../hooks';
 import { SearchBox } from './SearchBox';
 import { ExampleQueries } from './ExampleQueries';
 import { SearchResults } from './SearchResults';
+import { propertyAPI } from '../../../services/api.service';
 import styles from './PropertySearchContainer.module.css';
 
 export const PropertySearchContainer = () => {
@@ -10,6 +11,7 @@ export const PropertySearchContainer = () => {
     usePropertySearch();
   const { logSearch, logSearchResults, logError } = useAnalytics();
   const [searchQuery, setSearchQuery] = useState('');
+  const [propertyCount, setPropertyCount] = useState<number | null>(null);
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -34,13 +36,35 @@ export const PropertySearchContainer = () => {
     }
   }, [error, logError]);
 
+  // Fetch property count on mount
+  useEffect(() => {
+    const fetchPropertyCount = async () => {
+      try {
+        const count = await propertyAPI.getPropertyCount();
+        setPropertyCount(count);
+      } catch (err) {
+        console.error('Failed to fetch property count:', err);
+        // Fall back to null, will show loading or default message
+      }
+    };
+
+    fetchPropertyCount();
+  }, []);
+
+  // Format property count with commas
+  const formattedCount = propertyCount?.toLocaleString();
+
   return (
     <div className={styles.container}>
       <div className={styles.hero}>
         <div className={styles.header}>
           <h1>TCAD Property Explorer</h1>
           <p className={styles.subtitle}>
-            Search 122,000+ Travis County properties using natural language
+            {propertyCount !== null ? (
+              <>Search {formattedCount} Travis County properties using natural language</>
+            ) : (
+              <>Search Travis County properties using natural language</>
+            )}
           </p>
         </div>
 

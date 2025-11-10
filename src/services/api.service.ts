@@ -183,6 +183,14 @@ export const propertyAPI = {
     return response.data;
   },
 
+  // Get total property count (efficient - only fetches count from pagination)
+  async getPropertyCount(): Promise<number> {
+    const response = await apiClient.get<PaginatedResponse<Property>>('/properties', {
+      params: { limit: 1 },
+    });
+    return response.data.pagination.total;
+  },
+
   // Get all properties (handle pagination automatically)
   async getAllProperties(filters?: Omit<PropertyFilters, 'limit' | 'offset'>): Promise<Property[]> {
     const allProperties: Property[] = [];
