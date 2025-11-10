@@ -1,0 +1,2174 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+add-priority-jobs.ts
+aggressive-cleanup.ts
+analyze-queue.ts
+analyze-successful-terms.ts
+analyze-zero-results.ts
+build-search-term-map.ts
+check-db-stats.ts
+check-property-count.ts
+check-queue-status.ts
+check-rate.ts
+monitor-and-optimize.ts
+optimize-queue.ts
+README_ENHANCED.md
+remove-all-duplicates.ts
+stop-all-jobs.ts
+test-queue-with-token.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="add-priority-jobs.ts">
+#!/usr/bin/env npx tsx
+
+import { scraperQueue } from './src/queues/scraper.queue';
+import { prisma } from './src/lib/prisma';
+
+async function addPriorityJobs() {
+  console.log('🎯 Adding High-Priority Test Jobs\n');
+  console.log('=' .repeat(60));
+
+  const searchTerms = ['Estate', 'Family', 'Trust'];
+
+  for (const searchTerm of searchTerms) {
+    console.log(`\n📝 Adding "${searchTerm}" to head of queue...`);
+
+    await scraperQueue.add(
+      'scrape-properties',
+      {
+        searchTerm,
+        userId: 'priority-test',
+        scheduled: false,
+      },
+      {
+        priority: 1, // Highest priority - goes to head of queue
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+      }
+    );
+
+    console.log(`✅ Added "${searchTerm}" with priority 1 (head of queue)`);
+  }
+
+  // Show queue status
+  const [waiting, active] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+  ]);
+
+  console.log(`\n📊 Queue Status:`);
+  console.log(`  Waiting: ${waiting}`);
+  console.log(`  Active: ${active}`);
+
+  console.log('\n⏳ Waiting for jobs to complete...');
+  console.log('Monitoring results (will check every 5 seconds for up to 2 minutes)...\n');
+
+  // Monitor for completion
+  let attempts = 0;
+  const maxAttempts = 24; // 2 minutes (24 * 5 seconds)
+
+  while (attempts < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+    attempts++;
+
+    // Check if jobs completed
+    const results = await prisma.scrapeJob.findMany({
+      where: {
+        searchTerm: { in: searchTerms },
+        status: 'completed',
+      },
+      select: {
+        searchTerm: true,
+        resultCount: true,
+        completedAt: true,
+      },
+      orderBy: { completedAt: 'desc' },
+      take: 3,
+    });
+
+    if (results.length === 3) {
+      console.log('✅ All jobs completed!\n');
+      console.log('=' .repeat(60));
+      console.log('📊 RESULTS:\n');
+
+      let total = 0;
+      results.forEach((job, idx) => {
+        const props = job.resultCount || 0;
+        total += props;
+        console.log(`${idx + 1}. "${job.searchTerm}"`);
+        console.log(`   Properties: ${props.toLocaleString()}`);
+        console.log(`   Completed: ${job.completedAt ? new Date(job.completedAt).toLocaleTimeString() : 'N/A'}`);
+        console.log('');
+      });
+
+      console.log('=' .repeat(60));
+      console.log(`\n🎉 Total Properties: ${total.toLocaleString()}`);
+      console.log(`📈 Average per search: ${(total / 3).toFixed(1)}`);
+
+      break;
+    } else if (results.length > 0) {
+      console.log(`⏳ ${results.length}/3 jobs completed so far...`);
+      results.forEach(job => {
+        console.log(`   ✅ "${job.searchTerm}": ${job.resultCount} properties`);
+      });
+    } else {
+      console.log(`⏳ Attempt ${attempts}/${maxAttempts} - still processing...`);
+    }
+  }
+
+  if (attempts >= maxAttempts) {
+    console.log('\n⚠️  Timeout reached. Checking what we have so far...\n');
+
+    const finalResults = await prisma.scrapeJob.findMany({
+      where: {
+        searchTerm: { in: searchTerms },
+      },
+      select: {
+        searchTerm: true,
+        status: true,
+        resultCount: true,
+        completedAt: true,
+      },
+      orderBy: { id: 'desc' },
+      take: 3,
+    });
+
+    console.log('Current status:');
+    finalResults.forEach(job => {
+      console.log(`  "${job.searchTerm}": ${job.status} (${job.resultCount || 0} properties)`);
+    });
+  }
+
+  await prisma.$disconnect();
+}
+
+addPriorityJobs()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Error:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="aggressive-cleanup.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+import { scraperQueue } from './src/queues/scraper.queue';
+
+async function aggressiveCleanup() {
+  console.log('🧹 Aggressive Queue Cleanup - Removing ALL Zero-Result Terms\n');
+  console.log('=' .repeat(60));
+
+  // Get ALL completed jobs with zero results (no limit)
+  const emptyJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: 0
+    },
+    select: { searchTerm: true }
+  });
+
+  const emptyTerms = new Set(emptyJobs.map(j => j.searchTerm));
+  console.log(`\n📊 Found ${emptyTerms.size} search terms that have NEVER returned results`);
+
+  // Get ALL failed jobs
+  const failedJobs = await prisma.scrapeJob.findMany({
+    where: { status: 'failed' },
+    select: { searchTerm: true }
+  });
+
+  const failedTerms = new Set(failedJobs.map(j => j.searchTerm));
+  console.log(`📊 Found ${failedTerms.size} search terms that have FAILED`);
+
+  // Combine all problematic terms
+  const allProblematicTerms = new Set([...emptyTerms, ...failedTerms]);
+  console.log(`\n🎯 Total problematic search terms: ${allProblematicTerms.size}`);
+
+  // Get waiting jobs
+  const waitingJobs = await scraperQueue.getWaiting();
+  console.log(`⏳ Current waiting jobs: ${waitingJobs.length}`);
+
+  // Identify jobs to remove
+  const jobsToRemove = waitingJobs.filter(job =>
+    allProblematicTerms.has(job.data.searchTerm)
+  );
+
+  console.log(`\n🗑️  Jobs to remove: ${jobsToRemove.length}`);
+  console.log(`✅ Jobs to keep: ${waitingJobs.length - jobsToRemove.length}`);
+
+  if (jobsToRemove.length > 0) {
+    // Show sample of what we're removing
+    const sample = jobsToRemove.slice(0, 30).map(j => j.data.searchTerm);
+    console.log('\nSample of terms being removed:');
+    for (let i = 0; i < sample.length; i += 5) {
+      console.log('  ' + sample.slice(i, i + 5).map(s => `"${s}"`).join(', '));
+    }
+
+    // Remove the jobs
+    console.log(`\n🚀 Removing ${jobsToRemove.length} jobs...`);
+    let removed = 0;
+    let failed = 0;
+
+    for (const job of jobsToRemove) {
+      try {
+        await job.remove();
+        removed++;
+        if (removed % 20 === 0) {
+          process.stdout.write(`\r  Progress: ${removed}/${jobsToRemove.length} (${((removed/jobsToRemove.length)*100).toFixed(1)}%)`);
+        }
+      } catch (error) {
+        failed++;
+        if (failed <= 5) {
+          console.error(`\n  ❌ Failed to remove job ${job.id}:`, error.message);
+        }
+      }
+    }
+
+    console.log(`\n\n✅ Cleanup complete!`);
+    console.log(`  - Successfully removed: ${removed}`);
+    console.log(`  - Failed to remove: ${failed}`);
+  } else {
+    console.log('\n✅ No problematic jobs found in queue!');
+  }
+
+  // Get updated queue stats
+  const [waiting, active, completed, failedCount] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getCompletedCount(),
+    scraperQueue.getFailedCount(),
+  ]);
+
+  console.log(`\n📊 Final Queue Status:`);
+  console.log(`  - Waiting: ${waiting}`);
+  console.log(`  - Active: ${active}`);
+  console.log(`  - Completed: ${completed}`);
+  console.log(`  - Failed: ${failedCount}`);
+
+  // Analyze remaining jobs
+  const remainingJobs = await scraperQueue.getWaiting(0, 20);
+  if (remainingJobs.length > 0) {
+    console.log(`\n📝 Sample of remaining high-quality search terms:`);
+    remainingJobs.forEach((job, idx) => {
+      console.log(`  ${idx + 1}. "${job.data.searchTerm}"`);
+    });
+
+    // Check success rate of remaining terms
+    const remainingTerms = remainingJobs.map(j => j.data.searchTerm);
+    const successfulJobs = await prisma.scrapeJob.findMany({
+      where: {
+        searchTerm: { in: remainingTerms },
+        status: 'completed',
+        resultCount: { gt: 0 }
+      },
+      select: {
+        searchTerm: true,
+        resultCount: true
+      }
+    });
+
+    if (successfulJobs.length > 0) {
+      console.log(`\n✨ Sample terms have proven successful before:`);
+      successfulJobs.slice(0, 5).forEach(job => {
+        console.log(`  "${job.searchTerm}": ${job.resultCount} properties`);
+      });
+    }
+  }
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+aggressiveCleanup()
+  .then(() => {
+    console.log('\n🎉 Aggressive cleanup complete! Queue is now optimized for maximum success rate.');
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Cleanup failed:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="analyze-queue.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+import { scraperQueue } from './src/queues/scraper.queue';
+
+async function analyzeAndOptimizeQueue() {
+  console.log('🔍 Analyzing Queue Performance...\n');
+
+  // Get failed jobs
+  const failedJobs = await prisma.scrapeJob.findMany({
+    where: { status: 'failed' },
+    select: { searchTerm: true, error: true },
+    orderBy: { id: 'desc' },
+    take: 50
+  });
+
+  console.log(`❌ Failed Jobs: ${failedJobs.length}`);
+  const failedTerms = new Set(failedJobs.map(j => j.searchTerm));
+  console.log('Failed search terms:', Array.from(failedTerms).slice(0, 20));
+
+  // Get completed jobs with zero results
+  const emptyJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: 0
+    },
+    select: { searchTerm: true },
+    orderBy: { id: 'desc' },
+    take: 100
+  });
+
+  console.log(`\n⚠️  Empty Result Jobs: ${emptyJobs.length}`);
+  const emptyTerms = new Set(emptyJobs.map(j => j.searchTerm));
+  console.log('Empty result search terms (sample):', Array.from(emptyTerms).slice(0, 20));
+
+  // Get top performing searches
+  const topJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    },
+    select: { searchTerm: true, resultCount: true },
+    orderBy: { resultCount: 'desc' },
+    take: 20
+  });
+
+  console.log(`\n✅ Top Performing Searches:`);
+  topJobs.forEach(j => console.log(`  ${j.searchTerm}: ${j.resultCount} properties`));
+
+  // Combine problematic terms
+  const problematicTerms = new Set([...failedTerms, ...emptyTerms]);
+  console.log(`\n🎯 Total problematic search terms: ${problematicTerms.size}`);
+
+  // Get waiting jobs
+  const waitingJobs = await scraperQueue.getWaiting();
+  console.log(`\n⏳ Waiting jobs in queue: ${waitingJobs.length}`);
+
+  // Identify jobs to remove
+  const jobsToRemove = waitingJobs.filter(job =>
+    problematicTerms.has(job.data.searchTerm)
+  );
+
+  console.log(`\n🗑️  Jobs to remove: ${jobsToRemove.length}`);
+  console.log('Sample terms to remove:', jobsToRemove.slice(0, 10).map(j => j.data.searchTerm));
+
+  // Count duplicates
+  const searchTermCounts = new Map<string, number>();
+  waitingJobs.forEach(job => {
+    const term = job.data.searchTerm;
+    searchTermCounts.set(term, (searchTermCounts.get(term) || 0) + 1);
+  });
+
+  const duplicates = Array.from(searchTermCounts.entries())
+    .filter(([_, count]) => count > 1)
+    .sort((a, b) => b[1] - a[1]);
+
+  console.log(`\n📋 Duplicate search terms: ${duplicates.length}`);
+  console.log('Top duplicates:', duplicates.slice(0, 10));
+
+  // Ask for confirmation
+  console.log('\n⚠️  Actions to take:');
+  console.log(`  1. Remove ${jobsToRemove.length} jobs with problematic search terms`);
+  console.log(`  2. Keep ${waitingJobs.length - jobsToRemove.length} promising jobs`);
+  console.log(`  3. ${duplicates.length} search terms have duplicates that could be deduplicated`);
+
+  return {
+    failedTerms: Array.from(failedTerms),
+    emptyTerms: Array.from(emptyTerms),
+    problematicTerms: Array.from(problematicTerms),
+    jobsToRemove: jobsToRemove.map(j => ({ id: j.id, term: j.data.searchTerm })),
+    duplicates
+  };
+}
+
+analyzeAndOptimizeQueue()
+  .then(async (result) => {
+    console.log('\n✅ Analysis complete!');
+    console.log('\nSummary written to analysis results.');
+    await prisma.$disconnect();
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Analysis failed:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="analyze-successful-terms.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+
+async function analyzeSuccessfulTerms() {
+  console.log('🔍 Analyzing Most Successful Search Term Types\n');
+  console.log('=' .repeat(70));
+
+  // Get all successful jobs (with results)
+  const successfulJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true
+    },
+    orderBy: {
+      resultCount: 'desc'
+    }
+  });
+
+  console.log(`\n📊 Total successful scrapes: ${successfulJobs.length.toLocaleString()}`);
+
+  const totalProperties = successfulJobs.reduce((sum, job) => sum + (job.resultCount || 0), 0);
+  console.log(`📊 Total properties found: ${totalProperties.toLocaleString()}`);
+  console.log(`📊 Average per successful search: ${(totalProperties / successfulJobs.length).toFixed(1)}`);
+
+  // Categorize search terms
+  const categories = {
+    singleLastName: [] as typeof successfulJobs,
+    fullName: [] as typeof successfulJobs,
+    businessWithSuffix: [] as typeof successfulJobs,
+    businessGeneric: [] as typeof successfulJobs,
+    streetAddress: [] as typeof successfulJobs,
+    streetName: [] as typeof successfulJobs,
+    shortCode: [] as typeof successfulJobs,
+    other: [] as typeof successfulJobs
+  };
+
+  const businessSuffixes = /\b(LLC|Inc|Corp|Company|Trust|Foundation|Partners|Group|Properties|Ventures|Capital|Holdings|Development|Estate|Assets|Portfolio|LTD|Enterprises|Management|Realty|Investment)\b/i;
+  const streetSuffixes = /\b(Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Boulevard|Blvd|Court|Ct|Circle|Cir|Way|Place|Pl|Parkway|Loop|Trail|Path|Highway|Hwy)\b/i;
+  const commonStreets = /\b(Lamar|Congress|Riverside|Guadalupe|Airport|Burnet|Mopac|Anderson|MLK|Oltorf|Barton|Springs|Research|Metric|Wells Branch|Far West|Dean Keeton|Speedway|Red River|Manchaca|William Cannon|Slaughter|Parmer|Braker|Rundberg|Koenig|North Loop|South Congress|East Riverside|West Anderson|Capital of Texas|Loop 360|IH 35|Enfield|Exposition|Westlake|Windsor|Oak|Rainey|Cameron|Duval|San Jacinto|Shoal Creek|Cesar Chavez|Main|Howard|McNeil|Dessau|Jollyville|Spicewood|Bee Cave|Balcones|Mueller|Cherrywood|Sabine|Nueces|Trinity|Rio Grande|Manor|Springdale)\b/i;
+
+  successfulJobs.forEach(job => {
+    const term = job.searchTerm;
+    const words = term.split(/\s+/);
+
+    // Check for street address (starts with number + street name)
+    if (/^\d+\s+/.test(term) && (streetSuffixes.test(term) || commonStreets.test(term))) {
+      categories.streetAddress.push(job);
+    }
+    // Check for street name only
+    else if (streetSuffixes.test(term) || commonStreets.test(term)) {
+      categories.streetName.push(job);
+    }
+    // Check for business with suffix
+    else if (businessSuffixes.test(term)) {
+      categories.businessWithSuffix.push(job);
+    }
+    // Check for full name (2-3 words, mostly letters, capitalized)
+    else if (words.length >= 2 && words.length <= 3 && /^[A-Z][a-z]+(\s+[A-Z][a-z]+)+$/.test(term)) {
+      categories.fullName.push(job);
+    }
+    // Check for single last name (one word, mostly letters, capitalized)
+    else if (words.length === 1 && /^[A-Z][a-z]+$/.test(term) && term.length > 3) {
+      categories.singleLastName.push(job);
+    }
+    // Check for short codes (alphanumeric, short)
+    else if (term.length <= 6 && /[A-Z0-9]/.test(term)) {
+      categories.shortCode.push(job);
+    }
+    // Everything else
+    else {
+      categories.other.push(job);
+    }
+  });
+
+  // Calculate statistics for each category
+  const stats = Object.entries(categories).map(([name, jobs]) => {
+    const total = jobs.reduce((sum, job) => sum + (job.resultCount || 0), 0);
+    const avg = jobs.length > 0 ? total / jobs.length : 0;
+    const max = jobs.length > 0 ? Math.max(...jobs.map(j => j.resultCount || 0)) : 0;
+    return {
+      name,
+      count: jobs.length,
+      totalProperties: total,
+      avgProperties: avg,
+      maxProperties: max,
+      percentage: (jobs.length / successfulJobs.length) * 100
+    };
+  }).sort((a, b) => b.totalProperties - a.totalProperties);
+
+  console.log('\n📋 Search Term Categories (by total properties found):\n');
+  stats.forEach((stat, idx) => {
+    const categoryName = stat.name
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+
+    console.log(`${idx + 1}. ${categoryName}`);
+    console.log(`   Searches: ${stat.count.toLocaleString()} (${stat.percentage.toFixed(1)}%)`);
+    console.log(`   Properties: ${stat.totalProperties.toLocaleString()}`);
+    console.log(`   Avg per search: ${stat.avgProperties.toFixed(1)}`);
+    console.log(`   Max in single search: ${stat.maxProperties}`);
+    console.log('');
+  });
+
+  // Show top examples from each category
+  console.log('=' .repeat(70));
+  console.log('\n🏆 TOP PERFORMERS BY CATEGORY:\n');
+
+  for (const [categoryName, jobs] of Object.entries(categories)) {
+    if (jobs.length === 0) continue;
+
+    const displayName = categoryName
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+
+    const topJobs = jobs.sort((a, b) => (b.resultCount || 0) - (a.resultCount || 0)).slice(0, 5);
+
+    console.log(`${displayName}:`);
+    topJobs.forEach((job, idx) => {
+      console.log(`  ${idx + 1}. "${job.searchTerm}": ${job.resultCount} properties`);
+    });
+    console.log('');
+  }
+
+  // Success rate comparison
+  console.log('=' .repeat(70));
+  console.log('\n💡 KEY INSIGHTS:\n');
+
+  const insights = stats.filter(s => s.count > 10).slice(0, 3);
+  console.log('Most productive search types:');
+  insights.forEach((stat, idx) => {
+    const categoryName = stat.name
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+    console.log(`  ${idx + 1}. ${categoryName}: ${stat.avgProperties.toFixed(1)} properties/search on average`);
+  });
+
+  console.log('\n' + '=' .repeat(70));
+
+  await prisma.$disconnect();
+}
+
+analyzeSuccessfulTerms()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Analysis failed:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="analyze-zero-results.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+
+async function analyzeZeroResults() {
+  console.log('🔍 Analyzing jobs with zero results...\n');
+  console.log('=' .repeat(60));
+
+  const zeroResultJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: 0
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+    },
+    orderBy: { id: 'desc' },
+    take: 200
+  });
+
+  console.log(`\nFound ${zeroResultJobs.length} recent jobs with 0 results:\n`);
+
+  // Analyze patterns
+  const patterns = {
+    shortCodes: [] as string[],
+    numbers: [] as string[],
+    twoLetters: [] as string[],
+    threeLetters: [] as string[],
+    fourLetters: [] as string[],
+    alphanumeric: [] as string[],
+    other: [] as string[]
+  };
+
+  zeroResultJobs.forEach(job => {
+    const term = job.searchTerm;
+
+    if (/^\d+$/.test(term)) {
+      patterns.numbers.push(term);
+    } else if (/^[A-Z]{2}$/.test(term)) {
+      patterns.twoLetters.push(term);
+    } else if (/^[A-Z]{3}$/.test(term)) {
+      patterns.threeLetters.push(term);
+    } else if (/^[A-Z]{4}$/.test(term)) {
+      patterns.fourLetters.push(term);
+    } else if (/^[A-Z0-9]{3,4}$/.test(term)) {
+      patterns.alphanumeric.push(term);
+    } else {
+      patterns.other.push(term);
+    }
+  });
+
+  console.log('📊 Pattern Analysis:\n');
+
+  console.log(`  Pure numbers: ${patterns.numbers.length}`);
+  if (patterns.numbers.length > 0) {
+    console.log(`    Examples: ${patterns.numbers.slice(0, 10).join(', ')}`);
+  }
+
+  console.log(`\n  Two-letter codes: ${patterns.twoLetters.length}`);
+  if (patterns.twoLetters.length > 0) {
+    console.log(`    Examples: ${patterns.twoLetters.slice(0, 10).join(', ')}`);
+  }
+
+  console.log(`\n  Three-letter codes: ${patterns.threeLetters.length}`);
+  if (patterns.threeLetters.length > 0) {
+    console.log(`    Examples: ${patterns.threeLetters.slice(0, 10).join(', ')}`);
+  }
+
+  console.log(`\n  Four-letter codes: ${patterns.fourLetters.length}`);
+  if (patterns.fourLetters.length > 0) {
+    console.log(`    Examples: ${patterns.fourLetters.slice(0, 10).join(', ')}`);
+  }
+
+  console.log(`\n  Alphanumeric codes (3-4 chars): ${patterns.alphanumeric.length}`);
+  if (patterns.alphanumeric.length > 0) {
+    console.log(`    Examples: ${patterns.alphanumeric.slice(0, 10).join(', ')}`);
+  }
+
+  console.log(`\n  Other patterns: ${patterns.other.length}`);
+  if (patterns.other.length > 0) {
+    console.log(`    Examples: ${patterns.other.slice(0, 10).join(', ')}`);
+  }
+
+  // Calculate success rate for different patterns
+  console.log('\n\n📈 Success Rate Analysis:\n');
+
+  const totalJobs = await prisma.scrapeJob.count({
+    where: { status: 'completed' }
+  });
+
+  const successfulJobs = await prisma.scrapeJob.count({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    }
+  });
+
+  console.log(`  Total completed jobs: ${totalJobs}`);
+  console.log(`  Successful (>0 results): ${successfulJobs}`);
+  console.log(`  Zero results: ${totalJobs - successfulJobs}`);
+  console.log(`  Success rate: ${((successfulJobs / totalJobs) * 100).toFixed(1)}%`);
+
+  // Get stats on successful searches
+  const successfulSearches = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+    },
+    orderBy: { resultCount: 'desc' },
+    take: 20
+  });
+
+  console.log(`\n\n✅ Top 20 successful searches:\n`);
+  successfulSearches.forEach((job, idx) => {
+    console.log(`  ${idx + 1}. "${job.searchTerm}": ${job.resultCount?.toLocaleString()} properties`);
+  });
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+analyzeZeroResults()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  });
+</file>
+
+<file path="build-search-term-map.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface SearchTermMapping {
+  [searchTerm: string]: {
+    resultCount: number;
+    lastScraped: Date;
+    status: string;
+  };
+}
+
+async function buildSearchTermMap() {
+  console.log('🗺️  Building Search Term → Results Map\n');
+  console.log('='.repeat(60));
+
+  // Get all completed scrape jobs with their results
+  const allJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed'
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      completedAt: true,
+      status: true,
+    },
+    orderBy: {
+      completedAt: 'desc'
+    }
+  });
+
+  console.log(`📊 Total completed jobs: ${allJobs.length}\n`);
+
+  // Build the map - if multiple jobs for same term, keep the most recent one
+  const searchTermMap: SearchTermMapping = {};
+
+  for (const job of allJobs) {
+    const term = job.searchTerm;
+
+    // Only add if not already in map (since we're processing most recent first)
+    if (!searchTermMap[term]) {
+      searchTermMap[term] = {
+        resultCount: job.resultCount || 0,
+        lastScraped: job.completedAt || new Date(),
+        status: job.status
+      };
+    }
+  }
+
+  const uniqueTerms = Object.keys(searchTermMap).length;
+  console.log(`✅ Unique search terms: ${uniqueTerms}\n`);
+
+  // Calculate statistics
+  const resultCounts = Object.values(searchTermMap).map(v => v.resultCount);
+  const totalResults = resultCounts.reduce((sum, count) => sum + count, 0);
+  const avgResults = totalResults / uniqueTerms;
+  const maxResults = Math.max(...resultCounts);
+  const minResults = Math.min(...resultCounts);
+
+  const zeroResults = resultCounts.filter(c => c === 0).length;
+  const lowResults = resultCounts.filter(c => c > 0 && c < 50).length;
+  const mediumResults = resultCounts.filter(c => c >= 50 && c < 200).length;
+  const highResults = resultCounts.filter(c => c >= 200 && c < 1000).length;
+  const veryHighResults = resultCounts.filter(c => c >= 1000).length;
+
+  console.log('📈 Statistics:');
+  console.log(`   Total properties found: ${totalResults.toLocaleString()}`);
+  console.log(`   Average per term: ${avgResults.toFixed(1)}`);
+  console.log(`   Max results: ${maxResults.toLocaleString()}`);
+  console.log(`   Min results: ${minResults.toLocaleString()}\n`);
+
+  console.log('📊 Distribution:');
+  console.log(`   Zero results (0): ${zeroResults} (${(zeroResults/uniqueTerms*100).toFixed(1)}%)`);
+  console.log(`   Low (1-49): ${lowResults} (${(lowResults/uniqueTerms*100).toFixed(1)}%)`);
+  console.log(`   Medium (50-199): ${mediumResults} (${(mediumResults/uniqueTerms*100).toFixed(1)}%)`);
+  console.log(`   High (200-999): ${highResults} (${(highResults/uniqueTerms*100).toFixed(1)}%)`);
+  console.log(`   Very High (1000+): ${veryHighResults} (${(veryHighResults/uniqueTerms*100).toFixed(1)}%)\n`);
+
+  // Find top performing terms
+  const sortedTerms = Object.entries(searchTermMap)
+    .sort(([, a], [, b]) => b.resultCount - a.resultCount);
+
+  console.log('🏆 Top 20 Search Terms:\n');
+  sortedTerms.slice(0, 20).forEach(([term, data], idx) => {
+    console.log(`   ${idx + 1}. "${term}": ${data.resultCount.toLocaleString()} properties`);
+  });
+
+  console.log('\n💾 Saving map to files...\n');
+
+  // Save full map as JSON
+  const outputDir = path.join(__dirname, 'data');
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  const jsonPath = path.join(outputDir, 'search-term-map.json');
+  fs.writeFileSync(jsonPath, JSON.stringify(searchTermMap, null, 2));
+  console.log(`   ✅ Full map saved to: ${jsonPath}`);
+
+  // Save sorted list (high to low) as CSV
+  const csvPath = path.join(outputDir, 'search-term-results.csv');
+  const csvContent = [
+    'SearchTerm,ResultCount,LastScraped,Status',
+    ...sortedTerms.map(([term, data]) =>
+      `"${term}",${data.resultCount},${data.lastScraped.toISOString()},${data.status}`
+    )
+  ].join('\n');
+  fs.writeFileSync(csvPath, csvContent);
+  console.log(`   ✅ Sorted CSV saved to: ${csvPath}`);
+
+  // Save high-performers only (>= 100 results)
+  const highPerformers = Object.fromEntries(
+    sortedTerms.filter(([, data]) => data.resultCount >= 100)
+  );
+  const highPerfPath = path.join(outputDir, 'high-performing-terms.json');
+  fs.writeFileSync(highPerfPath, JSON.stringify(highPerformers, null, 2));
+  console.log(`   ✅ High performers (100+) saved to: ${highPerfPath}`);
+  console.log(`      (${Object.keys(highPerformers).length} terms)\n`);
+
+  // Save zero-result terms for analysis
+  const zeroResultTerms = sortedTerms
+    .filter(([, data]) => data.resultCount === 0)
+    .map(([term]) => term);
+  const zeroPath = path.join(outputDir, 'zero-result-terms.json');
+  fs.writeFileSync(zeroPath, JSON.stringify(zeroResultTerms, null, 2));
+  console.log(`   ✅ Zero-result terms saved to: ${zeroPath}`);
+  console.log(`      (${zeroResultTerms.length} terms)\n`);
+
+  console.log('='.repeat(60));
+  console.log('✨ Search term map built successfully!\n');
+
+  // Return summary for programmatic use
+  return {
+    totalJobs: allJobs.length,
+    uniqueTerms,
+    totalResults,
+    avgResults,
+    distribution: {
+      zero: zeroResults,
+      low: lowResults,
+      medium: mediumResults,
+      high: highResults,
+      veryHigh: veryHighResults
+    },
+    topTerms: sortedTerms.slice(0, 10).map(([term, data]) => ({
+      term,
+      count: data.resultCount
+    }))
+  };
+}
+
+buildSearchTermMap()
+  .then(() => {
+    console.log('✅ Done!');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+</file>
+
+<file path="check-db-stats.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+
+async function checkDatabaseStats() {
+  console.log('📊 Database Statistics\n');
+  console.log('=' .repeat(60));
+
+  // Count total properties
+  const totalProperties = await prisma.property.count();
+  console.log(`\n🏠 Total Properties: ${totalProperties.toLocaleString()}`);
+
+  // Count scrape jobs by status
+  const jobStats = await prisma.scrapeJob.groupBy({
+    by: ['status'],
+    _count: {
+      _all: true
+    },
+    _sum: {
+      resultCount: true
+    }
+  });
+
+  console.log('\n📋 Scrape Jobs:');
+  let totalJobs = 0;
+  let totalScraped = 0;
+
+  jobStats.forEach(stat => {
+    totalJobs += stat._count._all;
+    totalScraped += stat._sum.resultCount || 0;
+    console.log(`  ${stat.status}: ${stat._count._all} jobs (${(stat._sum.resultCount || 0).toLocaleString()} properties)`);
+  });
+
+  console.log(`  ---`);
+  console.log(`  Total Jobs: ${totalJobs}`);
+  console.log(`  Total Properties Scraped: ${totalScraped.toLocaleString()}`);
+
+  // Properties by city
+  const propertiesByCity = await prisma.property.groupBy({
+    by: ['city'],
+    _count: {
+      _all: true
+    },
+    orderBy: {
+      _count: {
+        _all: 'desc'
+      }
+    },
+    take: 10
+  });
+
+  console.log('\n🏙️  Top 10 Cities:');
+  propertiesByCity.forEach((city, idx) => {
+    console.log(`  ${idx + 1}. ${city.city || 'Unknown'}: ${city._count._all.toLocaleString()} properties`);
+  });
+
+  // Most recent scrapes
+  const recentJobs = await prisma.scrapeJob.findMany({
+    where: { status: 'completed' },
+    orderBy: { id: 'desc' },
+    take: 5,
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      completedAt: true
+    }
+  });
+
+  console.log('\n📅 Recent Completed Scrapes:');
+  recentJobs.forEach((job, idx) => {
+    const time = job.completedAt ? new Date(job.completedAt).toLocaleString() : 'N/A';
+    console.log(`  ${idx + 1}. "${job.searchTerm}": ${job.resultCount} properties (${time})`);
+  });
+
+  // Average properties per successful scrape
+  const avgStats = await prisma.scrapeJob.aggregate({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    },
+    _avg: {
+      resultCount: true
+    },
+    _max: {
+      resultCount: true
+    },
+    _min: {
+      resultCount: true
+    }
+  });
+
+  console.log('\n📈 Scrape Performance:');
+  console.log(`  Average properties per scrape: ${avgStats._avg.resultCount?.toFixed(0) || 0}`);
+  console.log(`  Max properties in single scrape: ${avgStats._max.resultCount || 0}`);
+  console.log(`  Min properties in single scrape: ${avgStats._min.resultCount || 0}`);
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+checkDatabaseStats()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Error:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="check-property-count.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+
+async function checkPropertyCount() {
+  console.log('\n📊 Database Property Statistics\n');
+  console.log('=' .repeat(60));
+
+  // Total properties
+  const totalProperties = await prisma.property.count();
+  console.log(`\n🏠 Total Properties: ${totalProperties.toLocaleString()}`);
+
+  // Properties added in last hour
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recentProperties = await prisma.property.count({
+    where: {
+      createdAt: { gte: oneHourAgo }
+    }
+  });
+  console.log(`📅 Added in last hour: ${recentProperties.toLocaleString()}`);
+
+  // Properties by city (top 10)
+  const propertiesByCity = await prisma.property.groupBy({
+    by: ['city'],
+    _count: true,
+    orderBy: {
+      _count: {
+        city: 'desc'
+      }
+    },
+    take: 10
+  });
+
+  console.log('\n🏙️  Top 10 Cities:');
+  propertiesByCity.forEach((cityGroup, idx) => {
+    console.log(`  ${idx + 1}. ${cityGroup.city || 'Unknown'}: ${cityGroup._count.toLocaleString()} properties`);
+  });
+
+  // Recent scrape job stats
+  const recentJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: { gt: 0 }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      completedAt: true,
+    },
+    orderBy: { id: 'desc' },
+    take: 5
+  });
+
+  console.log('\n📝 Recent Successful Scrapes:');
+  recentJobs.forEach((job, idx) => {
+    const time = job.completedAt ? new Date(job.completedAt).toLocaleTimeString() : 'N/A';
+    console.log(`  ${idx + 1}. "${job.searchTerm}": ${job.resultCount?.toLocaleString()} properties (${time})`);
+  });
+
+  // Overall scrape stats
+  const jobStats = await prisma.scrapeJob.groupBy({
+    by: ['status'],
+    _count: true,
+    _sum: {
+      resultCount: true
+    }
+  });
+
+  console.log('\n📋 Scrape Job Statistics:');
+  jobStats.forEach(stat => {
+    console.log(`  ${stat.status}: ${stat._count} jobs (${(stat._sum.resultCount || 0).toLocaleString()} properties)`);
+  });
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+checkPropertyCount().then(() => process.exit(0)).catch((e) => {
+  console.error('❌ Error:', e);
+  process.exit(1);
+});
+</file>
+
+<file path="check-queue-status.ts">
+#!/usr/bin/env npx tsx
+
+import { scraperQueue } from './src/queues/scraper.queue';
+import { prisma } from './src/lib/prisma';
+
+async function checkQueueStatus() {
+  console.log('\n📊 Queue Status\n');
+  console.log('=' .repeat(60));
+
+  const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getCompletedCount(),
+    scraperQueue.getFailedCount(),
+    scraperQueue.getDelayedCount(),
+    scraperQueue.getPausedCount(),
+  ]);
+
+  const total = waiting + active + delayed + paused;
+
+  console.log(`\n🔢 Queue Counts:`);
+  console.log(`  ⏳ Waiting:     ${waiting.toString().padStart(6)}`);
+  console.log(`  🔄 Active:      ${active.toString().padStart(6)}`);
+  console.log(`  ⏸️  Delayed:     ${delayed.toString().padStart(6)}`);
+  console.log(`  ⏸️  Paused:      ${paused.toString().padStart(6)}`);
+  console.log(`  ─────────────────────`);
+  console.log(`  📋 Total Pending: ${total.toString().padStart(4)}`);
+  console.log(``);
+  console.log(`  ✅ Completed:   ${completed.toString().padStart(6)}`);
+  console.log(`  ❌ Failed:      ${failed.toString().padStart(6)}`);
+
+  // Get sample of waiting jobs if any
+  if (waiting > 0) {
+    const waitingJobs = await scraperQueue.getWaiting(0, 10);
+    console.log(`\n📝 Sample of Waiting Jobs (first 10):`);
+    waitingJobs.forEach((job, idx) => {
+      console.log(`  ${idx + 1}. "${job.data.searchTerm}"`);
+    });
+  }
+
+  // Get active jobs if any
+  if (active > 0) {
+    const activeJobs = await scraperQueue.getActive(0, 10);
+    console.log(`\n🔄 Currently Processing (first 10):`);
+    activeJobs.forEach((job, idx) => {
+      console.log(`  ${idx + 1}. "${job.data.searchTerm}"`);
+    });
+  }
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+checkQueueStatus().then(() => process.exit(0)).catch((e) => {
+  console.error('❌ Error:', e);
+  process.exit(1);
+});
+</file>
+
+<file path="check-rate.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+
+async function checkScrapingRate() {
+  console.log('⚡ Calculating Current Scraping Rate\n');
+  console.log('=' .repeat(60));
+
+  // Get jobs from the last 10 minutes
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
+
+  // Last 10 minutes
+  const last10MinJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      completedAt: { gte: tenMinutesAgo }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      startedAt: true,
+      completedAt: true
+    },
+    orderBy: { completedAt: 'desc' }
+  });
+
+  // Last 5 minutes
+  const last5MinJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      completedAt: { gte: fiveMinutesAgo }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      startedAt: true,
+      completedAt: true
+    },
+    orderBy: { completedAt: 'desc' }
+  });
+
+  // Last 1 minute
+  const last1MinJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      completedAt: { gte: oneMinuteAgo }
+    },
+    select: {
+      searchTerm: true,
+      resultCount: true,
+      startedAt: true,
+      completedAt: true
+    },
+    orderBy: { completedAt: 'desc' }
+  });
+
+  // Calculate stats
+  const calc = (jobs: typeof last10MinJobs, minutes: number) => {
+    const total = jobs.reduce((sum, job) => sum + (job.resultCount || 0), 0);
+    const rate = total / minutes;
+    return { total, jobs: jobs.length, rate };
+  };
+
+  const stats10 = calc(last10MinJobs, 10);
+  const stats5 = calc(last5MinJobs, 5);
+  const stats1 = calc(last1MinJobs, 1);
+
+  console.log('\n📊 Last 10 Minutes:');
+  console.log(`  Jobs completed: ${stats10.jobs}`);
+  console.log(`  Properties added: ${stats10.total.toLocaleString()}`);
+  console.log(`  Rate: ${stats10.rate.toFixed(1)} properties/minute`);
+
+  console.log('\n📊 Last 5 Minutes:');
+  console.log(`  Jobs completed: ${stats5.jobs}`);
+  console.log(`  Properties added: ${stats5.total.toLocaleString()}`);
+  console.log(`  Rate: ${stats5.rate.toFixed(1)} properties/minute`);
+
+  console.log('\n📊 Last 1 Minute:');
+  console.log(`  Jobs completed: ${stats1.jobs}`);
+  console.log(`  Properties added: ${stats1.total.toLocaleString()}`);
+  console.log(`  Rate: ${stats1.rate.toFixed(1)} properties/minute`);
+
+  // Show recent jobs
+  if (last5MinJobs.length > 0) {
+    console.log('\n📝 Recent Completions (last 5 min):');
+    last5MinJobs.slice(0, 10).forEach((job, idx) => {
+      const duration = job.completedAt && job.startedAt
+        ? ((new Date(job.completedAt).getTime() - new Date(job.startedAt).getTime()) / 1000).toFixed(1)
+        : 'N/A';
+      const time = job.completedAt ? new Date(job.completedAt).toLocaleTimeString() : 'N/A';
+      console.log(`  ${idx + 1}. ${time} - "${job.searchTerm}": ${job.resultCount} props (${duration}s)`);
+    });
+  }
+
+  // Extrapolate
+  const currentRate = stats5.jobs > 0 ? stats5.rate : stats10.rate;
+  console.log('\n⏱️  Projections (at current rate):');
+  console.log(`  Properties per hour: ${(currentRate * 60).toFixed(0).toLocaleString()}`);
+  console.log(`  Properties per day: ${(currentRate * 60 * 24).toFixed(0).toLocaleString()}`);
+
+  // Estimate time to completion
+  const waitingCount = 523; // From earlier check
+  const avgPropsPerJob = currentRate > 0 ? stats5.total / stats5.jobs : 0;
+  const estimatedProps = waitingCount * avgPropsPerJob;
+  const estimatedMinutes = estimatedProps / currentRate;
+
+  console.log('\n🎯 Queue Estimates (523 jobs remaining):');
+  console.log(`  Avg properties per job: ${avgPropsPerJob.toFixed(0)}`);
+  console.log(`  Estimated properties to add: ${estimatedProps.toFixed(0).toLocaleString()}`);
+  if (currentRate > 0) {
+    console.log(`  Estimated time to complete: ${(estimatedMinutes / 60).toFixed(1)} hours`);
+  }
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+checkScrapingRate()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Error:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="monitor-and-optimize.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface ZeroResultPattern {
+  pattern: string;
+  count: number;
+  examples: string[];
+  shouldAvoid: boolean;
+  reason: string;
+}
+
+async function monitorAndOptimize() {
+  console.log('🔍 ZERO-RESULT MONITOR & OPTIMIZER\n');
+  console.log('='.repeat(60));
+
+  // Get recent zero-result jobs (last 500)
+  const recentZeroResults = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: 0
+    },
+    select: {
+      searchTerm: true,
+      completedAt: true,
+    },
+    orderBy: { completedAt: 'desc' },
+    take: 500
+  });
+
+  const totalZeroResults = recentZeroResults.length;
+  console.log(`📊 Recent zero-result jobs: ${totalZeroResults}\n`);
+
+  if (totalZeroResults < 20) {
+    console.log(`✅ Zero results (${totalZeroResults}) below threshold (20)`);
+    console.log('   No optimization needed at this time.\n');
+    console.log('='.repeat(60));
+    return {
+      needsOptimization: false,
+      zeroResultCount: totalZeroResults
+    };
+  }
+
+  console.log(`⚠️  Zero results (${totalZeroResults}) ABOVE threshold (20)`);
+  console.log('   Analyzing patterns for optimization...\n');
+
+  // Analyze patterns in zero-result terms
+  const patterns: { [key: string]: ZeroResultPattern } = {
+    singleNumbers: {
+      pattern: 'Single digit numbers (0-9)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Too generic, rarely match property records'
+    },
+    shortNumbers: {
+      pattern: 'Short numbers (10-99)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Not specific enough for property searches'
+    },
+    mediumNumbers: {
+      pattern: 'Medium numbers (100-999)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Better to use full addresses'
+    },
+    longNumbers: {
+      pattern: 'Long numbers (1000-9999)',
+      count: 0,
+      examples: [],
+      shouldAvoid: false,
+      reason: 'Could be valid street numbers'
+    },
+    alphanumeric2: {
+      pattern: '2-character alphanumeric (AB, 1A, etc)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Too short to be meaningful'
+    },
+    alphanumeric3: {
+      pattern: '3-character alphanumeric (A1B, 12C, etc)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Usually not valid property identifiers'
+    },
+    alphanumeric4: {
+      pattern: '4-character alphanumeric (AB12, X1Y2, etc)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Rarely match property records'
+    },
+    veryShortWords: {
+      pattern: 'Very short words (1-2 letters)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Too generic'
+    },
+    businessWithCommonWord: {
+      pattern: 'Business name with common word (X Properties, X Trust, etc)',
+      count: 0,
+      examples: [],
+      shouldAvoid: false,
+      reason: 'Can be valid if specific enough'
+    },
+    fullNames: {
+      pattern: 'Full names (First Last)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Last name only performs better'
+    },
+    streetAddresses: {
+      pattern: 'Street addresses (123 Main)',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Too specific, usually zero results'
+    },
+    randomCombos: {
+      pattern: 'Random letter combinations',
+      count: 0,
+      examples: [],
+      shouldAvoid: true,
+      reason: 'Not real words or names'
+    }
+  };
+
+  // Classify each zero-result term
+  for (const job of recentZeroResults) {
+    const term = job.searchTerm;
+
+    // Single digit numbers
+    if (/^\d$/.test(term)) {
+      patterns.singleNumbers.count++;
+      if (patterns.singleNumbers.examples.length < 5) {
+        patterns.singleNumbers.examples.push(term);
+      }
+    }
+    // Short numbers (10-99)
+    else if (/^\d{2}$/.test(term)) {
+      patterns.shortNumbers.count++;
+      if (patterns.shortNumbers.examples.length < 5) {
+        patterns.shortNumbers.examples.push(term);
+      }
+    }
+    // Medium numbers (100-999)
+    else if (/^\d{3}$/.test(term)) {
+      patterns.mediumNumbers.count++;
+      if (patterns.mediumNumbers.examples.length < 5) {
+        patterns.mediumNumbers.examples.push(term);
+      }
+    }
+    // Long numbers (1000-9999)
+    else if (/^\d{4,5}$/.test(term)) {
+      patterns.longNumbers.count++;
+      if (patterns.longNumbers.examples.length < 5) {
+        patterns.longNumbers.examples.push(term);
+      }
+    }
+    // 2-char alphanumeric
+    else if (/^[A-Z0-9]{2}$/.test(term) && /\d/.test(term) && /[A-Z]/.test(term)) {
+      patterns.alphanumeric2.count++;
+      if (patterns.alphanumeric2.examples.length < 5) {
+        patterns.alphanumeric2.examples.push(term);
+      }
+    }
+    // 3-char alphanumeric
+    else if (/^[A-Z0-9]{3}$/.test(term) && /\d/.test(term) && /[A-Z]/.test(term)) {
+      patterns.alphanumeric3.count++;
+      if (patterns.alphanumeric3.examples.length < 5) {
+        patterns.alphanumeric3.examples.push(term);
+      }
+    }
+    // 4-char alphanumeric
+    else if (/^[A-Z0-9]{4}$/.test(term) && /\d/.test(term) && /[A-Z]/.test(term)) {
+      patterns.alphanumeric4.count++;
+      if (patterns.alphanumeric4.examples.length < 5) {
+        patterns.alphanumeric4.examples.push(term);
+      }
+    }
+    // Very short words
+    else if (/^[A-Z]{1,2}$/.test(term)) {
+      patterns.veryShortWords.count++;
+      if (patterns.veryShortWords.examples.length < 5) {
+        patterns.veryShortWords.examples.push(term);
+      }
+    }
+    // Full names (has space and multiple words)
+    else if (/^[A-Z][a-z]+ [A-Z][a-z]+/.test(term) && !/ (LLC|Inc|Corp|LTD|Properties|Trust|Company)/.test(term)) {
+      patterns.fullNames.count++;
+      if (patterns.fullNames.examples.length < 5) {
+        patterns.fullNames.examples.push(term);
+      }
+    }
+    // Street addresses (starts with numbers)
+    else if (/^\d+ [A-Z]/.test(term)) {
+      patterns.streetAddresses.count++;
+      if (patterns.streetAddresses.examples.length < 5) {
+        patterns.streetAddresses.examples.push(term);
+      }
+    }
+    // Random combos (short all-caps words that don't look like real words)
+    else if (/^[A-Z]{3,5}$/.test(term) && !/[AEIOU]/.test(term)) {
+      patterns.randomCombos.count++;
+      if (patterns.randomCombos.examples.length < 5) {
+        patterns.randomCombos.examples.push(term);
+      }
+    }
+  }
+
+  // Find patterns that should be avoided
+  const problematicPatterns = Object.entries(patterns)
+    .filter(([_, p]) => p.shouldAvoid && p.count > 0)
+    .sort((a, b) => b[1].count - a[1].count);
+
+  console.log('📋 Zero-Result Patterns Found:\n');
+
+  for (const [key, pattern] of problematicPatterns) {
+    console.log(`   🔴 ${pattern.pattern}`);
+    console.log(`      Count: ${pattern.count} (${(pattern.count / totalZeroResults * 100).toFixed(1)}%)`);
+    console.log(`      Reason: ${pattern.reason}`);
+    if (pattern.examples.length > 0) {
+      console.log(`      Examples: ${pattern.examples.join(', ')}`);
+    }
+    console.log('');
+  }
+
+  // Generate recommendations
+  console.log('💡 RECOMMENDATIONS:\n');
+
+  const recommendations: string[] = [];
+
+  if (patterns.singleNumbers.count + patterns.shortNumbers.count + patterns.mediumNumbers.count > 10) {
+    recommendations.push('- REMOVE numeric-only search strategies (pure numbers rarely work)');
+  }
+
+  if (patterns.alphanumeric2.count + patterns.alphanumeric3.count + patterns.alphanumeric4.count > 15) {
+    recommendations.push('- REMOVE or DISABLE short alphanumeric combination generators');
+  }
+
+  if (patterns.fullNames.count > 10) {
+    recommendations.push('- AVOID full name combinations, use last names only');
+  }
+
+  if (patterns.streetAddresses.count > 10) {
+    recommendations.push('- AVOID specific street addresses, use street names only');
+  }
+
+  if (patterns.veryShortWords.count > 5) {
+    recommendations.push('- ADD minimum length filter (3+ characters for words)');
+  }
+
+  if (patterns.randomCombos.count > 10) {
+    recommendations.push('- IMPROVE word generation to use real names/places only');
+  }
+
+  if (recommendations.length === 0) {
+    console.log('   ✅ No major pattern issues detected\n');
+    console.log('   Current strategies appear reasonable.\n');
+  } else {
+    recommendations.forEach(rec => console.log(`   ${rec}`));
+    console.log('');
+  }
+
+  // Save analysis report
+  const reportDir = path.join(__dirname, 'data');
+  if (!fs.existsSync(reportDir)) {
+    fs.mkdirSync(reportDir, { recursive: true });
+  }
+
+  const report = {
+    timestamp: new Date().toISOString(),
+    totalZeroResults,
+    threshold: 20,
+    needsOptimization: true,
+    patterns: Object.fromEntries(
+      Object.entries(patterns)
+        .filter(([_, p]) => p.count > 0)
+        .map(([key, p]) => [key, {
+          pattern: p.pattern,
+          count: p.count,
+          percentage: (p.count / totalZeroResults * 100).toFixed(1),
+          shouldAvoid: p.shouldAvoid,
+          reason: p.reason,
+          examples: p.examples
+        }])
+    ),
+    recommendations
+  };
+
+  const reportPath = path.join(reportDir, 'zero-result-analysis.json');
+  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+  console.log(`📄 Report saved to: ${reportPath}\n`);
+
+  // Check if continuous-batch-scraper needs updates
+  console.log('🔧 Checking continuous-batch-scraper.ts configuration...\n');
+
+  const scraperPath = path.join(__dirname, 'src/scripts/continuous-batch-scraper.ts');
+  const scraperContent = fs.readFileSync(scraperPath, 'utf-8');
+
+  const issuesFound: string[] = [];
+
+  // Check if problematic strategies are still active
+  if (scraperContent.includes('generateTwoLetterCombo') || scraperContent.includes('generateThreeLetterCombo')) {
+    issuesFound.push('❌ Short alphanumeric generators still present');
+  }
+
+  if (scraperContent.includes('generateFullName') && !scraperContent.includes('// generateFullName')) {
+    issuesFound.push('❌ Full name generator still active');
+  }
+
+  if (scraperContent.includes('generateStreetAddress') && !scraperContent.includes('// generateStreetAddress')) {
+    issuesFound.push('❌ Street address generator still active');
+  }
+
+  if (issuesFound.length > 0) {
+    console.log('   Issues found in scraper configuration:');
+    issuesFound.forEach(issue => console.log(`   ${issue}`));
+    console.log('\n   ⚠️  Manual review recommended!\n');
+  } else {
+    console.log('   ✅ Scraper configuration looks good\n');
+  }
+
+  console.log('='.repeat(60));
+  console.log('✨ Analysis complete!\n');
+
+  return report;
+}
+
+// Run the monitor
+monitorAndOptimize()
+  .then(() => {
+    console.log('✅ Monitoring complete');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+</file>
+
+<file path="optimize-queue.ts">
+#!/usr/bin/env npx tsx
+
+import { prisma } from './src/lib/prisma';
+import { scraperQueue } from './src/queues/scraper.queue';
+
+async function optimizeQueue() {
+  console.log('🔧 Optimizing Queue...\n');
+
+  // Get failed search terms
+  const failedJobs = await prisma.scrapeJob.findMany({
+    where: { status: 'failed' },
+    select: { searchTerm: true },
+    orderBy: { id: 'desc' },
+    take: 100
+  });
+
+  const failedTerms = new Set(failedJobs.map(j => j.searchTerm));
+  console.log(`❌ Found ${failedTerms.size} failed search terms`);
+
+  // Get empty result search terms
+  const emptyJobs = await prisma.scrapeJob.findMany({
+    where: {
+      status: 'completed',
+      resultCount: 0
+    },
+    select: { searchTerm: true },
+    orderBy: { id: 'desc' },
+    take: 200
+  });
+
+  const emptyTerms = new Set(emptyJobs.map(j => j.searchTerm));
+  console.log(`⚠️  Found ${emptyTerms.size} empty result search terms`);
+
+  // Combine problematic terms
+  const problematicTerms = new Set([...failedTerms, ...emptyTerms]);
+  console.log(`🎯 Total problematic search terms: ${problematicTerms.size}\n`);
+
+  // Get waiting jobs
+  const waitingJobs = await scraperQueue.getWaiting();
+  console.log(`⏳ Current waiting jobs: ${waitingJobs.length}`);
+
+  // Identify jobs to remove
+  const jobsToRemove = waitingJobs.filter(job =>
+    problematicTerms.has(job.data.searchTerm)
+  );
+
+  console.log(`\n🗑️  Jobs to remove: ${jobsToRemove.length}`);
+  console.log('Terms to remove:', jobsToRemove.map(j => j.data.searchTerm).slice(0, 20));
+
+  // Remove the jobs
+  let removed = 0;
+  let failed = 0;
+
+  console.log('\n🚀 Starting removal...');
+  for (const job of jobsToRemove) {
+    try {
+      await job.remove();
+      removed++;
+      if (removed % 5 === 0) {
+        process.stdout.write(`\r  Removed: ${removed}/${jobsToRemove.length}`);
+      }
+    } catch (error) {
+      failed++;
+      console.error(`\n  ❌ Failed to remove job ${job.id}:`, error.message);
+    }
+  }
+
+  console.log(`\n\n✅ Removal complete!`);
+  console.log(`  - Successfully removed: ${removed}`);
+  console.log(`  - Failed to remove: ${failed}`);
+
+  // Get updated queue stats
+  const [waiting, active, completed, failedCount] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getCompletedCount(),
+    scraperQueue.getFailedCount(),
+  ]);
+
+  console.log(`\n📊 Updated Queue Status:`);
+  console.log(`  - Waiting: ${waiting}`);
+  console.log(`  - Active: ${active}`);
+  console.log(`  - Completed: ${completed}`);
+  console.log(`  - Failed: ${failedCount}`);
+
+  await prisma.$disconnect();
+}
+
+optimizeQueue()
+  .then(() => {
+    console.log('\n✨ Queue optimization complete!');
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Optimization failed:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="README_ENHANCED.md">
+# 2025-01-refactoring
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "2025-01-refactoring",
+  "description": "Directory containing 15 code files with 2 classes and 16 functions",
+  "programmingLanguage": [
+    {
+      "@type": "ComputerLanguage",
+      "name": "Typescript"
+    }
+  ],
+  "featureList": [
+    "2 class definitions",
+    "16 function definitions"
+  ]
+}
+</script>
+
+## Overview
+
+This directory contains 15 code file(s) with extracted schemas.
+
+## Files and Schemas
+
+### `add-priority-jobs.ts` (typescript)
+
+**Functions:**
+- `async addPriorityJobs()` - Line 5
+
+### `aggressive-cleanup.ts` (typescript)
+
+**Functions:**
+- `async aggressiveCleanup()` - Line 5
+
+### `analyze-queue.ts` (typescript)
+
+**Functions:**
+- `async analyzeAndOptimizeQueue()` - Line 5
+
+### `analyze-successful-terms.ts` (typescript)
+
+**Functions:**
+- `async analyzeSuccessfulTerms()` - Line 4
+
+### `analyze-zero-results.ts` (typescript)
+
+**Functions:**
+- `async analyzeZeroResults()` - Line 4
+
+### `build-search-term-map.ts` (typescript)
+
+**Classes:**
+- `SearchTermMapping` - Line 6
+
+**Functions:**
+- `async buildSearchTermMap()` - Line 14
+
+### `check-db-stats.ts` (typescript)
+
+**Functions:**
+- `async checkDatabaseStats()` - Line 4
+
+### `check-property-count.ts` (typescript)
+
+**Functions:**
+- `async checkPropertyCount()` - Line 4
+
+### `check-queue-status.ts` (typescript)
+
+**Functions:**
+- `async checkQueueStatus()` - Line 5
+
+### `check-rate.ts` (typescript)
+
+**Functions:**
+- `async checkScrapingRate()` - Line 4
+- `calc()` - Line 59
+
+### `monitor-and-optimize.ts` (typescript)
+
+**Classes:**
+- `ZeroResultPattern` - Line 6
+
+**Functions:**
+- `async monitorAndOptimize()` - Line 14
+
+### `optimize-queue.ts` (typescript)
+
+**Functions:**
+- `async optimizeQueue()` - Line 5
+
+### `remove-all-duplicates.ts` (typescript)
+
+**Functions:**
+- `async removeAllDuplicates()` - Line 6
+
+### `stop-all-jobs.ts` (typescript)
+
+**Functions:**
+- `async stopAllJobs()` - Line 5
+
+### `test-queue-with-token.ts` (typescript)
+
+**Functions:**
+- `async testQueue()` - Line 5
+
+---
+*Generated by Enhanced Schema Generator with schema.org markup*
+</file>
+
+<file path="remove-all-duplicates.ts">
+#!/usr/bin/env npx tsx
+
+import { scraperQueue } from './src/queues/scraper.queue';
+import { prisma } from './src/lib/prisma';
+import { removeDuplicatesFromQueue } from './src/utils/deduplication';
+
+async function removeAllDuplicates() {
+  console.log('🧹 Removing ALL Duplicate Search Terms from Queue\n');
+  console.log('=' .repeat(60));
+
+  // Use shared deduplication utility
+  await removeDuplicatesFromQueue({ verbose: true, showProgress: true });
+
+  // Get updated queue stats
+  const [waiting, active, delayed, completed, failedCount] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getDelayedCount(),
+    scraperQueue.getCompletedCount(),
+    scraperQueue.getFailedCount(),
+  ]);
+
+  console.log(`\n📊 Final Queue Status:`);
+  console.log(`   - Waiting: ${waiting}`);
+  console.log(`   - Active: ${active}`);
+  console.log(`   - Delayed: ${delayed}`);
+  console.log(`   - Completed: ${completed}`);
+  console.log(`   - Failed: ${failedCount}`);
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+removeAllDuplicates()
+  .then(() => {
+    console.log('\n🎉 All duplicates removed! Queue fully optimized.');
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Cleanup failed:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="stop-all-jobs.ts">
+#!/usr/bin/env npx tsx
+
+import { scraperQueue } from './src/queues/scraper.queue';
+import { prisma } from './src/lib/prisma';
+
+async function stopAllJobs() {
+  console.log('🛑 Stopping All Jobs in Queue\n');
+  console.log('=' .repeat(60));
+
+  // Get current queue stats
+  const [waiting, active, delayed] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getDelayedCount(),
+  ]);
+
+  console.log(`📊 Current Queue State:`);
+  console.log(`   Waiting: ${waiting}`);
+  console.log(`   Active: ${active}`);
+  console.log(`   Delayed: ${delayed}`);
+  console.log(`   Total to stop: ${waiting + delayed}\n`);
+
+  if (waiting + delayed === 0) {
+    console.log('✅ No jobs to stop (queue is empty)');
+
+    if (active > 0) {
+      console.log(`\nℹ️  Note: ${active} jobs are currently active and cannot be stopped.`);
+      console.log('   They will finish processing.');
+    }
+  } else {
+    console.log(`🚀 Removing ${waiting + delayed} pending jobs...\n`);
+
+    let removed = 0;
+    let failed = 0;
+
+    // Remove waiting jobs
+    if (waiting > 0) {
+      console.log(`📋 Removing ${waiting} waiting jobs...`);
+      const waitingJobs = await scraperQueue.getWaiting();
+
+      for (const job of waitingJobs) {
+        try {
+          await job.remove();
+          removed++;
+          if (removed % 50 === 0) {
+            process.stdout.write(`\r   Progress: ${removed}/${waiting + delayed} (${((removed/(waiting + delayed))*100).toFixed(1)}%)`);
+          }
+        } catch (error: any) {
+          failed++;
+          if (failed <= 3) {
+            console.error(`\n   ❌ Failed to remove job ${job.id}:`, error.message);
+          }
+        }
+      }
+    }
+
+    // Remove delayed jobs
+    if (delayed > 0) {
+      console.log(`\n⏰ Removing ${delayed} delayed jobs...`);
+      const delayedJobs = await scraperQueue.getDelayed();
+
+      for (const job of delayedJobs) {
+        try {
+          await job.remove();
+          removed++;
+          if (removed % 50 === 0) {
+            process.stdout.write(`\r   Progress: ${removed}/${waiting + delayed} (${((removed/(waiting + delayed))*100).toFixed(1)}%)`);
+          }
+        } catch (error: any) {
+          failed++;
+          if (failed <= 3) {
+            console.error(`\n   ❌ Failed to remove job ${job.id}:`, error.message);
+          }
+        }
+      }
+    }
+
+    console.log(`\n\n✅ Jobs stopped!`);
+    console.log(`   - Successfully removed: ${removed}`);
+    console.log(`   - Failed to remove: ${failed}`);
+
+    if (active > 0) {
+      console.log(`\nℹ️  Note: ${active} jobs are still active and processing.`);
+      console.log('   They cannot be stopped mid-execution.');
+    }
+  }
+
+  // Get final queue stats
+  const [finalWaiting, finalActive, finalDelayed, completed, failedCount] = await Promise.all([
+    scraperQueue.getWaitingCount(),
+    scraperQueue.getActiveCount(),
+    scraperQueue.getDelayedCount(),
+    scraperQueue.getCompletedCount(),
+    scraperQueue.getFailedCount(),
+  ]);
+
+  console.log(`\n📊 Final Queue Status:`);
+  console.log(`   - Waiting: ${finalWaiting}`);
+  console.log(`   - Active: ${finalActive}`);
+  console.log(`   - Delayed: ${finalDelayed}`);
+  console.log(`   - Completed: ${completed}`);
+  console.log(`   - Failed: ${failedCount}`);
+
+  console.log('\n' + '=' .repeat(60));
+
+  await prisma.$disconnect();
+}
+
+stopAllJobs()
+  .then(() => {
+    console.log('\n🎉 Queue stopped successfully!');
+    process.exit(0);
+  })
+  .catch(async (error) => {
+    console.error('❌ Failed to stop jobs:', error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+</file>
+
+<file path="test-queue-with-token.ts">
+#!/usr/bin/env npx tsx
+
+import { scraperQueue } from './src/queues/scraper.queue';
+import { prisma } from './src/lib/prisma';
+
+async function testQueue() {
+  console.log('🧪 Testing Updated Queue with TCAD_API_KEY\n');
+  console.log('=' .repeat(60));
+
+  // Refresh token first
+  console.log('\n📝 Token status:');
+  console.log(`  TCAD_API_KEY present: ${!!process.env.TCAD_API_KEY}`);
+  if (process.env.TCAD_API_KEY) {
+    console.log(`  Token preview: ${process.env.TCAD_API_KEY.substring(0, 50)}...`);
+  }
+
+  // Test search terms - use smaller ones for quick testing
+  const testSearchTerms = [
+    'Hyde Park',    // Should find ~107 properties
+    'Johnson LLC',  // Should find ~38 properties
+  ];
+
+  console.log(`\n🚀 Queuing ${testSearchTerms.length} test jobs...\n`);
+
+  const jobIds: string[] = [];
+
+  for (const searchTerm of testSearchTerms) {
+    const job = await scraperQueue.add(
+      'scrape-properties',
+      {
+        searchTerm,
+        userId: 'test-queue',
+        scheduled: false,
+      },
+      {
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 2000 },
+      }
+    );
+
+    jobIds.push(job.id.toString());
+    console.log(`  ✓ Queued: "${searchTerm}" (Job ID: ${job.id})`);
+  }
+
+  console.log(`\n⏳ Waiting for jobs to complete...\n`);
+
+  // Monitor job completion
+  const checkInterval = 2000;
+  const timeout = 120000; // 2 minutes
+  const startTime = Date.now();
+
+  while (true) {
+    if (Date.now() - startTime > timeout) {
+      console.log('⚠️  Timeout reached!');
+      break;
+    }
+
+    const [waiting, active, completed, failed] = await Promise.all([
+      scraperQueue.getWaitingCount(),
+      scraperQueue.getActiveCount(),
+      scraperQueue.getCompletedCount(),
+      scraperQueue.getFailedCount(),
+    ]);
+
+    console.log(`  Queue: Waiting=${waiting}, Active=${active}, Completed=${completed}, Failed=${failed}`);
+
+    // Check individual job statuses
+    let allDone = true;
+    for (const jobId of jobIds) {
+      const job = await scraperQueue.getJob(jobId);
+      if (job) {
+        const state = await job.getState();
+        if (state !== 'completed' && state !== 'failed') {
+          allDone = false;
+        }
+      }
+    }
+
+    if (allDone) {
+      console.log('\n✅ All jobs completed!\n');
+      break;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, checkInterval));
+  }
+
+  // Print results
+  console.log('=' .repeat(60));
+  console.log('RESULTS:\n');
+
+  for (const jobId of jobIds) {
+    const job = await scraperQueue.getJob(jobId);
+    if (!job) {
+      console.log(`  ❌ Job ${jobId}: Not found`);
+      continue;
+    }
+
+    const state = await job.getState();
+    const result = job.returnvalue;
+
+    console.log(`  Job ${jobId} (${job.data.searchTerm}):`);
+    console.log(`    State: ${state}`);
+
+    if (state === 'completed' && result) {
+      console.log(`    ✅ Found ${result.count} properties in ${(result.duration / 1000).toFixed(2)}s`);
+    } else if (state === 'failed') {
+      console.log(`    ❌ Failed: ${job.failedReason}`);
+    }
+    console.log();
+  }
+
+  // Check database
+  const dbCount = await prisma.property.count();
+  console.log(`📊 Total properties in database: ${dbCount.toLocaleString()}`);
+
+  console.log('\n✅ Test complete!');
+  process.exit(0);
+}
+
+testQueue().catch(error => {
+  console.error('❌ Test failed:', error);
+  process.exit(1);
+});
+</file>
+
+</files>

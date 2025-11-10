@@ -1,0 +1,2001 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+__tests__/
+  search-term-optimizer.test.ts
+  token-refresh.service.test.ts
+code-complexity.service.ts
+README_ENHANCED.md
+search-term-optimizer.ts
+token-refresh.service.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="__tests__/search-term-optimizer.test.ts">
+/**
+ * Search Term Optimizer Tests
+ *
+ * Tests for the search term performance analysis and optimization service
+ */
+
+import {
+  OPTIMIZED_4_CHAR_STARTER_TERMS,
+  SearchTermOptimizer,
+} from '../search-term-optimizer';
+
+// Mock Prisma
+const mockPrisma = {
+  searchTermAnalytics: {
+    count: jest.fn(),
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    upsert: jest.fn(),
+    groupBy: jest.fn(),
+    update: jest.fn(),
+  },
+  scrapeJob: {
+    count: jest.fn(),
+  },
+};
+
+// Mock logger
+jest.mock('../../lib/logger', () => ({
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+}));
+
+describe('Search Term Optimizer', () => {
+  let optimizer: SearchTermOptimizer;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    optimizer = new SearchTermOptimizer(mockPrisma as any);
+  });
+
+  describe('OPTIMIZED_4_CHAR_STARTER_TERMS', () => {
+    it('should export an array of search terms', () => {
+      expect(Array.isArray(OPTIMIZED_4_CHAR_STARTER_TERMS)).toBe(true);
+      expect(OPTIMIZED_4_CHAR_STARTER_TERMS.length).toBeGreaterThan(0);
+    });
+
+    it('should contain only string values', () => {
+      OPTIMIZED_4_CHAR_STARTER_TERMS.forEach((term) => {
+        expect(typeof term).toBe('string');
+      });
+    });
+
+    it('should contain terms with length of at least 4 characters', () => {
+      OPTIMIZED_4_CHAR_STARTER_TERMS.forEach((term) => {
+        expect(term.length).toBeGreaterThanOrEqual(4);
+      });
+    });
+
+    it('should not contain empty strings', () => {
+      OPTIMIZED_4_CHAR_STARTER_TERMS.forEach((term) => {
+        expect(term.trim()).not.toBe('');
+      });
+    });
+
+    it('should contain common entity terms', () => {
+      const entityTerms = ['Trus', 'LLC.', 'Corp', 'Part'];
+      entityTerms.forEach((term) => {
+        expect(OPTIMIZED_4_CHAR_STARTER_TERMS).toContain(term);
+      });
+    });
+
+    it('should contain real estate related terms', () => {
+      const realEstateTerms = ['Real', 'Prop', 'Home'];
+      realEstateTerms.forEach((term) => {
+        expect(OPTIMIZED_4_CHAR_STARTER_TERMS).toContain(term);
+      });
+    });
+  });
+
+  describe('SearchTermOptimizer class', () => {
+    describe('constructor', () => {
+      it('should accept custom Prisma client', () => {
+        const customPrisma = { custom: 'client' };
+        const customOptimizer = new SearchTermOptimizer(customPrisma as any);
+        expect(customOptimizer).toBeDefined();
+      });
+
+      it('should use default Prisma client if not provided', () => {
+        const defaultOptimizer = new SearchTermOptimizer();
+        expect(defaultOptimizer).toBeDefined();
+      });
+    });
+
+    describe('getStarterTerms', () => {
+      it('should return optimized 4-char terms for cold start (empty database)', async () => {
+        mockPrisma.searchTermAnalytics.count.mockResolvedValue(0);
+
+        const terms = await optimizer.getStarterTerms();
+
+        expect(terms).toEqual(OPTIMIZED_4_CHAR_STARTER_TERMS);
+        expect(mockPrisma.searchTermAnalytics.count).toHaveBeenCalled();
+      });
+
+      it('should use analytics to optimize when database has data', async () => {
+        mockPrisma.searchTermAnalytics.count.mockResolvedValue(100);
+        mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([
+          {
+            id: '1',
+            searchTerm: 'Test',
+            termLength: 4,
+            totalSearches: 10,
+            successfulSearches: 9,
+            failedSearches: 1,
+            totalResults: 50,
+            maxResults: 10,
+            minResults: 2,
+            lastSearched: new Date(),
+          },
+        ]);
+
+        const terms = await optimizer.getStarterTerms();
+
+        expect(mockPrisma.searchTermAnalytics.count).toHaveBeenCalled();
+        expect(mockPrisma.searchTermAnalytics.findMany).toHaveBeenCalled();
+        expect(Array.isArray(terms)).toBe(true);
+      });
+    });
+
+    describe('updateAnalytics', () => {
+      it('should create analytics for successful scrape when term does not exist', async () => {
+        mockPrisma.searchTermAnalytics.findUnique.mockResolvedValue(null);
+        mockPrisma.searchTermAnalytics.create.mockResolvedValue({});
+
+        await optimizer.updateAnalytics('TestTerm', 25, true);
+
+        expect(mockPrisma.searchTermAnalytics.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            searchTerm: 'TestTerm',
+            termLength: 8,
+          }),
+        });
+      });
+
+      it('should update existing analytics for successful scrape', async () => {
+        mockPrisma.searchTermAnalytics.findUnique.mockResolvedValue({
+          id: '1',
+          searchTerm: 'TestTerm',
+          termLength: 8,
+          totalSearches: 5,
+          successfulSearches: 4,
+          failedSearches: 1,
+          totalResults: 100,
+          maxResults: 25,
+          minResults: 10,
+          lastSearched: new Date(),
+        });
+        mockPrisma.searchTermAnalytics.update.mockResolvedValue({});
+
+        await optimizer.updateAnalytics('TestTerm', 30, true);
+
+        expect(mockPrisma.searchTermAnalytics.update).toHaveBeenCalledWith({
+          where: { searchTerm: 'TestTerm' },
+          data: expect.objectContaining({
+            totalSearches: 6,
+            successfulSearches: 5,
+            totalResults: 130,
+          }),
+        });
+      });
+
+      it('should update failed searches correctly', async () => {
+        mockPrisma.searchTermAnalytics.findUnique.mockResolvedValue(null);
+        mockPrisma.searchTermAnalytics.create.mockResolvedValue({});
+
+        await optimizer.updateAnalytics('FailTerm', 0, false);
+
+        expect(mockPrisma.searchTermAnalytics.create).toHaveBeenCalled();
+      });
+    });
+
+    describe('getOptimizedTerms', () => {
+      beforeEach(() => {
+        mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([
+          {
+            id: '1',
+            searchTerm: 'Good',
+            termLength: 4,
+            totalSearches: 10,
+            successfulSearches: 9,
+            failedSearches: 1,
+            totalResults: 100,
+            maxResults: 20,
+            minResults: 5,
+            lastSearched: new Date('2025-01-01'),
+            efficiency: 10.0,
+            successRate: 0.9,
+            avgResultsPerSearch: 10.0,
+          },
+          {
+            id: '2',
+            searchTerm: 'Bad',
+            termLength: 3,
+            totalSearches: 10,
+            successfulSearches: 2,
+            failedSearches: 8,
+            totalResults: 10,
+            maxResults: 5,
+            minResults: 0,
+            lastSearched: new Date('2025-01-01'),
+            efficiency: 1.0,
+            successRate: 0.2,
+            avgResultsPerSearch: 1.0,
+          },
+        ]);
+      });
+
+      it('should call findMany with efficiency and success rate filters', async () => {
+        await optimizer.getOptimizedTerms({
+          minEfficiency: 5.0,
+          minSuccessRate: 0.5,
+        });
+
+        expect(mockPrisma.searchTermAnalytics.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              efficiency: { gte: 5.0 },
+              successRate: { gte: 0.5 },
+            }),
+          })
+        );
+      });
+
+      it('should filter by preferred term length', async () => {
+        const terms = await optimizer.getOptimizedTerms({
+          preferredTermLength: 4,
+        });
+
+        expect(terms).toContain('Good');
+      });
+
+      it('should call findMany with maxTermsToReturn in take parameter', async () => {
+        mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([
+          {
+            id: '1',
+            searchTerm: 'Term1',
+            termLength: 4,
+            totalSearches: 10,
+            successfulSearches: 10,
+            failedSearches: 0,
+            totalResults: 100,
+            maxResults: 20,
+            minResults: 5,
+            lastSearched: new Date(),
+            efficiency: 10.0,
+            successRate: 1.0,
+            avgResultsPerSearch: 10.0,
+          },
+        ]);
+
+        await optimizer.getOptimizedTerms({
+          maxTermsToReturn: 25,
+        });
+
+        expect(mockPrisma.searchTermAnalytics.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            take: 25,
+          })
+        );
+      });
+
+      it('should call findMany with date filter when excluding recently used terms', async () => {
+        mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([]);
+
+        await optimizer.getOptimizedTerms({
+          excludeRecentlyUsed: true,
+          recentDays: 7,
+        });
+
+        expect(mockPrisma.searchTermAnalytics.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              lastSearched: expect.objectContaining({
+                lte: expect.any(Date),
+              }),
+            }),
+          })
+        );
+      });
+
+      it('should return empty array if no terms meet criteria', async () => {
+        mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([]);
+
+        const terms = await optimizer.getOptimizedTerms({
+          minEfficiency: 100,
+        });
+
+        expect(terms).toEqual([]);
+      });
+    });
+
+    describe('getPerformanceStats', () => {
+      it('should calculate aggregate statistics', async () => {
+        mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([
+          {
+            id: '1',
+            searchTerm: 'Term1',
+            termLength: 4,
+            totalSearches: 10,
+            successfulSearches: 8,
+            failedSearches: 2,
+            totalResults: 100,
+            maxResults: 20,
+            minResults: 5,
+            lastSearched: new Date(),
+            efficiency: 10.0,
+            successRate: 0.8,
+            avgResultsPerSearch: 10.0,
+          },
+          {
+            id: '2',
+            searchTerm: 'Term2',
+            termLength: 5,
+            totalSearches: 5,
+            successfulSearches: 5,
+            failedSearches: 0,
+            totalResults: 50,
+            maxResults: 15,
+            minResults: 8,
+            lastSearched: new Date(),
+            efficiency: 10.0,
+            successRate: 1.0,
+            avgResultsPerSearch: 10.0,
+          },
+        ]);
+
+        const stats = await optimizer.getPerformanceStats();
+
+        expect(stats.totalSearchTerms).toBe(2);
+        expect(stats.avgEfficiency).toBe(10.0);
+        expect(stats.avgSuccessRate).toBe(0.9);
+        expect(stats.avgResultsPerSearch).toBe(10.0);
+        expect(Array.isArray(stats.topPerformers)).toBe(true);
+        expect(Array.isArray(stats.poorPerformers)).toBe(true);
+      });
+
+      it('should handle empty database', async () => {
+        mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([]);
+
+        const stats = await optimizer.getPerformanceStats();
+
+        expect(stats.totalSearchTerms).toBe(0);
+        expect(stats.avgResultsPerSearch).toBe(0);
+        expect(stats.avgSuccessRate).toBe(0);
+        expect(stats.avgEfficiency).toBe(0);
+      });
+    });
+
+    describe('isDatabaseEmpty', () => {
+      it('should return true when database is empty', async () => {
+        mockPrisma.scrapeJob.count.mockResolvedValue(0);
+
+        const isEmpty = await optimizer.isDatabaseEmpty();
+
+        expect(isEmpty).toBe(true);
+      });
+
+      it('should return false when database has data', async () => {
+        mockPrisma.scrapeJob.count.mockResolvedValue(100);
+
+        const isEmpty = await optimizer.isDatabaseEmpty();
+
+        expect(isEmpty).toBe(false);
+      });
+    });
+  });
+});
+</file>
+
+<file path="__tests__/token-refresh.service.test.ts">
+/**
+ * Token Refresh Service Tests
+ */
+
+// Mock Playwright
+const mockPage = {
+  goto: jest.fn(),
+  waitForFunction: jest.fn(),
+  waitForSelector: jest.fn(),
+  type: jest.fn(),
+  press: jest.fn(),
+  on: jest.fn(),
+};
+
+const mockContext = {
+  newPage: jest.fn().mockResolvedValue(mockPage),
+  close: jest.fn(),
+};
+
+const mockBrowser = {
+  newContext: jest.fn().mockResolvedValue(mockContext),
+  close: jest.fn(),
+};
+
+jest.mock('playwright', () => ({
+  chromium: {
+    launch: jest.fn().mockResolvedValue(mockBrowser),
+  },
+}));
+
+// Mock node-cron
+const mockCronJob = {
+  stop: jest.fn(),
+};
+
+jest.mock('node-cron', () => ({
+  schedule: jest.fn().mockReturnValue(mockCronJob),
+}));
+
+// Mock config
+jest.mock('../../config', () => ({
+  config: {
+    logging: {
+      level: 'error',
+    },
+    scraper: {
+      headless: true,
+      tcadApiKey: 'test-token-from-env',
+    },
+  },
+}));
+
+import { TCADTokenRefreshService } from '../token-refresh.service';
+import { chromium } from 'playwright';
+import cron from 'node-cron';
+
+describe('TCADTokenRefreshService', () => {
+  let service: TCADTokenRefreshService;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    service = new TCADTokenRefreshService();
+  });
+
+  afterEach(async () => {
+    await service.cleanup();
+  });
+
+  describe('constructor', () => {
+    it('should initialize with token from environment if available', () => {
+      const token = service.getCurrentToken();
+      expect(token).toBe('test-token-from-env');
+    });
+
+    it('should initialize stats correctly', () => {
+      const stats = service.getStats();
+      expect(stats.refreshCount).toBe(0);
+      expect(stats.failureCount).toBe(0);
+      expect(stats.isRefreshing).toBe(false);
+      expect(stats.lastRefreshTime).toBeNull();
+    });
+  });
+
+  describe('getCurrentToken', () => {
+    it('should return the current token', () => {
+      const token = service.getCurrentToken();
+      expect(token).toBe('test-token-from-env');
+    });
+
+    it('should return null if no token is set', () => {
+      const serviceWithoutToken = new TCADTokenRefreshService();
+      // Can't easily test this without mocking config differently
+      // but we can test the getter works
+      expect(typeof serviceWithoutToken.getCurrentToken()).toBe('string');
+    });
+  });
+
+  describe('getStats', () => {
+    it('should return complete statistics', () => {
+      const stats = service.getStats();
+
+      expect(stats).toHaveProperty('currentToken');
+      expect(stats).toHaveProperty('lastRefreshTime');
+      expect(stats).toHaveProperty('refreshCount');
+      expect(stats).toHaveProperty('failureCount');
+      expect(stats).toHaveProperty('isRefreshing');
+      expect(stats).toHaveProperty('isRunning');
+    });
+
+    it('should mask token in stats', () => {
+      const stats = service.getStats();
+      expect(stats.currentToken).toContain('...');
+      expect(stats.currentToken).not.toBe('test-token-from-env');
+    });
+
+    it('should show isRunning as false initially', () => {
+      const stats = service.getStats();
+      expect(stats.isRunning).toBe(false);
+    });
+  });
+
+  describe('getHealth', () => {
+    it('should return health status', () => {
+      const health = service.getHealth();
+
+      expect(health).toHaveProperty('healthy');
+      expect(health).toHaveProperty('hasToken');
+      expect(health).toHaveProperty('lastRefresh');
+      expect(health).toHaveProperty('timeSinceLastRefresh');
+      expect(health).toHaveProperty('refreshCount');
+      expect(health).toHaveProperty('failureCount');
+      expect(health).toHaveProperty('failureRate');
+      expect(health).toHaveProperty('isRefreshing');
+      expect(health).toHaveProperty('isAutoRefreshRunning');
+    });
+
+    it('should show healthy when token exists', () => {
+      const health = service.getHealth();
+      expect(health.healthy).toBe(true);
+      expect(health.hasToken).toBe(true);
+    });
+
+    it('should calculate failure rate correctly', () => {
+      const health = service.getHealth();
+      expect(health.failureRate).toBe('0%');
+    });
+
+    it('should show autoRefresh as not running initially', () => {
+      const health = service.getHealth();
+      expect(health.isAutoRefreshRunning).toBe(false);
+    });
+  });
+
+  describe('refreshToken', () => {
+    it('should not refresh if already refreshing', async () => {
+      // Mock to make refresh take time
+      mockPage.goto.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+
+      // Start first refresh (won't complete immediately)
+      const promise1 = service.refreshToken();
+
+      // Wait a bit to ensure first refresh has started
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Try to start second refresh while first is in progress
+      const promise2 = service.refreshToken();
+
+      const result = await promise2;
+
+      // Should return current token without launching browser again
+      expect(result).toBe('test-token-from-env');
+
+      // Wait for first to complete
+      await promise1;
+    });
+
+    it('should initialize browser on first refresh', async () => {
+      // Mock successful token capture
+      mockPage.on.mockImplementation((event, handler) => {
+        if (event === 'request') {
+          // Simulate a request with auth header
+          setTimeout(() => {
+            handler({
+              headers: () => ({
+                authorization: 'eyJtest-captured-token-with-enough-length-to-pass-validation',
+              }),
+            });
+          }, 10);
+        }
+      });
+
+      mockPage.goto.mockResolvedValue(undefined);
+      mockPage.waitForFunction.mockResolvedValue(undefined);
+      mockPage.waitForSelector.mockResolvedValue(undefined);
+      mockPage.type.mockResolvedValue(undefined);
+      mockPage.press.mockResolvedValue(undefined);
+
+      await service.refreshToken();
+
+      expect(chromium.launch).toHaveBeenCalled();
+    });
+
+    it('should track failure count on error', async () => {
+      // Force an error by not mocking the browser properly
+      mockPage.goto.mockRejectedValue(new Error('Navigation failed'));
+
+      const initialStats = service.getStats();
+      const initialFailureCount = initialStats.failureCount;
+
+      await service.refreshToken();
+
+      const newStats = service.getStats();
+      expect(newStats.failureCount).toBeGreaterThan(initialFailureCount);
+    });
+
+    it('should handle token capture failure gracefully', async () => {
+      // No token will be captured
+      mockPage.on.mockImplementation(() => {});
+      mockPage.goto.mockResolvedValue(undefined);
+      mockPage.waitForFunction.mockResolvedValue(undefined);
+      mockPage.waitForSelector.mockResolvedValue(undefined);
+      mockPage.type.mockResolvedValue(undefined);
+      mockPage.press.mockResolvedValue(undefined);
+
+      const result = await service.refreshToken();
+
+      // Should return existing token on failure
+      expect(result).toBe('test-token-from-env');
+
+      const stats = service.getStats();
+      expect(stats.failureCount).toBeGreaterThan(0);
+    });
+
+    it('should set isRefreshing flag during refresh', async () => {
+      // Mock a slow refresh
+      mockPage.goto.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 50)));
+
+      const promise = service.refreshToken();
+
+      // Check flag is set during refresh
+      const stats = service.getStats();
+      expect(stats.isRefreshing).toBe(true);
+
+      await promise;
+
+      // Check flag is cleared after
+      const finalStats = service.getStats();
+      expect(finalStats.isRefreshing).toBe(false);
+    });
+  });
+
+  describe('startAutoRefresh', () => {
+    it('should start cron job with default schedule', () => {
+      service.startAutoRefresh();
+
+      expect(cron.schedule).toHaveBeenCalledWith(
+        '*/4 * * * *',
+        expect.any(Function)
+      );
+    });
+
+    it('should start cron job with custom schedule', () => {
+      service.startAutoRefresh('*/10 * * * *');
+
+      expect(cron.schedule).toHaveBeenCalledWith(
+        '*/10 * * * *',
+        expect.any(Function)
+      );
+    });
+
+    it.skip('should not start if already running - SKIPPED (async timing issue)', () => {
+      service.startAutoRefresh();
+
+      const stats1 = service.getStats();
+      expect(stats1.isRunning).toBe(true);
+
+      // Clear mocks after first start
+      jest.clearAllMocks();
+
+      // Try to start again
+      service.startAutoRefresh();
+
+      // Should not have called schedule again
+      expect(cron.schedule).not.toHaveBeenCalled();
+
+      // Should still be running
+      const stats2 = service.getStats();
+      expect(stats2.isRunning).toBe(true);
+    });
+
+    it('should show as running in stats after start', () => {
+      service.startAutoRefresh();
+
+      const stats = service.getStats();
+      expect(stats.isRunning).toBe(true);
+
+      const health = service.getHealth();
+      expect(health.isAutoRefreshRunning).toBe(true);
+    });
+  });
+
+  describe('startAutoRefreshInterval', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should start interval with default time', () => {
+      service.startAutoRefreshInterval();
+
+      const stats = service.getStats();
+      expect(stats.isRunning).toBe(true);
+    });
+
+    it('should start interval with custom time', () => {
+      service.startAutoRefreshInterval(60000); // 1 minute
+
+      const stats = service.getStats();
+      expect(stats.isRunning).toBe(true);
+    });
+
+    it('should not start if already running', () => {
+      service.startAutoRefreshInterval();
+      const stats1 = service.getStats();
+
+      service.startAutoRefreshInterval();
+      const stats2 = service.getStats();
+
+      expect(stats1.isRunning).toBe(stats2.isRunning);
+    });
+  });
+
+  describe('stopAutoRefresh', () => {
+    it.skip('should stop cron job if running - SKIPPED (async timing issue)', () => {
+      service.startAutoRefresh();
+
+      // Verify it's running
+      expect(service.getStats().isRunning).toBe(true);
+
+      service.stopAutoRefresh();
+
+      // Verify it's stopped
+      const stats = service.getStats();
+      expect(stats.isRunning).toBe(false);
+
+      // Verify stop was called
+      expect(mockCronJob.stop).toHaveBeenCalled();
+    });
+
+    it('should stop interval if running', () => {
+      jest.useFakeTimers();
+
+      service.startAutoRefreshInterval();
+      service.stopAutoRefresh();
+
+      const stats = service.getStats();
+      expect(stats.isRunning).toBe(false);
+
+      jest.useRealTimers();
+    });
+
+    it('should handle being called when not running', () => {
+      // Should not throw
+      expect(() => service.stopAutoRefresh()).not.toThrow();
+    });
+  });
+
+  describe('cleanup', () => {
+    it.skip('should stop auto-refresh - SKIPPED (async timing issue)', async () => {
+      // Start auto-refresh
+      service.startAutoRefresh();
+
+      expect(service.getStats().isRunning).toBe(true);
+
+      // Now cleanup
+      await service.cleanup();
+
+      // Verify auto-refresh was stopped
+      expect(service.getStats().isRunning).toBe(false);
+      expect(mockCronJob.stop).toHaveBeenCalled();
+    });
+
+    it('should handle cleanup when browser not initialized', async () => {
+      await expect(service.cleanup()).resolves.not.toThrow();
+    });
+
+    it('should handle cleanup when auto-refresh not running', async () => {
+      await expect(service.cleanup()).resolves.not.toThrow();
+
+      const stats = service.getStats();
+      expect(stats.isRunning).toBe(false);
+    });
+  });
+});
+</file>
+
+<file path="code-complexity.service.ts">
+/**
+ * Code Complexity Analyzer Service
+ *
+ * Analyzes TypeScript/JavaScript codebase for complexity metrics
+ * Updates Prometheus metrics with code quality indicators
+ *
+ * Features:
+ * - Cyclomatic complexity calculation
+ * - Lines of code counting (total, code, comments)
+ * - File and function size tracking
+ * - Class and function counting
+ * - Maintainability index calculation
+ *
+ * Usage:
+ * - Run periodically via cron job (e.g., hourly or daily)
+ * - Provides early warning for code quality degradation
+ */
+
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { glob } from 'glob';
+import logger from '../lib/logger';
+import { updateCodeComplexityMetrics, CodeComplexityMetrics } from '../lib/metrics.service';
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+interface AnalyzerConfig {
+  /** Root directory to analyze (default: server/src) */
+  rootDir: string;
+  /** File patterns to include */
+  include: string[];
+  /** File patterns to exclude */
+  exclude: string[];
+  /** Update interval in milliseconds */
+  updateIntervalMs: number;
+}
+
+const DEFAULT_CONFIG: AnalyzerConfig = {
+  rootDir: path.join(__dirname, '..'),
+  include: ['**/*.ts', '**/*.js'],
+  exclude: [
+    '**/node_modules/**',
+    '**/dist/**',
+    '**/*.test.ts',
+    '**/*.test.js',
+    '**/*.spec.ts',
+    '**/*.spec.js',
+  ],
+  updateIntervalMs: 3600000, // 1 hour
+};
+
+// ============================================================================
+// Complexity Analysis
+// ============================================================================
+
+interface FileMetrics {
+  file: string;
+  totalLines: number;
+  codeLines: number;
+  commentLines: number;
+  blankLines: number;
+  functions: number;
+  classes: number;
+  maxFunctionLines: number;
+  avgCyclomatic: number;
+  maxCyclomatic: number;
+}
+
+/**
+ * Analyze a single file for complexity metrics
+ */
+async function analyzeFile(filePath: string): Promise<FileMetrics> {
+  const content = await fs.readFile(filePath, 'utf-8');
+  const lines = content.split('\n');
+
+  let codeLines = 0;
+  let commentLines = 0;
+  let blankLines = 0;
+  let inBlockComment = false;
+
+  // Count line types
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (trimmed === '') {
+      blankLines++;
+    } else if (trimmed.startsWith('//')) {
+      commentLines++;
+    } else if (trimmed.startsWith('/*') || trimmed.startsWith('*')) {
+      commentLines++;
+      if (trimmed.startsWith('/*')) {
+        inBlockComment = true;
+      }
+      if (trimmed.endsWith('*/')) {
+        inBlockComment = false;
+      }
+    } else if (inBlockComment) {
+      commentLines++;
+      if (trimmed.endsWith('*/')) {
+        inBlockComment = false;
+      }
+    } else {
+      codeLines++;
+    }
+  }
+
+  // Count functions (simple regex-based approach)
+  const functionMatches = content.match(/\bfunction\s+\w+|=>\s*{|\basync\s+function/g) || [];
+  const functions = functionMatches.length;
+
+  // Count classes
+  const classMatches = content.match(/\bclass\s+\w+/g) || [];
+  const classes = classMatches.length;
+
+  // Calculate cyclomatic complexity (simplified)
+  const cyclomaticComplexity = calculateCyclomaticComplexity(content);
+
+  // Calculate max function lines (simplified - estimate based on braces)
+  const maxFunctionLines = estimateMaxFunctionLines(content);
+
+  return {
+    file: filePath,
+    totalLines: lines.length,
+    codeLines,
+    commentLines,
+    blankLines,
+    functions,
+    classes,
+    maxFunctionLines,
+    avgCyclomatic: cyclomaticComplexity.avg,
+    maxCyclomatic: cyclomaticComplexity.max,
+  };
+}
+
+/**
+ * Calculate cyclomatic complexity (simplified)
+ * Counts decision points: if, else, for, while, case, catch, &&, ||, ?
+ */
+function calculateCyclomaticComplexity(content: string): { avg: number; max: number } {
+  // Split into functions (simplified)
+  const functionBodies = content.split(/\bfunction\s+\w+|=>\s*{/);
+
+  const complexities: number[] = [];
+
+  for (const body of functionBodies) {
+    if (body.trim().length === 0) continue;
+
+    // Count decision points
+    const ifCount = (body.match(/\bif\s*\(/g) || []).length;
+    const elseCount = (body.match(/\belse\b/g) || []).length;
+    const forCount = (body.match(/\bfor\s*\(/g) || []).length;
+    const whileCount = (body.match(/\bwhile\s*\(/g) || []).length;
+    const caseCount = (body.match(/\bcase\s+/g) || []).length;
+    const catchCount = (body.match(/\bcatch\s*\(/g) || []).length;
+    const ternaryCount = (body.match(/\?[^:]+:/g) || []).length;
+    const andCount = (body.match(/&&/g) || []).length;
+    const orCount = (body.match(/\|\|/g) || []).length;
+
+    const complexity =
+      1 + // Base complexity
+      ifCount +
+      elseCount +
+      forCount +
+      whileCount +
+      caseCount +
+      catchCount +
+      ternaryCount +
+      andCount +
+      orCount;
+
+    complexities.push(complexity);
+  }
+
+  if (complexities.length === 0) {
+    return { avg: 0, max: 0 };
+  }
+
+  const avg = complexities.reduce((a, b) => a + b, 0) / complexities.length;
+  const max = Math.max(...complexities);
+
+  return { avg, max };
+}
+
+/**
+ * Estimate maximum function lines (simplified)
+ */
+function estimateMaxFunctionLines(content: string): number {
+  const lines = content.split('\n');
+  let currentFunctionLines = 0;
+  let maxLines = 0;
+  let braceDepth = 0;
+  let inFunction = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Detect function start
+    if (trimmed.match(/\bfunction\s+\w+|=>\s*{|\basync\s+function/)) {
+      inFunction = true;
+      currentFunctionLines = 0;
+    }
+
+    if (inFunction) {
+      currentFunctionLines++;
+
+      // Track brace depth
+      braceDepth += (trimmed.match(/{/g) || []).length;
+      braceDepth -= (trimmed.match(/}/g) || []).length;
+
+      // Function ended
+      if (braceDepth === 0 && trimmed.includes('}')) {
+        maxLines = Math.max(maxLines, currentFunctionLines);
+        inFunction = false;
+        currentFunctionLines = 0;
+      }
+    }
+  }
+
+  return maxLines;
+}
+
+/**
+ * Calculate maintainability index
+ * Formula: 171 - 5.2 * ln(HV) - 0.23 * CC - 16.2 * ln(LOC)
+ * Where: HV = Halstead Volume, CC = Cyclomatic Complexity, LOC = Lines of Code
+ * Simplified version using code lines and cyclomatic complexity
+ */
+function calculateMaintainabilityIndex(
+  codeLines: number,
+  avgCyclomatic: number
+): number {
+  if (codeLines === 0) return 100;
+
+  // Simplified formula (without Halstead Volume)
+  const mi = Math.max(
+    0,
+    Math.min(
+      100,
+      171 - 0.23 * avgCyclomatic - 16.2 * Math.log(codeLines)
+    )
+  );
+
+  return Math.round(mi);
+}
+
+/**
+ * Calculate technical debt ratio
+ * Based on code complexity and maintainability
+ */
+function calculateTechnicalDebtRatio(
+  maintainabilityIndex: number,
+  avgCyclomatic: number
+): number {
+  // Higher complexity and lower maintainability = higher debt
+  const complexityFactor = Math.min(avgCyclomatic / 10, 5); // Max 5
+  const maintainabilityFactor = (100 - maintainabilityIndex) / 10; // 0-10
+
+  const debtRatio = (complexityFactor + maintainabilityFactor) * 2;
+
+  return Math.round(Math.min(debtRatio, 100));
+}
+
+// ============================================================================
+// Codebase Analysis
+// ============================================================================
+
+/**
+ * Analyze entire codebase
+ */
+export async function analyzeCodebase(
+  config: Partial<AnalyzerConfig> = {}
+): Promise<CodeComplexityMetrics> {
+  const finalConfig = { ...DEFAULT_CONFIG, ...config };
+
+  logger.info({
+    rootDir: finalConfig.rootDir,
+    include: finalConfig.include,
+  }, 'Starting code complexity analysis');
+
+  try {
+    // Find all files matching patterns
+    const files = await glob(finalConfig.include, {
+      cwd: finalConfig.rootDir,
+      ignore: finalConfig.exclude,
+      absolute: true,
+    });
+
+    logger.info(`Found ${files.length} files to analyze`);
+
+    // Analyze each file
+    const fileMetrics: FileMetrics[] = [];
+    for (const file of files) {
+      try {
+        const metrics = await analyzeFile(file);
+        fileMetrics.push(metrics);
+      } catch (error) {
+        logger.warn({ error, file }, `Failed to analyze file`);
+      }
+    }
+
+    // Aggregate metrics
+    const totalLines = fileMetrics.reduce((sum, m) => sum + m.totalLines, 0);
+    const codeLines = fileMetrics.reduce((sum, m) => sum + m.codeLines, 0);
+    const commentLines = fileMetrics.reduce((sum, m) => sum + m.commentLines, 0);
+    const totalFunctions = fileMetrics.reduce((sum, m) => sum + m.functions, 0);
+    const totalClasses = fileMetrics.reduce((sum, m) => sum + m.classes, 0);
+
+    // Calculate average cyclomatic complexity
+    const complexities = fileMetrics
+      .filter((m) => m.avgCyclomatic > 0)
+      .map((m) => m.avgCyclomatic);
+    const avgCyclomatic =
+      complexities.length > 0
+        ? complexities.reduce((a, b) => a + b, 0) / complexities.length
+        : 0;
+
+    // Find max cyclomatic complexity
+    const maxCyclomatic = Math.max(...fileMetrics.map((m) => m.maxCyclomatic), 0);
+
+    // Find max function lines
+    const maxFunctionLines = Math.max(...fileMetrics.map((m) => m.maxFunctionLines), 0);
+
+    // Calculate maintainability index
+    const maintainabilityIndex = calculateMaintainabilityIndex(codeLines, avgCyclomatic);
+
+    // Calculate technical debt ratio
+    const technicalDebtRatio = calculateTechnicalDebtRatio(
+      maintainabilityIndex,
+      avgCyclomatic
+    );
+
+    // Top 10 largest files for detailed tracking
+    const topFiles = fileMetrics
+      .sort((a, b) => b.totalLines - a.totalLines)
+      .slice(0, 10)
+      .map((m) => ({
+        file: path.relative(finalConfig.rootDir, m.file),
+        lines: m.totalLines,
+      }));
+
+    const metrics: CodeComplexityMetrics = {
+      avgCyclomatic: Math.round(avgCyclomatic * 10) / 10,
+      maxCyclomatic,
+      totalLines,
+      codeLines,
+      commentLines,
+      totalFiles: fileMetrics.length,
+      totalFunctions,
+      totalClasses,
+      maxFunctionLines,
+      fileMetrics: topFiles,
+      maintainabilityIndex,
+      technicalDebtRatio,
+    };
+
+    logger.info(metrics, 'Code complexity analysis complete');
+
+    return metrics;
+  } catch (error) {
+    logger.error({ error }, 'Failed to analyze codebase');
+    throw error;
+  }
+}
+
+/**
+ * Update Prometheus metrics with latest complexity data
+ */
+export async function updateComplexityMetrics(
+  config?: Partial<AnalyzerConfig>
+): Promise<void> {
+  try {
+    const metrics = await analyzeCodebase(config);
+    updateCodeComplexityMetrics(metrics);
+    logger.info('Code complexity metrics updated successfully');
+  } catch (error) {
+    logger.error({ error }, 'Failed to update code complexity metrics');
+    throw error;
+  }
+}
+
+/**
+ * Start periodic complexity analysis
+ */
+let analysisInterval: NodeJS.Timeout | null = null;
+
+export function startPeriodicAnalysis(config?: Partial<AnalyzerConfig>): void {
+  const finalConfig = { ...DEFAULT_CONFIG, ...config };
+
+  // Run immediately on start
+  updateComplexityMetrics(finalConfig).catch((error) => {
+    logger.error({ error }, 'Initial complexity analysis failed');
+  });
+
+  // Schedule periodic updates
+  analysisInterval = setInterval(() => {
+    updateComplexityMetrics(finalConfig).catch((error) => {
+      logger.error({ error }, 'Periodic complexity analysis failed');
+    });
+  }, finalConfig.updateIntervalMs);
+
+  logger.info({
+    intervalMs: finalConfig.updateIntervalMs,
+  }, 'Started periodic code complexity analysis');
+}
+
+export function stopPeriodicAnalysis(): void {
+  if (analysisInterval) {
+    clearInterval(analysisInterval);
+    analysisInterval = null;
+    logger.info('Stopped periodic code complexity analysis');
+  }
+}
+
+// ============================================================================
+// Exports
+// ============================================================================
+
+export default {
+  analyzeCodebase,
+  updateComplexityMetrics,
+  startPeriodicAnalysis,
+  stopPeriodicAnalysis,
+};
+</file>
+
+<file path="README_ENHANCED.md">
+# services
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "services",
+  "description": "Directory containing 3 code files with 6 classes and 0 functions",
+  "programmingLanguage": [
+    {
+      "@type": "ComputerLanguage",
+      "name": "Typescript"
+    }
+  ],
+  "featureList": [
+    "6 class definitions"
+  ]
+}
+</script>
+
+## Overview
+
+This directory contains 3 code file(s) with extracted schemas.
+
+## Subdirectories
+
+- `__tests__/`
+
+## Files and Schemas
+
+### `code-complexity.service.ts` (typescript)
+
+**Classes:**
+- `AnalyzerConfig` - Line 28
+- `FileMetrics` - Line 57
+
+### `search-term-optimizer.ts` (typescript)
+
+**Classes:**
+- `SearchTermOptimizer` - Line 67
+- `SearchTermPerformance` - Line 43
+- `OptimizerConfig` - Line 58
+
+### `token-refresh.service.ts` (typescript)
+
+**Classes:**
+- `TCADTokenRefreshService` - Line 34
+
+---
+*Generated by Enhanced Schema Generator with schema.org markup*
+</file>
+
+<file path="search-term-optimizer.ts">
+import { PrismaClient } from '@prisma/client';
+import logger from '../lib/logger';
+
+const prisma = new PrismaClient();
+
+/**
+ * Optimized 4-character search terms for cold start
+ * These are strategically chosen to maximize results per query
+ * Based on common prefixes in entity names, property types, and locations
+ */
+export const OPTIMIZED_4_CHAR_STARTER_TERMS = [
+  // Trust & Estate related (high yield)
+  'Trus', 'Esta', 'Revo', 'Irre', 'Fami', 'Bene',
+
+  // LLC & Corporate (high yield)
+  'L.L.', 'LLC.', 'Limi', 'LMTD', 'Corp', 'Inc.', 'Inco',
+
+  // Partnership & Associations
+  'Part', 'Partn', 'Asso', 'Assn',
+
+  // Real estate specific
+  'Real', 'Realt', 'Prop', 'Park', 'Parc', 'Plaz', 'Cent',
+  'Land', 'Lane', 'Home', 'Hous', 'Apar', 'Cond',
+
+  // Business types (high yield)
+  'Mana', 'Hold', 'Inve', 'Grou', 'Vent', 'Fund',
+  'Capi', 'Deve', 'Buil', 'Cons',
+
+  // Geographic/Street patterns
+  'Main', 'Oak ', 'Elms', 'Pine', 'Mapl', 'Cedr',
+  'West', 'East', 'Nort', 'Sout',
+
+  // Common last names (high yield)
+  'Smit', 'John', 'Wili', 'Brow', 'Jone', 'Mill', 'Davi',
+  'Garc', 'Rodr', 'Wils', 'Mart', 'Ande', 'Tayl', 'Thom',
+
+  // Foundation & Non-profit
+  'Foun', 'Char', 'Endow',
+
+  // Investment & Finance
+  'Equi', 'Asse', 'Port', 'Trad',
+];
+
+export interface SearchTermPerformance {
+  searchTerm: string;
+  termLength: number;
+  totalSearches: number;
+  successfulSearches: number;
+  failedSearches: number;
+  totalResults: number;
+  avgResultsPerSearch: number;
+  maxResults: number;
+  minResults: number | null;
+  lastSearched: Date;
+  successRate: number;
+  efficiency: number;
+}
+
+export interface OptimizerConfig {
+  minEfficiency?: number;        // Minimum efficiency score to consider term "good"
+  minSuccessRate?: number;       // Minimum success rate (0-1)
+  preferredTermLength?: number;  // Preferred term length (default: 4)
+  maxTermsToReturn?: number;     // Maximum number of terms to return
+  excludeRecentlyUsed?: boolean; // Exclude terms used within last N days
+  recentDays?: number;           // Days to consider "recent"
+}
+
+export class SearchTermOptimizer {
+  private prisma: PrismaClient;
+
+  constructor(prismaClient?: PrismaClient) {
+    this.prisma = prismaClient || prisma;
+  }
+
+  /**
+   * Get optimized starter terms for cold start (empty database)
+   * Returns 4-character terms optimized for maximum coverage
+   */
+  async getStarterTerms(): Promise<string[]> {
+    // Check if database has analytics data
+    const analyticsCount = await this.prisma.searchTermAnalytics.count();
+
+    if (analyticsCount === 0) {
+      // Cold start - return optimized 4-char terms
+      logger.info('🚀 Cold start detected - using optimized 4-character starter terms');
+      return OPTIMIZED_4_CHAR_STARTER_TERMS;
+    }
+
+    // Database has data - use analytics to optimize
+    logger.info('📊 Using analytics to optimize starter terms');
+    return this.getOptimizedTerms({
+      preferredTermLength: 4,
+      minEfficiency: 5.0,
+      minSuccessRate: 0.5,
+      maxTermsToReturn: 50,
+    });
+  }
+
+  /**
+   * Update analytics after a scrape job completes
+   */
+  async updateAnalytics(
+    searchTerm: string,
+    resultCount: number,
+    wasSuccessful: boolean,
+    error?: string
+  ): Promise<void> {
+    const existing = await this.prisma.searchTermAnalytics.findUnique({
+      where: { searchTerm },
+    });
+
+    if (existing) {
+      // Update existing record
+      const newTotalSearches = existing.totalSearches + 1;
+      const newSuccessfulSearches = existing.successfulSearches + (wasSuccessful ? 1 : 0);
+      const newFailedSearches = existing.failedSearches + (wasSuccessful ? 0 : 1);
+      const newTotalResults = existing.totalResults + resultCount;
+      const newAvgResults = newTotalResults / newSuccessfulSearches || 0;
+      const newSuccessRate = newSuccessfulSearches / newTotalSearches;
+      const newEfficiency = newAvgResults * newSuccessRate;
+
+      await this.prisma.searchTermAnalytics.update({
+        where: { searchTerm },
+        data: {
+          totalSearches: newTotalSearches,
+          successfulSearches: newSuccessfulSearches,
+          failedSearches: newFailedSearches,
+          totalResults: newTotalResults,
+          avgResultsPerSearch: newAvgResults,
+          maxResults: Math.max(existing.maxResults, resultCount),
+          minResults: existing.minResults
+            ? Math.min(existing.minResults, resultCount)
+            : resultCount,
+          lastSearched: new Date(),
+          successRate: newSuccessRate,
+          efficiency: newEfficiency,
+        },
+      });
+    } else {
+      // Create new record
+      const successRate = wasSuccessful ? 1.0 : 0.0;
+      const avgResults = wasSuccessful ? resultCount : 0;
+      const efficiency = avgResults * successRate;
+
+      await this.prisma.searchTermAnalytics.create({
+        data: {
+          searchTerm,
+          termLength: searchTerm.length,
+          totalSearches: 1,
+          successfulSearches: wasSuccessful ? 1 : 0,
+          failedSearches: wasSuccessful ? 0 : 1,
+          totalResults: resultCount,
+          avgResultsPerSearch: avgResults,
+          maxResults: resultCount,
+          minResults: wasSuccessful ? resultCount : null,
+          lastSearched: new Date(),
+          successRate,
+          efficiency,
+        },
+      });
+    }
+  }
+
+  /**
+   * Get optimized search terms based on historical performance
+   */
+  async getOptimizedTerms(config: OptimizerConfig = {}): Promise<string[]> {
+    const {
+      minEfficiency = 5.0,
+      minSuccessRate = 0.5,
+      preferredTermLength = 4,
+      maxTermsToReturn = 50,
+      excludeRecentlyUsed = false,
+      recentDays = 7,
+    } = config;
+
+    const whereClause: any = {
+      efficiency: { gte: minEfficiency },
+      successRate: { gte: minSuccessRate },
+    };
+
+    if (preferredTermLength) {
+      whereClause.termLength = preferredTermLength;
+    }
+
+    if (excludeRecentlyUsed) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - recentDays);
+      whereClause.lastSearched = { lte: cutoffDate };
+    }
+
+    const analytics = await this.prisma.searchTermAnalytics.findMany({
+      where: whereClause,
+      orderBy: [
+        { efficiency: 'desc' },
+        { avgResultsPerSearch: 'desc' },
+      ],
+      take: maxTermsToReturn,
+    });
+
+    return analytics.map(a => a.searchTerm);
+  }
+
+  /**
+   * Get performance statistics for all search terms
+   */
+  async getPerformanceStats(): Promise<{
+    totalSearchTerms: number;
+    avgEfficiency: number;
+    avgSuccessRate: number;
+    avgResultsPerSearch: number;
+    topPerformers: SearchTermPerformance[];
+    poorPerformers: SearchTermPerformance[];
+  }> {
+    const allAnalytics = await this.prisma.searchTermAnalytics.findMany();
+
+    if (allAnalytics.length === 0) {
+      return {
+        totalSearchTerms: 0,
+        avgEfficiency: 0,
+        avgSuccessRate: 0,
+        avgResultsPerSearch: 0,
+        topPerformers: [],
+        poorPerformers: [],
+      };
+    }
+
+    const totalEfficiency = allAnalytics.reduce((sum, a) => sum + a.efficiency, 0);
+    const totalSuccessRate = allAnalytics.reduce((sum, a) => sum + a.successRate, 0);
+    const totalAvgResults = allAnalytics.reduce((sum, a) => sum + a.avgResultsPerSearch, 0);
+
+    const topPerformers = await this.prisma.searchTermAnalytics.findMany({
+      orderBy: { efficiency: 'desc' },
+      take: 20,
+    });
+
+    const poorPerformers = await this.prisma.searchTermAnalytics.findMany({
+      where: { successRate: { lt: 0.3 } },
+      orderBy: { efficiency: 'asc' },
+      take: 20,
+    });
+
+    return {
+      totalSearchTerms: allAnalytics.length,
+      avgEfficiency: totalEfficiency / allAnalytics.length,
+      avgSuccessRate: totalSuccessRate / allAnalytics.length,
+      avgResultsPerSearch: totalAvgResults / allAnalytics.length,
+      topPerformers: topPerformers as SearchTermPerformance[],
+      poorPerformers: poorPerformers as SearchTermPerformance[],
+    };
+  }
+
+  /**
+   * Get insights on what term lengths and patterns work best
+   */
+  async getTermLengthAnalysis(): Promise<{
+    byLength: Record<number, {
+      count: number;
+      avgEfficiency: number;
+      avgResultsPerSearch: number;
+      avgSuccessRate: number;
+    }>;
+  }> {
+    const allAnalytics = await this.prisma.searchTermAnalytics.findMany();
+
+    const byLength: Record<number, any> = {};
+
+    for (const analytics of allAnalytics) {
+      if (!byLength[analytics.termLength]) {
+        byLength[analytics.termLength] = {
+          count: 0,
+          totalEfficiency: 0,
+          totalAvgResults: 0,
+          totalSuccessRate: 0,
+        };
+      }
+
+      byLength[analytics.termLength].count++;
+      byLength[analytics.termLength].totalEfficiency += analytics.efficiency;
+      byLength[analytics.termLength].totalAvgResults += analytics.avgResultsPerSearch;
+      byLength[analytics.termLength].totalSuccessRate += analytics.successRate;
+    }
+
+    // Calculate averages
+    for (const length in byLength) {
+      const data = byLength[length];
+      byLength[length] = {
+        count: data.count,
+        avgEfficiency: data.totalEfficiency / data.count,
+        avgResultsPerSearch: data.totalAvgResults / data.count,
+        avgSuccessRate: data.totalSuccessRate / data.count,
+      };
+    }
+
+    return { byLength };
+  }
+
+  /**
+   * Suggest new terms based on successful patterns
+   */
+  async suggestNewTerms(count: number = 20): Promise<string[]> {
+    // Get top performing terms
+    const topTerms = await this.prisma.searchTermAnalytics.findMany({
+      where: { efficiency: { gte: 10.0 } },
+      orderBy: { efficiency: 'desc' },
+      take: 50,
+    });
+
+    if (topTerms.length === 0) {
+      return OPTIMIZED_4_CHAR_STARTER_TERMS.slice(0, count);
+    }
+
+    // Analyze patterns in successful terms
+    const suggestions = new Set<string>();
+
+    for (const term of topTerms) {
+      // Generate variations of successful terms
+      if (term.searchTerm.length >= 4) {
+        // Prefix variations (first 4 chars)
+        suggestions.add(term.searchTerm.substring(0, 4));
+
+        // If term is longer, try middle and end substrings
+        if (term.searchTerm.length > 4) {
+          suggestions.add(term.searchTerm.substring(0, 5));
+          suggestions.add(term.searchTerm.substring(0, 3));
+        }
+      }
+    }
+
+    // Filter out terms we've already tried
+    const alreadyTried = new Set(topTerms.map(t => t.searchTerm));
+    const newSuggestions = Array.from(suggestions)
+      .filter(s => !alreadyTried.has(s))
+      .slice(0, count);
+
+    return newSuggestions;
+  }
+
+  /**
+   * Check if database is empty (cold start scenario)
+   */
+  async isDatabaseEmpty(): Promise<boolean> {
+    const scrapeJobCount = await this.prisma.scrapeJob.count();
+    return scrapeJobCount === 0;
+  }
+}
+
+export const searchTermOptimizer = new SearchTermOptimizer();
+</file>
+
+<file path="token-refresh.service.ts">
+/**
+ * TCAD Token Refresh Service
+ *
+ * Automatically refreshes the TCAD API token by:
+ * 1. Launching a headless browser
+ * 2. Navigating to TCAD property search
+ * 3. Performing a test search to trigger API call
+ * 4. Capturing the Authorization header
+ * 5. Updating the in-memory token
+ *
+ * Runs on a configurable schedule (default: every 4-5 minutes)
+ */
+
+import { chromium, Browser } from 'playwright';
+import winston from 'winston';
+import cron from 'node-cron';
+import { config } from '../config';
+
+const logger = winston.createLogger({
+  level: config.logging.level || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      ),
+    }),
+  ],
+});
+
+export class TCADTokenRefreshService {
+  private currentToken: string | null = null;
+  private browser: Browser | null = null;
+  private refreshInterval: NodeJS.Timeout | null = null;
+  private cronJob: cron.ScheduledTask | null = null;
+  private isRefreshing: boolean = false;
+  private lastRefreshTime: Date | null = null;
+  private refreshCount: number = 0;
+  private failureCount: number = 0;
+
+  constructor() {
+    // Initialize with env token if available
+    this.currentToken = config.scraper.tcadApiKey || null;
+
+    if (this.currentToken) {
+      logger.info('Token refresh service initialized with existing token from environment');
+    } else {
+      logger.info('Token refresh service initialized without token - will fetch on first refresh');
+    }
+  }
+
+  /**
+   * Get the current valid token
+   */
+  getCurrentToken(): string | null {
+    return this.currentToken;
+  }
+
+  /**
+   * Get refresh statistics
+   */
+  getStats() {
+    return {
+      currentToken: this.currentToken ? `${this.currentToken.substring(0, 20)}...` : null,
+      lastRefreshTime: this.lastRefreshTime,
+      refreshCount: this.refreshCount,
+      failureCount: this.failureCount,
+      isRefreshing: this.isRefreshing,
+      isRunning: this.cronJob !== null || this.refreshInterval !== null,
+    };
+  }
+
+  /**
+   * Refresh the token by capturing from browser
+   */
+  async refreshToken(): Promise<string | null> {
+    if (this.isRefreshing) {
+      logger.warn('Token refresh already in progress, skipping...');
+      return this.currentToken;
+    }
+
+    this.isRefreshing = true;
+    const startTime = Date.now();
+
+    try {
+      logger.info('Starting token refresh...');
+
+      // Initialize browser if needed
+      if (!this.browser) {
+        logger.info('Initializing browser for token refresh...');
+        this.browser = await chromium.launch({
+          headless: config.scraper.headless,
+          executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
+          args: [
+            '--disable-blink-features=AutomationControlled',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+          ],
+        });
+        logger.info('Browser initialized for token refresh');
+      }
+
+      const context = await this.browser.newContext({
+        userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        viewport: { width: 1920, height: 1080 },
+        locale: 'en-US',
+        timezoneId: 'America/Chicago',
+      });
+
+      const page = await context.newPage();
+      let capturedToken: string | null = null;
+
+      // Set up request interception to capture Authorization header
+      page.on('request', (request) => {
+        const headers = request.headers();
+        const authHeader = headers['authorization'];
+
+        // Only capture valid tokens (ignore "null" string and ensure it looks like a JWT)
+        if (authHeader &&
+            authHeader !== 'null' &&
+            authHeader.length > 50 &&
+            authHeader.startsWith('eyJ') &&
+            !capturedToken) {
+          capturedToken = authHeader;
+          logger.info(`Authorization token captured from request: length: ${capturedToken.length}, preview: ${capturedToken.substring(0, 50)}...`);
+        }
+      });
+
+      try {
+        // Navigate to TCAD property search
+        logger.info('Navigating to TCAD property search...');
+        await page.goto('https://travis.prodigycad.com/property-search', {
+          waitUntil: 'networkidle',
+          timeout: 30000,
+        });
+
+        // Wait for React app to load
+        logger.info('Waiting for React app to load...');
+        await page.waitForFunction(() => {
+          const root = document.getElementById('root');
+          return root && root.children.length > 0;
+        }, { timeout: 15000 });
+
+        // Perform a test search to trigger API request with auth token
+        logger.info('Performing test search to capture token...');
+        await page.waitForSelector('#searchInput', { timeout: 10000 });
+
+        // Small delay to appear more human-like
+        await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
+
+        await page.type('#searchInput', 'test', { delay: 50 });
+        await page.press('#searchInput', 'Enter');
+
+        // Wait for API request to be made
+        await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 1000));
+
+        if (!capturedToken) {
+          throw new Error('Failed to capture authorization token from network requests');
+        }
+
+        // Update current token
+        this.currentToken = capturedToken;
+        this.lastRefreshTime = new Date();
+        this.refreshCount++;
+
+        const duration = Date.now() - startTime;
+        logger.info(`Token refreshed successfully in ${duration}ms (refresh #${this.refreshCount})`);
+        logger.info(`New token: ${capturedToken.substring(0, 30)}...`);
+
+        return capturedToken;
+
+      } finally {
+        await context.close();
+      }
+
+    } catch (error) {
+      this.failureCount++;
+      const duration = Date.now() - startTime;
+      logger.error(`Token refresh failed after ${duration}ms (failure #${this.failureCount}):`, error);
+
+      // If we have a current token, keep using it
+      if (this.currentToken) {
+        logger.warn('Keeping existing token after refresh failure');
+      }
+
+      return this.currentToken;
+
+    } finally {
+      this.isRefreshing = false;
+    }
+  }
+
+  /**
+   * Start automatic token refresh using cron schedule
+   * Default: Every 4-5 minutes (randomized to avoid detection patterns)
+   */
+  startAutoRefresh(cronSchedule?: string): void {
+    if (this.cronJob) {
+      logger.warn('Auto-refresh already running');
+      return;
+    }
+
+    // Default: Run every 4.5 minutes
+    // Cron format: */5 * * * * (every 5 minutes)
+    // We'll use 4.5 minutes by alternating between 4 and 5 minute intervals
+    const schedule = cronSchedule || '*/4 * * * *'; // Every 4 minutes as baseline
+
+    logger.info(`Starting automatic token refresh (schedule: ${schedule})`);
+
+    // Perform initial refresh
+    this.refreshToken().catch((error) => {
+      logger.error('Initial token refresh failed:', error);
+    });
+
+    // Schedule recurring refreshes
+    this.cronJob = cron.schedule(schedule, async () => {
+      logger.info('Scheduled token refresh triggered');
+      await this.refreshToken();
+    });
+
+    logger.info('Automatic token refresh started successfully');
+  }
+
+  /**
+   * Start automatic token refresh using interval (alternative to cron)
+   * @param intervalMs Interval in milliseconds (default: 4.5 minutes)
+   */
+  startAutoRefreshInterval(intervalMs: number = 270000): void {
+    if (this.refreshInterval) {
+      logger.warn('Auto-refresh interval already running');
+      return;
+    }
+
+    logger.info(`Starting automatic token refresh (interval: ${intervalMs}ms / ${intervalMs / 60000} minutes)`);
+
+    // Perform initial refresh
+    this.refreshToken().catch((error) => {
+      logger.error('Initial token refresh failed:', error);
+    });
+
+    // Schedule recurring refreshes with slight randomization
+    this.refreshInterval = setInterval(async () => {
+      // Add ±30 seconds of randomization to avoid detection patterns
+      const randomDelay = Math.floor(Math.random() * 60000) - 30000;
+      await new Promise(resolve => setTimeout(resolve, Math.max(0, randomDelay)));
+
+      logger.info('Scheduled token refresh triggered');
+      await this.refreshToken();
+    }, intervalMs);
+
+    logger.info('Automatic token refresh interval started successfully');
+  }
+
+  /**
+   * Stop automatic token refresh
+   */
+  stopAutoRefresh(): void {
+    if (this.cronJob) {
+      this.cronJob.stop();
+      this.cronJob = null;
+      logger.info('Cron-based token refresh stopped');
+    }
+
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+      logger.info('Interval-based token refresh stopped');
+    }
+  }
+
+  /**
+   * Cleanup resources
+   */
+  async cleanup(): Promise<void> {
+    logger.info('Cleaning up token refresh service...');
+
+    this.stopAutoRefresh();
+
+    if (this.browser) {
+      await this.browser.close();
+      this.browser = null;
+      logger.info('Browser closed');
+    }
+
+    logger.info('Token refresh service cleanup complete');
+  }
+
+  /**
+   * Get health status
+   */
+  getHealth() {
+    const timeSinceLastRefresh = this.lastRefreshTime
+      ? Date.now() - this.lastRefreshTime.getTime()
+      : null;
+
+    return {
+      healthy: this.currentToken !== null,
+      hasToken: this.currentToken !== null,
+      lastRefresh: this.lastRefreshTime,
+      timeSinceLastRefresh,
+      refreshCount: this.refreshCount,
+      failureCount: this.failureCount,
+      failureRate: this.refreshCount > 0
+        ? (this.failureCount / (this.refreshCount + this.failureCount) * 100).toFixed(2) + '%'
+        : '0%',
+      isRefreshing: this.isRefreshing,
+      isAutoRefreshRunning: this.cronJob !== null || this.refreshInterval !== null,
+    };
+  }
+}
+
+// Export singleton instance
+export const tokenRefreshService = new TCADTokenRefreshService();
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down token refresh service...');
+  await tokenRefreshService.cleanup();
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down token refresh service...');
+  await tokenRefreshService.cleanup();
+});
+</file>
+
+</files>

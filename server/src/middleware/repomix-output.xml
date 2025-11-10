@@ -1,0 +1,1954 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+__tests__/
+  auth.test.ts
+  error.middleware.test.ts
+  metrics.middleware.test.ts
+  validation.middleware.test.ts
+  xcontroller.middleware.test.ts
+auth.ts
+error.middleware.ts
+metrics.middleware.ts
+README_ENHANCED.md
+validation.middleware.ts
+xcontroller.middleware.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="__tests__/auth.test.ts">
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { apiKeyAuth, jwtAuth, optionalAuth, generateToken, AuthRequest } from '../auth';
+
+// Mock the config module
+jest.mock('../../config', () => ({
+  config: {
+    env: {
+      isDevelopment: false,
+    },
+    auth: {
+      apiKey: 'test-api-key',
+      skipInDevelopment: false,
+      jwt: {
+        secret: 'test-jwt-secret',
+        expiresIn: '1h',
+      },
+    },
+  },
+}));
+
+describe('Auth Middleware', () => {
+  let mockReq: Partial<AuthRequest>;
+  let mockRes: Partial<Response>;
+  let mockNext: NextFunction;
+  let jsonMock: jest.Mock;
+  let statusMock: jest.Mock;
+
+  beforeEach(() => {
+    jsonMock = jest.fn();
+    statusMock = jest.fn().mockReturnValue({ json: jsonMock });
+
+    mockReq = {
+      headers: {},
+    };
+
+    mockRes = {
+      status: statusMock,
+      json: jsonMock,
+    };
+
+    mockNext = jest.fn();
+
+    // Reset config to default test values
+    const { config } = require('../../config');
+    config.env.isDevelopment = false;
+    config.auth.skipInDevelopment = false;
+    config.auth.apiKey = 'test-api-key';
+    config.auth.jwt.secret = 'test-jwt-secret';
+  });
+
+  describe('apiKeyAuth', () => {
+    it('should allow request with valid API key', () => {
+      mockReq.headers = { 'x-api-key': 'test-api-key' };
+
+      apiKeyAuth(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+
+    it('should reject request with invalid API key', () => {
+      mockReq.headers = { 'x-api-key': 'wrong-key' };
+
+      apiKeyAuth(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'Unauthorized - Invalid API key' });
+    });
+
+    it('should reject request without API key', () => {
+      mockReq.headers = {};
+
+      apiKeyAuth(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'Unauthorized - Invalid API key' });
+    });
+
+    it('should skip auth in development when skipInDevelopment is true and no API key configured', () => {
+      const { config } = require('../../config');
+      config.env.isDevelopment = true;
+      config.auth.skipInDevelopment = true;
+      config.auth.apiKey = undefined;
+
+      mockReq.headers = {};
+
+      apiKeyAuth(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+
+    it('should still validate API key in development if skipInDevelopment is false', () => {
+      const { config } = require('../../config');
+      config.env.isDevelopment = true;
+      config.auth.skipInDevelopment = false;
+
+      mockReq.headers = {};
+
+      apiKeyAuth(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(401);
+    });
+  });
+
+  describe('jwtAuth', () => {
+    it('should allow request with valid JWT token', () => {
+      const token = jwt.sign({ id: 'user123', email: 'test@example.com' }, 'test-jwt-secret');
+      mockReq.headers = { authorization: `Bearer ${token}` };
+
+      jwtAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(statusMock).not.toHaveBeenCalled();
+      expect(mockReq.user).toMatchObject({ id: 'user123', email: 'test@example.com' });
+    });
+
+    it('should allow request with valid JWT token without email', () => {
+      const token = jwt.sign({ id: 'user123' }, 'test-jwt-secret');
+      mockReq.headers = { authorization: `Bearer ${token}` };
+
+      jwtAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockReq.user).toMatchObject({ id: 'user123' });
+    });
+
+    it('should reject request with invalid JWT token', () => {
+      mockReq.headers = { authorization: 'Bearer invalid-token' };
+
+      jwtAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+      expect(mockNext).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'Forbidden - Invalid token' });
+    });
+
+    it('should reject request without token', () => {
+      mockReq.headers = {};
+
+      jwtAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+      expect(mockNext).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'Unauthorized - No token provided' });
+    });
+
+    it('should reject request with malformed authorization header', () => {
+      mockReq.headers = { authorization: 'InvalidFormat' };
+
+      jwtAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+      expect(mockNext).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(401);
+    });
+
+    it('should reject request with expired JWT token', () => {
+      const expiredToken = jwt.sign(
+        { id: 'user123', email: 'test@example.com' },
+        'test-jwt-secret',
+        { expiresIn: '-1h' }
+      );
+      mockReq.headers = { authorization: `Bearer ${expiredToken}` };
+
+      jwtAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+      expect(mockNext).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'Forbidden - Invalid token' });
+    });
+
+    it('should skip auth in development when skipInDevelopment is true and no JWT secret configured', () => {
+      const { config } = require('../../config');
+      config.env.isDevelopment = true;
+      config.auth.skipInDevelopment = true;
+      config.auth.jwt.secret = undefined;
+
+      mockReq.headers = {};
+
+      jwtAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('optionalAuth', () => {
+    it('should attach user to request when valid token provided', () => {
+      const token = jwt.sign({ id: 'user123', email: 'test@example.com' }, 'test-jwt-secret');
+      mockReq.headers = { authorization: `Bearer ${token}` };
+
+      optionalAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockReq.user).toMatchObject({ id: 'user123', email: 'test@example.com' });
+    });
+
+    it('should continue without user when no token provided', () => {
+      mockReq.headers = {};
+
+      optionalAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockReq.user).toBeUndefined();
+    });
+
+    it('should continue without user when invalid token provided', () => {
+      mockReq.headers = { authorization: 'Bearer invalid-token' };
+
+      optionalAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockReq.user).toBeUndefined();
+    });
+
+    it('should continue without user when token secret is not configured', () => {
+      const { config } = require('../../config');
+      config.auth.jwt.secret = undefined;
+
+      const token = jwt.sign({ id: 'user123' }, 'some-secret');
+      mockReq.headers = { authorization: `Bearer ${token}` };
+
+      optionalAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockReq.user).toBeUndefined();
+    });
+  });
+
+  describe('generateToken', () => {
+    it('should generate valid JWT token with user ID and email', () => {
+      const token = generateToken('user123', 'test@example.com');
+
+      expect(token).toBeTruthy();
+      expect(typeof token).toBe('string');
+
+      const decoded = jwt.verify(token, 'test-jwt-secret') as any;
+      expect(decoded.id).toBe('user123');
+      expect(decoded.email).toBe('test@example.com');
+      expect(decoded.exp).toBeTruthy();
+    });
+
+    it('should generate valid JWT token with only user ID', () => {
+      const token = generateToken('user123');
+
+      expect(token).toBeTruthy();
+
+      const decoded = jwt.verify(token, 'test-jwt-secret') as any;
+      expect(decoded.id).toBe('user123');
+      expect(decoded.email).toBeUndefined();
+    });
+
+    it('should generate token that expires according to config', () => {
+      const { config } = require('../../config');
+      config.auth.jwt.expiresIn = '2h';
+
+      const token = generateToken('user123');
+      const decoded = jwt.verify(token, 'test-jwt-secret') as any;
+
+      const now = Math.floor(Date.now() / 1000);
+      const expectedExpiration = now + 2 * 60 * 60; // 2 hours from now
+
+      // Allow 5 second tolerance
+      expect(decoded.exp).toBeGreaterThan(now);
+      expect(decoded.exp).toBeLessThanOrEqual(expectedExpiration + 5);
+    });
+  });
+});
+</file>
+
+<file path="__tests__/error.middleware.test.ts">
+import { Request, Response, NextFunction } from 'express';
+import { asyncHandler, errorHandler, notFoundHandler } from '../error.middleware';
+import logger from '../../lib/logger';
+
+// Mock logger
+jest.mock('../../lib/logger', () => ({
+  error: jest.fn(),
+}));
+
+describe('Error Middleware', () => {
+  let mockReq: Partial<Request>;
+  let mockRes: Partial<Response>;
+  let mockNext: NextFunction;
+  let jsonMock: jest.Mock;
+  let statusMock: jest.Mock;
+
+  beforeEach(() => {
+    jsonMock = jest.fn();
+    statusMock = jest.fn().mockReturnValue({ json: jsonMock });
+
+    mockReq = {
+      method: 'GET',
+      path: '/test-path',
+    };
+
+    mockRes = {
+      status: statusMock,
+      json: jsonMock,
+    };
+
+    mockNext = jest.fn();
+
+    // Clear mock calls
+    jest.clearAllMocks();
+  });
+
+  describe('asyncHandler', () => {
+    it('should call next with error when async function throws', async () => {
+      const error = new Error('Test error');
+      const asyncFn = jest.fn().mockRejectedValue(error);
+
+      const wrappedFn = asyncHandler(asyncFn);
+      wrappedFn(mockReq as Request, mockRes as Response, mockNext);
+
+      // Wait for promise to resolve
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+      expect(asyncFn).toHaveBeenCalledWith(mockReq, mockRes, mockNext);
+    });
+
+    it('should not call next when async function succeeds', async () => {
+      const asyncFn = jest.fn().mockResolvedValue('success');
+
+      const wrappedFn = asyncHandler(asyncFn);
+      wrappedFn(mockReq as Request, mockRes as Response, mockNext);
+
+      // Wait for promise to resolve
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(mockNext).not.toHaveBeenCalled();
+      expect(asyncFn).toHaveBeenCalledWith(mockReq, mockRes, mockNext);
+    });
+
+    it('should handle errors in async operations', async () => {
+      const errorMessage = 'Async operation error';
+      const asyncFn = jest.fn().mockImplementation(async () => {
+        await Promise.resolve(); // Make it actually async
+        throw new Error(errorMessage);
+      });
+
+      const wrappedFn = asyncHandler(asyncFn);
+      wrappedFn(mockReq as Request, mockRes as Response, mockNext);
+
+      // Wait for promise to resolve
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
+        message: errorMessage
+      }));
+    });
+  });
+
+  describe('errorHandler', () => {
+    const originalEnv = process.env.NODE_ENV;
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it('should handle generic errors with 500 status', () => {
+      const error = new Error('Generic error');
+
+      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+
+      expect(logger.error).toHaveBeenCalledWith('Error:', error);
+      expect(statusMock).toHaveBeenCalledWith(500);
+      expect(jsonMock).toHaveBeenCalledWith({
+        error: 'Internal server error',
+        message: 'An unexpected error occurred',
+      });
+    });
+
+    it('should include error message and stack in development mode', () => {
+      process.env.NODE_ENV = 'development';
+      const error = new Error('Dev error');
+      error.stack = 'Error stack trace';
+
+      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+
+      expect(jsonMock).toHaveBeenCalledWith({
+        error: 'Internal server error',
+        message: 'Dev error',
+        stack: 'Error stack trace',
+      });
+    });
+
+    it('should handle ValidationError with 400 status', () => {
+      const error = new Error('Invalid input') as any;
+      error.name = 'ValidationError';
+
+      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        error: 'Validation failed',
+        message: 'Invalid input',
+      });
+    });
+
+    it('should handle UnauthorizedError with 401 status', () => {
+      const error = new Error('Not authorized') as any;
+      error.name = 'UnauthorizedError';
+
+      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({
+        error: 'Unauthorized',
+        message: 'Not authorized',
+      });
+    });
+
+    it('should log all errors', () => {
+      const error = new Error('Test error');
+
+      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+
+      expect(logger.error).toHaveBeenCalledWith('Error:', error);
+    });
+
+    it('should hide error details in production', () => {
+      process.env.NODE_ENV = 'production';
+      const error = new Error('Sensitive error information');
+
+      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+
+      expect(jsonMock).toHaveBeenCalledWith({
+        error: 'Internal server error',
+        message: 'An unexpected error occurred',
+      });
+    });
+  });
+
+  describe('notFoundHandler', () => {
+    it('should return 404 with route information', () => {
+      mockReq.method = 'GET';
+      mockReq.path = '/api/nonexistent';
+
+      notFoundHandler(mockReq as Request, mockRes as Response);
+
+      expect(statusMock).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        error: 'Not found',
+        message: 'Route GET /api/nonexistent not found',
+      });
+    });
+
+    it('should handle POST requests', () => {
+      mockReq.method = 'POST';
+      mockReq.path = '/api/invalid';
+
+      notFoundHandler(mockReq as Request, mockRes as Response);
+
+      expect(jsonMock).toHaveBeenCalledWith({
+        error: 'Not found',
+        message: 'Route POST /api/invalid not found',
+      });
+    });
+
+    it('should handle different HTTP methods', () => {
+      const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+
+      methods.forEach(method => {
+        jest.clearAllMocks();
+        mockReq.method = method;
+        mockReq.path = '/test';
+
+        notFoundHandler(mockReq as Request, mockRes as Response);
+
+        expect(jsonMock).toHaveBeenCalledWith({
+          error: 'Not found',
+          message: `Route ${method} /test not found`,
+        });
+      });
+    });
+  });
+});
+</file>
+
+<file path="__tests__/metrics.middleware.test.ts">
+import { Request, Response, NextFunction } from 'express';
+import { metricsMiddleware } from '../metrics.middleware';
+import * as metricsService from '../../lib/metrics.service';
+
+// Mock the metrics service
+jest.mock('../../lib/metrics.service', () => ({
+  recordHttpRequest: jest.fn(),
+}));
+
+describe('Metrics Middleware', () => {
+  let mockReq: Partial<Request>;
+  let mockRes: Partial<Response>;
+  let mockNext: NextFunction;
+  let finishListeners: Array<() => void>;
+
+  beforeEach(() => {
+    finishListeners = [];
+
+    mockReq = {
+      method: 'GET',
+      path: '/api/test',
+      baseUrl: '/api',
+      route: {
+        path: '/test',
+      } as any,
+    };
+
+    mockRes = {
+      statusCode: 200,
+      on: jest.fn((event: string, callback: () => void) => {
+        if (event === 'finish') {
+          finishListeners.push(callback);
+        }
+        return mockRes as Response;
+      }),
+    };
+
+    mockNext = jest.fn();
+
+    jest.clearAllMocks();
+  });
+
+  it('should call next immediately', () => {
+    metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+
+    expect(mockNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('should record metrics when response finishes', () => {
+    metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+
+    // Simulate response finishing
+    finishListeners.forEach(listener => listener());
+
+    expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+      'GET',
+      '/api/test',
+      200,
+      expect.any(Number)
+    );
+  });
+
+  it('should measure request duration accurately', async () => {
+    const startTime = Date.now();
+
+    metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+
+    // Simulate 100ms delay
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Simulate response finishing
+    finishListeners.forEach(listener => listener());
+
+    const call = (metricsService.recordHttpRequest as jest.Mock).mock.calls[0];
+    const duration = call[3];
+
+    // Duration should be in seconds and approximately 0.1
+    expect(duration).toBeGreaterThanOrEqual(0.1);
+    expect(duration).toBeLessThan(0.2); // Allow some tolerance
+  });
+
+  it('should record correct HTTP method', () => {
+    const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+
+    methods.forEach(method => {
+      jest.clearAllMocks();
+      finishListeners = [];
+
+      mockReq.method = method;
+      mockRes!.on = jest.fn((event: string, callback: () => void) => {
+        if (event === 'finish') finishListeners.push(callback);
+        return mockRes as Response;
+      });
+
+      metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+      finishListeners.forEach(listener => listener());
+
+      expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+        method,
+        expect.any(String),
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+  });
+
+  it('should record correct status codes', () => {
+    const statusCodes = [200, 201, 400, 401, 404, 500, 503];
+
+    statusCodes.forEach(statusCode => {
+      jest.clearAllMocks();
+      finishListeners = [];
+
+      mockRes!.statusCode = statusCode;
+      mockRes!.on = jest.fn((event: string, callback: () => void) => {
+        if (event === 'finish') finishListeners.push(callback);
+        return mockRes as Response;
+      });
+
+      metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+      finishListeners.forEach(listener => listener());
+
+      expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        statusCode,
+        expect.any(Number)
+      );
+    });
+  });
+
+  it('should use route pattern when available', () => {
+    mockReq.baseUrl = '/api';
+    mockReq.route = {
+      path: '/properties/:id',
+    } as any;
+
+    metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+    finishListeners.forEach(listener => listener());
+
+    expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+      'GET',
+      '/api/properties/:id',
+      200,
+      expect.any(Number)
+    );
+  });
+
+  it('should fallback to path when route is not available', () => {
+    mockReq.route = undefined;
+    mockReq.path = '/api/custom/path';
+
+    metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+    finishListeners.forEach(listener => listener());
+
+    expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+      'GET',
+      '/api/custom/path',
+      200,
+      expect.any(Number)
+    );
+  });
+
+  it('should handle routes with empty baseUrl', () => {
+    mockReq.baseUrl = '';
+    mockReq.route = {
+      path: '/health',
+    } as any;
+
+    metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+    finishListeners.forEach(listener => listener());
+
+    expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+      'GET',
+      '/health',
+      200,
+      expect.any(Number)
+    );
+  });
+
+  it('should handle parameterized routes correctly', () => {
+    mockReq.baseUrl = '/api/properties';
+    mockReq.route = {
+      path: '/:id/details',
+    } as any;
+
+    metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+    finishListeners.forEach(listener => listener());
+
+    expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+      'GET',
+      '/api/properties/:id/details',
+      200,
+      expect.any(Number)
+    );
+  });
+
+  it('should handle routes with no path correctly', () => {
+    mockReq.route = {
+      path: undefined,
+    } as any;
+    mockReq.path = '/fallback/path';
+
+    metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+    finishListeners.forEach(listener => listener());
+
+    expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+      'GET',
+      '/fallback/path',
+      200,
+      expect.any(Number)
+    );
+  });
+
+  it('should only record metrics once per request', () => {
+    metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+
+    // Call finish listener once (finish event only fires once in reality)
+    finishListeners.forEach(listener => listener());
+
+    // Should only record once
+    expect(metricsService.recordHttpRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('should measure very fast requests', () => {
+    metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
+
+    // Immediately finish
+    finishListeners.forEach(listener => listener());
+
+    const call = (metricsService.recordHttpRequest as jest.Mock).mock.calls[0];
+    const duration = call[3];
+
+    // Duration should be very small but >= 0
+    expect(duration).toBeGreaterThanOrEqual(0);
+    expect(duration).toBeLessThan(0.01); // Less than 10ms
+  });
+});
+</file>
+
+<file path="__tests__/validation.middleware.test.ts">
+import { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
+import { validate, validateBody, validateQuery, validateParams } from '../validation.middleware';
+
+describe('Validation Middleware', () => {
+  let mockReq: Partial<Request>;
+  let mockRes: Partial<Response>;
+  let mockNext: NextFunction;
+  let jsonMock: jest.Mock;
+  let statusMock: jest.Mock;
+
+  beforeEach(() => {
+    jsonMock = jest.fn();
+    statusMock = jest.fn().mockReturnValue({ json: jsonMock });
+
+    mockReq = {
+      body: {},
+      query: {},
+      params: {},
+    };
+
+    mockRes = {
+      status: statusMock,
+      json: jsonMock,
+    };
+
+    mockNext = jest.fn();
+  });
+
+  describe('validate', () => {
+    const userSchema = z.object({
+      name: z.string().min(1),
+      email: z.string().email(),
+      age: z.number().min(0).optional(),
+    });
+
+    it('should validate and pass valid body data', () => {
+      mockReq.body = {
+        name: 'John Doe',
+        email: 'john@example.com',
+        age: 30,
+      };
+
+      const middleware = validate(userSchema, 'body');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith();
+      expect(statusMock).not.toHaveBeenCalled();
+      expect(mockReq.body).toEqual({
+        name: 'John Doe',
+        email: 'john@example.com',
+        age: 30,
+      });
+    });
+
+    it('should validate and pass valid query data', () => {
+      mockReq.query = {
+        name: 'John Doe',
+        email: 'john@example.com',
+      };
+
+      const middleware = validate(userSchema, 'query');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith();
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+
+    it('should validate and pass valid params data', () => {
+      const idSchema = z.object({
+        id: z.string().uuid(),
+      });
+
+      mockReq.params = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+      };
+
+      const middleware = validate(idSchema, 'params');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith();
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+
+    it('should reject invalid data and return 400', () => {
+      mockReq.body = {
+        name: '',
+        email: 'invalid-email',
+      };
+
+      const middleware = validate(userSchema, 'body');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'Invalid request data',
+          details: expect.arrayContaining([
+            expect.objectContaining({
+              path: expect.any(String),
+              message: expect.any(String),
+            }),
+          ]),
+        })
+      );
+    });
+
+    it('should return detailed validation errors', () => {
+      mockReq.body = {
+        name: '',
+        email: 'not-an-email',
+      };
+
+      const middleware = validate(userSchema, 'body');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      const response = jsonMock.mock.calls[0][0];
+      expect(response.details).toHaveLength(2);
+      expect(response.details).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: 'name',
+            message: expect.stringContaining('String must contain at least 1 character'),
+          }),
+          expect.objectContaining({
+            path: 'email',
+            message: expect.stringContaining('Invalid email'),
+          }),
+        ])
+      );
+    });
+
+    it('should apply defaults from schema', () => {
+      const schemaWithDefaults = z.object({
+        name: z.string(),
+        role: z.string().default('user'),
+        active: z.boolean().default(true),
+      });
+
+      mockReq.body = {
+        name: 'John',
+      };
+
+      const middleware = validate(schemaWithDefaults, 'body');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockReq.body).toEqual({
+        name: 'John',
+        role: 'user',
+        active: true,
+      });
+    });
+
+    it('should handle nested object validation', () => {
+      const nestedSchema = z.object({
+        user: z.object({
+          profile: z.object({
+            firstName: z.string().min(1),
+            lastName: z.string(),
+          }),
+        }),
+      });
+
+      mockReq.body = {
+        user: {
+          profile: {
+            firstName: '',
+          },
+        },
+      };
+
+      const middleware = validate(nestedSchema, 'body');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      const response = jsonMock.mock.calls[0][0];
+      expect(response.details).toContainEqual(
+        expect.objectContaining({
+          path: 'user.profile.firstName',
+        })
+      );
+      expect(response.details).toContainEqual(
+        expect.objectContaining({
+          path: 'user.profile.lastName',
+        })
+      );
+    });
+
+    it('should handle array validation errors', () => {
+      const arraySchema = z.object({
+        tags: z.array(z.string().min(1)),
+      });
+
+      mockReq.body = {
+        tags: ['valid', '', 'another-valid'],
+      };
+
+      const middleware = validate(arraySchema, 'body');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      const response = jsonMock.mock.calls[0][0];
+      expect(response.details[0].path).toBe('tags.1');
+    });
+
+    it('should pass non-Zod errors to next middleware', () => {
+      const throwingSchema = {
+        parse: () => {
+          throw new Error('Non-Zod error');
+        },
+      } as any;
+
+      const middleware = validate(throwingSchema, 'body');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateBody', () => {
+    it('should be a convenience wrapper for body validation', () => {
+      const schema = z.object({ name: z.string() });
+      mockReq.body = { name: 'Test' };
+
+      const middleware = validateBody(schema);
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateQuery', () => {
+    it('should be a convenience wrapper for query validation', () => {
+      const schema = z.object({ search: z.string() });
+      mockReq.query = { search: 'test query' };
+
+      const middleware = validateQuery(schema);
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateParams', () => {
+    it('should be a convenience wrapper for params validation', () => {
+      const schema = z.object({ id: z.string() });
+      mockReq.params = { id: '123' };
+
+      const middleware = validateParams(schema);
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle empty validation schema', () => {
+      const emptySchema = z.object({});
+      mockReq.body = { anything: 'goes' };
+
+      const middleware = validate(emptySchema, 'body');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockReq.body).toEqual({});
+    });
+
+    it('should handle strict schemas that disallow extra keys', () => {
+      const strictSchema = z.object({ name: z.string() }).strict();
+      mockReq.body = { name: 'Test', extra: 'field' };
+
+      const middleware = validate(strictSchema, 'body');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      const response = jsonMock.mock.calls[0][0];
+      expect(response.details[0].message).toContain('Unrecognized key');
+    });
+
+    it('should transform data types when using coercion', () => {
+      const coerceSchema = z.object({
+        age: z.coerce.number(),
+        active: z.coerce.boolean(),
+      });
+
+      mockReq.query = { age: '25', active: '1' };
+
+      const middleware = validate(coerceSchema, 'query');
+      middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockReq.query).toEqual({ age: 25, active: true });
+    });
+  });
+});
+</file>
+
+<file path="__tests__/xcontroller.middleware.test.ts">
+/**
+ * XController Middleware Tests
+ */
+
+import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { Request, Response, NextFunction } from 'express';
+
+// Mock the config module before importing middleware
+jest.mock('../../config', () => {
+  const mockConfig = {
+    env: {
+      nodeEnv: 'development',
+      isDevelopment: true,
+      isProduction: false,
+      isTest: false,
+    },
+    security: {
+      csp: {
+        enabled: true,
+        nonceLength: 16,
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          fontSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          frameAncestors: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+        },
+      },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+      },
+    },
+    frontend: {
+      apiUrl: '/api',
+      appVersion: '1.0.0',
+      features: {
+        search: true,
+        analytics: false,
+        monitoring: false,
+      },
+    },
+  };
+
+  return {
+    config: mockConfig,
+  };
+});
+
+import {
+  generateNonce,
+  encodeJsonForHtml,
+  nonceMiddleware,
+  cspMiddleware,
+  generateSecureHtml,
+  getInitialAppData,
+} from '../xcontroller.middleware';
+import { config } from '../../config';
+
+describe('XController Middleware', () => {
+  describe('generateNonce', () => {
+    test('should generate a base64 string', () => {
+      const nonce = generateNonce();
+      expect(typeof nonce).toBe('string');
+      expect(nonce.length).toBeGreaterThan(16);
+    });
+
+    test('should generate unique nonces', () => {
+      const nonce1 = generateNonce();
+      const nonce2 = generateNonce();
+      expect(nonce1).not.toBe(nonce2);
+    });
+
+    test('should be cryptographically secure (16 bytes = 24 base64 chars)', () => {
+      const nonce = generateNonce();
+      // 16 bytes in base64 = 24 characters (rounded up)
+      expect(nonce.length).toBeGreaterThanOrEqual(20);
+    });
+  });
+
+  describe('encodeJsonForHtml', () => {
+    test('should encode dangerous < character', () => {
+      const data = { html: '<script>alert("xss")</script>' };
+      const encoded = encodeJsonForHtml(data);
+      expect(encoded).not.toContain('<script>');
+      expect(encoded).toContain('\\u003C');
+    });
+
+    test('should encode dangerous > character', () => {
+      const data = { html: '<div>' };
+      const encoded = encodeJsonForHtml(data);
+      expect(encoded).not.toContain('>');
+      expect(encoded).toContain('\\u003E');
+    });
+
+    test('should encode dangerous & character', () => {
+      const data = { html: 'foo & bar' };
+      const encoded = encodeJsonForHtml(data);
+      expect(encoded).not.toContain('&');
+      expect(encoded).toContain('\\u0026');
+    });
+
+    test('should prevent script injection', () => {
+      const malicious = {
+        payload: '</script><script>alert("xss")</script>',
+      };
+      const encoded = encodeJsonForHtml(malicious);
+      expect(encoded).not.toContain('</script>');
+      expect(encoded).not.toContain('<script>');
+    });
+
+    test('should handle unicode line separators', () => {
+      const data = { text: 'line\u2028separator' };
+      const encoded = encodeJsonForHtml(data);
+      expect(encoded).toContain('\\u2028');
+    });
+
+    test('should be valid JSON after encoding', () => {
+      const data = { test: 'value', number: 123 };
+      const encoded = encodeJsonForHtml(data);
+      const decoded = JSON.parse(encoded);
+      expect(decoded).toEqual(data);
+    });
+  });
+
+  describe('nonceMiddleware', () => {
+    let req: Partial<Request>;
+    let res: Partial<Response>;
+    let next: NextFunction;
+
+    beforeEach(() => {
+      req = {};
+      res = {
+        locals: {},
+      };
+      next = jest.fn();
+    });
+
+    test('should add nonce to res.locals', () => {
+      nonceMiddleware(req as Request, res as Response, next);
+      expect(res.locals?.nonce).toBeDefined();
+      expect(typeof res.locals?.nonce).toBe('string');
+    });
+
+    test('should call next()', () => {
+      nonceMiddleware(req as Request, res as Response, next);
+      expect(next).toHaveBeenCalled();
+    });
+
+    test('should generate different nonces for different requests', () => {
+      const res1: Partial<Response> = { locals: {} };
+      const res2: Partial<Response> = { locals: {} };
+
+      nonceMiddleware(req as Request, res1 as Response, next);
+      nonceMiddleware(req as Request, res2 as Response, next);
+
+      expect(res1.locals?.nonce).not.toBe(res2.locals?.nonce);
+    });
+  });
+
+  describe('cspMiddleware', () => {
+    let req: Partial<Request>;
+    let res: Partial<Response>;
+    let next: NextFunction;
+
+    beforeEach(() => {
+      req = {
+        protocol: 'http',
+      };
+      res = {
+        locals: { nonce: 'test-nonce-12345' },
+        setHeader: jest.fn(),
+      };
+      next = jest.fn();
+      // Reset config to development mode
+      (config.env as any).isProduction = false;
+      (config.env as any).nodeEnv = 'development';
+    });
+
+    test('should set Content-Security-Policy header with nonce', () => {
+      cspMiddleware(req as Request, res as Response, next);
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Security-Policy',
+        expect.stringContaining("'nonce-test-nonce-12345'")
+      );
+    });
+
+    test('should set X-Content-Type-Options header', () => {
+      cspMiddleware(req as Request, res as Response, next);
+      expect(res.setHeader).toHaveBeenCalledWith('X-Content-Type-Options', 'nosniff');
+    });
+
+    test('should set X-Frame-Options header', () => {
+      cspMiddleware(req as Request, res as Response, next);
+      expect(res.setHeader).toHaveBeenCalledWith('X-Frame-Options', 'DENY');
+    });
+
+    test('should set X-XSS-Protection header', () => {
+      cspMiddleware(req as Request, res as Response, next);
+      expect(res.setHeader).toHaveBeenCalledWith('X-XSS-Protection', '1; mode=block');
+    });
+
+    test('should set Referrer-Policy header', () => {
+      cspMiddleware(req as Request, res as Response, next);
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Referrer-Policy',
+        'strict-origin-when-cross-origin'
+      );
+    });
+
+    test('should include default-src directive', () => {
+      cspMiddleware(req as Request, res as Response, next);
+      const cspCall = (res.setHeader as jest.Mock).mock.calls.find(
+        call => call[0] === 'Content-Security-Policy'
+      );
+      expect(cspCall[1]).toContain("default-src 'self'");
+    });
+
+    test('should include script-src with nonce', () => {
+      cspMiddleware(req as Request, res as Response, next);
+      const cspCall = (res.setHeader as jest.Mock).mock.calls.find(
+        call => call[0] === 'Content-Security-Policy'
+      );
+      expect(cspCall[1]).toContain("script-src 'self' 'nonce-test-nonce-12345'");
+    });
+
+    test('should set HSTS in production with HTTPS', () => {
+      (config.env as any).isProduction = true;
+      (config.env as any).nodeEnv = 'production';
+      req.protocol = 'https';
+      cspMiddleware(req as Request, res as Response, next);
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Strict-Transport-Security',
+        'max-age=31536000; includeSubDomains'
+      );
+    });
+
+    test('should not set HSTS in development', () => {
+      (config.env as any).isProduction = false;
+      (config.env as any).nodeEnv = 'development';
+      cspMiddleware(req as Request, res as Response, next);
+      expect(res.setHeader).not.toHaveBeenCalledWith(
+        'Strict-Transport-Security',
+        expect.anything()
+      );
+    });
+
+    test('should not set HSTS with HTTP in production', () => {
+      (config.env as any).isProduction = true;
+      (config.env as any).nodeEnv = 'production';
+      req.protocol = 'http';
+      cspMiddleware(req as Request, res as Response, next);
+      expect(res.setHeader).not.toHaveBeenCalledWith(
+        'Strict-Transport-Security',
+        expect.anything()
+      );
+    });
+
+    test('should call next()', () => {
+      cspMiddleware(req as Request, res as Response, next);
+      expect(next).toHaveBeenCalled();
+    });
+  });
+
+  describe('generateSecureHtml', () => {
+    test('should generate valid HTML', () => {
+      const html = generateSecureHtml({
+        title: 'Test App',
+        nonce: 'test-nonce',
+        scriptSrc: '/app.js',
+      });
+
+      expect(html).toContain('<!DOCTYPE html>');
+      expect(html).toContain('<title>Test App</title>');
+      expect(html).toContain('<div id="root"></div>');
+    });
+
+    test('should include nonce in script tag', () => {
+      const html = generateSecureHtml({
+        title: 'Test App',
+        nonce: 'test-nonce-123',
+        scriptSrc: '/app.js',
+      });
+
+      expect(html).toContain('nonce="test-nonce-123"');
+    });
+
+    test('should embed initial data when provided', () => {
+      const html = generateSecureHtml({
+        title: 'Test App',
+        nonce: 'test-nonce',
+        initialData: { test: 'value' },
+        scriptSrc: '/app.js',
+      });
+
+      expect(html).toContain('type="application/json"');
+      expect(html).toContain('id="initial-data"');
+      expect(html).toContain('"test"');
+    });
+
+    test('should properly encode initial data', () => {
+      const html = generateSecureHtml({
+        title: 'Test App',
+        nonce: 'test-nonce',
+        initialData: { html: '<script>alert("xss")</script>' },
+        scriptSrc: '/app.js',
+      });
+
+      expect(html).not.toContain('<script>alert');
+      expect(html).toContain('\\u003Cscript\\u003E');
+    });
+
+    test('should include style link when provided', () => {
+      const html = generateSecureHtml({
+        title: 'Test App',
+        nonce: 'test-nonce',
+        scriptSrc: '/app.js',
+        styleSrc: '/app.css',
+      });
+
+      expect(html).toContain('<link rel="stylesheet" href="/app.css"');
+    });
+
+    test('should not include data script when no initial data', () => {
+      const html = generateSecureHtml({
+        title: 'Test App',
+        nonce: 'test-nonce',
+        scriptSrc: '/app.js',
+      });
+
+      expect(html).not.toContain('id="initial-data"');
+    });
+  });
+
+  describe('getInitialAppData', () => {
+    beforeEach(() => {
+      // Reset config to defaults
+      (config.frontend as any).apiUrl = '/api';
+      (config.env as any).nodeEnv = 'development';
+      (config.env as any).isProduction = false;
+      (config.frontend as any).appVersion = '1.0.0';
+      (config.frontend.features as any).analytics = false;
+    });
+
+    test('should return valid initial data structure', () => {
+      const data = getInitialAppData();
+
+      expect(data).toHaveProperty('apiUrl');
+      expect(data).toHaveProperty('environment');
+      expect(data).toHaveProperty('features');
+      expect(data).toHaveProperty('version');
+    });
+
+    test('should use environment variables when available', () => {
+      (config.frontend as any).apiUrl = 'https://api.example.com';
+      (config.env as any).nodeEnv = 'production';
+      (config.frontend as any).appVersion = '2.0.0';
+
+      const data = getInitialAppData();
+
+      expect(data.apiUrl).toBe('https://api.example.com');
+      expect(data.environment).toBe('production');
+      expect(data.version).toBe('2.0.0');
+    });
+
+    test('should use defaults when environment variables are missing', () => {
+      (config.frontend as any).apiUrl = '/api';
+      (config.env as any).nodeEnv = 'development';
+      (config.frontend as any).appVersion = '1.0.0';
+
+      const data = getInitialAppData();
+
+      expect(data.apiUrl).toBe('/api');
+      expect(data.environment).toBe('development');
+      expect(data.version).toBe('1.0.0');
+    });
+
+    test('should enable analytics in production', () => {
+      (config.env as any).nodeEnv = 'production';
+      (config.env as any).isProduction = true;
+      (config.frontend.features as any).analytics = true;
+
+      const data = getInitialAppData();
+      expect(data.features.analytics).toBe(true);
+    });
+
+    test('should disable analytics in development', () => {
+      (config.env as any).nodeEnv = 'development';
+      (config.env as any).isProduction = false;
+      (config.frontend.features as any).analytics = false;
+
+      const data = getInitialAppData();
+      expect(data.features.analytics).toBe(false);
+    });
+
+    test('should not expose sensitive data', () => {
+      const data = getInitialAppData();
+      const json = JSON.stringify(data);
+
+      expect(json).not.toContain('DATABASE_URL');
+      expect(json).not.toContain('API_KEY');
+      expect(json).not.toContain('JWT_SECRET');
+      expect(json).not.toContain('ANTHROPIC_API_KEY');
+    });
+  });
+});
+</file>
+
+<file path="auth.ts">
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { config } from '../config';
+
+export interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email?: string;
+  };
+}
+
+// Simple API key authentication middleware
+export const apiKeyAuth = (req: Request, res: Response, next: NextFunction) => {
+  const apiKey = req.headers['x-api-key'] as string;
+
+  // Skip auth in development if no API key is set and skip is enabled
+  if (config.env.isDevelopment && config.auth.skipInDevelopment && !config.auth.apiKey) {
+    return next();
+  }
+
+  if (!apiKey || apiKey !== config.auth.apiKey) {
+    return res.status(401).json({ error: 'Unauthorized - Invalid API key' });
+  }
+
+  next();
+};
+
+// JWT authentication middleware
+export const jwtAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  // Skip auth in development if no JWT secret is set and skip is enabled
+  if (config.env.isDevelopment && config.auth.skipInDevelopment && !config.auth.jwt.secret) {
+    return next();
+  }
+
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized - No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, config.auth.jwt.secret) as { id: string; email?: string };
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(403).json({ error: 'Forbidden - Invalid token' });
+  }
+};
+
+// Optional auth middleware (allows both authenticated and unauthenticated access)
+export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (token && config.auth.jwt.secret) {
+    try {
+      const decoded = jwt.verify(token, config.auth.jwt.secret) as { id: string; email?: string };
+      req.user = decoded;
+    } catch (error) {
+      // Invalid token, but we continue anyway
+    }
+  }
+
+  next();
+};
+
+// Generate JWT token
+export const generateToken = (userId: string, email?: string): string => {
+  return jwt.sign({ id: userId, email }, config.auth.jwt.secret, {
+    expiresIn: config.auth.jwt.expiresIn as string | number,
+  });
+};
+</file>
+
+<file path="error.middleware.ts">
+import { Request, Response, NextFunction } from 'express';
+import logger from '../lib/logger';
+
+/**
+ * Async handler wrapper to catch errors in async route handlers
+ */
+export const asyncHandler = (
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
+) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+};
+
+/**
+ * Global error handling middleware
+ */
+export const errorHandler = (
+  error: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  logger.error('Error:', error);
+
+  // Handle specific error types
+  if (error.name === 'ValidationError') {
+    return res.status(400).json({
+      error: 'Validation failed',
+      message: error.message,
+    });
+  }
+
+  if (error.name === 'UnauthorizedError') {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: error.message,
+    });
+  }
+
+  // Default to 500 server error
+  res.status(500).json({
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred',
+    ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
+  });
+};
+
+/**
+ * 404 Not Found handler
+ */
+export const notFoundHandler = (req: Request, res: Response) => {
+  res.status(404).json({
+    error: 'Not found',
+    message: `Route ${req.method} ${req.path} not found`,
+  });
+};
+</file>
+
+<file path="metrics.middleware.ts">
+/**
+ * Prometheus Metrics Middleware
+ *
+ * Automatically tracks HTTP request metrics
+ */
+
+import { Request, Response, NextFunction } from 'express';
+import { recordHttpRequest } from '../lib/metrics.service';
+
+/**
+ * Extract route pattern from request
+ * Converts /api/properties/123 to /api/properties/:id
+ */
+function getRoutePattern(req: Request): string {
+  // If route is available, use it (Express 4.x)
+  if (req.route?.path) {
+    return req.baseUrl + req.route.path;
+  }
+
+  // Otherwise use the actual path
+  return req.path;
+}
+
+/**
+ * Metrics middleware
+ * Records HTTP request metrics for all requests
+ */
+export function metricsMiddleware(req: Request, res: Response, next: NextFunction): void {
+  const startTime = Date.now();
+
+  // Capture the response finish event
+  res.on('finish', () => {
+    const duration = (Date.now() - startTime) / 1000; // Convert to seconds
+    const route = getRoutePattern(req);
+    const method = req.method;
+    const statusCode = res.statusCode;
+
+    recordHttpRequest(method, route, statusCode, duration);
+  });
+
+  next();
+}
+</file>
+
+<file path="README_ENHANCED.md">
+# middleware
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "middleware",
+  "description": "Directory containing 4 code files with 1 classes and 12 functions",
+  "programmingLanguage": [
+    {
+      "@type": "ComputerLanguage",
+      "name": "Typescript"
+    }
+  ],
+  "featureList": [
+    "1 class definitions",
+    "12 function definitions"
+  ]
+}
+</script>
+
+## Overview
+
+This directory contains 4 code file(s) with extracted schemas.
+
+## Subdirectories
+
+- `__tests__/`
+
+## Files and Schemas
+
+### `auth.ts` (typescript)
+
+**Functions:**
+- `apiKeyAuth()` - Line 12
+- `jwtAuth()` - Line 28
+- `optionalAuth()` - Line 51
+
+### `error.middleware.ts` (typescript)
+
+**Functions:**
+- `asyncHandler()` - Line 6
+- `errorHandler()` - Line 17
+- `notFoundHandler()` - Line 51
+
+### `validation.middleware.ts` (typescript)
+
+**Functions:**
+- `validate()` - Line 6
+- `validateBody()` - Line 34
+- `validateQuery()` - Line 35
+- `validateParams()` - Line 36
+
+### `xcontroller.middleware.ts` (typescript)
+
+**Classes:**
+- `InitialAppData` - Line 131
+
+**Functions:**
+- `nonceMiddleware()` - Line 34
+- `cspMiddleware()` - Line 43
+
+---
+*Generated by Enhanced Schema Generator with schema.org markup*
+</file>
+
+<file path="validation.middleware.ts">
+import { Request, Response, NextFunction } from 'express';
+import { z, ZodSchema } from 'zod';
+
+/**
+ * Middleware factory for validating request data using Zod schemas
+ */
+export const validate = (schema: ZodSchema, source: 'body' | 'query' | 'params' = 'body') => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const dataToValidate = req[source];
+      const validatedData = schema.parse(dataToValidate);
+
+      // Replace the original data with validated data (with defaults applied)
+      req[source] = validatedData;
+
+      next();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: 'Invalid request data',
+          details: error.errors.map(err => ({
+            path: err.path.join('.'),
+            message: err.message,
+          })),
+        });
+      }
+      next(error);
+    }
+  };
+};
+
+/**
+ * Convenience functions for common validation scenarios
+ */
+export const validateBody = (schema: ZodSchema) => validate(schema, 'body');
+export const validateQuery = (schema: ZodSchema) => validate(schema, 'query');
+export const validateParams = (schema: ZodSchema) => validate(schema, 'params');
+</file>
+
+<file path="xcontroller.middleware.ts">
+/**
+ * XController Middleware
+ * Implements secure server-to-client data passing with CSP Level 3 compliance
+ */
+
+import crypto from 'crypto';
+import { Request, Response, NextFunction } from 'express';
+import { config } from '../config';
+import logger from '../lib/logger';
+
+/**
+ * Generate cryptographically secure nonce for CSP
+ */
+export function generateNonce(): string {
+  return crypto.randomBytes(config.security.csp.nonceLength).toString('base64');
+}
+
+/**
+ * Encode JSON safely for embedding in HTML
+ * Prevents XSS by encoding dangerous characters
+ */
+export function encodeJsonForHtml(data: any): string {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003C')
+    .replace(/>/g, '\\u003E')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')  // Line separator
+    .replace(/\u2029/g, '\\u2029'); // Paragraph separator
+}
+
+/**
+ * Middleware to add CSP nonce to response locals
+ * Usage: app.use(nonceMiddleware)
+ */
+export function nonceMiddleware(req: Request, res: Response, next: NextFunction) {
+  res.locals.nonce = generateNonce();
+  next();
+}
+
+/**
+ * Middleware to set CSP headers with nonce support
+ * Usage: app.use(cspMiddleware)
+ */
+export function cspMiddleware(req: Request, res: Response, next: NextFunction) {
+  const nonce = res.locals.nonce;
+
+  if (!nonce) {
+    logger.warn('CSP middleware called without nonce. Use nonceMiddleware first.');
+  }
+
+  // CSP Level 3 with nonce support
+  if (config.security.csp.enabled) {
+    const directives = config.security.csp.directives;
+    const cspDirectives = [
+      `default-src ${directives.defaultSrc.join(' ')}`,
+      nonce
+        ? `script-src ${directives.scriptSrc.join(' ')} 'nonce-${nonce}'`
+        : `script-src ${directives.scriptSrc.join(' ')}`,
+      nonce
+        ? `style-src ${directives.styleSrc.join(' ')} 'nonce-${nonce}'`
+        : `style-src ${directives.styleSrc.join(' ')}`,
+      `img-src ${directives.imgSrc.join(' ')}`,
+      `font-src ${directives.fontSrc.join(' ')}`,
+      `connect-src ${directives.connectSrc.join(' ')}`,
+      `frame-ancestors ${directives.frameAncestors.join(' ')}`,
+      `base-uri ${directives.baseUri.join(' ')}`,
+      `form-action ${directives.formAction.join(' ')}`,
+    ].join('; ');
+
+    res.setHeader('Content-Security-Policy', cspDirectives);
+  }
+
+  // Additional security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // HSTS (only in production with HTTPS)
+  if (config.env.isProduction && req.protocol === 'https') {
+    res.setHeader(
+      'Strict-Transport-Security',
+      `max-age=${config.security.hsts.maxAge}${config.security.hsts.includeSubDomains ? '; includeSubDomains' : ''}`
+    );
+  }
+
+  next();
+}
+
+/**
+ * Generate HTML with embedded secure data
+ * Uses JSON Script Tag pattern for CSP compliance
+ */
+export function generateSecureHtml(options: {
+  title: string;
+  nonce: string;
+  initialData?: any;
+  scriptSrc: string;
+  styleSrc?: string;
+}): string {
+  const { title, nonce, initialData, scriptSrc, styleSrc } = options;
+
+  let dataScript = '';
+  if (initialData) {
+    const encodedData = encodeJsonForHtml(initialData);
+    dataScript = `
+    <!-- Initial app data (secure) -->
+    <script type="application/json" id="initial-data" nonce="${nonce}">
+      ${encodedData}
+    </script>`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    ${styleSrc ? `<link rel="stylesheet" href="${styleSrc}" nonce="${nonce}">` : ''}
+  </head>
+  <body>
+    <div id="root"></div>
+    ${dataScript}
+    <script src="${scriptSrc}" nonce="${nonce}"></script>
+  </body>
+</html>`;
+}
+
+/**
+ * Type-safe initial data interface
+ */
+export interface InitialAppData {
+  apiUrl: string;
+  environment: string;
+  features: {
+    search: boolean;
+    analytics: boolean;
+    monitoring: boolean;
+  };
+  version: string;
+}
+
+/**
+ * Generate initial app configuration
+ * Never include sensitive data here!
+ */
+export function getInitialAppData(): InitialAppData {
+  return {
+    apiUrl: config.frontend.apiUrl,
+    environment: config.env.nodeEnv,
+    features: {
+      search: config.frontend.features.search,
+      analytics: config.frontend.features.analytics,
+      monitoring: config.frontend.features.monitoring,
+    },
+    version: config.frontend.appVersion,
+  };
+}
+</file>
+
+</files>

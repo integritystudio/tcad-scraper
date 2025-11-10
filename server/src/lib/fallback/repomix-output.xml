@@ -1,0 +1,484 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+dom-scraper.ts
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="dom-scraper.ts">
+/**
+ * DOM-BASED SCRAPER - FALLBACK MECHANISM ONLY
+ *
+ * ⚠️ WARNING: This is a DEPRECATED fallback method
+ *
+ * This scraper is limited to 20 results per search due to AG Grid's hidden pagination.
+ * It should ONLY be used when the primary API-based scraping method fails.
+ *
+ * Primary method: scrapePropertiesViaAPI() in tcad-scraper.ts
+ * Fallback method: scrapeDOMFallback() in this file
+ *
+ * Limitations:
+ * - Maximum 20 results per search (AG Grid pagination restriction)
+ * - Slower performance (DOM manipulation + individual page scraping)
+ * - Higher resource usage
+ * - More fragile (breaks if UI changes)
+ *
+ * Use cases:
+ * - API authentication failures
+ * - API rate limiting
+ * - API endpoint changes
+ * - Emergency data retrieval
+ */
+
+import { Browser, Page, BrowserContext } from 'playwright';
+import winston from 'winston';
+import { PropertyData, ScraperConfig } from '../../types';
+import { config as appConfig } from '../../config';
+
+const logger = winston.createLogger({
+  level: appConfig.logging.level,
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.simple(),
+    }),
+  ],
+});
+
+/**
+ * Human-like delay between actions
+ */
+async function humanDelay(
+  min: number = appConfig.scraper.humanDelay.min,
+  max: number = appConfig.scraper.humanDelay.max
+): Promise<void> {
+  const delay = Math.floor(Math.random() * (max - min) + min);
+  await new Promise(resolve => setTimeout(resolve, delay));
+}
+
+/**
+ * Scrape property details from individual property page
+ */
+async function scrapePropertyDetail(page: Page, propertyId: string): Promise<PropertyData | null> {
+  try {
+    const detailUrl = `https://travis.prodigycad.com/property-detail?pid=${propertyId}`;
+    await page.goto(detailUrl, {
+      waitUntil: 'networkidle',
+      timeout: 15000,
+    });
+
+    await humanDelay(1000, 2000);
+
+    const propertyData = await page.evaluate(() => {
+      const getValueByLabel = (labelText: string): string | null => {
+        const labels = document.querySelectorAll('label, dt, th, .label, [class*="label"]');
+
+        let labelIdx = 0;
+        while (labelIdx < labels.length) {
+          const label = labels[labelIdx];
+          const text = label.textContent?.trim().toLowerCase() || '';
+
+          if (text.includes(labelText.toLowerCase())) {
+            let valueElem = label.nextElementSibling;
+            if (valueElem && valueElem.textContent) {
+              return valueElem.textContent.trim();
+            }
+
+            if (label.parentElement) {
+              valueElem = label.parentElement.nextElementSibling;
+              if (valueElem && valueElem.textContent) {
+                return valueElem.textContent.trim();
+              }
+            }
+
+            if (label.tagName === 'TH') {
+              const row = label.closest('tr');
+              if (row) {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 0) {
+                  return cells[0].textContent?.trim() || null;
+                }
+              }
+            }
+          }
+
+          labelIdx++;
+        }
+
+        return null;
+      };
+
+      const name = getValueByLabel('owner') || getValueByLabel('name') || '';
+      const propType = getValueByLabel('property type') || getValueByLabel('type') || '';
+      const city = getValueByLabel('city') || getValueByLabel('situs city') || null;
+      const propertyAddress = getValueByLabel('address') || getValueByLabel('situs address') || getValueByLabel('street') || '';
+
+      const appraisedValueText = getValueByLabel('appraised value') ||
+                                 getValueByLabel('market value') ||
+                                 getValueByLabel('total value') || '0';
+      const appraisedValue = parseFloat(appraisedValueText.replace(/[$,]/g, '')) || 0;
+
+      const assessedValueText = getValueByLabel('assessed value') ||
+                                getValueByLabel('taxable value') || '0';
+      const assessedValue = parseFloat(assessedValueText.replace(/[$,]/g, '')) || 0;
+
+      const geoId = getValueByLabel('geo id') || getValueByLabel('geographic id') || null;
+      const description = getValueByLabel('legal description') || getValueByLabel('description') || null;
+
+      return {
+        name,
+        propType,
+        city,
+        propertyAddress,
+        appraisedValue,
+        assessedValue,
+        geoId,
+        description,
+      };
+    });
+
+    return {
+      propertyId,
+      ...propertyData,
+    };
+
+  } catch (error) {
+    logger.error(`Error scraping detail page for property ${propertyId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * FALLBACK: DOM-based property scraping
+ *
+ * ⚠️ This method is LIMITED to 20 results due to AG Grid pagination restrictions
+ * ⚠️ Use only when API-based scraping fails
+ *
+ * @param browser - Playwright browser instance
+ * @param config - Scraper configuration
+ * @param searchTerm - Search term
+ * @param maxRetries - Maximum retry attempts
+ * @returns Array of PropertyData (max 20 results)
+ */
+export async function scrapeDOMFallback(
+  browser: Browser,
+  config: ScraperConfig,
+  searchTerm: string,
+  maxRetries: number = 3
+): Promise<PropertyData[]> {
+  logger.warn('🔄 FALLBACK: Using DOM-based scraping (limited to 20 results)');
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      logger.info(`DOM fallback attempt ${attempt} for search term: ${searchTerm}`);
+
+      const context = await browser.newContext({
+        userAgent: config.userAgents[Math.floor(Math.random() * config.userAgents.length)],
+        viewport: config.viewports[Math.floor(Math.random() * config.viewports.length)],
+        locale: 'en-US',
+        timezoneId: 'America/Chicago',
+      });
+
+      const page = await context.newPage();
+
+      await page.setExtraHTTPHeaders({
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+      });
+
+      try {
+        await page.goto('https://travis.prodigycad.com/property-search', {
+          waitUntil: 'networkidle',
+          timeout: config.timeout,
+        });
+
+        logger.info('Page loaded, waiting for React app...');
+
+        await page.waitForFunction(() => {
+          const root = document.getElementById('root');
+          return root && root.children.length > 0;
+        }, { timeout: 15000 });
+
+        logger.info('React app loaded, performing search...');
+        await humanDelay(1000, 1500);
+
+        await page.waitForSelector('#searchInput', { timeout: 10000 });
+        await humanDelay(500, 1000);
+        await page.type('#searchInput', searchTerm, { delay: 50 + Math.random() * 100 });
+        await humanDelay(300, 700);
+        await page.press('#searchInput', 'Enter');
+        await humanDelay(2000, 3000);
+
+        await page.waitForFunction(
+          () => {
+            const hasGridCells = document.querySelector('[role="gridcell"]') !== null;
+            const hasNoResults = document.querySelector('.ag-overlay-no-rows-center') !== null ||
+                                document.body.textContent?.includes('No Rows To Show');
+            return hasGridCells || hasNoResults;
+          },
+          { timeout: 15000 }
+        );
+
+        await humanDelay(1000, 1500);
+
+        const hasNoResults = await page.evaluate(() => {
+          const noResultsOverlay = document.querySelector('.ag-overlay-no-rows-center') !== null;
+          const hasGridCells = document.querySelector('[role="gridcell"]') !== null;
+          return noResultsOverlay && !hasGridCells;
+        });
+
+        if (hasNoResults) {
+          logger.info('No results found for search term:', searchTerm);
+          await context.close();
+          return [];
+        }
+
+        logger.info('Results loaded, extracting property IDs...');
+
+        const propertyIds = await page.evaluate(() => {
+          const rows = document.querySelectorAll('[role="row"][row-index]');
+          const ids = [];
+
+          let rowIndex = 0;
+          while (rowIndex < rows.length) {
+            const row = rows[rowIndex];
+            const pidElem = row.querySelector('[col-id="pid"]');
+            const propertyId = pidElem ? pidElem.textContent.trim() : '';
+
+            if (propertyId) {
+              ids.push(propertyId);
+            }
+
+            rowIndex++;
+          }
+
+          return ids;
+        });
+
+        logger.warn(`⚠️ DOM scraping found ${propertyIds.length} property IDs (max 20 due to pagination limit)`);
+
+        const properties = [];
+        let successCount = 0;
+        let failCount = 0;
+
+        for (let i = 0; i < propertyIds.length; i++) {
+          const propertyId = propertyIds[i];
+
+          try {
+            logger.info(`Scraping property ${i + 1}/${propertyIds.length}: ${propertyId}`);
+
+            const propertyData = await scrapePropertyDetail(page, propertyId);
+
+            if (propertyData) {
+              properties.push(propertyData);
+              successCount++;
+            } else {
+              failCount++;
+            }
+
+            await humanDelay(500, 1000);
+
+          } catch (error) {
+            logger.error(`Failed to scrape property ${propertyId}:`, error);
+            failCount++;
+          }
+        }
+
+        logger.info(`DOM fallback complete: ${successCount} succeeded, ${failCount} failed`);
+        logger.warn(`⚠️ Results limited to ${properties.length} properties (20 max due to AG Grid pagination)`);
+
+        await context.close();
+        return properties;
+
+      } finally {
+        await context.close();
+      }
+
+    } catch (error) {
+      lastError = error as Error;
+      logger.error(`DOM fallback attempt ${attempt} failed:`, error);
+
+      if (attempt < maxRetries) {
+        const delay = config.retryDelay * Math.pow(2, attempt - 1);
+        logger.info(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError || new Error('All DOM fallback scraping attempts failed');
+}
+</file>
+
+<file path="README.md">
+# Fallback Scraping Mechanisms
+
+This directory contains **FALLBACK scraping methods** that are used only when the primary API-based scraping fails.
+
+## ⚠️ Important Limitations
+
+All fallback methods in this directory have significant limitations and should **ONLY** be used as a last resort when the primary method fails.
+
+## Directory Structure
+
+### `dom-scraper.ts`
+**DOM-based property scraping - DEPRECATED FALLBACK**
+
+- **Limitation**: Maximum 20 results per search
+- **Reason**: AG Grid pagination restrictions in the UI
+- **Performance**: Slower than API method (requires individual page scraping)
+- **Fragility**: Breaks if UI HTML structure changes
+
+**When it's used:**
+- API authentication failures
+- API endpoint changes
+- Network issues preventing API access
+- Emergency data retrieval
+
+## Primary vs Fallback Methods
+
+### Primary Method (RECOMMENDED)
+Location: `/server/src/lib/tcad-scraper.ts::scrapePropertiesViaAPI()`
+
+Benefits:
+- ✅ Up to 1000 results per API call
+- ✅ Fast and efficient
+- ✅ Automatic authentication handling
+- ✅ Adaptive page sizing
+- ✅ Reliable data structure
+
+### Fallback Method (USE ONLY IF PRIMARY FAILS)
+Location: `/server/src/lib/fallback/dom-scraper.ts::scrapeDOMFallback()`
+
+Limitations:
+- ⚠️ Maximum 20 results (AG Grid pagination limit)
+- ⚠️ Slower performance
+- ⚠️ Higher resource usage
+- ⚠️ More brittle (depends on UI structure)
+
+## How the Fallback System Works
+
+The main scraper class provides a `scrapePropertiesWithFallback()` method that:
+
+1. **Attempts primary method** (API-based scraping)
+2. **On failure, automatically falls back** to DOM scraping
+3. **Logs clear warnings** about which method is being used
+4. **Returns whichever method succeeds**
+
+```typescript
+// Usage example
+const scraper = new TCADScraper();
+await scraper.initialize();
+
+// This will try API first, then DOM if API fails
+const properties = await scraper.scrapePropertiesWithFallback('search term');
+```
+
+## Logging and Monitoring
+
+The fallback system provides clear log messages:
+
+```
+🚀 Attempting primary method: API-based scraping
+✅ Primary method succeeded: Retrieved 150 properties
+```
+
+Or if fallback is triggered:
+
+```
+🚀 Attempting primary method: API-based scraping
+❌ Primary API method failed after all retries
+🔄 Falling back to DOM-based scraping (limited to 20 results)
+✅ Fallback method succeeded: Retrieved 20 properties (max 20)
+```
+
+## Adding New Fallback Methods
+
+If you need to add new fallback methods:
+
+1. Create a new file in this directory (e.g., `another-scraper.ts`)
+2. Export a function with clear documentation about its limitations
+3. Update the main scraper's fallback chain
+4. Document the method in this README
+
+## Testing Fallback Methods
+
+To test the fallback mechanism:
+
+```bash
+# Set environment to intentionally break API method
+TCAD_API_KEY=invalid_token npm run test:scraper
+
+# The system should automatically fall back to DOM scraping
+```
+
+## Performance Comparison
+
+| Method | Results | Speed | Resource Usage | Reliability |
+|--------|---------|-------|----------------|-------------|
+| API (Primary) | Up to 1000 | Fast | Low | High |
+| DOM (Fallback) | Max 20 | Slow | High | Medium |
+
+## When to Update Fallback Methods
+
+Update fallback methods when:
+- The TCAD website UI changes significantly
+- New data fields need to be extracted
+- Alternative scraping approaches become available
+- Performance improvements can be made
+
+## Related Files
+
+- `/server/src/lib/tcad-scraper.ts` - Main scraper with primary method
+- `/server/src/lib/fallback/dom-scraper.ts` - DOM fallback implementation
+- `/server/src/lib/scraper.queue.ts` - Job queue that uses the scraper
+- `/server/src/routes/properties.ts` - API routes that trigger scraping
+</file>
+
+</files>

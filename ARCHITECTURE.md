@@ -133,12 +133,20 @@ graph TB
 ### 1. Client Layer
 
 #### Web UI (React + Vite)
-- **Technology:** React 18, TypeScript, Vite
+- **Technology:** React 19.2, TypeScript, Vite 7.1
 - **Features:**
-  - Real-time search interface
-  - Property data visualization
-  - Job status monitoring
-  - AI-powered natural language queries
+  - Real-time search interface with natural language queries (Claude AI)
+  - **Expandable PropertyCard Component** (Progressive Disclosure Pattern)
+    - Financial analysis with value comparison
+    - Property identifiers display
+    - Description with smart truncation
+    - Data freshness indicators (color-coded)
+  - Property data visualization with responsive design
+  - Job status monitoring via analytics integration
+  - Mobile-first responsive layouts (640px, 1024px breakpoints)
+  - WCAG AA accessibility compliance
+- **Components:** 29 new frontend components for PropertyCard expansion
+- **Styling:** CSS Modules for scoped component styles
 - **Security:** Content Security Policy (CSP) with nonces
 
 #### API Clients
@@ -319,6 +327,98 @@ graph TB
 - Automatic periodic scraping
 - Email notifications (planned)
 - Result comparison
+
+### 9. Frontend Components (React)
+
+#### PropertySearch Feature
+- **Location:** `src/components/features/PropertySearch/`
+- **Components:** 31 files (29 new + 2 updated)
+
+##### Core Components
+- **PropertySearchContainer** - Main search interface container
+- **SearchBox** - Input field with AI-powered search
+- **ExampleQueries** - Pre-defined query suggestions
+- **SearchResults** - Grid display of PropertyCard components
+- **PropertyCard** - Individual property display (updated with expansion)
+
+##### PropertyCard Expansion Components (New)
+- **ExpandButton** - Toggle control for card expansion
+  - Size variants: sm, md, lg
+  - Animated chevron rotation (180°)
+  - ARIA-compliant
+
+- **PropertyDetails** - Container for expanded content
+  - Configurable sections
+  - Fade-in animation (300ms)
+  - Conditional rendering
+
+##### Section Components (New)
+- **FinancialSection**
+  - Appraised vs Assessed value comparison
+  - Automatic difference calculation
+  - Percentage display
+  - Color-coded indicators (🔺🔻➖)
+
+- **IdentifiersSection**
+  - Property ID display (monospace font)
+  - Geo ID display with null handling
+  - Future: Copy-to-clipboard functionality
+
+- **DescriptionSection**
+  - Smart text truncation (150 chars)
+  - "Show more"/"Show less" toggle
+  - Height animation
+
+- **MetadataSection**
+  - Timestamp display (relative + absolute)
+  - Data freshness indicator
+  - Color-coded status badges
+
+##### Utility Components (New)
+- **SectionHeader** - Reusable section title component
+  - Icon support
+  - Optional badges
+  - Collapsible variant
+
+- **ValueComparison** - Financial value display
+  - Currency formatting via useFormatting hook
+  - Difference calculation
+  - Color-coded results
+
+- **TruncatedText** - Text truncation with expansion
+  - Configurable max length
+  - Smooth transitions
+  - Null state handling
+
+- **TimestampList** - Timestamp formatting
+  - Relative time ("2 days ago")
+  - Absolute time display
+  - Multiple timestamp support
+
+- **FreshnessIndicator** - Data quality indicator
+  - Configurable thresholds (7/30 days)
+  - Color-coded badges:
+    - 🟢 Fresh (0-7 days)
+    - 🟡 Aging (7-30 days)
+    - 🔴 Stale (30+ days)
+  - Variant modes: dot, badge
+
+##### Component Patterns
+- **Progressive Disclosure**: Information revealed on demand
+- **Graceful Degradation**: Null value handling throughout
+- **Mobile-First**: Responsive breakpoints (640px, 1024px)
+- **Accessibility**: WCAG AA compliant
+  - Keyboard navigation
+  - Screen reader support
+  - ARIA attributes
+  - Focus indicators
+  - Color contrast (4.5:1 minimum)
+
+##### Styling Architecture
+- **CSS Modules** - Scoped component styles
+- **Design Tokens** - Consistent colors, spacing, typography
+- **Animations** - 300ms transitions for smooth UX
+- **Responsive Grid** - Mobile/tablet/desktop layouts
 
 ## Data Flow
 
@@ -510,10 +610,14 @@ API_KEY=key
 - **Logger:** Pino
 
 ### Frontend
-- **Framework:** React 18
-- **Build Tool:** Vite
-- **Language:** TypeScript
-- **Styling:** CSS Modules
+- **Framework:** React 19.2
+- **Build Tool:** Vite 7.1
+- **Language:** TypeScript 5.x
+- **Styling:** CSS Modules (scoped component styles)
+- **Component Library:** Custom components (Card, Badge, Icon, Button)
+- **UI Pattern:** Progressive Disclosure (expandable PropertyCard)
+- **Accessibility:** WCAG AA compliant
+- **Responsive:** Mobile-first design (640px, 1024px breakpoints)
 
 ### Data Storage
 - **Database:** PostgreSQL 14+

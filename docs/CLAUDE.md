@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code when working with the TCAD Scraper database and codebase.
 
-**Last Updated**: November 5, 2025
+**Last Updated**: November 9, 2025
 
 ---
 
@@ -10,7 +10,7 @@ This file provides guidance to Claude Code when working with the TCAD Scraper da
 
 TCAD Scraper is a production web scraper for extracting property tax data from Travis Central Appraisal District (TCAD). The system uses:
 - **Backend**: Node.js/TypeScript with Express API
-- **Database**: PostgreSQL (local instance)
+- **Database**: PostgreSQL (remote instance via Tailscale)
 - **Queue**: BullMQ with Redis
 - **Scraping**: Playwright with dual methods (API-based primary, browser-based fallback)
 - **ORM**: Prisma
@@ -19,44 +19,124 @@ TCAD Scraper is a production web scraper for extracting property tax data from T
 
 ## Database Configuration
 
+### ⚠️ IMPORTANT: Remote Database Only
+
+**The application now uses a REMOTE PostgreSQL database accessible via Tailscale.**
+
+- **Local PostgreSQL is DISABLED** (Docker container stopped)
+- All database operations use the remote server
+- Tailscale VPN must be connected to access the database
+
 ### Connection Details
 
-**Primary Database URL**:
+**Primary Database URL** (via Tailscale):
 ```
-postgresql://postgres:postgres@localhost:5432/tcad_scraper
+postgresql://[user]:[password]@[tailscale-hostname]:5432/tcad_scraper
 ```
 
-**Credentials**:
-- Username: `postgres`
-- Password: `postgres`
-- Host: `localhost`
-- Port: `5432`
-- Database: `tcad_scraper`
+**Connection Requirements**:
+- Tailscale VPN must be active and connected
+- Remote server must be accessible via Tailscale network
+- Database user must have appropriate permissions
 
 **Environment Variable** (managed by Doppler):
 ```bash
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper"
+DATABASE_URL="postgresql://[user]:[password]@[tailscale-hostname]:5432/tcad_scraper"
 ```
+
+### Setting Up the Remote Connection
+
+1. **Connect to Tailscale**:
+   ```bash
+   # Ensure Tailscale is running
+   tailscale status
+   ```
+
+2. **Update DATABASE_URL in Doppler**:
+   ```bash
+   # Set the remote database URL
+   doppler secrets set DATABASE_URL "postgresql://[user]:[password]@[tailscale-host]:5432/tcad_scraper"
+   ```
+
+3. **Verify the connection**:
+   ```bash
+   # Test database connectivity
+   DATABASE_URL="postgresql://[user]:[password]@[tailscale-host]:5432/tcad_scraper" \
+   npx prisma db execute --stdin <<< "SELECT 1 as test;"
+   ```
 
 ### Accessing the Database
 
 **Via psql (command line)**:
 ```bash
-PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper -c "SELECT COUNT(*) FROM properties;"
+# Ensure Tailscale is connected first
+PGPASSWORD=[password] psql -U [user] -h [tailscale-hostname] tcad_scraper -c "SELECT COUNT(*) FROM properties;"
 ```
 
 **Via Prisma (in code)**:
 ```typescript
 import { prisma } from './src/lib/prisma';
 // DATABASE_URL is automatically loaded from Doppler
+// Must be connected to Tailscale VPN
 ```
 
 **Via Doppler-wrapped commands**:
 ```bash
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npm run <script>
+# DATABASE_URL is pulled from Doppler automatically
+doppler run -- npm run <script>
 ```
 
-**Important**: The MCP postgres tool connection may use different credentials. Always use `PGPASSWORD=postgres` for direct psql access.
+**Important Notes**:
+- Tailscale VPN MUST be active for database access
+- Connection will fail if Tailscale is disconnected
+- The remote server hostname is only accessible via Tailscale network
+- Local PostgreSQL Docker container is disabled
+
+### Development Environment Configuration
+
+**⚠️ DEVELOPMENT ONLY - Production uses API layer**
+
+For local development, two database connection URLs are available via Doppler:
+
+#### MAC_DB_URL
+Connection string for **Mac development machines** to access the database on hobbes:
+```bash
+MAC_DB_URL="postgresql://postgres:postgres@hobbes:5432/tcad_scraper"
+```
+
+**Usage**: Mac developers should use this URL (or DATABASE_URL which points to hobbes) for direct database access during development.
+
+#### HOBBES_DB_URL
+Connection string for **Hobbes server** to access its local database:
+```bash
+HOBBES_DB_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper"
+```
+
+**Usage**: When running on the Hobbes server itself, use this URL to connect to the local PostgreSQL instance.
+
+#### Current Configuration
+
+The `DATABASE_URL` environment variable in Doppler dev configs currently points to:
+```bash
+DATABASE_URL="postgresql://postgres:postgres@hobbes:5432/tcad_scraper"
+```
+
+This allows Mac development machines to connect to the hobbes database via Tailscale.
+
+**⚠️ CRITICAL NOTES**:
+1. **These URLs are for DEVELOPMENT database access ONLY**
+2. **Production and staging environments should NEVER use direct database access**
+3. **All production/staging requests MUST go through the API layer**
+4. Direct database access bypasses:
+   - API authentication and authorization
+   - Rate limiting and request validation
+   - Monitoring and logging
+   - Caching layers
+5. Only use direct database access for:
+   - Local development and testing
+   - Database migrations
+   - Administrative scripts
+   - CLI tools and debugging
 
 ---
 
@@ -171,19 +251,12 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" npx pr
 
 ## Current Database State
 
-**As of November 6, 2025**:
-
-- **Total Properties**: 40
-- **Data Quality**: 100% complete (all fields populated)
-- **Property Types**:
-  - 39 Residential (R) - avg value: $3.35M
-  - 1 Personal (P) - avg value: $56k
-- **Sample Cities**: Austin, Lakeway
-- **Last Scraped**: November 6, 2025
+**Database Location**: Remote server via Tailscale
 
 **Quick Stats Query**:
 ```bash
-PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper -c "
+# Ensure Tailscale is connected
+PGPASSWORD=[password] psql -U [user] -h [tailscale-hostname] tcad_scraper -c "
   SELECT
     COUNT(*) as total,
     COUNT(DISTINCT city) as cities,
@@ -194,20 +267,24 @@ PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper -c "
 "
 ```
 
+**Note**: All database statistics reflect the remote production database
+
 ---
 
 ## Common Database Operations
 
 ### Query Properties
 ```bash
+# IMPORTANT: Ensure Tailscale is connected before running these commands
+
 # Get total count
-PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper -c "SELECT COUNT(*) FROM properties;"
+PGPASSWORD=[password] psql -U [user] -h [tailscale-hostname] tcad_scraper -c "SELECT COUNT(*) FROM properties;"
 
 # Search by city
-PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper -c "SELECT * FROM properties WHERE city = 'AUSTIN' LIMIT 10;"
+PGPASSWORD=[password] psql -U [user] -h [tailscale-hostname] tcad_scraper -c "SELECT * FROM properties WHERE city = 'AUSTIN' LIMIT 10;"
 
 # Get properties by search term
-PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper -c "SELECT * FROM properties WHERE search_term = 'Smith' LIMIT 5;"
+PGPASSWORD=[password] psql -U [user] -h [tailscale-hostname] tcad_scraper -c "SELECT * FROM properties WHERE search_term = 'Smith' LIMIT 5;"
 ```
 
 ### Using Prisma
@@ -243,21 +320,25 @@ await prisma.property.upsert({
 
 ### Test Database Connection
 ```bash
-cd /home/aledlie/tcad-scraper/server
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx src/scripts/test-db-save.ts
+# Ensure Tailscale is connected first
+cd /Users/alyshialedlie/code/ISPublicSites/tcad-scraper/server
+doppler run -- npx tsx src/scripts/test-db-save.ts
 ```
 
 This script:
 1. Scrapes 20 properties for "Smith"
-2. Saves them to the database
+2. Saves them to the remote database (via Tailscale)
 3. Verifies data quality
 4. Shows sample property
 
 **Expected output**: "✅ Database schema verification PASSED!"
 
+**Important**: Tailscale must be active for this test to succeed
+
 ### Verify Schema
 ```bash
-PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper -c "\d properties"
+# Ensure Tailscale is connected
+PGPASSWORD=[password] psql -U [user] -h [tailscale-hostname] tcad_scraper -c "\d properties"
 ```
 
 Shows table structure with all columns and indexes.
@@ -432,42 +513,50 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" dopple
 
 ## Quick Reference Commands
 
+### ⚠️ Prerequisites
+**ALL database commands require Tailscale to be connected!**
+
+```bash
+# Check Tailscale status before running database commands
+tailscale status
+```
+
 ### Database Access
 ```bash
-# Direct psql access
-PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper
+# Direct psql access (Tailscale required)
+PGPASSWORD=[password] psql -U [user] -h [tailscale-hostname] tcad_scraper
 
 # Run query
-PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper -c "SELECT COUNT(*) FROM properties;"
+PGPASSWORD=[password] psql -U [user] -h [tailscale-hostname] tcad_scraper -c "SELECT COUNT(*) FROM properties;"
 
 # Check migration status
-cd /home/aledlie/tcad-scraper/server && npx prisma migrate status
+cd /Users/alyshialedlie/code/ISPublicSites/tcad-scraper/server && npx prisma migrate status
 ```
 
 ### Scraping
 ```bash
-# Test API scraper
-cd /home/aledlie/tcad-scraper/server
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx src/scripts/test-api-scraper.ts
+# Test API scraper (DATABASE_URL from Doppler, Tailscale required)
+cd /Users/alyshialedlie/code/ISPublicSites/tcad-scraper/server
+doppler run -- npx tsx src/scripts/test-api-scraper.ts
 
 # Test database save
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx src/scripts/test-db-save.ts
+doppler run -- npx tsx src/scripts/test-db-save.ts
 
 # Run continuous batch scraper
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npm run scrape:batch:comprehensive
+doppler run -- npm run scrape:batch:comprehensive
 ```
 
 ### Monitoring
 ```bash
 # View queue dashboard (Bull Board)
-# Start server and visit: http://localhost:5050/admin/queues
+# Start server and visit: http://localhost:3001/admin/queues
 
 # Check Redis
 docker-compose ps
 docker stats bullmq-redis
 
-# Check database stats
-PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper -c "
+# Check database stats (Tailscale required)
+PGPASSWORD=[password] psql -U [user] -h [tailscale-hostname] tcad_scraper -c "
   SELECT
     COUNT(*) as total_properties,
     COUNT(DISTINCT city) as cities,
@@ -484,10 +573,14 @@ PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper -c "
 ### Required Environment Variables (via Doppler)
 
 ```bash
-# Database
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper"
+# Database (REMOTE via Tailscale)
+DATABASE_URL="postgresql://[user]:[password]@[tailscale-hostname]:5432/tcad_scraper"
 
-# Redis
+# Development Database URLs (DEVELOPMENT ONLY - Production uses API)
+MAC_DB_URL="postgresql://postgres:postgres@hobbes:5432/tcad_scraper"      # Mac → hobbes
+HOBBES_DB_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" # Hobbes → localhost
+
+# Redis (Local)
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
@@ -510,39 +603,68 @@ DATABASE_READ_ONLY_URL=<same-as-DATABASE_URL>
 
 ### Working Directory
 ```
-/home/aledlie/tcad-scraper/server
+/Users/alyshialedlie/code/ISPublicSites/tcad-scraper/server
 ```
+
+### Tailscale Requirements
+- Tailscale must be running and connected for database access
+- Remote database server must be accessible via Tailscale network
+- Local PostgreSQL Docker container is stopped (not needed)
 
 ---
 
 ## Troubleshooting
 
+### Database connection failures
+**Most common cause**: Tailscale not connected or not running
+
+```bash
+# Check Tailscale status
+tailscale status
+
+# Restart Tailscale if needed
+sudo tailscale up
+
+# Verify remote host is reachable
+ping [tailscale-hostname]
+```
+
 ### "Module not found" errors
 ```bash
 # Regenerate Prisma client
-cd /home/aledlie/tcad-scraper/server
+cd /Users/alyshialedlie/code/ISPublicSites/tcad-scraper/server
 npx prisma generate
 ```
 
 ### "Migration not applied" errors
 ```bash
-# Check status
+# Check status (requires Tailscale connection)
 npx prisma migrate status
 
-# Apply migrations
+# Apply migrations (requires Tailscale connection)
 npx prisma migrate deploy
 ```
 
-### Empty query results from MCP tool
-The MCP tool may use different credentials. Use direct psql instead:
-```bash
-PGPASSWORD=postgres psql -U postgres -h localhost tcad_scraper -c "<query>"
-```
+### Empty query results or connection timeouts
+1. **Check Tailscale is connected**: `tailscale status`
+2. **Verify DATABASE_URL is correct**: Check Doppler configuration
+3. **Test network connectivity**: `ping [tailscale-hostname]`
+4. **Check remote server is running**: Contact infrastructure team
 
 ### Scraper authentication failures
 Check TCAD_API_KEY is set:
 ```bash
 doppler secrets get TCAD_API_KEY --plain
+```
+
+### Local PostgreSQL accidentally started
+If you accidentally start the local PostgreSQL container:
+```bash
+# Stop it immediately
+docker-compose stop postgres
+
+# Ensure it stays stopped
+docker-compose rm -f postgres
 ```
 
 ---
@@ -563,7 +685,268 @@ See `/home/aledlie/tcad-scraper/docs/ARCHITECTURE_SUMMARY.md` for the comprehens
 
 ---
 
-**Document Version**: 1.0
+## Project Directory Structure
+
+This section provides a complete file tree of the TCAD Scraper project for reference.
+
+**Generated**: November 9, 2025
+
+```
+.
+├── .claude
+│   ├── agents
+│   │   └── webscraper-research-agent.md
+│   └── settings.local.json
+├── .github
+│   └── workflows
+│       ├── ci.yml
+│       ├── deploy.yml
+│       ├── integration-tests.yml
+│       ├── pr-checks.yml
+│       ├── README.md
+│       └── security.yml
+├── analytics
+├── bullmq-exporter
+│   ├── Dockerfile
+│   ├── index.js
+│   ├── package.json
+│   └── README_ENHANCED.md
+├── dev
+│   ├── active
+│   │   ├── analytics-implementation-context.md
+│   │   ├── analytics-implementation-tasks.md
+│   │   ├── ci-cd-implementation-context.md
+│   │   ├── ci-cd-implementation-tasks.md
+│   │   ├── test-coverage-improvement-context.md
+│   │   └── test-coverage-improvement-tasks.md
+│   ├── architecture
+│   │   ├── ANALYTICS.md
+│   │   ├── API_TOKEN_VERIFICATION.md
+│   │   ├── API.md
+│   │   ├── CI-CD.md
+│   │   ├── doppler-setup.md
+│   │   ├── FRONTEND.md
+│   │   ├── MONITORING_DEPLOYMENT.md
+│   │   ├── MONITORING_SETUP_SUMMARY.md
+│   │   └── TOKEN_AUTO_REFRESH_SUMMARY.md
+│   ├── changlelog
+│   │   ├── BRANCH-PROTECTION.md
+│   │   ├── CHANGELOG.md
+│   │   ├── CODEBASE_ANALYSIS.md
+│   │   └── [additional changelog files...]
+│   └── [additional dev documentation...]
+├── docs
+│   ├── ANALYTICS.md
+│   ├── API_TOKEN_IMPLEMENTATION.md
+│   ├── API_TOKEN_VERIFICATION.md
+│   ├── API.md
+│   ├── BRANCH-PROTECTION.md
+│   ├── CHANGELOG.md
+│   ├── CI-CD.md
+│   ├── CLAUDE.md (this file)
+│   ├── CODEBASE_ANALYSIS.md
+│   └── [additional documentation files...]
+├── monitoring
+│   ├── grafana
+│   │   ├── dashboards
+│   │   │   ├── code-complexity.json
+│   │   │   └── tcad-overview.json
+│   │   └── provisioning
+│   │       ├── dashboards
+│   │       └── datasources
+│   ├── prometheus
+│   │   ├── prometheus.rules.yml
+│   │   └── prometheus.yml
+│   └── README.md
+├── server
+│   ├── data
+│   │   ├── high-performing-terms.json
+│   │   ├── search-term-map.json
+│   │   ├── search-term-results.csv
+│   │   ├── zero-result-analysis.json
+│   │   └── zero-result-terms.json
+│   ├── prisma
+│   │   ├── migrations
+│   │   │   ├── 20251028203525_init
+│   │   │   ├── 20251107200405_add_search_term_analytics
+│   │   │   └── migration_lock.toml
+│   │   └── schema.prisma
+│   ├── src
+│   │   ├── __tests__
+│   │   │   ├── api.test.ts
+│   │   │   ├── auth-database.connection.test.ts
+│   │   │   ├── auth-database.integration.test.ts
+│   │   │   ├── controller.test.ts
+│   │   │   ├── enqueue.test.ts
+│   │   │   ├── integration.test.ts
+│   │   │   ├── security.test.ts
+│   │   │   └── setup.ts
+│   │   ├── cli
+│   │   │   ├── data-cleaner.ts
+│   │   │   ├── db-stats.ts
+│   │   │   ├── queue-analyzer.ts
+│   │   │   └── queue-manager.ts
+│   │   ├── config
+│   │   │   ├── index.ts
+│   │   │   └── swagger.ts
+│   │   ├── controllers
+│   │   │   └── property.controller.ts
+│   │   ├── lib
+│   │   │   ├── claude.service.ts
+│   │   │   ├── logger.ts
+│   │   │   ├── metrics.service.ts
+│   │   │   ├── prisma.ts
+│   │   │   ├── redis-cache.service.ts
+│   │   │   ├── search-term-deduplicator.ts
+│   │   │   ├── sentry.service.ts
+│   │   │   └── tcad-scraper.ts
+│   │   ├── middleware
+│   │   │   ├── auth.ts
+│   │   │   ├── error.middleware.ts
+│   │   │   ├── metrics.middleware.ts
+│   │   │   ├── validation.middleware.ts
+│   │   │   └── xcontroller.middleware.ts
+│   │   ├── queues
+│   │   │   └── scraper.queue.ts
+│   │   ├── routes
+│   │   │   ├── app.routes.ts
+│   │   │   └── property.routes.ts
+│   │   ├── schedulers
+│   │   │   └── scrape-scheduler.ts
+│   │   ├── scripts
+│   │   │   ├── batch-scrape.ts
+│   │   │   ├── continuous-batch-scraper.ts
+│   │   │   ├── worker.ts
+│   │   │   └── [additional scripts...]
+│   │   ├── services
+│   │   │   ├── code-complexity.service.ts
+│   │   │   ├── search-term-optimizer.ts
+│   │   │   └── token-refresh.service.ts
+│   │   ├── types
+│   │   │   ├── index.ts
+│   │   │   └── property.types.ts
+│   │   ├── utils
+│   │   │   ├── deduplication.ts
+│   │   │   └── json-ld.utils.ts
+│   │   └── index.ts
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── [additional server config files...]
+├── src (Frontend - React)
+│   ├── components
+│   │   ├── features
+│   │   │   └── PropertySearch
+│   │   │       ├── PropertyCard.tsx
+│   │   │       ├── PropertySearchContainer.tsx
+│   │   │       ├── SearchBox.tsx
+│   │   │       ├── SearchResults.tsx
+│   │   │       ├── ExampleQueries.tsx
+│   │   │       ├── PropertyDetails
+│   │   │       │   ├── PropertyDetails.tsx
+│   │   │       │   ├── components
+│   │   │       │   │   ├── ExpandButton.tsx
+│   │   │       │   │   ├── SectionHeader.tsx
+│   │   │       │   │   ├── ValueComparison.tsx
+│   │   │       │   │   ├── TruncatedText.tsx
+│   │   │       │   │   ├── TimestampList.tsx
+│   │   │       │   │   └── FreshnessIndicator.tsx
+│   │   │       │   └── sections
+│   │   │       │       ├── FinancialSection.tsx
+│   │   │       │       ├── IdentifiersSection.tsx
+│   │   │       │       ├── DescriptionSection.tsx
+│   │   │       │       └── MetadataSection.tsx
+│   │   │       └── README.md
+│   │   └── ui
+│   │       ├── Badge
+│   │       ├── Button
+│   │       ├── Card
+│   │       ├── Icon
+│   │       └── Input
+│   ├── hooks
+│   │   ├── useAnalytics.ts
+│   │   ├── useDebounce.ts
+│   │   ├── useFormatting.ts
+│   │   ├── usePagination.ts
+│   │   └── usePropertySearch.ts
+│   ├── lib
+│   │   ├── analytics.ts
+│   │   ├── api-config.ts
+│   │   ├── logger.ts
+│   │   └── xcontroller.client.ts
+│   ├── services
+│   │   └── api.service.ts
+│   ├── types
+│   │   └── index.ts
+│   ├── utils
+│   │   ├── constants.ts
+│   │   ├── formatters.ts
+│   │   └── helpers.ts
+│   ├── App.tsx
+│   └── main.tsx
+├── docker-compose.yml
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── ARCHITECTURE.md
+├── CHANGELOG.md
+├── README.md
+├── COMPONENT_IMPLEMENTATION_GUIDE.md
+├── VISUAL_DESIGN_PLAN.md
+└── VISUAL_WIREFRAMES.md
+
+84 directories, 393 files
+```
+
+### Key Directories
+
+**Backend (server/)**:
+- `src/` - TypeScript source code
+  - `lib/` - Core services (scraper, Prisma, Claude AI, Redis cache)
+  - `controllers/` - API request handlers
+  - `routes/` - Express route definitions
+  - `queues/` - BullMQ job queue configuration
+  - `scripts/` - Utility and scraping scripts
+  - `services/` - Business logic services
+  - `middleware/` - Express middleware
+  - `types/` - TypeScript type definitions
+- `prisma/` - Database schema and migrations
+
+**Frontend (src/)**:
+- `components/features/PropertySearch/` - Main property search feature
+  - `PropertyDetails/` - Expandable card details (NEW in v2.1.0)
+    - `components/` - Reusable utility components
+    - `sections/` - Detail section components
+- `components/ui/` - Shared UI components (Badge, Button, Card, Icon, Input)
+- `hooks/` - Custom React hooks
+- `lib/` - Frontend utilities and services
+- `services/` - API service layer
+
+**Documentation (docs/)**:
+- Technical documentation
+- Architecture diagrams
+- API documentation
+- Testing guides
+- Deployment guides
+
+**Infrastructure**:
+- `monitoring/` - Grafana dashboards and Prometheus config
+- `bullmq-exporter/` - Custom metrics exporter
+- `.github/workflows/` - CI/CD pipelines
+
+---
+
+**Document Version**: 1.3
 **Last Migration**: November 6, 2025
 **Database Version**: PostgreSQL (via Prisma schema 20251028203525_init)
-**Current Properties**: 40 (100% complete data quality)
+**Database Location**: Remote server via Tailscale (LOCAL POSTGRES DISABLED)
+**Configuration Updated**: November 9, 2025 - Added development database URLs (MAC_DB_URL, HOBBES_DB_URL)
+**File Tree Last Updated**: November 9, 2025
+
+---
+
+## ⚠️ CRITICAL REMINDERS
+
+1. **Tailscale MUST be connected** for all database operations
+2. **Local PostgreSQL is DISABLED** - Docker container stopped
+3. **DATABASE_URL points to remote server** via Tailscale network
+4. If you see connection errors, **check Tailscale first**: `tailscale status`

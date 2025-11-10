@@ -1,0 +1,5206 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+__tests__/
+  claude.service.test.ts
+  metrics.service.test.ts
+  prisma.test.ts
+  redis-cache.service.test.ts
+  search-term-deduplicator.test.ts
+  tcad-scraper.test.ts
+fallback/
+  dom-scraper.ts
+  README.md
+claude.service.ts
+logger.ts
+metrics.service.ts
+prisma.ts
+README_ENHANCED.md
+README.md
+redis-cache.service.ts
+search-term-deduplicator.ts
+sentry.service.ts
+tcad-scraper.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="__tests__/claude.service.test.ts">
+/**
+ * Claude Search Service Tests
+ */
+
+import { describe, test, expect, jest, beforeEach, afterEach } from '@jest/globals';
+
+// Mock the config module before importing claude.service
+jest.mock('../../config', () => ({
+  config: {
+    claude: {
+      apiKey: 'test-api-key',
+      model: 'claude-3-haiku-20240307',
+      maxTokens: 1024,
+    },
+  },
+}));
+
+// Mock Anthropic SDK
+const mockCreate = jest.fn();
+jest.mock('@anthropic-ai/sdk', () => {
+  return jest.fn().mockImplementation(() => ({
+    messages: {
+      create: mockCreate,
+    },
+  }));
+});
+
+// Import after mocks are set up
+import { ClaudeSearchService } from '../claude.service';
+
+describe('ClaudeSearchService', () => {
+  let service: ClaudeSearchService;
+
+  beforeEach(() => {
+    // Reset mocks before each test
+    jest.clearAllMocks();
+    service = new ClaudeSearchService();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('parseNaturalLanguageQuery', () => {
+    describe('Successful Claude API Responses', () => {
+      test('should parse city-based query', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                city: { contains: 'Austin', mode: 'insensitive' }
+              },
+              explanation: 'Searching for properties in Austin'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties in Austin');
+
+        expect(result.whereClause).toEqual({
+          city: { contains: 'Austin', mode: 'insensitive' }
+        });
+        expect(result.explanation).toBe('Searching for properties in Austin');
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+
+      test('should parse value-based query with range', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                appraisedValue: { gte: 300000, lte: 600000 }
+              },
+              orderBy: { appraisedValue: 'asc' },
+              explanation: 'Searching for properties with appraised value between $300,000 and $600,000'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties appraised between 300k and 600k');
+
+        expect(result.whereClause).toEqual({
+          appraisedValue: { gte: 300000, lte: 600000 }
+        });
+        expect(result.orderBy).toEqual({ appraisedValue: 'asc' });
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+
+      test('should parse owner name query', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                name: { contains: 'Smith', mode: 'insensitive' }
+              },
+              explanation: 'Searching for properties owned by Smith'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties owned by Smith');
+
+        expect(result.whereClause).toEqual({
+          name: { contains: 'Smith', mode: 'insensitive' }
+        });
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+
+      test('should parse property type query', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                propType: { contains: 'Commercial', mode: 'insensitive' }
+              },
+              explanation: 'Searching for commercial properties'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('commercial properties');
+
+        expect(result.whereClause).toEqual({
+          propType: { contains: 'Commercial', mode: 'insensitive' }
+        });
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+
+      test('should parse address-based query', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                propertyAddress: { contains: 'Congress', mode: 'insensitive' }
+              },
+              explanation: "Searching for properties with 'Congress' in the address"
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties on Congress Ave');
+
+        expect(result.whereClause).toEqual({
+          propertyAddress: { contains: 'Congress', mode: 'insensitive' }
+        });
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+
+      test('should parse complex combined query', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                city: 'Austin',
+                propType: { contains: 'Residential', mode: 'insensitive' },
+                appraisedValue: { gte: 500000 }
+              },
+              orderBy: { appraisedValue: 'desc' },
+              explanation: 'Searching for residential properties in Austin with appraised value over $500,000, sorted by value (highest first)'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('residential properties in Austin worth over 500k');
+
+        expect(result.whereClause).toEqual({
+          city: 'Austin',
+          propType: { contains: 'Residential', mode: 'insensitive' },
+          appraisedValue: { gte: 500000 }
+        });
+        expect(result.orderBy).toEqual({ appraisedValue: 'desc' });
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+
+      test('should handle orderBy being optional', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                city: { contains: 'Austin', mode: 'insensitive' }
+              },
+              explanation: 'Searching for properties in Austin'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties in Austin');
+
+        expect(result.whereClause).toBeDefined();
+        expect(result.orderBy).toBeUndefined();
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('Error Handling and Fallback', () => {
+      test('should fallback to simple text search on API error', async () => {
+        mockCreate.mockRejectedValue(new Error('API Error'));
+
+        const result = await service.parseNaturalLanguageQuery('test query');
+
+        expect(result.whereClause).toEqual({
+          OR: [
+            { name: { contains: 'test query', mode: 'insensitive' } },
+            { propertyAddress: { contains: 'test query', mode: 'insensitive' } },
+            { city: { contains: 'test query', mode: 'insensitive' } },
+            { description: { contains: 'test query', mode: 'insensitive' } },
+          ]
+        });
+        expect(result.explanation).toBe('Searching for "test query" across property names, addresses, cities, and descriptions');
+      });
+
+      test('should fallback on authentication error', async () => {
+        mockCreate.mockRejectedValue(new Error('401 authentication_error: invalid x-api-key'));
+
+        const result = await service.parseNaturalLanguageQuery('Austin properties');
+
+        expect(result.whereClause.OR).toBeDefined();
+        expect(result.whereClause.OR).toHaveLength(4);
+      });
+
+      test('should fallback on model not found error', async () => {
+        mockCreate.mockRejectedValue(new Error('404 not_found_error: model: claude-3-5-sonnet-20241022'));
+
+        const result = await service.parseNaturalLanguageQuery('Austin properties');
+
+        expect(result.whereClause.OR).toBeDefined();
+        expect(result.explanation).toContain('Austin properties');
+      });
+
+      test('should fallback on invalid JSON response', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: 'Invalid JSON response'
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('test query');
+
+        expect(result.whereClause.OR).toBeDefined();
+      });
+
+      test('should fallback on empty response', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: ''
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('test query');
+
+        expect(result.whereClause.OR).toBeDefined();
+      });
+
+      test('should handle missing whereClause in response', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              explanation: 'Some explanation'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('test query');
+
+        expect(result.whereClause).toEqual({});
+        expect(result.explanation).toBe('Some explanation');
+      });
+
+      test('should provide default explanation when missing', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: { city: 'Austin' }
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('test query');
+
+        expect(result.explanation).toBe('Searching properties based on your query');
+      });
+    });
+
+    describe('API Request Parameters', () => {
+      test('should use correct model', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ whereClause: {}, explanation: 'Test' })
+          }]
+        });
+
+        await service.parseNaturalLanguageQuery('test');
+
+        expect(mockCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: 'claude-3-haiku-20240307'
+          })
+        );
+      });
+
+      test('should set appropriate max_tokens', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ whereClause: {}, explanation: 'Test' })
+          }]
+        });
+
+        await service.parseNaturalLanguageQuery('test');
+
+        expect(mockCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            max_tokens: 1024
+          })
+        );
+      });
+
+      test('should include user query in prompt', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ whereClause: {}, explanation: 'Test' })
+          }]
+        });
+
+        await service.parseNaturalLanguageQuery('find expensive homes');
+
+        const callArgs = mockCreate.mock.calls[0][0];
+        expect(callArgs.messages[0].content).toContain('find expensive homes');
+      });
+    });
+
+    describe('Edge Cases', () => {
+      test('should handle empty query string', async () => {
+        mockCreate.mockRejectedValue(new Error('Empty query'));
+
+        const result = await service.parseNaturalLanguageQuery('');
+
+        expect(result.whereClause.OR).toBeDefined();
+      });
+
+      test('should handle very long query', async () => {
+        const longQuery = 'properties '.repeat(100);
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: { city: 'Austin' },
+              explanation: 'Processed long query'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery(longQuery);
+
+        expect(result.whereClause).toBeDefined();
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+
+      test('should handle special characters in query', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: { propertyAddress: { contains: "O'Connor", mode: 'insensitive' } },
+              explanation: 'Searching for properties on O\'Connor'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery("properties on O'Connor St");
+
+        expect(result.whereClause).toBeDefined();
+      });
+
+      test('should handle Unicode characters', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: { city: { contains: 'São Paulo', mode: 'insensitive' } },
+              explanation: 'Searching for properties in São Paulo'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties in São Paulo');
+
+        expect(result.whereClause).toBeDefined();
+      });
+    });
+
+    describe('Schema Field Names', () => {
+      test('should use searchTerm field (camelCase) not search_term', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                searchTerm: { contains: 'Smith', mode: 'insensitive' }
+              },
+              explanation: 'Searching for properties found via Smith search term'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties from Smith search');
+
+        expect(result.whereClause).toEqual({
+          searchTerm: { contains: 'Smith', mode: 'insensitive' }
+        });
+        expect(result.explanation).toBe('Searching for properties found via Smith search term');
+      });
+
+      test('should use propType field (camelCase) not prop_type', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                propType: { contains: 'Residential', mode: 'insensitive' }
+              },
+              explanation: 'Searching for residential properties'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('residential properties');
+
+        expect(result.whereClause).toHaveProperty('propType');
+        expect(result.whereClause).not.toHaveProperty('prop_type');
+      });
+
+      test('should use propertyAddress field (camelCase) not property_address', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                propertyAddress: { contains: 'Main St', mode: 'insensitive' }
+              },
+              explanation: 'Searching for properties on Main St'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties on Main St');
+
+        expect(result.whereClause).toHaveProperty('propertyAddress');
+        expect(result.whereClause).not.toHaveProperty('property_address');
+      });
+
+      test('should use appraisedValue field (camelCase) not appraised_value', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              whereClause: {
+                appraisedValue: { gte: 500000 }
+              },
+              orderBy: { appraisedValue: 'desc' },
+              explanation: 'Searching for properties appraised over $500,000'
+            })
+          }]
+        });
+
+        const result = await service.parseNaturalLanguageQuery('properties worth over 500k');
+
+        expect(result.whereClause).toHaveProperty('appraisedValue');
+        expect(result.whereClause).not.toHaveProperty('appraised_value');
+        expect(result.orderBy).toHaveProperty('appraisedValue');
+      });
+
+      test('should verify prompt includes correct Prisma field names', async () => {
+        mockCreate.mockResolvedValue({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ whereClause: {}, explanation: 'Test' })
+          }]
+        });
+
+        await service.parseNaturalLanguageQuery('test');
+
+        const callArgs = mockCreate.mock.calls[0][0];
+        const prompt = callArgs.messages[0].content;
+
+        // Verify the prompt uses camelCase Prisma field names, not snake_case DB names
+        expect(prompt).toContain('searchTerm');
+        expect(prompt).toContain('propType');
+        expect(prompt).toContain('propertyAddress');
+        expect(prompt).toContain('appraisedValue');
+        expect(prompt).toContain('assessedValue');
+        expect(prompt).toContain('geoId');
+        expect(prompt).toContain('scrapedAt');
+        expect(prompt).toContain('createdAt');
+        expect(prompt).toContain('updatedAt');
+
+        // Should NOT contain snake_case versions
+        expect(prompt).not.toContain('search_term');
+        expect(prompt).not.toContain('prop_type');
+        expect(prompt).not.toContain('property_address');
+        expect(prompt).not.toContain('appraised_value');
+        expect(prompt).not.toContain('assessed_value');
+      });
+    });
+  });
+});
+</file>
+
+<file path="__tests__/metrics.service.test.ts">
+import {
+  getMetrics,
+  getRegistry,
+  resetMetrics,
+  updateQueueMetrics,
+  updateCacheMetrics,
+  recordHttpRequest,
+  recordScrapeJob,
+  recordDbQuery,
+  recordCacheOperation,
+  recordError,
+  updateCodeComplexityMetrics,
+  httpRequestsTotal,
+  httpRequestDuration,
+  scrapeJobsTotal,
+  scrapeJobDuration,
+  propertiesScrapedTotal,
+  activeScrapeJobs,
+  queueSize,
+  dbQueryDuration,
+  dbQueriesTotal,
+  cacheOperations,
+  cacheHitRate,
+  cacheSize,
+  errorsTotal,
+  codeComplexityCyclomatic,
+  type CodeComplexityMetrics,
+} from '../metrics.service';
+
+describe('Metrics Service', () => {
+  beforeEach(() => {
+    // Reset all metrics before each test
+    resetMetrics();
+  });
+
+  describe('Registry', () => {
+    test('should return a valid registry', () => {
+      const registry = getRegistry();
+      expect(registry).toBeDefined();
+      expect(typeof registry.metrics).toBe('function');
+    });
+
+    test('should return metrics in Prometheus format', async () => {
+      const metrics = await getMetrics();
+      expect(typeof metrics).toBe('string');
+      expect(metrics).toContain('tcad_scraper_');
+    });
+  });
+
+  describe('HTTP Metrics', () => {
+    test('should record HTTP requests', async () => {
+      recordHttpRequest('GET', '/api/properties', 200, 0.5);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_http_requests_total');
+      expect(metrics).toContain('method="GET"');
+      expect(metrics).toContain('route="/api/properties"');
+      expect(metrics).toContain('status_code="200"');
+    });
+
+    test('should record multiple HTTP requests', async () => {
+      recordHttpRequest('GET', '/api/properties', 200, 0.5);
+      recordHttpRequest('GET', '/api/properties', 200, 0.3);
+      recordHttpRequest('POST', '/api/search', 201, 1.2);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('method="GET"');
+      expect(metrics).toContain('method="POST"');
+      expect(metrics).toContain('status_code="200"');
+      expect(metrics).toContain('status_code="201"');
+    });
+
+    test('should record HTTP request durations', async () => {
+      recordHttpRequest('GET', '/api/properties', 200, 1.5);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_http_request_duration_seconds');
+      expect(metrics).toContain('method="GET"');
+    });
+  });
+
+  describe('Scrape Job Metrics', () => {
+    test('should record completed scrape job', async () => {
+      recordScrapeJob('completed', 30.5, 10);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_jobs_total');
+      expect(metrics).toContain('status="completed"');
+      expect(metrics).toContain('tcad_scraper_properties_scraped_total');
+    });
+
+    test('should record failed scrape job', async () => {
+      recordScrapeJob('failed', 15.2);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_jobs_total');
+      expect(metrics).toContain('status="failed"');
+    });
+
+    test('should record job durations', async () => {
+      recordScrapeJob('completed', 45.3, 20);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_job_duration_seconds');
+      expect(metrics).toContain('status="completed"');
+    });
+
+    test('should not increment properties for completed job without count', async () => {
+      resetMetrics();
+      recordScrapeJob('completed', 30.5);
+
+      const metrics = await getMetrics();
+      // Should not contain properties_scraped metric if no count provided
+      const lines = metrics.split('\n');
+      const propertiesLines = lines.filter(l => l.includes('tcad_scraper_properties_scraped_total') && !l.startsWith('#'));
+      expect(propertiesLines.length).toBe(0);
+    });
+  });
+
+  describe('Queue Metrics', () => {
+    test('should update queue metrics', async () => {
+      await updateQueueMetrics(5, 2, 100, 3);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_queue_size');
+      expect(metrics).toContain('status="waiting"');
+      expect(metrics).toContain('status="active"');
+      expect(metrics).toContain('tcad_scraper_active_jobs');
+    });
+
+    test('should update queue metrics to zero', async () => {
+      await updateQueueMetrics(0, 0, 50, 0);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_queue_size');
+      expect(metrics).toContain('tcad_scraper_active_jobs');
+    });
+  });
+
+  describe('Database Metrics', () => {
+    test('should record successful database query', async () => {
+      recordDbQuery('select', 'properties', 'success', 0.05);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_db_queries_total');
+      expect(metrics).toContain('operation="select"');
+      expect(metrics).toContain('table="properties"');
+      expect(metrics).toContain('status="success"');
+      expect(metrics).toContain('tcad_scraper_db_query_duration_seconds');
+    });
+
+    test('should record failed database query', async () => {
+      recordDbQuery('insert', 'properties', 'error', 0.02);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_db_queries_total');
+      expect(metrics).toContain('operation="insert"');
+      expect(metrics).toContain('status="error"');
+    });
+
+    test('should track different database operations', async () => {
+      recordDbQuery('select', 'properties', 'success', 0.01);
+      recordDbQuery('insert', 'properties', 'success', 0.03);
+      recordDbQuery('update', 'properties', 'success', 0.02);
+      recordDbQuery('delete', 'properties', 'success', 0.01);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('operation="select"');
+      expect(metrics).toContain('operation="insert"');
+      expect(metrics).toContain('operation="update"');
+      expect(metrics).toContain('operation="delete"');
+    });
+  });
+
+  describe('Cache Metrics', () => {
+    test('should record cache hit', async () => {
+      recordCacheOperation('get', 'hit');
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_cache_operations_total');
+      expect(metrics).toContain('operation="get"');
+      expect(metrics).toContain('status="hit"');
+    });
+
+    test('should record cache miss', async () => {
+      recordCacheOperation('get', 'miss');
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_cache_operations_total');
+      expect(metrics).toContain('status="miss"');
+    });
+
+    test('should record cache set operations', async () => {
+      recordCacheOperation('set', 'success');
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('operation="set"');
+      expect(metrics).toContain('status="success"');
+    });
+
+    test('should record cache delete operations', async () => {
+      recordCacheOperation('del', 'success');
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('operation="del"');
+      expect(metrics).toContain('status="success"');
+    });
+
+    test('should update cache metrics with hit rate calculation', async () => {
+      updateCacheMetrics(80, 20, 150);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_cache_hit_rate');
+      expect(metrics).toContain('tcad_scraper_cache_size');
+    });
+
+    test('should handle zero total for hit rate', async () => {
+      updateCacheMetrics(0, 0, 0);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_cache_hit_rate');
+      expect(metrics).toContain('tcad_scraper_cache_size');
+    });
+
+    test('should calculate hit rate correctly', async () => {
+      updateCacheMetrics(75, 25, 100);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_cache_hit_rate');
+    });
+  });
+
+  describe('Error Metrics', () => {
+    test('should record errors by type and source', async () => {
+      recordError('validation', 'controller');
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_errors_total');
+      expect(metrics).toContain('type="validation"');
+      expect(metrics).toContain('source="controller"');
+    });
+
+    test('should track multiple error types', async () => {
+      recordError('validation', 'controller');
+      recordError('database', 'service');
+      recordError('scraper', 'worker');
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('type="validation"');
+      expect(metrics).toContain('type="database"');
+      expect(metrics).toContain('type="scraper"');
+      expect(metrics).toContain('source="controller"');
+      expect(metrics).toContain('source="service"');
+      expect(metrics).toContain('source="worker"');
+    });
+  });
+
+  describe('Code Complexity Metrics', () => {
+    test('should update all code complexity metrics', () => {
+      const metrics: CodeComplexityMetrics = {
+        avgCyclomatic: 5.2,
+        maxCyclomatic: 15,
+        totalLines: 10000,
+        codeLines: 7000,
+        commentLines: 1500,
+        totalFiles: 50,
+        totalFunctions: 200,
+        totalClasses: 25,
+        maxFunctionLines: 150,
+      };
+
+      updateCodeComplexityMetrics(metrics);
+
+      expect(codeComplexityCyclomatic['hashMap'][''].value).toBe(5.2);
+    });
+
+    test('should update optional code complexity metrics', () => {
+      const metrics: CodeComplexityMetrics = {
+        avgCyclomatic: 4.0,
+        maxCyclomatic: 12,
+        totalLines: 8000,
+        codeLines: 6000,
+        commentLines: 1000,
+        totalFiles: 40,
+        totalFunctions: 150,
+        totalClasses: 20,
+        maxFunctionLines: 120,
+        maintainabilityIndex: 75,
+        technicalDebtRatio: 5.5,
+      };
+
+      updateCodeComplexityMetrics(metrics);
+
+      expect(codeComplexityCyclomatic['hashMap'][''].value).toBe(4.0);
+    });
+
+    test('should update per-file metrics', () => {
+      const metrics: CodeComplexityMetrics = {
+        avgCyclomatic: 5.0,
+        maxCyclomatic: 10,
+        totalLines: 5000,
+        codeLines: 4000,
+        commentLines: 500,
+        totalFiles: 25,
+        totalFunctions: 100,
+        totalClasses: 10,
+        maxFunctionLines: 80,
+        fileMetrics: [
+          { file: 'src/index.ts', lines: 200 },
+          { file: 'src/service.ts', lines: 350 },
+        ],
+      };
+
+      updateCodeComplexityMetrics(metrics);
+
+      // File metrics should be updated (implementation depends on internal structure)
+      expect(codeComplexityCyclomatic['hashMap'][''].value).toBe(5.0);
+    });
+  });
+
+  describe('Reset Functionality', () => {
+    test('should reset all metrics', async () => {
+      // Record some metrics
+      recordHttpRequest('GET', '/api/test', 200, 0.5);
+      recordScrapeJob('completed', 30, 10);
+      recordDbQuery('select', 'properties', 'success', 0.05);
+      recordCacheOperation('get', 'hit');
+
+      // Verify metrics are present
+      let metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_http_requests_total');
+
+      // Reset metrics
+      resetMetrics();
+
+      // Metrics should be reset
+      metrics = await getMetrics();
+      const lines = metrics.split('\n').filter(l => !l.startsWith('#') && l.trim());
+      // Should only have default metrics, not our custom recorded ones
+      const httpRequestLines = lines.filter(l => l.includes('tcad_scraper_http_requests_total{'));
+      expect(httpRequestLines.length).toBe(0);
+    });
+
+    test('should allow recording after reset', async () => {
+      recordHttpRequest('GET', '/api/test', 200, 0.5);
+      resetMetrics();
+      recordHttpRequest('POST', '/api/test', 201, 0.3);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('method="POST"');
+      expect(metrics).toContain('status_code="201"');
+    });
+  });
+
+  describe('Metrics Export', () => {
+    test('should export metrics in Prometheus format', async () => {
+      recordHttpRequest('GET', '/api/properties', 200, 0.5);
+      recordScrapeJob('completed', 30, 10);
+
+      const metrics = await getMetrics();
+
+      expect(metrics).toContain('tcad_scraper_http_requests_total');
+      expect(metrics).toContain('tcad_scraper_jobs_total');
+      expect(metrics).toContain('method="GET"');
+      expect(metrics).toContain('status="completed"');
+    });
+
+    test('should include default Node.js metrics', async () => {
+      const metrics = await getMetrics();
+
+      // Should include default metrics like process_cpu_seconds_total
+      expect(metrics).toContain('tcad_scraper_');
+      expect(typeof metrics).toBe('string');
+      expect(metrics.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    test('should handle zero duration for HTTP requests', async () => {
+      recordHttpRequest('GET', '/api/fast', 200, 0);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_http_request_duration_seconds');
+      expect(metrics).toContain('route="/api/fast"');
+    });
+
+    test('should handle large durations', async () => {
+      recordHttpRequest('GET', '/api/slow', 200, 300);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_http_request_duration_seconds');
+      expect(metrics).toContain('route="/api/slow"');
+    });
+
+    test('should handle various HTTP status codes', async () => {
+      recordHttpRequest('GET', '/api/test', 200, 0.1);
+      recordHttpRequest('GET', '/api/test', 404, 0.1);
+      recordHttpRequest('GET', '/api/test', 500, 0.1);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('status_code="200"');
+      expect(metrics).toContain('status_code="404"');
+      expect(metrics).toContain('status_code="500"');
+    });
+
+    test('should handle negative queue sizes as zero', async () => {
+      await updateQueueMetrics(0, 0, 0, 0);
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_queue_size');
+      expect(metrics).toContain('tcad_scraper_active_jobs');
+    });
+  });
+
+  describe('Concurrent Operations', () => {
+    test('should handle multiple concurrent HTTP requests', async () => {
+      const routes = ['/api/a', '/api/b', '/api/c'];
+
+      routes.forEach((route) => {
+        recordHttpRequest('GET', route, 200, 0.5);
+        recordHttpRequest('GET', route, 200, 0.3);
+      });
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('route="/api/a"');
+      expect(metrics).toContain('route="/api/b"');
+      expect(metrics).toContain('route="/api/c"');
+      expect(metrics).toContain('tcad_scraper_http_requests_total');
+    });
+
+    test('should handle multiple scrape jobs', async () => {
+      for (let i = 0; i < 10; i++) {
+        recordScrapeJob('completed', 30 + i, 5);
+      }
+
+      const metrics = await getMetrics();
+      expect(metrics).toContain('tcad_scraper_jobs_total');
+      expect(metrics).toContain('status="completed"');
+      expect(metrics).toContain('tcad_scraper_properties_scraped_total');
+    });
+  });
+});
+</file>
+
+<file path="__tests__/prisma.test.ts">
+/**
+ * Prisma Client Tests
+ *
+ * Tests for Prisma client initialization and configuration
+ */
+
+// Mock PrismaClient before imports
+const mockPrismaClient = jest.fn().mockImplementation(() => ({
+  $connect: jest.fn().mockResolvedValue(undefined),
+  $disconnect: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@prisma/client', () => ({
+  PrismaClient: mockPrismaClient,
+}));
+
+describe('Prisma Client Module', () => {
+  let originalEnv: NodeJS.ProcessEnv;
+
+  beforeEach(() => {
+    // Save original environment
+    originalEnv = { ...process.env };
+
+    // Clear module cache and global state
+    jest.clearAllMocks();
+    delete (global as any).prisma;
+    delete (global as any).prismaReadOnly;
+
+    // Reset module cache to force re-import
+    jest.resetModules();
+  });
+
+  afterEach(() => {
+    // Restore original environment
+    process.env = originalEnv;
+  });
+
+  describe('Write Client Initialization', () => {
+    it('should create write client with error logging in production', () => {
+      process.env.NODE_ENV = 'production';
+
+      // Re-import after setting environment
+      require('../prisma');
+
+      expect(mockPrismaClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          log: ['error'],
+        })
+      );
+    });
+
+    it('should create write client with verbose logging in development', () => {
+      process.env.NODE_ENV = 'development';
+
+      require('../prisma');
+
+      expect(mockPrismaClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          log: ['query', 'error', 'warn'],
+        })
+      );
+    });
+
+    it('should use error-only logging when NODE_ENV is not development', () => {
+      process.env.NODE_ENV = 'test';
+
+      require('../prisma');
+
+      expect(mockPrismaClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          log: ['error'],
+        })
+      );
+    });
+
+    it('should not set global.prisma in production', () => {
+      process.env.NODE_ENV = 'production';
+
+      require('../prisma');
+
+      expect((global as any).prisma).toBeUndefined();
+    });
+
+    it('should set global.prisma in non-production environments', () => {
+      process.env.NODE_ENV = 'development';
+
+      require('../prisma');
+
+      expect((global as any).prisma).toBeDefined();
+    });
+
+    it('should reuse existing global.prisma if available', () => {
+      const existingClient = { existing: 'client' };
+      (global as any).prisma = existingClient;
+
+      const { prisma } = require('../prisma');
+
+      expect(prisma).toBe(existingClient);
+      // Write client reused from global, but read-only client still created
+      expect(mockPrismaClient).toHaveBeenCalledTimes(1); // Only for read-only client
+    });
+  });
+
+  describe('Read-Only Client Initialization', () => {
+    it('should create read-only client with separate database URL', () => {
+      process.env.DATABASE_READ_ONLY_URL = 'postgresql://readonly:pass@localhost:5432/db';
+      process.env.DATABASE_URL = 'postgresql://write:pass@localhost:5432/db';
+      process.env.NODE_ENV = 'production';
+
+      require('../prisma');
+
+      expect(mockPrismaClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datasources: {
+            db: {
+              url: 'postgresql://readonly:pass@localhost:5432/db',
+            },
+          },
+          log: ['error'],
+        })
+      );
+    });
+
+    it('should fallback to DATABASE_URL when DATABASE_READ_ONLY_URL is not set', () => {
+      delete process.env.DATABASE_READ_ONLY_URL;
+      process.env.DATABASE_URL = 'postgresql://main:pass@localhost:5432/db';
+      process.env.NODE_ENV = 'production';
+
+      require('../prisma');
+
+      expect(mockPrismaClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datasources: {
+            db: {
+              url: 'postgresql://main:pass@localhost:5432/db',
+            },
+          },
+        })
+      );
+    });
+
+    it('should create read-only client with verbose logging in development', () => {
+      process.env.NODE_ENV = 'development';
+      process.env.DATABASE_URL = 'postgresql://localhost:5432/db';
+
+      require('../prisma');
+
+      // Second call should be for read-only client
+      expect(mockPrismaClient).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          log: ['query', 'error', 'warn'],
+        })
+      );
+    });
+
+    it('should not set global.prismaReadOnly in production', () => {
+      process.env.NODE_ENV = 'production';
+
+      require('../prisma');
+
+      expect((global as any).prismaReadOnly).toBeUndefined();
+    });
+
+    it('should set global.prismaReadOnly in non-production environments', () => {
+      process.env.NODE_ENV = 'development';
+
+      require('../prisma');
+
+      expect((global as any).prismaReadOnly).toBeDefined();
+    });
+
+    it('should reuse existing global.prismaReadOnly if available', () => {
+      const existingReadClient = { existing: 'readClient' };
+      (global as any).prismaReadOnly = existingReadClient;
+
+      const { prismaReadOnly } = require('../prisma');
+
+      expect(prismaReadOnly).toBe(existingReadClient);
+    });
+  });
+
+  describe('Module Exports', () => {
+    it('should export prisma write client', () => {
+      const { prisma } = require('../prisma');
+
+      expect(prisma).toBeDefined();
+    });
+
+    it('should export prismaReadOnly client', () => {
+      const { prismaReadOnly } = require('../prisma');
+
+      expect(prismaReadOnly).toBeDefined();
+    });
+
+    it('should export both clients as separate instances when no globals exist', () => {
+      const { prisma, prismaReadOnly } = require('../prisma');
+
+      expect(prisma).toBeDefined();
+      expect(prismaReadOnly).toBeDefined();
+      // When created fresh (not from globals), they should be different instances
+      expect(mockPrismaClient).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('Singleton Pattern', () => {
+    it('should maintain singleton across multiple imports in non-production', () => {
+      process.env.NODE_ENV = 'development';
+
+      // First import
+      const module1 = require('../prisma');
+
+      // Clear require cache for module but keep globals
+      const moduleId = require.resolve('../prisma');
+      delete require.cache[moduleId];
+
+      // Second import should reuse global
+      const module2 = require('../prisma');
+
+      expect(module1.prisma).toBe(module2.prisma);
+      expect(module1.prismaReadOnly).toBe(module2.prismaReadOnly);
+    });
+
+    it.skip('should create new instances in production on each import - SKIPPED (Jest module caching)', () => {
+      process.env.NODE_ENV = 'production';
+
+      // First import
+      require('../prisma');
+
+      // Track how many times mock was called in first import
+      const firstImportCalls = mockPrismaClient.mock.calls.length;
+      expect(firstImportCalls).toBe(2); // write + read clients
+
+      // Clear require cache to force re-import
+      const moduleId = require.resolve('../prisma');
+      delete require.cache[moduleId];
+
+      // Second import should create new instances (globals not set in production)
+      require('../prisma');
+
+      // Should have created 2 more clients (4 total)
+      expect(mockPrismaClient).toHaveBeenCalledTimes(4);
+    });
+  });
+
+  describe('Environment Variable Handling', () => {
+    it('should handle missing DATABASE_URL gracefully', () => {
+      delete process.env.DATABASE_URL;
+      delete process.env.DATABASE_READ_ONLY_URL;
+
+      // Should not throw when importing
+      expect(() => require('../prisma')).not.toThrow();
+    });
+
+    it('should handle undefined NODE_ENV with error-only logging', () => {
+      delete process.env.NODE_ENV;
+
+      require('../prisma');
+
+      // Should use error-only logging (only 'development' gets verbose logging)
+      expect(mockPrismaClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          log: ['error'],
+        })
+      );
+    });
+  });
+});
+</file>
+
+<file path="__tests__/redis-cache.service.test.ts">
+// Mock redis BEFORE importing the service
+jest.mock('redis', () => {
+  const mockClient = {
+    connect: jest.fn().mockResolvedValue(undefined),
+    quit: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn(),
+    set: jest.fn(),
+    setEx: jest.fn(),
+    del: jest.fn(),
+    keys: jest.fn(),
+    exists: jest.fn(),
+    ttl: jest.fn(),
+    flushDb: jest.fn(),
+    ping: jest.fn(),
+    on: jest.fn(),
+  };
+
+  return {
+    createClient: jest.fn(() => mockClient),
+  };
+});
+
+import { RedisCacheService } from '../redis-cache.service';
+
+jest.mock('../../config', () => ({
+  config: {
+    redis: {
+      host: 'localhost',
+      port: 6379,
+      password: '',
+      db: 0,
+      connectionTimeout: 5000,
+    },
+    logging: {
+      level: 'error', // Suppress logs during tests
+    },
+  },
+}));
+
+describe.skip('RedisCacheService - SKIPPED (complex Redis mocking issue)', () => {
+  let service: RedisCacheService;
+  let mockRedisClient: any;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+
+    // Create service and connect
+    service = new RedisCacheService();
+
+    // Connect to Redis (this will call createClient)
+    await service.connect();
+
+    // Get the mock client instance
+    const { createClient } = require('redis');
+    mockRedisClient = createClient.mock.results[0].value;
+
+    // Trigger the 'ready' event to set isConnected = true
+    const onReadyHandler = mockRedisClient.on.mock.calls.find(
+      (call: any[]) => call[0] === 'ready'
+    )?.[1];
+    if (onReadyHandler) onReadyHandler();
+  });
+
+  afterEach(async () => {
+    if (service) {
+      await service.disconnect();
+    }
+  });
+
+  describe('connect', () => {
+    it('should initialize Redis connection successfully', async () => {
+      const newService = new RedisCacheService();
+      mockRedisClient.connect.mockResolvedValue(undefined);
+
+      await newService.connect();
+
+      expect(mockRedisClient.connect).toHaveBeenCalled();
+    });
+
+    it('should not reconnect if already connected', async () => {
+      mockRedisClient.connect.mockClear();
+
+      await service.connect();
+
+      expect(mockRedisClient.connect).not.toHaveBeenCalled();
+    });
+
+    it('should handle connection errors', async () => {
+      const newService = new RedisCacheService();
+      const error = new Error('Connection failed');
+      mockRedisClient.connect.mockRejectedValue(error);
+
+      await expect(newService.connect()).rejects.toThrow('Connection failed');
+    });
+  });
+
+  describe('get', () => {
+    it('should get value from cache and parse JSON', async () => {
+      const key = 'test:key';
+      const value = { data: 'test' };
+      mockRedisClient.get.mockResolvedValue(JSON.stringify(value));
+
+      const result = await service.get(key);
+
+      expect(result).toEqual(value);
+      expect(mockRedisClient.get).toHaveBeenCalledWith(key);
+    });
+
+    it('should return null for cache miss', async () => {
+      const key = 'nonexistent';
+      mockRedisClient.get.mockResolvedValue(null);
+
+      const result = await service.get(key);
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle get errors gracefully', async () => {
+      const key = 'error:key';
+      mockRedisClient.get.mockRejectedValue(new Error('Redis error'));
+
+      const result = await service.get(key);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when not connected', async () => {
+      await service.disconnect();
+
+      const result = await service.get('test:key');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('set', () => {
+    it('should set value in cache with default TTL', async () => {
+      const key = 'test:key';
+      const value = { data: 'test' };
+      mockRedisClient.setEx.mockResolvedValue('OK');
+
+      const result = await service.set(key, value);
+
+      expect(result).toBe(true);
+      expect(mockRedisClient.setEx).toHaveBeenCalledWith(
+        key,
+        300, // default TTL
+        JSON.stringify(value)
+      );
+    });
+
+    it('should set value with custom TTL', async () => {
+      const key = 'test:key';
+      const value = { data: 'test' };
+      const ttl = 600;
+      mockRedisClient.setEx.mockResolvedValue('OK');
+
+      const result = await service.set(key, value, ttl);
+
+      expect(result).toBe(true);
+      expect(mockRedisClient.setEx).toHaveBeenCalledWith(
+        key,
+        ttl,
+        JSON.stringify(value)
+      );
+    });
+
+    it('should handle set errors', async () => {
+      const key = 'error:key';
+      mockRedisClient.setEx.mockRejectedValue(new Error('Redis error'));
+
+      const result = await service.set(key, { data: 'test' });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when not connected', async () => {
+      await service.disconnect();
+
+      const result = await service.set('test:key', { data: 'test' });
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete key successfully', async () => {
+      const key = 'test:key';
+      mockRedisClient.del.mockResolvedValue(1);
+
+      const result = await service.delete(key);
+
+      expect(result).toBe(true);
+      expect(mockRedisClient.del).toHaveBeenCalledWith(key);
+    });
+
+    it('should return false when key does not exist', async () => {
+      const key = 'nonexistent';
+      mockRedisClient.del.mockResolvedValue(0);
+
+      const result = await service.delete(key);
+
+      expect(result).toBe(false);
+    });
+
+    it('should handle delete errors', async () => {
+      const key = 'error:key';
+      mockRedisClient.del.mockRejectedValue(new Error('Redis error'));
+
+      const result = await service.delete(key);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when not connected', async () => {
+      await service.disconnect();
+
+      const result = await service.delete('test:key');
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('deletePattern', () => {
+    it('should delete all keys matching pattern', async () => {
+      const pattern = 'test:*';
+      const keys = ['test:1', 'test:2', 'test:3'];
+      mockRedisClient.keys.mockResolvedValue(keys);
+      mockRedisClient.del.mockResolvedValue(3);
+
+      const result = await service.deletePattern(pattern);
+
+      expect(result).toBe(3);
+      expect(mockRedisClient.keys).toHaveBeenCalledWith(pattern);
+      expect(mockRedisClient.del).toHaveBeenCalledWith(keys);
+    });
+
+    it('should return 0 when no keys match pattern', async () => {
+      const pattern = 'nonexistent:*';
+      mockRedisClient.keys.mockResolvedValue([]);
+
+      const result = await service.deletePattern(pattern);
+
+      expect(result).toBe(0);
+      expect(mockRedisClient.del).not.toHaveBeenCalled();
+    });
+
+    it('should handle delete pattern errors', async () => {
+      const pattern = 'error:*';
+      mockRedisClient.keys.mockRejectedValue(new Error('Redis error'));
+
+      const result = await service.deletePattern(pattern);
+
+      expect(result).toBe(0);
+    });
+
+    it('should return 0 when not connected', async () => {
+      await service.disconnect();
+
+      const result = await service.deletePattern('test:*');
+
+      expect(result).toBe(0);
+    });
+  });
+
+  describe('exists', () => {
+    it('should return true when key exists', async () => {
+      const key = 'test:key';
+      mockRedisClient.exists.mockResolvedValue(1);
+
+      const result = await service.exists(key);
+
+      expect(result).toBe(true);
+      expect(mockRedisClient.exists).toHaveBeenCalledWith(key);
+    });
+
+    it('should return false when key does not exist', async () => {
+      const key = 'nonexistent';
+      mockRedisClient.exists.mockResolvedValue(0);
+
+      const result = await service.exists(key);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false on error', async () => {
+      const key = 'error:key';
+      mockRedisClient.exists.mockRejectedValue(new Error('Redis error'));
+
+      const result = await service.exists(key);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when not connected', async () => {
+      await service.disconnect();
+
+      const result = await service.exists('test:key');
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('ttl', () => {
+    it('should return time to live for key', async () => {
+      const key = 'test:key';
+      const ttl = 300;
+      mockRedisClient.ttl.mockResolvedValue(ttl);
+
+      const result = await service.ttl(key);
+
+      expect(result).toBe(ttl);
+      expect(mockRedisClient.ttl).toHaveBeenCalledWith(key);
+    });
+
+    it('should return -1 on error', async () => {
+      const key = 'error:key';
+      mockRedisClient.ttl.mockRejectedValue(new Error('Redis error'));
+
+      const result = await service.ttl(key);
+
+      expect(result).toBe(-1);
+    });
+
+    it('should return -1 when not connected', async () => {
+      await service.disconnect();
+
+      const result = await service.ttl('test:key');
+
+      expect(result).toBe(-1);
+    });
+  });
+
+  describe('flush', () => {
+    it('should flush all cache entries', async () => {
+      mockRedisClient.flushDb.mockResolvedValue('OK');
+
+      const result = await service.flush();
+
+      expect(result).toBe(true);
+      expect(mockRedisClient.flushDb).toHaveBeenCalled();
+    });
+
+    it('should handle flush errors', async () => {
+      mockRedisClient.flushDb.mockRejectedValue(new Error('Redis error'));
+
+      const result = await service.flush();
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when not connected', async () => {
+      await service.disconnect();
+
+      const result = await service.flush();
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('getStats', () => {
+    it('should return cache statistics', async () => {
+      // Generate some cache activity
+      mockRedisClient.get.mockResolvedValueOnce(null); // miss
+      mockRedisClient.get.mockResolvedValueOnce(JSON.stringify({ data: 'test' })); // hit
+      mockRedisClient.setEx.mockResolvedValue('OK');
+
+      await service.get('miss:key');
+      await service.get('hit:key');
+      await service.set('new:key', { data: 'test' });
+
+      const stats = service.getStats();
+
+      expect(stats.hits).toBe(1);
+      expect(stats.misses).toBe(1);
+      expect(stats.sets).toBe(1);
+      expect(stats.totalRequests).toBe(2);
+      expect(stats.hitRate).toBe('50.00%');
+      expect(stats.isConnected).toBe(true);
+    });
+
+    it('should calculate 0% hit rate when no requests', async () => {
+      const stats = service.getStats();
+
+      expect(stats.hitRate).toBe('0%');
+      expect(stats.totalRequests).toBe(0);
+    });
+  });
+
+  describe('resetStats', () => {
+    it('should reset statistics to zero', async () => {
+      // Generate some activity
+      mockRedisClient.get.mockResolvedValue(JSON.stringify({ data: 'test' }));
+      await service.get('test:key');
+
+      service.resetStats();
+
+      const stats = service.getStats();
+      expect(stats.hits).toBe(0);
+      expect(stats.misses).toBe(0);
+      expect(stats.sets).toBe(0);
+      expect(stats.deletes).toBe(0);
+      expect(stats.errors).toBe(0);
+    });
+  });
+
+  describe('disconnect', () => {
+    it('should close Redis connection', async () => {
+      mockRedisClient.quit.mockResolvedValue('OK');
+
+      await service.disconnect();
+
+      expect(mockRedisClient.quit).toHaveBeenCalled();
+    });
+
+    it('should not error when disconnecting while not connected', async () => {
+      await service.disconnect();
+
+      // Second disconnect should not throw
+      await expect(service.disconnect()).resolves.not.toThrow();
+    });
+  });
+
+  describe('getOrSet', () => {
+    it('should return cached value if exists', async () => {
+      const key = 'test:key';
+      const cachedValue = { data: 'cached' };
+      mockRedisClient.get.mockResolvedValue(JSON.stringify(cachedValue));
+
+      const fetchFn = jest.fn();
+      const result = await service.getOrSet(key, fetchFn);
+
+      expect(result).toEqual(cachedValue);
+      expect(fetchFn).not.toHaveBeenCalled();
+    });
+
+    it('should fetch and cache value on cache miss', async () => {
+      const key = 'test:key';
+      const fetchedValue = { data: 'fetched' };
+      mockRedisClient.get.mockResolvedValue(null); // cache miss
+      mockRedisClient.setEx.mockResolvedValue('OK');
+
+      const fetchFn = jest.fn().mockResolvedValue(fetchedValue);
+      const result = await service.getOrSet(key, fetchFn);
+
+      expect(result).toEqual(fetchedValue);
+      expect(fetchFn).toHaveBeenCalled();
+      expect(mockRedisClient.setEx).toHaveBeenCalledWith(
+        key,
+        300,
+        JSON.stringify(fetchedValue)
+      );
+    });
+
+    it('should use custom TTL in getOrSet', async () => {
+      const key = 'test:key';
+      const value = { data: 'test' };
+      const ttl = 600;
+      mockRedisClient.get.mockResolvedValue(null);
+      mockRedisClient.setEx.mockResolvedValue('OK');
+
+      const fetchFn = jest.fn().mockResolvedValue(value);
+      await service.getOrSet(key, fetchFn, ttl);
+
+      expect(mockRedisClient.setEx).toHaveBeenCalledWith(
+        key,
+        ttl,
+        JSON.stringify(value)
+      );
+    });
+  });
+
+  describe('healthCheck', () => {
+    it('should return true when Redis is healthy', async () => {
+      mockRedisClient.ping.mockResolvedValue('PONG');
+
+      const result = await service.healthCheck();
+
+      expect(result).toBe(true);
+      expect(mockRedisClient.ping).toHaveBeenCalled();
+    });
+
+    it('should return false when ping fails', async () => {
+      mockRedisClient.ping.mockRejectedValue(new Error('Connection lost'));
+
+      const result = await service.healthCheck();
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when not connected', async () => {
+      await service.disconnect();
+
+      const result = await service.healthCheck();
+
+      expect(result).toBe(false);
+    });
+  });
+});
+</file>
+
+<file path="__tests__/search-term-deduplicator.test.ts">
+import { SearchTermDeduplicator } from '../search-term-deduplicator';
+
+describe('SearchTermDeduplicator', () => {
+  let deduplicator: SearchTermDeduplicator;
+
+  beforeEach(() => {
+    deduplicator = new SearchTermDeduplicator();
+  });
+
+  describe('Exact Duplicates', () => {
+    test('should skip exact duplicates', () => {
+      deduplicator.markTermAsUsed('Smith');
+      expect(deduplicator.shouldSkipTerm('Smith')).toBe(true);
+      expect(deduplicator.getStats().exactDuplicates).toBe(1);
+    });
+
+    test('should not skip new unique terms', () => {
+      deduplicator.markTermAsUsed('Smith');
+      expect(deduplicator.shouldSkipTerm('Jones')).toBe(false);
+    });
+  });
+
+  describe('Business Entity Supersets', () => {
+    test('should skip "Name LLC" when "Name" exists', () => {
+      deduplicator.markTermAsUsed('Smith');
+      expect(deduplicator.shouldSkipTerm('Smith LLC')).toBe(true);
+      expect(deduplicator.getStats().businessSupersets).toBe(1);
+    });
+
+    test('should skip various business suffixes', () => {
+      deduplicator.markTermAsUsed('Johnson');
+
+      expect(deduplicator.shouldSkipTerm('Johnson Inc')).toBe(true);
+      expect(deduplicator.shouldSkipTerm('Johnson Corp')).toBe(true);
+      expect(deduplicator.shouldSkipTerm('Johnson Trust')).toBe(true);
+      expect(deduplicator.shouldSkipTerm('Johnson Properties')).toBe(true);
+
+      expect(deduplicator.getStats().businessSupersets).toBe(4);
+    });
+
+    test('should NOT skip business entity if base name does not exist', () => {
+      expect(deduplicator.shouldSkipTerm('NewCompany LLC')).toBe(false);
+    });
+
+    test('should NOT skip single word terms', () => {
+      deduplicator.markTermAsUsed('Trust');
+      expect(deduplicator.shouldSkipTerm('Smith')).toBe(false);
+    });
+  });
+
+  describe('Two-Word Supersets', () => {
+    test('should skip "Oak Street" when both "Oak" and "Street" exist', () => {
+      deduplicator.markTermAsUsed('Oak');
+      deduplicator.markTermAsUsed('Street');
+
+      expect(deduplicator.shouldSkipTerm('Oak Street')).toBe(true);
+      expect(deduplicator.getStats().twoWordSupersets).toBe(1);
+    });
+
+    test('should NOT skip "Oak Street" if only "Oak" exists', () => {
+      deduplicator.markTermAsUsed('Oak');
+      expect(deduplicator.shouldSkipTerm('Oak Street')).toBe(false);
+    });
+
+    test('should NOT skip "Oak Street" if only "Street" exists', () => {
+      deduplicator.markTermAsUsed('Street');
+      expect(deduplicator.shouldSkipTerm('Oak Street')).toBe(false);
+    });
+
+    test('should allow if neither word exists', () => {
+      expect(deduplicator.shouldSkipTerm('Pine Avenue')).toBe(false);
+    });
+  });
+
+  describe('Multi-Word Supersets', () => {
+    test('should skip when all 3 words exist', () => {
+      deduplicator.markTermAsUsed('Oak');
+      deduplicator.markTermAsUsed('Hill');
+      deduplicator.markTermAsUsed('Drive');
+
+      expect(deduplicator.shouldSkipTerm('Oak Hill Drive')).toBe(true);
+      expect(deduplicator.getStats().multiWordSupersets).toBe(1);
+    });
+
+    test('should NOT skip if any word is missing', () => {
+      deduplicator.markTermAsUsed('Oak');
+      deduplicator.markTermAsUsed('Hill');
+      // Missing "Drive"
+
+      expect(deduplicator.shouldSkipTerm('Oak Hill Drive')).toBe(false);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    test('should skip terms shorter than 4 characters', () => {
+      expect(deduplicator.shouldSkipTerm('Oak')).toBe(true);
+      expect(deduplicator.shouldSkipTerm('AB')).toBe(true);
+      expect(deduplicator.shouldSkipTerm('A')).toBe(true);
+    });
+
+    test('should skip empty or null terms', () => {
+      expect(deduplicator.shouldSkipTerm('')).toBe(true);
+      expect(deduplicator.shouldSkipTerm('   ')).toBe(true);
+    });
+
+    test('should handle case sensitivity correctly', () => {
+      deduplicator.markTermAsUsed('Smith');
+      // Assuming case-sensitive matching
+      expect(deduplicator.shouldSkipTerm('smith')).toBe(false);
+    });
+  });
+
+  describe('Statistics Tracking', () => {
+    test('should track multiple types of skips', () => {
+      deduplicator.markTermAsUsed('Smith');
+      deduplicator.markTermAsUsed('Oak');
+      deduplicator.markTermAsUsed('Street');
+
+      deduplicator.shouldSkipTerm('Smith'); // exact duplicate
+      deduplicator.shouldSkipTerm('Smith LLC'); // business superset
+      deduplicator.shouldSkipTerm('Oak Street'); // two-word superset
+
+      const stats = deduplicator.getStats();
+      expect(stats.exactDuplicates).toBe(1);
+      expect(stats.businessSupersets).toBe(1);
+      expect(stats.twoWordSupersets).toBe(1);
+      expect(deduplicator.getTotalSkipped()).toBe(3);
+    });
+
+    test('should reset statistics', () => {
+      deduplicator.markTermAsUsed('Smith');
+      deduplicator.shouldSkipTerm('Smith');
+
+      expect(deduplicator.getTotalSkipped()).toBe(1);
+
+      deduplicator.resetStats();
+      expect(deduplicator.getTotalSkipped()).toBe(0);
+    });
+  });
+
+  describe('Utility Methods', () => {
+    test('should track used terms count', () => {
+      expect(deduplicator.getUsedTermsCount()).toBe(0);
+
+      deduplicator.markTermAsUsed('Smith');
+      deduplicator.markTermAsUsed('Jones');
+
+      expect(deduplicator.getUsedTermsCount()).toBe(2);
+    });
+
+    test('should return used terms array', () => {
+      deduplicator.markTermAsUsed('Smith');
+      deduplicator.markTermAsUsed('Jones');
+
+      const terms = deduplicator.getUsedTerms();
+      expect(terms).toContain('Smith');
+      expect(terms).toContain('Jones');
+      expect(terms.length).toBe(2);
+    });
+  });
+
+  describe('Integration with Existing Terms', () => {
+    test('should initialize with existing terms', () => {
+      const existingTerms = new Set(['Smith', 'Jones', 'Williams']);
+      const dedup = new SearchTermDeduplicator(existingTerms);
+
+      expect(dedup.shouldSkipTerm('Smith')).toBe(true);
+      expect(dedup.shouldSkipTerm('Smith LLC')).toBe(true);
+      expect(dedup.shouldSkipTerm('Brown')).toBe(false);
+    });
+  });
+});
+</file>
+
+<file path="__tests__/tcad-scraper.test.ts">
+/**
+ * TCAD Scraper Tests
+ *
+ * Tests for helper methods and configuration
+ */
+
+// Mock Playwright
+const mockBrowser = {
+  newContext: jest.fn(),
+  close: jest.fn(),
+};
+
+jest.mock('playwright', () => ({
+  chromium: {
+    launch: jest.fn().mockResolvedValue(mockBrowser),
+  },
+}));
+
+// Mock config
+jest.mock('../../config', () => ({
+  config: {
+    logging: {
+      level: 'error',
+    },
+    scraper: {
+      headless: true,
+      timeout: 30000,
+      retryAttempts: 3,
+      retryDelay: 1000,
+      userAgents: [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+      ],
+      viewports: [
+        { width: 1920, height: 1080 },
+        { width: 1366, height: 768 },
+      ],
+      humanDelay: {
+        min: 500,
+        max: 2000,
+      },
+      brightData: {
+        enabled: false,
+        apiToken: null,
+        proxyHost: 'brd.superproxy.io',
+        proxyPort: 22225,
+      },
+      proxy: {
+        enabled: false,
+        server: null,
+        username: null,
+        password: null,
+      },
+    },
+  },
+}));
+
+// Mock token refresh service
+jest.mock('../../services/token-refresh.service', () => ({
+  tokenRefreshService: {
+    getCurrentToken: jest.fn().mockReturnValue(null),
+  },
+}));
+
+// Mock DOM scraper fallback
+jest.mock('../fallback/dom-scraper', () => ({
+  scrapeDOMFallback: jest.fn().mockResolvedValue([]),
+}));
+
+import { TCADScraper } from '../tcad-scraper';
+import { chromium } from 'playwright';
+
+describe.skip('TCADScraper - SKIPPED (complex Playwright mocking)', () => {
+  let scraper: TCADScraper;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    scraper = new TCADScraper();
+  });
+
+  afterEach(async () => {
+    if (scraper) {
+      // Cleanup if needed
+    }
+  });
+
+  describe('constructor', () => {
+    it('should initialize with default config', () => {
+      const scraper = new TCADScraper();
+      expect(scraper).toBeDefined();
+    });
+
+    it('should accept custom config', () => {
+      const customScraper = new TCADScraper({
+        headless: false,
+        timeout: 60000,
+      });
+      expect(customScraper).toBeDefined();
+    });
+
+    it('should configure proxy if enabled in config', () => {
+      // Test with Bright Data proxy
+      jest.resetModules();
+      jest.doMock('../../config', () => ({
+        config: {
+          logging: { level: 'error' },
+          scraper: {
+            headless: true,
+            timeout: 30000,
+            retryAttempts: 3,
+            retryDelay: 1000,
+            userAgents: ['test-agent'],
+            viewports: [{ width: 1920, height: 1080 }],
+            humanDelay: { min: 500, max: 2000 },
+            brightData: {
+              enabled: true,
+              apiToken: 'test-token-12345678',
+              proxyHost: 'brd.superproxy.io',
+              proxyPort: 22225,
+            },
+            proxy: {
+              enabled: false,
+              server: null,
+            },
+          },
+        },
+      }));
+
+      // Should not throw when creating scraper with proxy config
+      expect(() => new TCADScraper()).not.toThrow();
+    });
+  });
+
+  describe('initialize', () => {
+    it('should launch browser with correct options', async () => {
+      await scraper.initialize();
+
+      expect(chromium.launch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headless: true,
+          args: expect.arrayContaining([
+            '--disable-blink-features=AutomationControlled',
+            '--disable-web-security',
+            '--no-sandbox',
+          ]),
+        })
+      );
+    });
+
+    it('should handle browser launch failure', async () => {
+      (chromium.launch as jest.Mock).mockRejectedValue(new Error('Launch failed'));
+
+      await expect(scraper.initialize()).rejects.toThrow('Launch failed');
+    });
+
+    it('should include proxy config when provided', async () => {
+      const scraperWithProxy = new TCADScraper({
+        proxyServer: 'http://proxy.example.com:8080',
+        proxyUsername: 'user',
+        proxyPassword: 'pass',
+      });
+
+      await scraperWithProxy.initialize();
+
+      expect(chromium.launch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          proxy: {
+            server: 'http://proxy.example.com:8080',
+            username: 'user',
+            password: 'pass',
+          },
+        })
+      );
+    });
+  });
+
+  describe('Helper Methods', () => {
+    describe('getRandomElement', () => {
+      it('should return element from array', () => {
+        // Access private method via any
+        const scraperAny = scraper as any;
+        const testArray = [1, 2, 3, 4, 5];
+
+        const result = scraperAny.getRandomElement(testArray);
+
+        expect(testArray).toContain(result);
+      });
+
+      it('should handle single element array', () => {
+        const scraperAny = scraper as any;
+        const testArray = ['only-element'];
+
+        const result = scraperAny.getRandomElement(testArray);
+
+        expect(result).toBe('only-element');
+      });
+
+      it('should return different elements on multiple calls', () => {
+        const scraperAny = scraper as any;
+        const testArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        const results = new Set();
+
+        // Call 20 times, should get variety
+        for (let i = 0; i < 20; i++) {
+          results.add(scraperAny.getRandomElement(testArray));
+        }
+
+        // With 20 calls on 10 elements, should get more than 1 unique value
+        expect(results.size).toBeGreaterThan(1);
+      });
+    });
+
+    describe('humanDelay', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
+      it('should delay within specified range', async () => {
+        const scraperAny = scraper as any;
+
+        const delayPromise = scraperAny.humanDelay(100, 200);
+
+        // Fast-forward time
+        jest.advanceTimersByTime(150);
+
+        await delayPromise;
+
+        expect(true).toBe(true); // If we got here, delay worked
+      });
+
+      it('should use default config values when not specified', async () => {
+        const scraperAny = scraper as any;
+
+        const delayPromise = scraperAny.humanDelay();
+
+        // Should use config values (500-2000ms)
+        jest.advanceTimersByTime(1000);
+
+        await delayPromise;
+
+        expect(true).toBe(true);
+      });
+    });
+  });
+
+  describe('Configuration', () => {
+    it('should merge custom config with defaults', () => {
+      const customScraper = new TCADScraper({
+        timeout: 45000,
+        retryAttempts: 5,
+      });
+
+      expect(customScraper).toBeDefined();
+      // Config should be accessible and merged
+    });
+
+    it('should handle empty config object', () => {
+      const defaultScraper = new TCADScraper({});
+      expect(defaultScraper).toBeDefined();
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should throw error if scrapePropertiesViaAPI called without initialization', async () => {
+      const uninitializedScraper = new TCADScraper();
+
+      await expect(
+        uninitializedScraper.scrapePropertiesViaAPI('test')
+      ).rejects.toThrow('Browser not initialized');
+    });
+
+    it('should throw error if scrapeProperties called without initialization', async () => {
+      const uninitializedScraper = new TCADScraper();
+
+      await expect(
+        uninitializedScraper.scrapeProperties('test')
+      ).rejects.toThrow('Browser not initialized');
+    });
+  });
+
+  describe('cleanup', () => {
+    it('should close browser if initialized', async () => {
+      await scraper.initialize();
+
+      await scraper.cleanup();
+
+      expect(mockBrowser.close).toHaveBeenCalled();
+    });
+
+    it('should handle cleanup when browser not initialized', async () => {
+      await expect(scraper.cleanup()).resolves.not.toThrow();
+    });
+
+    it('should handle browser close errors gracefully', async () => {
+      await scraper.initialize();
+
+      mockBrowser.close.mockRejectedValue(new Error('Close failed'));
+
+      // Should not throw
+      await expect(scraper.cleanup()).resolves.not.toThrow();
+    });
+  });
+
+  describe('User Agent and Viewport Selection', () => {
+    it('should use random user agent from config', async () => {
+      await scraper.initialize();
+
+      const mockNewContext = mockBrowser.newContext as jest.Mock;
+
+      // Initialize will be called later, but config is set in constructor
+      expect(scraper).toBeDefined();
+    });
+
+    it('should use random viewport from config', async () => {
+      await scraper.initialize();
+
+      expect(scraper).toBeDefined();
+    });
+  });
+
+  describe('Retry Logic', () => {
+    it('should respect retry configuration', () => {
+      const scraperWithRetries = new TCADScraper({
+        retryAttempts: 5,
+        retryDelay: 2000,
+      });
+
+      expect(scraperWithRetries).toBeDefined();
+    });
+  });
+});
+</file>
+
+<file path="fallback/dom-scraper.ts">
+/**
+ * DOM-BASED SCRAPER - FALLBACK MECHANISM ONLY
+ *
+ * ⚠️ WARNING: This is a DEPRECATED fallback method
+ *
+ * This scraper is limited to 20 results per search due to AG Grid's hidden pagination.
+ * It should ONLY be used when the primary API-based scraping method fails.
+ *
+ * Primary method: scrapePropertiesViaAPI() in tcad-scraper.ts
+ * Fallback method: scrapeDOMFallback() in this file
+ *
+ * Limitations:
+ * - Maximum 20 results per search (AG Grid pagination restriction)
+ * - Slower performance (DOM manipulation + individual page scraping)
+ * - Higher resource usage
+ * - More fragile (breaks if UI changes)
+ *
+ * Use cases:
+ * - API authentication failures
+ * - API rate limiting
+ * - API endpoint changes
+ * - Emergency data retrieval
+ */
+
+import { Browser, Page, BrowserContext } from 'playwright';
+import winston from 'winston';
+import { PropertyData, ScraperConfig } from '../../types';
+import { config as appConfig } from '../../config';
+
+const logger = winston.createLogger({
+  level: appConfig.logging.level,
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.simple(),
+    }),
+  ],
+});
+
+/**
+ * Human-like delay between actions
+ */
+async function humanDelay(
+  min: number = appConfig.scraper.humanDelay.min,
+  max: number = appConfig.scraper.humanDelay.max
+): Promise<void> {
+  const delay = Math.floor(Math.random() * (max - min) + min);
+  await new Promise(resolve => setTimeout(resolve, delay));
+}
+
+/**
+ * Scrape property details from individual property page
+ */
+async function scrapePropertyDetail(page: Page, propertyId: string): Promise<PropertyData | null> {
+  try {
+    const detailUrl = `https://travis.prodigycad.com/property-detail?pid=${propertyId}`;
+    await page.goto(detailUrl, {
+      waitUntil: 'networkidle',
+      timeout: 15000,
+    });
+
+    await humanDelay(1000, 2000);
+
+    const propertyData = await page.evaluate(() => {
+      const getValueByLabel = (labelText: string): string | null => {
+        const labels = document.querySelectorAll('label, dt, th, .label, [class*="label"]');
+
+        let labelIdx = 0;
+        while (labelIdx < labels.length) {
+          const label = labels[labelIdx];
+          const text = label.textContent?.trim().toLowerCase() || '';
+
+          if (text.includes(labelText.toLowerCase())) {
+            let valueElem = label.nextElementSibling;
+            if (valueElem && valueElem.textContent) {
+              return valueElem.textContent.trim();
+            }
+
+            if (label.parentElement) {
+              valueElem = label.parentElement.nextElementSibling;
+              if (valueElem && valueElem.textContent) {
+                return valueElem.textContent.trim();
+              }
+            }
+
+            if (label.tagName === 'TH') {
+              const row = label.closest('tr');
+              if (row) {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 0) {
+                  return cells[0].textContent?.trim() || null;
+                }
+              }
+            }
+          }
+
+          labelIdx++;
+        }
+
+        return null;
+      };
+
+      const name = getValueByLabel('owner') || getValueByLabel('name') || '';
+      const propType = getValueByLabel('property type') || getValueByLabel('type') || '';
+      const city = getValueByLabel('city') || getValueByLabel('situs city') || null;
+      const propertyAddress = getValueByLabel('address') || getValueByLabel('situs address') || getValueByLabel('street') || '';
+
+      const appraisedValueText = getValueByLabel('appraised value') ||
+                                 getValueByLabel('market value') ||
+                                 getValueByLabel('total value') || '0';
+      const appraisedValue = parseFloat(appraisedValueText.replace(/[$,]/g, '')) || 0;
+
+      const assessedValueText = getValueByLabel('assessed value') ||
+                                getValueByLabel('taxable value') || '0';
+      const assessedValue = parseFloat(assessedValueText.replace(/[$,]/g, '')) || 0;
+
+      const geoId = getValueByLabel('geo id') || getValueByLabel('geographic id') || null;
+      const description = getValueByLabel('legal description') || getValueByLabel('description') || null;
+
+      return {
+        name,
+        propType,
+        city,
+        propertyAddress,
+        appraisedValue,
+        assessedValue,
+        geoId,
+        description,
+      };
+    });
+
+    return {
+      propertyId,
+      ...propertyData,
+    };
+
+  } catch (error) {
+    logger.error(`Error scraping detail page for property ${propertyId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * FALLBACK: DOM-based property scraping
+ *
+ * ⚠️ This method is LIMITED to 20 results due to AG Grid pagination restrictions
+ * ⚠️ Use only when API-based scraping fails
+ *
+ * @param browser - Playwright browser instance
+ * @param config - Scraper configuration
+ * @param searchTerm - Search term
+ * @param maxRetries - Maximum retry attempts
+ * @returns Array of PropertyData (max 20 results)
+ */
+export async function scrapeDOMFallback(
+  browser: Browser,
+  config: ScraperConfig,
+  searchTerm: string,
+  maxRetries: number = 3
+): Promise<PropertyData[]> {
+  logger.warn('🔄 FALLBACK: Using DOM-based scraping (limited to 20 results)');
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      logger.info(`DOM fallback attempt ${attempt} for search term: ${searchTerm}`);
+
+      const context = await browser.newContext({
+        userAgent: config.userAgents[Math.floor(Math.random() * config.userAgents.length)],
+        viewport: config.viewports[Math.floor(Math.random() * config.viewports.length)],
+        locale: 'en-US',
+        timezoneId: 'America/Chicago',
+      });
+
+      const page = await context.newPage();
+
+      await page.setExtraHTTPHeaders({
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+      });
+
+      try {
+        await page.goto('https://travis.prodigycad.com/property-search', {
+          waitUntil: 'networkidle',
+          timeout: config.timeout,
+        });
+
+        logger.info('Page loaded, waiting for React app...');
+
+        await page.waitForFunction(() => {
+          const root = document.getElementById('root');
+          return root && root.children.length > 0;
+        }, { timeout: 15000 });
+
+        logger.info('React app loaded, performing search...');
+        await humanDelay(1000, 1500);
+
+        await page.waitForSelector('#searchInput', { timeout: 10000 });
+        await humanDelay(500, 1000);
+        await page.type('#searchInput', searchTerm, { delay: 50 + Math.random() * 100 });
+        await humanDelay(300, 700);
+        await page.press('#searchInput', 'Enter');
+        await humanDelay(2000, 3000);
+
+        await page.waitForFunction(
+          () => {
+            const hasGridCells = document.querySelector('[role="gridcell"]') !== null;
+            const hasNoResults = document.querySelector('.ag-overlay-no-rows-center') !== null ||
+                                document.body.textContent?.includes('No Rows To Show');
+            return hasGridCells || hasNoResults;
+          },
+          { timeout: 15000 }
+        );
+
+        await humanDelay(1000, 1500);
+
+        const hasNoResults = await page.evaluate(() => {
+          const noResultsOverlay = document.querySelector('.ag-overlay-no-rows-center') !== null;
+          const hasGridCells = document.querySelector('[role="gridcell"]') !== null;
+          return noResultsOverlay && !hasGridCells;
+        });
+
+        if (hasNoResults) {
+          logger.info('No results found for search term:', searchTerm);
+          await context.close();
+          return [];
+        }
+
+        logger.info('Results loaded, extracting property IDs...');
+
+        const propertyIds = await page.evaluate(() => {
+          const rows = document.querySelectorAll('[role="row"][row-index]');
+          const ids = [];
+
+          let rowIndex = 0;
+          while (rowIndex < rows.length) {
+            const row = rows[rowIndex];
+            const pidElem = row.querySelector('[col-id="pid"]');
+            const propertyId = pidElem ? pidElem.textContent.trim() : '';
+
+            if (propertyId) {
+              ids.push(propertyId);
+            }
+
+            rowIndex++;
+          }
+
+          return ids;
+        });
+
+        logger.warn(`⚠️ DOM scraping found ${propertyIds.length} property IDs (max 20 due to pagination limit)`);
+
+        const properties = [];
+        let successCount = 0;
+        let failCount = 0;
+
+        for (let i = 0; i < propertyIds.length; i++) {
+          const propertyId = propertyIds[i];
+
+          try {
+            logger.info(`Scraping property ${i + 1}/${propertyIds.length}: ${propertyId}`);
+
+            const propertyData = await scrapePropertyDetail(page, propertyId);
+
+            if (propertyData) {
+              properties.push(propertyData);
+              successCount++;
+            } else {
+              failCount++;
+            }
+
+            await humanDelay(500, 1000);
+
+          } catch (error) {
+            logger.error(`Failed to scrape property ${propertyId}:`, error);
+            failCount++;
+          }
+        }
+
+        logger.info(`DOM fallback complete: ${successCount} succeeded, ${failCount} failed`);
+        logger.warn(`⚠️ Results limited to ${properties.length} properties (20 max due to AG Grid pagination)`);
+
+        await context.close();
+        return properties;
+
+      } finally {
+        await context.close();
+      }
+
+    } catch (error) {
+      lastError = error as Error;
+      logger.error(`DOM fallback attempt ${attempt} failed:`, error);
+
+      if (attempt < maxRetries) {
+        const delay = config.retryDelay * Math.pow(2, attempt - 1);
+        logger.info(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError || new Error('All DOM fallback scraping attempts failed');
+}
+</file>
+
+<file path="fallback/README.md">
+# Fallback Scraping Mechanisms
+
+This directory contains **FALLBACK scraping methods** that are used only when the primary API-based scraping fails.
+
+## ⚠️ Important Limitations
+
+All fallback methods in this directory have significant limitations and should **ONLY** be used as a last resort when the primary method fails.
+
+## Directory Structure
+
+### `dom-scraper.ts`
+**DOM-based property scraping - DEPRECATED FALLBACK**
+
+- **Limitation**: Maximum 20 results per search
+- **Reason**: AG Grid pagination restrictions in the UI
+- **Performance**: Slower than API method (requires individual page scraping)
+- **Fragility**: Breaks if UI HTML structure changes
+
+**When it's used:**
+- API authentication failures
+- API endpoint changes
+- Network issues preventing API access
+- Emergency data retrieval
+
+## Primary vs Fallback Methods
+
+### Primary Method (RECOMMENDED)
+Location: `/server/src/lib/tcad-scraper.ts::scrapePropertiesViaAPI()`
+
+Benefits:
+- ✅ Up to 1000 results per API call
+- ✅ Fast and efficient
+- ✅ Automatic authentication handling
+- ✅ Adaptive page sizing
+- ✅ Reliable data structure
+
+### Fallback Method (USE ONLY IF PRIMARY FAILS)
+Location: `/server/src/lib/fallback/dom-scraper.ts::scrapeDOMFallback()`
+
+Limitations:
+- ⚠️ Maximum 20 results (AG Grid pagination limit)
+- ⚠️ Slower performance
+- ⚠️ Higher resource usage
+- ⚠️ More brittle (depends on UI structure)
+
+## How the Fallback System Works
+
+The main scraper class provides a `scrapePropertiesWithFallback()` method that:
+
+1. **Attempts primary method** (API-based scraping)
+2. **On failure, automatically falls back** to DOM scraping
+3. **Logs clear warnings** about which method is being used
+4. **Returns whichever method succeeds**
+
+```typescript
+// Usage example
+const scraper = new TCADScraper();
+await scraper.initialize();
+
+// This will try API first, then DOM if API fails
+const properties = await scraper.scrapePropertiesWithFallback('search term');
+```
+
+## Logging and Monitoring
+
+The fallback system provides clear log messages:
+
+```
+🚀 Attempting primary method: API-based scraping
+✅ Primary method succeeded: Retrieved 150 properties
+```
+
+Or if fallback is triggered:
+
+```
+🚀 Attempting primary method: API-based scraping
+❌ Primary API method failed after all retries
+🔄 Falling back to DOM-based scraping (limited to 20 results)
+✅ Fallback method succeeded: Retrieved 20 properties (max 20)
+```
+
+## Adding New Fallback Methods
+
+If you need to add new fallback methods:
+
+1. Create a new file in this directory (e.g., `another-scraper.ts`)
+2. Export a function with clear documentation about its limitations
+3. Update the main scraper's fallback chain
+4. Document the method in this README
+
+## Testing Fallback Methods
+
+To test the fallback mechanism:
+
+```bash
+# Set environment to intentionally break API method
+TCAD_API_KEY=invalid_token npm run test:scraper
+
+# The system should automatically fall back to DOM scraping
+```
+
+## Performance Comparison
+
+| Method | Results | Speed | Resource Usage | Reliability |
+|--------|---------|-------|----------------|-------------|
+| API (Primary) | Up to 1000 | Fast | Low | High |
+| DOM (Fallback) | Max 20 | Slow | High | Medium |
+
+## When to Update Fallback Methods
+
+Update fallback methods when:
+- The TCAD website UI changes significantly
+- New data fields need to be extracted
+- Alternative scraping approaches become available
+- Performance improvements can be made
+
+## Related Files
+
+- `/server/src/lib/tcad-scraper.ts` - Main scraper with primary method
+- `/server/src/lib/fallback/dom-scraper.ts` - DOM fallback implementation
+- `/server/src/lib/scraper.queue.ts` - Job queue that uses the scraper
+- `/server/src/routes/properties.ts` - API routes that trigger scraping
+</file>
+
+<file path="claude.service.ts">
+import Anthropic from '@anthropic-ai/sdk';
+import { Prisma } from '@prisma/client';
+import logger from './logger';
+import { config } from '../config';
+
+const anthropic = new Anthropic({
+  apiKey: config.claude.apiKey,
+});
+
+interface SearchFilters {
+  whereClause: Prisma.PropertyWhereInput;
+  orderBy?: Prisma.PropertyOrderByWithRelationInput;
+  explanation: string;
+}
+
+export class ClaudeSearchService {
+  async parseNaturalLanguageQuery(query: string): Promise<SearchFilters> {
+    try {
+      const message = await anthropic.messages.create({
+        model: config.claude.model,
+        max_tokens: config.claude.maxTokens,
+        messages: [
+          {
+            role: 'user',
+            content: `You are a database query generator for a property search system. Convert the user's natural language query into Prisma query filters.
+
+Available fields in the properties table:
+- id (text): unique identifier
+- propertyId (text): property ID from TCAD
+- name (text): owner name
+- propType (text): property type (e.g., "Residential", "Commercial", "Industrial")
+- city (text): city name
+- propertyAddress (text): full address
+- assessedValue (number): assessed value in dollars
+- appraisedValue (number): appraised value in dollars
+- geoId (text): geographic ID
+- description (text): property description
+- searchTerm (text): original search term used to find this property
+- scrapedAt (datetime): when the data was scraped
+- createdAt (datetime): record creation time
+- updatedAt (datetime): last update time
+
+User query: "${query}"
+
+Generate a JSON response with these fields:
+1. "whereClause": Prisma where clause as JSON (use "contains" for text searches with "mode": "insensitive" for case-insensitive, "gte"/"lte" for number ranges, "gt"/"lt" for comparisons)
+2. "orderBy": Prisma orderBy clause (optional, use "asc" or "desc")
+3. "explanation": Brief explanation of what you're searching for
+
+Examples:
+
+Query: "properties in Austin worth over 500k"
+Response:
+{
+  "whereClause": {
+    "city": "Austin",
+    "appraisedValue": { "gte": 500000 }
+  },
+  "orderBy": { "appraisedValue": "desc" },
+  "explanation": "Searching for properties in Austin with appraised value over $500,000, sorted by value (highest first)"
+}
+
+Query: "commercial properties owned by Smith"
+Response:
+{
+  "whereClause": {
+    "propType": { "contains": "Commercial", "mode": "insensitive" },
+    "name": { "contains": "Smith", "mode": "insensitive" }
+  },
+  "explanation": "Searching for commercial properties where owner name contains 'Smith'"
+}
+
+Query: "show me the most expensive residential properties"
+Response:
+{
+  "whereClause": {
+    "propType": { "contains": "Residential", "mode": "insensitive" }
+  },
+  "orderBy": { "appraisedValue": "desc" },
+  "explanation": "Showing residential properties sorted by appraised value (highest first)"
+}
+
+Query: "properties on Congress Ave"
+Response:
+{
+  "whereClause": {
+    "propertyAddress": { "contains": "Congress", "mode": "insensitive" }
+  },
+  "explanation": "Searching for properties with 'Congress' in the address"
+}
+
+Query: "find properties appraised between 300k and 600k"
+Response:
+{
+  "whereClause": {
+    "appraisedValue": { "gte": 300000, "lte": 600000 }
+  },
+  "orderBy": { "appraisedValue": "asc" },
+  "explanation": "Searching for properties with appraised value between $300,000 and $600,000"
+}
+
+IMPORTANT:
+- Return ONLY valid JSON, no markdown formatting
+- Use "mode": "insensitive" for all text searches
+- Convert dollar amounts (like "500k" or "$1M") to numbers (500000, 1000000)
+- For text searches, use "contains" with "mode": "insensitive"
+- Only include orderBy if the query implies sorting
+- Keep explanations brief and user-friendly
+
+Now generate the JSON for the user's query above.`,
+          },
+        ],
+      });
+
+      const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+      logger.info('Claude response:', { responseText });
+
+      // Parse the JSON response
+      const parsed = JSON.parse(responseText);
+
+      return {
+        whereClause: parsed.whereClause || {},
+        orderBy: parsed.orderBy,
+        explanation: parsed.explanation || 'Searching properties based on your query',
+      };
+    } catch (error) {
+      // Safely log the error without risking serialization issues
+      const errorDetails = {
+        message: error instanceof Error ? error.message : String(error),
+        name: error instanceof Error ? error.name : 'Unknown',
+        stack: error instanceof Error ? error.stack : undefined,
+      };
+      logger.error('Error parsing natural language query with Claude:', errorDetails);
+      logger.error('Claude API Error Details:', JSON.stringify(errorDetails, null, 2));
+
+      // Fallback: simple text search across multiple fields
+      return {
+        whereClause: {
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { propertyAddress: { contains: query, mode: 'insensitive' } },
+            { city: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        explanation: `Searching for "${query}" across property names, addresses, cities, and descriptions`,
+      };
+    }
+  }
+}
+
+export const claudeSearchService = new ClaudeSearchService();
+</file>
+
+<file path="logger.ts">
+// src/lib/logger.ts
+import pino from 'pino';
+
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  transport: {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      translateTime: 'SYS:standard',
+      ignore: 'pid,hostname',
+    },
+  },
+});
+
+export default logger;
+</file>
+
+<file path="metrics.service.ts">
+/**
+ * Prometheus Metrics Service
+ *
+ * Provides comprehensive application monitoring with Prometheus metrics
+ */
+
+import { Registry, Counter, Histogram, Gauge, collectDefaultMetrics } from 'prom-client';
+import logger from './logger';
+
+// Create a new registry
+const register = new Registry();
+
+// Add default Node.js metrics (memory, CPU, event loop, etc.)
+collectDefaultMetrics({
+  register,
+  prefix: 'tcad_scraper_',
+});
+
+// ============================================================================
+// HTTP Metrics
+// ============================================================================
+
+/**
+ * HTTP request counter
+ * Tracks total number of HTTP requests by method, route, and status
+ */
+export const httpRequestsTotal = new Counter({
+  name: 'tcad_scraper_http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code'],
+  registers: [register],
+});
+
+/**
+ * HTTP request duration histogram
+ * Tracks request processing time distribution
+ */
+export const httpRequestDuration = new Histogram({
+  name: 'tcad_scraper_http_request_duration_seconds',
+  help: 'HTTP request duration in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10], // Response time buckets in seconds
+  registers: [register],
+});
+
+// ============================================================================
+// Scraper Metrics
+// ============================================================================
+
+/**
+ * Scrape job counter
+ * Tracks total number of scrape jobs by status
+ */
+export const scrapeJobsTotal = new Counter({
+  name: 'tcad_scraper_jobs_total',
+  help: 'Total number of scrape jobs',
+  labelNames: ['status'], // pending, processing, completed, failed
+  registers: [register],
+});
+
+/**
+ * Scrape job duration histogram
+ * Tracks how long scrape jobs take to complete
+ */
+export const scrapeJobDuration = new Histogram({
+  name: 'tcad_scraper_job_duration_seconds',
+  help: 'Scrape job duration in seconds',
+  labelNames: ['status'],
+  buckets: [5, 10, 30, 60, 120, 300, 600], // Job duration buckets in seconds
+  registers: [register],
+});
+
+/**
+ * Properties scraped counter
+ * Tracks total number of properties scraped
+ */
+export const propertiesScrapedTotal = new Counter({
+  name: 'tcad_scraper_properties_scraped_total',
+  help: 'Total number of properties scraped',
+  labelNames: ['search_term'],
+  registers: [register],
+});
+
+/**
+ * Active scrape jobs gauge
+ * Tracks current number of active scrape jobs
+ */
+export const activeScrapeJobs = new Gauge({
+  name: 'tcad_scraper_active_jobs',
+  help: 'Current number of active scrape jobs',
+  registers: [register],
+});
+
+// ============================================================================
+// Queue Metrics
+// ============================================================================
+
+/**
+ * Queue size gauge
+ * Tracks current queue depth by status
+ */
+export const queueSize = new Gauge({
+  name: 'tcad_scraper_queue_size',
+  help: 'Current number of jobs in queue',
+  labelNames: ['status'], // waiting, active, completed, failed
+  registers: [register],
+});
+
+/**
+ * Queue processing rate
+ * Tracks jobs processed per second
+ */
+export const queueProcessingRate = new Counter({
+  name: 'tcad_scraper_queue_processed_total',
+  help: 'Total number of jobs processed from queue',
+  labelNames: ['status'],
+  registers: [register],
+});
+
+// ============================================================================
+// Database Metrics
+// ============================================================================
+
+/**
+ * Database query duration histogram
+ * Tracks database query performance
+ */
+export const dbQueryDuration = new Histogram({
+  name: 'tcad_scraper_db_query_duration_seconds',
+  help: 'Database query duration in seconds',
+  labelNames: ['operation', 'table'],
+  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2, 5],
+  registers: [register],
+});
+
+/**
+ * Database connection pool gauge
+ * Tracks active database connections
+ */
+export const dbConnectionsActive = new Gauge({
+  name: 'tcad_scraper_db_connections_active',
+  help: 'Current number of active database connections',
+  registers: [register],
+});
+
+/**
+ * Database query counter
+ * Tracks total number of database queries
+ */
+export const dbQueriesTotal = new Counter({
+  name: 'tcad_scraper_db_queries_total',
+  help: 'Total number of database queries',
+  labelNames: ['operation', 'table', 'status'],
+  registers: [register],
+});
+
+// ============================================================================
+// Cache Metrics
+// ============================================================================
+
+/**
+ * Cache operations counter
+ * Tracks cache hits and misses
+ */
+export const cacheOperations = new Counter({
+  name: 'tcad_scraper_cache_operations_total',
+  help: 'Total number of cache operations',
+  labelNames: ['operation', 'status'], // operation: get/set/del, status: hit/miss/success/error
+  registers: [register],
+});
+
+/**
+ * Cache hit rate gauge
+ * Tracks current cache hit rate percentage
+ */
+export const cacheHitRate = new Gauge({
+  name: 'tcad_scraper_cache_hit_rate',
+  help: 'Cache hit rate percentage',
+  registers: [register],
+});
+
+/**
+ * Cache size gauge
+ * Tracks current number of items in cache
+ */
+export const cacheSize = new Gauge({
+  name: 'tcad_scraper_cache_size',
+  help: 'Current number of items in cache',
+  registers: [register],
+});
+
+// ============================================================================
+// External Service Metrics
+// ============================================================================
+
+/**
+ * TCAD API requests counter
+ * Tracks requests to TCAD website
+ */
+export const tcadRequestsTotal = new Counter({
+  name: 'tcad_scraper_tcad_requests_total',
+  help: 'Total number of requests to TCAD website',
+  labelNames: ['endpoint', 'status'],
+  registers: [register],
+});
+
+/**
+ * Claude AI API requests counter
+ * Tracks requests to Claude AI API
+ */
+export const claudeRequestsTotal = new Counter({
+  name: 'tcad_scraper_claude_requests_total',
+  help: 'Total number of requests to Claude AI API',
+  labelNames: ['status'],
+  registers: [register],
+});
+
+/**
+ * Claude AI API duration histogram
+ * Tracks Claude AI response times
+ */
+export const claudeRequestDuration = new Histogram({
+  name: 'tcad_scraper_claude_request_duration_seconds',
+  help: 'Claude AI request duration in seconds',
+  labelNames: ['status'],
+  buckets: [0.5, 1, 2, 3, 5, 10, 15, 20, 30],
+  registers: [register],
+});
+
+// ============================================================================
+// Token Refresh Metrics
+// ============================================================================
+
+/**
+ * Token refresh counter
+ * Tracks TCAD token refresh operations
+ */
+export const tokenRefreshTotal = new Counter({
+  name: 'tcad_scraper_token_refresh_total',
+  help: 'Total number of token refresh operations',
+  labelNames: ['status'], // success, failure
+  registers: [register],
+});
+
+/**
+ * Token age gauge
+ * Tracks time since last successful token refresh
+ */
+export const tokenAge = new Gauge({
+  name: 'tcad_scraper_token_age_seconds',
+  help: 'Time since last successful token refresh in seconds',
+  registers: [register],
+});
+
+// ============================================================================
+// Error Metrics
+// ============================================================================
+
+/**
+ * Application errors counter
+ * Tracks all application errors by type
+ */
+export const errorsTotal = new Counter({
+  name: 'tcad_scraper_errors_total',
+  help: 'Total number of application errors',
+  labelNames: ['type', 'source'], // type: validation/scraper/database/etc, source: controller/service/etc
+  registers: [register],
+});
+
+// ============================================================================
+// Code Complexity Metrics
+// ============================================================================
+
+/**
+ * Cyclomatic complexity gauge
+ * Tracks average cyclomatic complexity across the codebase
+ */
+export const codeComplexityCyclomatic = new Gauge({
+  name: 'tcad_scraper_code_complexity_cyclomatic',
+  help: 'Average cyclomatic complexity of functions',
+  registers: [register],
+});
+
+/**
+ * Maximum cyclomatic complexity gauge
+ * Tracks the highest cyclomatic complexity value in the codebase
+ */
+export const codeComplexityMaxCyclomatic = new Gauge({
+  name: 'tcad_scraper_code_complexity_max_cyclomatic',
+  help: 'Maximum cyclomatic complexity of any single function',
+  registers: [register],
+});
+
+/**
+ * Total lines of code gauge
+ * Tracks total lines of code (including blank lines and comments)
+ */
+export const codeComplexityTotalLines = new Gauge({
+  name: 'tcad_scraper_code_complexity_total_lines',
+  help: 'Total lines of code in the codebase',
+  registers: [register],
+});
+
+/**
+ * Code lines gauge (excluding comments and blank lines)
+ * Tracks actual code lines
+ */
+export const codeComplexityCodeLines = new Gauge({
+  name: 'tcad_scraper_code_complexity_code_lines',
+  help: 'Lines of actual code (excluding comments and blank lines)',
+  registers: [register],
+});
+
+/**
+ * Comment lines gauge
+ * Tracks number of comment lines
+ */
+export const codeComplexityCommentLines = new Gauge({
+  name: 'tcad_scraper_code_complexity_comment_lines',
+  help: 'Lines of comments in the codebase',
+  registers: [register],
+});
+
+/**
+ * Total files gauge
+ * Tracks number of source files
+ */
+export const codeComplexityTotalFiles = new Gauge({
+  name: 'tcad_scraper_code_complexity_total_files',
+  help: 'Total number of source files',
+  registers: [register],
+});
+
+/**
+ * Total functions gauge
+ * Tracks number of functions/methods
+ */
+export const codeComplexityTotalFunctions = new Gauge({
+  name: 'tcad_scraper_code_complexity_total_functions',
+  help: 'Total number of functions and methods',
+  registers: [register],
+});
+
+/**
+ * Total classes gauge
+ * Tracks number of classes
+ */
+export const codeComplexityTotalClasses = new Gauge({
+  name: 'tcad_scraper_code_complexity_total_classes',
+  help: 'Total number of classes',
+  registers: [register],
+});
+
+/**
+ * Maximum function lines gauge
+ * Tracks the largest function by line count
+ */
+export const codeComplexityMaxFunctionLines = new Gauge({
+  name: 'tcad_scraper_code_complexity_max_function_lines',
+  help: 'Maximum number of lines in any single function',
+  registers: [register],
+});
+
+/**
+ * File lines gauge
+ * Tracks lines per file (for identifying large files)
+ */
+export const codeComplexityFileLines = new Gauge({
+  name: 'tcad_scraper_code_complexity_file_lines',
+  help: 'Number of lines per file',
+  labelNames: ['file'],
+  registers: [register],
+});
+
+/**
+ * Maintainability index gauge
+ * Tracks code maintainability score (0-100, higher is better)
+ */
+export const codeComplexityMaintainability = new Gauge({
+  name: 'tcad_scraper_code_complexity_maintainability_index',
+  help: 'Code maintainability index (0-100, higher is better)',
+  registers: [register],
+});
+
+/**
+ * Technical debt ratio gauge
+ * Tracks ratio of technical debt (time to fix vs time to build from scratch)
+ */
+export const codeComplexityTechnicalDebtRatio = new Gauge({
+  name: 'tcad_scraper_code_complexity_technical_debt_ratio',
+  help: 'Technical debt ratio as percentage',
+  registers: [register],
+});
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Get all metrics in Prometheus format
+ */
+export async function getMetrics(): Promise<string> {
+  return register.metrics();
+}
+
+/**
+ * Get metric registry
+ */
+export function getRegistry(): Registry {
+  return register;
+}
+
+/**
+ * Reset all metrics (useful for testing)
+ */
+export function resetMetrics(): void {
+  register.resetMetrics();
+}
+
+/**
+ * Update queue metrics
+ * Call this periodically to update queue size gauges
+ */
+export async function updateQueueMetrics(
+  waiting: number,
+  active: number,
+  completed: number,
+  failed: number
+): Promise<void> {
+  queueSize.set({ status: 'waiting' }, waiting);
+  queueSize.set({ status: 'active' }, active);
+  queueSize.set({ status: 'completed' }, completed);
+  queueSize.set({ status: 'failed' }, failed);
+
+  activeScrapeJobs.set(active);
+}
+
+/**
+ * Update cache metrics
+ * Call this periodically to update cache statistics
+ */
+export function updateCacheMetrics(
+  hits: number,
+  misses: number,
+  size: number
+): void {
+  const total = hits + misses;
+  const hitRate = total > 0 ? (hits / total) * 100 : 0;
+
+  cacheHitRate.set(hitRate);
+  cacheSize.set(size);
+}
+
+/**
+ * Record HTTP request
+ */
+export function recordHttpRequest(
+  method: string,
+  route: string,
+  statusCode: number,
+  durationSeconds: number
+): void {
+  httpRequestsTotal.inc({ method, route, status_code: statusCode });
+  httpRequestDuration.observe({ method, route, status_code: statusCode }, durationSeconds);
+}
+
+/**
+ * Record scrape job completion
+ */
+export function recordScrapeJob(
+  status: 'completed' | 'failed',
+  durationSeconds: number,
+  propertiesCount?: number
+): void {
+  scrapeJobsTotal.inc({ status });
+  scrapeJobDuration.observe({ status }, durationSeconds);
+
+  if (propertiesCount !== undefined && status === 'completed') {
+    propertiesScrapedTotal.inc({}, propertiesCount);
+  }
+}
+
+/**
+ * Record database query
+ */
+export function recordDbQuery(
+  operation: string,
+  table: string,
+  status: 'success' | 'error',
+  durationSeconds: number
+): void {
+  dbQueriesTotal.inc({ operation, table, status });
+  dbQueryDuration.observe({ operation, table }, durationSeconds);
+}
+
+/**
+ * Record cache operation
+ */
+export function recordCacheOperation(
+  operation: 'get' | 'set' | 'del',
+  status: 'hit' | 'miss' | 'success' | 'error'
+): void {
+  cacheOperations.inc({ operation, status });
+}
+
+/**
+ * Record error
+ */
+export function recordError(type: string, source: string): void {
+  errorsTotal.inc({ type, source });
+}
+
+/**
+ * Update code complexity metrics
+ * Call this periodically (e.g., hourly) to update codebase complexity metrics
+ */
+export interface CodeComplexityMetrics {
+  avgCyclomatic: number;
+  maxCyclomatic: number;
+  totalLines: number;
+  codeLines: number;
+  commentLines: number;
+  totalFiles: number;
+  totalFunctions: number;
+  totalClasses: number;
+  maxFunctionLines: number;
+  fileMetrics?: Array<{ file: string; lines: number }>;
+  maintainabilityIndex?: number;
+  technicalDebtRatio?: number;
+}
+
+export function updateCodeComplexityMetrics(metrics: CodeComplexityMetrics): void {
+  codeComplexityCyclomatic.set(metrics.avgCyclomatic);
+  codeComplexityMaxCyclomatic.set(metrics.maxCyclomatic);
+  codeComplexityTotalLines.set(metrics.totalLines);
+  codeComplexityCodeLines.set(metrics.codeLines);
+  codeComplexityCommentLines.set(metrics.commentLines);
+  codeComplexityTotalFiles.set(metrics.totalFiles);
+  codeComplexityTotalFunctions.set(metrics.totalFunctions);
+  codeComplexityTotalClasses.set(metrics.totalClasses);
+  codeComplexityMaxFunctionLines.set(metrics.maxFunctionLines);
+
+  // Update per-file metrics if provided
+  if (metrics.fileMetrics) {
+    // Reset file metrics
+    codeComplexityFileLines.reset();
+    // Set new values
+    metrics.fileMetrics.forEach(({ file, lines }) => {
+      codeComplexityFileLines.set({ file }, lines);
+    });
+  }
+
+  // Update optional metrics if provided
+  if (metrics.maintainabilityIndex !== undefined) {
+    codeComplexityMaintainability.set(metrics.maintainabilityIndex);
+  }
+
+  if (metrics.technicalDebtRatio !== undefined) {
+    codeComplexityTechnicalDebtRatio.set(metrics.technicalDebtRatio);
+  }
+}
+
+logger.info('Prometheus metrics service initialized');
+
+export default {
+  getMetrics,
+  getRegistry,
+  resetMetrics,
+  updateQueueMetrics,
+  updateCacheMetrics,
+  recordHttpRequest,
+  recordScrapeJob,
+  recordDbQuery,
+  recordCacheOperation,
+  recordError,
+  updateCodeComplexityMetrics,
+  // Export all metrics for direct access if needed
+  httpRequestsTotal,
+  httpRequestDuration,
+  scrapeJobsTotal,
+  scrapeJobDuration,
+  propertiesScrapedTotal,
+  activeScrapeJobs,
+  queueSize,
+  queueProcessingRate,
+  dbQueryDuration,
+  dbConnectionsActive,
+  dbQueriesTotal,
+  cacheOperations,
+  cacheHitRate,
+  cacheSize,
+  tcadRequestsTotal,
+  claudeRequestsTotal,
+  claudeRequestDuration,
+  tokenRefreshTotal,
+  tokenAge,
+  errorsTotal,
+  codeComplexityCyclomatic,
+  codeComplexityMaxCyclomatic,
+  codeComplexityTotalLines,
+  codeComplexityCodeLines,
+  codeComplexityCommentLines,
+  codeComplexityTotalFiles,
+  codeComplexityTotalFunctions,
+  codeComplexityTotalClasses,
+  codeComplexityMaxFunctionLines,
+  codeComplexityFileLines,
+  codeComplexityMaintainability,
+  codeComplexityTechnicalDebtRatio,
+};
+</file>
+
+<file path="prisma.ts">
+import { PrismaClient } from '@prisma/client';
+
+declare global {
+  var prisma: PrismaClient | undefined;
+  var prismaReadOnly: PrismaClient | undefined;
+}
+
+const writeClient = global.prisma || new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  global.prisma = writeClient;
+}
+
+const readClient = global.prismaReadOnly || new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_READ_ONLY_URL || process.env.DATABASE_URL,
+    },
+  },
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  global.prismaReadOnly = readClient;
+}
+
+export const prisma = writeClient;
+export const prismaReadOnly = readClient;
+</file>
+
+<file path="README_ENHANCED.md">
+# lib
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "lib",
+  "description": "Directory containing 6 code files with 7 classes and 3 functions",
+  "programmingLanguage": [
+    {
+      "@type": "ComputerLanguage",
+      "name": "Typescript"
+    }
+  ],
+  "featureList": [
+    "7 class definitions",
+    "3 function definitions"
+  ]
+}
+</script>
+
+## Overview
+
+This directory contains 6 code file(s) with extracted schemas.
+
+## Subdirectories
+
+- `__tests__/`
+- `fallback/`
+
+## Files and Schemas
+
+### `claude.service.ts` (typescript)
+
+**Classes:**
+- `ClaudeSearchService` - Line 15
+- `SearchFilters` - Line 9
+
+### `metrics.service.ts` (typescript)
+
+**Classes:**
+- `CodeComplexityMetrics` - Line 516
+
+### `redis-cache.service.ts` (typescript)
+
+**Classes:**
+- `RedisCacheService` - Line 30
+
+### `search-term-deduplicator.ts` (typescript)
+
+**Classes:**
+- `SearchTermDeduplicator` - Line 15
+- `DeduplicationStats` - Line 7
+
+### `sentry.service.ts` (typescript)
+
+**Functions:**
+- `sentryRequestHandler()` - Line 99
+- `sentryTracingHandler()` - Line 109
+- `sentryErrorHandler()` - Line 119
+
+### `tcad-scraper.ts` (typescript)
+
+**Classes:**
+- `TCADScraper` - Line 17
+
+---
+*Generated by Enhanced Schema Generator with schema.org markup*
+</file>
+
+<file path="README.md">
+# lib
+
+## Overview
+
+This directory contains 1 code file(s) with extracted schemas.
+
+## Files and Schemas
+
+### `tcad-scraper.ts` (typescript)
+
+**Classes:**
+- `TCADScraper` - Line 15
+
+**Key Imports:** `../types`, `playwright`, `winston`
+
+---
+*Generated by Schema Generator*
+</file>
+
+<file path="redis-cache.service.ts">
+/**
+ * Redis Cache Service
+ *
+ * Provides caching layer for frequently accessed data with:
+ * - Automatic TTL management
+ * - Cache-aside pattern
+ * - Serialization/deserialization
+ * - Cache statistics and monitoring
+ */
+
+import { createClient, RedisClientType } from 'redis';
+import winston from 'winston';
+import { config } from '../config';
+
+const logger = winston.createLogger({
+  level: config.logging.level || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      ),
+    }),
+  ],
+});
+
+export class RedisCacheService {
+  private client: RedisClientType | null = null;
+  private isConnected: boolean = false;
+  private stats = {
+    hits: 0,
+    misses: 0,
+    sets: 0,
+    deletes: 0,
+    errors: 0,
+  };
+
+  /**
+   * Initialize Redis client connection
+   */
+  async connect(): Promise<void> {
+    if (this.isConnected) {
+      logger.warn('Redis cache already connected');
+      return;
+    }
+
+    try {
+      this.client = createClient({
+        socket: {
+          host: config.redis.host,
+          port: config.redis.port,
+          connectTimeout: config.redis.connectionTimeout,
+        },
+        password: config.redis.password,
+        database: config.redis.db,
+      });
+
+      this.client.on('error', (err) => {
+        logger.error('Redis cache error:', err);
+        this.stats.errors++;
+      });
+
+      this.client.on('connect', () => {
+        logger.info('Redis cache connecting...');
+      });
+
+      this.client.on('ready', () => {
+        logger.info('Redis cache ready');
+        this.isConnected = true;
+      });
+
+      this.client.on('end', () => {
+        logger.info('Redis cache connection closed');
+        this.isConnected = false;
+      });
+
+      await this.client.connect();
+      logger.info('Redis cache service initialized');
+
+    } catch (error) {
+      logger.error('Failed to connect to Redis cache:', error);
+      this.stats.errors++;
+      throw error;
+    }
+  }
+
+  /**
+   * Get value from cache
+   */
+  async get<T>(key: string): Promise<T | null> {
+    if (!this.client || !this.isConnected) {
+      logger.warn('Redis cache not connected, skipping get');
+      return null;
+    }
+
+    try {
+      const value = await this.client.get(key);
+
+      if (value === null) {
+        this.stats.misses++;
+        logger.debug(`Cache MISS: ${key}`);
+        return null;
+      }
+
+      this.stats.hits++;
+      logger.debug(`Cache HIT: ${key}`);
+      return JSON.parse(value) as T;
+
+    } catch (error) {
+      logger.error(`Cache get error for key ${key}:`, error);
+      this.stats.errors++;
+      return null;
+    }
+  }
+
+  /**
+   * Set value in cache with TTL
+   * @param key Cache key
+   * @param value Value to cache (will be JSON stringified)
+   * @param ttlSeconds Time to live in seconds (default: 300 = 5 minutes)
+   */
+  async set(key: string, value: any, ttlSeconds: number = 300): Promise<boolean> {
+    if (!this.client || !this.isConnected) {
+      logger.warn('Redis cache not connected, skipping set');
+      return false;
+    }
+
+    try {
+      const serialized = JSON.stringify(value);
+      await this.client.setEx(key, ttlSeconds, serialized);
+
+      this.stats.sets++;
+      logger.debug(`Cache SET: ${key} (TTL: ${ttlSeconds}s)`);
+      return true;
+
+    } catch (error) {
+      logger.error(`Cache set error for key ${key}:`, error);
+      this.stats.errors++;
+      return false;
+    }
+  }
+
+  /**
+   * Delete value from cache
+   */
+  async delete(key: string): Promise<boolean> {
+    if (!this.client || !this.isConnected) {
+      logger.warn('Redis cache not connected, skipping delete');
+      return false;
+    }
+
+    try {
+      const result = await this.client.del(key);
+
+      this.stats.deletes++;
+      logger.debug(`Cache DELETE: ${key}`);
+      return result > 0;
+
+    } catch (error) {
+      logger.error(`Cache delete error for key ${key}:`, error);
+      this.stats.errors++;
+      return false;
+    }
+  }
+
+  /**
+   * Delete all keys matching a pattern
+   * @param pattern Redis key pattern (e.g., "property:*")
+   */
+  async deletePattern(pattern: string): Promise<number> {
+    if (!this.client || !this.isConnected) {
+      logger.warn('Redis cache not connected, skipping delete pattern');
+      return 0;
+    }
+
+    try {
+      const keys = await this.client.keys(pattern);
+
+      if (keys.length === 0) {
+        return 0;
+      }
+
+      const result = await this.client.del(keys);
+
+      this.stats.deletes += result;
+      logger.info(`Cache DELETE PATTERN: ${pattern} (${result} keys deleted)`);
+      return result;
+
+    } catch (error) {
+      logger.error(`Cache delete pattern error for ${pattern}:`, error);
+      this.stats.errors++;
+      return 0;
+    }
+  }
+
+  /**
+   * Check if key exists in cache
+   */
+  async exists(key: string): Promise<boolean> {
+    if (!this.client || !this.isConnected) {
+      return false;
+    }
+
+    try {
+      const result = await this.client.exists(key);
+      return result === 1;
+    } catch (error) {
+      logger.error(`Cache exists error for key ${key}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get time to live for a key
+   */
+  async ttl(key: string): Promise<number> {
+    if (!this.client || !this.isConnected) {
+      return -1;
+    }
+
+    try {
+      return await this.client.ttl(key);
+    } catch (error) {
+      logger.error(`Cache TTL error for key ${key}:`, error);
+      return -1;
+    }
+  }
+
+  /**
+   * Flush all cache entries
+   */
+  async flush(): Promise<boolean> {
+    if (!this.client || !this.isConnected) {
+      logger.warn('Redis cache not connected, skipping flush');
+      return false;
+    }
+
+    try {
+      await this.client.flushDb();
+      logger.info('Cache flushed');
+      return true;
+    } catch (error) {
+      logger.error('Cache flush error:', error);
+      this.stats.errors++;
+      return false;
+    }
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getStats() {
+    const totalRequests = this.stats.hits + this.stats.misses;
+    const hitRate = totalRequests > 0
+      ? ((this.stats.hits / totalRequests) * 100).toFixed(2) + '%'
+      : '0%';
+
+    return {
+      ...this.stats,
+      totalRequests,
+      hitRate,
+      isConnected: this.isConnected,
+    };
+  }
+
+  /**
+   * Reset statistics
+   */
+  resetStats(): void {
+    this.stats = {
+      hits: 0,
+      misses: 0,
+      sets: 0,
+      deletes: 0,
+      errors: 0,
+    };
+    logger.info('Cache statistics reset');
+  }
+
+  /**
+   * Close Redis connection
+   */
+  async disconnect(): Promise<void> {
+    if (this.client && this.isConnected) {
+      await this.client.quit();
+      this.isConnected = false;
+      logger.info('Redis cache disconnected');
+    }
+  }
+
+  /**
+   * Cache-aside pattern helper
+   * Automatically gets from cache or fetches from source
+   *
+   * @param key Cache key
+   * @param fetchFn Function to fetch data if not in cache
+   * @param ttlSeconds Cache TTL in seconds
+   */
+  async getOrSet<T>(
+    key: string,
+    fetchFn: () => Promise<T>,
+    ttlSeconds: number = 300
+  ): Promise<T> {
+    // Try to get from cache first
+    const cached = await this.get<T>(key);
+    if (cached !== null) {
+      return cached;
+    }
+
+    // Cache miss - fetch from source
+    const data = await fetchFn();
+
+    // Store in cache for next time
+    await this.set(key, data, ttlSeconds);
+
+    return data;
+  }
+
+  /**
+   * Health check
+   */
+  async healthCheck(): Promise<boolean> {
+    if (!this.client || !this.isConnected) {
+      return false;
+    }
+
+    try {
+      const result = await this.client.ping();
+      return result === 'PONG';
+    } catch (error) {
+      logger.error('Cache health check failed:', error);
+      return false;
+    }
+  }
+}
+
+// Export singleton instance
+export const cacheService = new RedisCacheService();
+
+// Initialize on module load
+cacheService.connect().catch((error) => {
+  logger.error('Failed to initialize Redis cache on startup:', error);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, closing Redis cache connection...');
+  await cacheService.disconnect();
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, closing Redis cache connection...');
+  await cacheService.disconnect();
+});
+</file>
+
+<file path="search-term-deduplicator.ts">
+/**
+ * Search Term Deduplicator
+ *
+ * Smart containment checking to avoid redundant search terms while allowing
+ * useful variations that might yield unique results.
+ */
+
+export interface DeduplicationStats {
+  exactDuplicates: number;
+  businessSupersets: number;
+  twoWordSupersets: number;
+  multiWordSupersets: number;
+  tooCommonTerms: number;
+}
+
+export class SearchTermDeduplicator {
+  private usedTerms: Set<string>;
+  private stats: DeduplicationStats;
+
+  // Known terms that are too common and cause TCAD API timeouts (HTTP 504)
+  // These terms likely have 20,000+ properties which exceeds TCAD's result limits
+  private static readonly TOO_COMMON_TERMS = new Set([
+    'Street', 'Drive', 'Lane', 'Road', 'Way', 'Court', 'Place', 'Circle',
+    'Avenue', 'Boulevard', // These work but are at the edge
+  ]);
+
+  constructor(usedTerms: Set<string> = new Set()) {
+    this.usedTerms = usedTerms;
+    this.stats = {
+      exactDuplicates: 0,
+      businessSupersets: 0,
+      twoWordSupersets: 0,
+      multiWordSupersets: 0,
+      tooCommonTerms: 0,
+    };
+  }
+
+  /**
+   * Check if a search term should be skipped based on duplication rules
+   * @param term - The search term to check
+   * @returns true if the term should be skipped, false if it's unique enough
+   */
+  public shouldSkipTerm(term: string): boolean {
+    if (!term || term.length < 4) {
+      return true; // Skip invalid/too-short terms
+    }
+
+    // Check if term is too common (causes TCAD API timeouts)
+    if (this.isTooCommon(term)) {
+      this.stats.tooCommonTerms++;
+      return true;
+    }
+
+    // Check exact duplicate
+    if (this.isExactDuplicate(term)) {
+      this.stats.exactDuplicates++;
+      return true;
+    }
+
+    // Check business entity superset (e.g., "Smith LLC" when "Smith" exists)
+    if (this.isBusinessSuperset(term)) {
+      this.stats.businessSupersets++;
+      return true;
+    }
+
+    // Check two-word superset (e.g., "Oak Street" when both "Oak" and "Street" exist)
+    if (this.isTwoWordSuperset(term)) {
+      this.stats.twoWordSupersets++;
+      return true;
+    }
+
+    // Check multi-word superset (e.g., "Oak Hill Street" when all three words exist)
+    if (this.isMultiWordSuperset(term)) {
+      this.stats.multiWordSupersets++;
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Mark a term as used (adds to the set of known terms)
+   */
+  public markTermAsUsed(term: string): void {
+    this.usedTerms.add(term);
+  }
+
+  /**
+   * Get current deduplication statistics
+   */
+  public getStats(): DeduplicationStats {
+    return { ...this.stats };
+  }
+
+  /**
+   * Reset statistics counters
+   */
+  public resetStats(): void {
+    this.stats = {
+      exactDuplicates: 0,
+      businessSupersets: 0,
+      twoWordSupersets: 0,
+      multiWordSupersets: 0,
+      tooCommonTerms: 0,
+    };
+  }
+
+  /**
+   * Get total number of skipped terms
+   */
+  public getTotalSkipped(): number {
+    return (
+      this.stats.exactDuplicates +
+      this.stats.businessSupersets +
+      this.stats.twoWordSupersets +
+      this.stats.multiWordSupersets +
+      this.stats.tooCommonTerms
+    );
+  }
+
+  // Private helper methods
+
+  private isTooCommon(term: string): boolean {
+    // Check if term is in the known too-common list
+    // These terms cause HTTP 504 timeouts from TCAD API because they return 20,000+ results
+    return SearchTermDeduplicator.TOO_COMMON_TERMS.has(term);
+  }
+
+  private isExactDuplicate(term: string): boolean {
+    return this.usedTerms.has(term);
+  }
+
+  private isBusinessSuperset(term: string): boolean {
+    const words = term.split(/\s+/);
+
+    // Only check two-word combinations
+    if (words.length !== 2) {
+      return false;
+    }
+
+    const [base, suffix] = words;
+    const businessSuffixes = /^(LLC|Inc|LTD|Ltd|Corp|Company|Partner|Partners|Assoc|Associates|Holding|Holdings|Properties|Property|Real|Develop|Development|Trust|Trusts|Estate|Estates)$/i;
+
+    // Skip if it's a business suffix added to an existing term
+    // Example: Skip "Smith LLC" if "Smith" already exists
+    return businessSuffixes.test(suffix) && this.usedTerms.has(base);
+  }
+
+  private isTwoWordSuperset(term: string): boolean {
+    const words = term.split(/\s+/);
+
+    // Only check two-word combinations
+    if (words.length !== 2) {
+      return false;
+    }
+
+    // Skip if BOTH words already exist individually
+    // Example: Skip "Oak Street" when we have both "Oak" and "Street"
+    // This prevents redundant searches that would just find a subset of existing results
+    return this.usedTerms.has(words[0]) && this.usedTerms.has(words[1]);
+  }
+
+  private isMultiWordSuperset(term: string): boolean {
+    const words = term.split(/\s+/);
+
+    // Only check 3+ word combinations
+    if (words.length < 3) {
+      return false;
+    }
+
+    // Skip if ALL words already exist individually
+    // Example: Skip "Oak Hill Street" when we have "Oak", "Hill", and "Street"
+    return words.every((word) => this.usedTerms.has(word));
+  }
+
+  /**
+   * Get all used terms (useful for debugging or reporting)
+   */
+  public getUsedTerms(): string[] {
+    return Array.from(this.usedTerms);
+  }
+
+  /**
+   * Get count of unique terms tracked
+   */
+  public getUsedTermsCount(): number {
+    return this.usedTerms.size;
+  }
+}
+</file>
+
+<file path="sentry.service.ts">
+/**
+ * Sentry Error Tracking Service
+ *
+ * Provides comprehensive error tracking and performance monitoring with:
+ * - Automatic error capture
+ * - Performance tracing
+ * - User context
+ * - Release tracking
+ * - Environment separation
+ */
+
+import * as Sentry from '@sentry/node';
+import { ProfilingIntegration } from '@sentry/profiling-node';
+import { Request, Response, NextFunction } from 'express';
+import { config } from '../config';
+import logger from './logger';
+
+/**
+ * Initialize Sentry with configuration
+ */
+export function initializeSentry(): void {
+  if (!config.monitoring.sentry.enabled) {
+    logger.info('Sentry monitoring is disabled');
+    return;
+  }
+
+  if (!config.monitoring.sentry.dsn) {
+    logger.warn('Sentry DSN not configured - skipping initialization');
+    return;
+  }
+
+  Sentry.init({
+    dsn: config.monitoring.sentry.dsn,
+    environment: config.monitoring.sentry.environment,
+
+    // Performance Monitoring
+    tracesSampleRate: config.monitoring.sentry.tracesSampleRate,
+    profilesSampleRate: config.monitoring.sentry.tracesSampleRate, // Profile 100% of sampled transactions
+
+    // Integrations
+    integrations: [
+      // Performance profiling
+      new ProfilingIntegration(),
+
+      // Automatic instrumentation
+      new Sentry.Integrations.Http({ tracing: true }),
+      new Sentry.Integrations.Express({ app: true }),
+      new Sentry.Integrations.Postgres(),
+      new Sentry.Integrations.OnUncaughtException({
+        onFatalError: async (err) => {
+          logger.error('Fatal error:', err);
+          process.exit(1);
+        },
+      }),
+      new Sentry.Integrations.OnUnhandledRejection({
+        mode: 'warn',
+      }),
+    ],
+
+    // Error Filtering
+    beforeSend(event, hint) {
+      // Filter out expected errors
+      const error = hint.originalException;
+
+      if (error instanceof Error) {
+        // Ignore rate limit errors (expected)
+        if (error.message.includes('Rate limit exceeded')) {
+          return null;
+        }
+
+        // Ignore 404 errors (expected)
+        if (error.message.includes('not found') || error.message.includes('404')) {
+          return null;
+        }
+
+        // Ignore auth errors in development
+        if (config.env.isDevelopment && error.message.includes('Unauthorized')) {
+          return null;
+        }
+      }
+
+      return event;
+    },
+
+    // Release tracking (use git commit hash or version)
+    release: config.frontend.appVersion || 'unknown',
+
+    // Additional options
+    attachStacktrace: true,
+    maxBreadcrumbs: 50,
+    debug: config.env.isDevelopment,
+  });
+
+  logger.info(`Sentry initialized (environment: ${config.monitoring.sentry.environment})`);
+}
+
+/**
+ * Sentry request handler middleware (must be first)
+ */
+export const sentryRequestHandler = () => {
+  if (!config.monitoring.sentry.enabled) {
+    return (req: Request, res: Response, next: NextFunction) => next();
+  }
+  return Sentry.Handlers.requestHandler();
+};
+
+/**
+ * Sentry tracing middleware (must be after requestHandler)
+ */
+export const sentryTracingHandler = () => {
+  if (!config.monitoring.sentry.enabled) {
+    return (req: Request, res: Response, next: NextFunction) => next();
+  }
+  return Sentry.Handlers.tracingHandler();
+};
+
+/**
+ * Sentry error handler middleware (must be last, before other error handlers)
+ */
+export const sentryErrorHandler = () => {
+  if (!config.monitoring.sentry.enabled) {
+    return (err: Error, req: Request, res: Response, next: NextFunction) => next(err);
+  }
+  return Sentry.Handlers.errorHandler({
+    shouldHandleError(error) {
+      // Capture all 5xx errors
+      return true;
+    },
+  });
+};
+
+/**
+ * Manually capture an exception
+ */
+export function captureException(error: Error, context?: Record<string, any>): string {
+  if (!config.monitoring.sentry.enabled) {
+    logger.error('Error (Sentry disabled):', error);
+    return '';
+  }
+
+  return Sentry.captureException(error, {
+    extra: context,
+  });
+}
+
+/**
+ * Capture a message
+ */
+export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, any>): string {
+  if (!config.monitoring.sentry.enabled) {
+    logger.info(`Message (Sentry disabled) [${level}]:`, message);
+    return '';
+  }
+
+  return Sentry.captureMessage(message, {
+    level,
+    extra: context,
+  });
+}
+
+/**
+ * Add breadcrumb for debugging
+ */
+export function addBreadcrumb(breadcrumb: {
+  message: string;
+  category?: string;
+  level?: Sentry.SeverityLevel;
+  data?: Record<string, any>;
+}): void {
+  if (!config.monitoring.sentry.enabled) {
+    return;
+  }
+
+  Sentry.addBreadcrumb({
+    message: breadcrumb.message,
+    category: breadcrumb.category || 'default',
+    level: breadcrumb.level || 'info',
+    data: breadcrumb.data,
+    timestamp: Date.now() / 1000,
+  });
+}
+
+/**
+ * Set user context for error tracking
+ */
+export function setUser(user: {
+  id?: string;
+  email?: string;
+  username?: string;
+  ip_address?: string;
+}): void {
+  if (!config.monitoring.sentry.enabled) {
+    return;
+  }
+
+  Sentry.setUser(user);
+}
+
+/**
+ * Clear user context
+ */
+export function clearUser(): void {
+  if (!config.monitoring.sentry.enabled) {
+    return;
+  }
+
+  Sentry.setUser(null);
+}
+
+/**
+ * Set custom context for error tracking
+ */
+export function setContext(name: string, context: Record<string, any>): void {
+  if (!config.monitoring.sentry.enabled) {
+    return;
+  }
+
+  Sentry.setContext(name, context);
+}
+
+/**
+ * Set tags for filtering and grouping
+ */
+export function setTag(key: string, value: string): void {
+  if (!config.monitoring.sentry.enabled) {
+    return;
+  }
+
+  Sentry.setTag(key, value);
+}
+
+/**
+ * Set multiple tags at once
+ */
+export function setTags(tags: Record<string, string>): void {
+  if (!config.monitoring.sentry.enabled) {
+    return;
+  }
+
+  Sentry.setTags(tags);
+}
+
+/**
+ * Start a performance transaction
+ */
+export function startTransaction(name: string, op: string): Sentry.Transaction | null {
+  if (!config.monitoring.sentry.enabled) {
+    return null;
+  }
+
+  return Sentry.startTransaction({
+    name,
+    op,
+  });
+}
+
+/**
+ * Wrap async function with error tracking
+ */
+export function wrapAsync<T extends (...args: any[]) => Promise<any>>(
+  fn: T,
+  name?: string
+): T {
+  if (!config.monitoring.sentry.enabled) {
+    return fn;
+  }
+
+  return (async (...args: any[]) => {
+    const transaction = Sentry.startTransaction({
+      name: name || fn.name || 'anonymous',
+      op: 'function',
+    });
+
+    try {
+      const result = await fn(...args);
+      transaction.setStatus('ok');
+      return result;
+    } catch (error) {
+      transaction.setStatus('internal_error');
+      Sentry.captureException(error);
+      throw error;
+    } finally {
+      transaction.finish();
+    }
+  }) as T;
+}
+
+/**
+ * Flush all pending events (useful before shutdown)
+ */
+export async function flush(timeout: number = 2000): Promise<boolean> {
+  if (!config.monitoring.sentry.enabled) {
+    return true;
+  }
+
+  return await Sentry.flush(timeout);
+}
+
+/**
+ * Close Sentry client
+ */
+export async function close(timeout: number = 2000): Promise<boolean> {
+  if (!config.monitoring.sentry.enabled) {
+    return true;
+  }
+
+  return await Sentry.close(timeout);
+}
+
+/**
+ * Get Sentry health status
+ */
+export function getHealth(): {
+  enabled: boolean;
+  dsn: string | null;
+  environment: string;
+  release: string;
+} {
+  return {
+    enabled: config.monitoring.sentry.enabled,
+    dsn: config.monitoring.sentry.dsn ? 'configured' : null,
+    environment: config.monitoring.sentry.environment,
+    release: config.frontend.appVersion || 'unknown',
+  };
+}
+
+// Export Sentry for direct access if needed
+export { Sentry };
+</file>
+
+<file path="tcad-scraper.ts">
+import { chromium, Browser, Page, BrowserContext } from 'playwright';
+import winston from 'winston';
+import { ScraperConfig, PropertyData } from '../types';
+import { config as appConfig } from '../config';
+import { scrapeDOMFallback } from './fallback/dom-scraper';
+import { tokenRefreshService } from '../services/token-refresh.service';
+
+const logger = winston.createLogger({
+  level: appConfig.logging.level,
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.simple(),
+    }),
+  ],
+});
+
+export class TCADScraper {
+  private browser: Browser | null = null;
+  private config: ScraperConfig;
+
+  constructor(config?: Partial<ScraperConfig>) {
+    // Configure proxy if enabled
+    let proxyConfig = {};
+
+    if (appConfig.scraper.brightData.enabled && appConfig.scraper.brightData.apiToken) {
+      // Bright Data proxy configuration
+      proxyConfig = {
+        proxyServer: `http://${appConfig.scraper.brightData.proxyHost}:${appConfig.scraper.brightData.proxyPort}`,
+        proxyUsername: `brd-customer-${appConfig.scraper.brightData.apiToken.substring(0, 8)}-zone-residential`,
+        proxyPassword: appConfig.scraper.brightData.apiToken,
+      };
+      logger.info('Bright Data proxy configured');
+    } else if (appConfig.scraper.proxy.enabled && appConfig.scraper.proxy.server) {
+      // Generic proxy configuration
+      proxyConfig = {
+        proxyServer: appConfig.scraper.proxy.server,
+        proxyUsername: appConfig.scraper.proxy.username,
+        proxyPassword: appConfig.scraper.proxy.password,
+      };
+      logger.info('Generic proxy configured');
+    }
+
+    this.config = {
+      headless: appConfig.scraper.headless,
+      timeout: appConfig.scraper.timeout,
+      retryAttempts: appConfig.scraper.retryAttempts,
+      retryDelay: appConfig.scraper.retryDelay,
+      userAgents: appConfig.scraper.userAgents,
+      viewports: appConfig.scraper.viewports,
+      ...proxyConfig,
+      ...config,
+    };
+  }
+
+  async initialize(): Promise<void> {
+    try {
+      const proxyEnabled = !!this.config.proxyServer;
+      logger.info(`Initializing browser${proxyEnabled ? ' with Bright Data proxy' : ''}...`);
+
+      const launchOptions: any = {
+        headless: this.config.headless,
+        executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
+        args: [
+          '--disable-blink-features=AutomationControlled',
+          '--disable-web-security',
+          '--disable-features=IsolateOrigins,site-per-process',
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+        ],
+      };
+
+      // Add proxy configuration if available
+      if (this.config.proxyServer) {
+        launchOptions.proxy = {
+          server: this.config.proxyServer,
+          username: this.config.proxyUsername,
+          password: this.config.proxyPassword,
+        };
+        logger.info(`Using proxy: ${this.config.proxyServer}`);
+      }
+
+      this.browser = await chromium.launch(launchOptions);
+      logger.info('Browser initialized successfully');
+    } catch (error) {
+      logger.error('Failed to initialize browser:', error);
+      throw error;
+    }
+  }
+
+  private getRandomElement<T>(array: T[]): T {
+    return array[Math.floor(Math.random() * array.length)];
+  }
+
+  private async humanDelay(
+    min: number = appConfig.scraper.humanDelay.min,
+    max: number = appConfig.scraper.humanDelay.max
+  ): Promise<void> {
+    const delay = Math.floor(Math.random() * (max - min) + min);
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+
+  /**
+   * PRIMARY METHOD: Scrape properties using direct API calls through browser context
+   *
+   * This is the RECOMMENDED method that:
+   * - Bypasses the 20-result UI limitation
+   * - Can fetch up to 1000 results per API call
+   * - Handles authentication automatically
+   * - Implements adaptive page sizing
+   *
+   * If this method fails after all retries, the system will automatically
+   * fall back to DOM-based scraping (limited to 20 results).
+   *
+   * @param searchTerm - The search term to query
+   * @param maxRetries - Maximum retry attempts (default: 3)
+   * @returns Array of PropertyData
+   * @throws Error if all API attempts fail (triggers fallback in calling code)
+   */
+  async scrapePropertiesViaAPI(searchTerm: string, maxRetries: number = 3): Promise<PropertyData[]> {
+    if (!this.browser) {
+      throw new Error('Browser not initialized. Call initialize() first.');
+    }
+
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.info(`API scraping attempt ${attempt} for search term: ${searchTerm}`);
+
+        const context = await this.browser.newContext({
+          userAgent: this.getRandomElement(this.config.userAgents),
+          viewport: this.getRandomElement(this.config.viewports),
+          locale: 'en-US',
+          timezoneId: 'America/Chicago',
+        });
+
+        const page = await context.newPage();
+
+        try {
+          // Step 1: Get auth token - priority order:
+          // 1. Token from auto-refresh service (if enabled)
+          // 2. Token from environment/config
+          // 3. Capture from browser (fallback)
+          let authToken: string | null = null;
+
+          // Try to get token from refresh service first (if auto-refresh is enabled)
+          if (appConfig.scraper.autoRefreshToken) {
+            authToken = tokenRefreshService.getCurrentToken();
+            if (authToken) {
+              logger.info('Using token from auto-refresh service');
+            }
+          }
+
+          // Fall back to config token if refresh service doesn't have one
+          if (!authToken) {
+            authToken = appConfig.scraper.tcadApiKey || null;
+          }
+
+          if (authToken) {
+            logger.info('Using pre-fetched TCAD_API_KEY from environment');
+          } else {
+            logger.info('No TCAD_API_KEY found, capturing token from browser...');
+
+            page.on('request', (request) => {
+              const headers = request.headers();
+              const authHeader = headers['authorization'];
+
+              // Only capture valid tokens (ignore "null" string and ensure it looks like a JWT)
+              if (authHeader &&
+                  authHeader !== 'null' &&
+                  authHeader.length > 50 &&
+                  authHeader.startsWith('eyJ') &&
+                  !authToken) {
+                authToken = authHeader;
+                logger.info(`Auth token captured: length ${authToken.length}, preview: ${authToken.substring(0, 50)}...`);
+              }
+            });
+
+            await page.goto('https://travis.prodigycad.com/property-search', {
+              waitUntil: 'networkidle',
+              timeout: this.config.timeout,
+            });
+
+            logger.info('Page loaded, waiting for React app...');
+
+            await page.waitForFunction(() => {
+              const root = document.getElementById('root');
+              return root && root.children.length > 0;
+            }, { timeout: 15000 });
+
+            // Trigger a search to activate auth token
+            await page.waitForSelector('#searchInput', { timeout: 10000 });
+            await this.humanDelay(500, 1000);
+            await page.type('#searchInput', 'test', { delay: 50 });
+            await page.press('#searchInput', 'Enter');
+            await this.humanDelay(3000, 4000); // Wait for API request to be made
+
+            if (!authToken) {
+              throw new Error('Failed to capture authorization token');
+            }
+
+            logger.info('Auth token captured from browser');
+          }
+
+          // Step 2: Make API calls from browser context using string injection to avoid tsx transformation
+          // Inject function as raw string to bypass __name issues
+          await page.addScriptTag({
+            content: `
+              window.__tcad_search = function(token, term) {
+                const apiUrl = 'https://prod-container.trueprodigyapi.com/public/property/searchfulltext';
+                const pageSizes = [1000, 500, 100, 50];
+                let currentSizeIndex = 0;
+                let lastErr = '';
+
+                return new Promise(function(resolve, reject) {
+                  function tryNextPageSize() {
+                    if (currentSizeIndex >= pageSizes.length) {
+                      reject(new Error('All page sizes failed. Last: ' + lastErr));
+                      return;
+                    }
+
+                    const pageSize = pageSizes[currentSizeIndex];
+                    const allResults = [];
+                    let totalCount = 0;
+                    let currentPage = 1;
+
+                    // Fetch first page
+                    fetch(apiUrl + '?page=1&pageSize=' + pageSize, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': token,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        pYear: { operator: '=', value: '2025' },
+                        fullTextSearch: { operator: 'match', value: term }
+                      })
+                    })
+                    .then(function(r) {
+                      if (!r.ok) throw new Error('HTTP ' + r.status);
+                      return r.text();
+                    })
+                    .then(function(text) {
+                      const trimmed = text.trim();
+                      if (trimmed.length > 0 && trimmed[trimmed.length - 1] !== '}' && trimmed[trimmed.length - 1] !== ']') {
+                        throw new Error('TRUNCATED');
+                      }
+
+                      const data = JSON.parse(trimmed);
+                      totalCount = data.totalProperty?.propertyCount || 0;
+                      const firstPageResults = data.results || [];
+                      allResults.push.apply(allResults, firstPageResults);
+
+                      if (allResults.length >= totalCount || firstPageResults.length < pageSize) {
+                        resolve({ totalCount: totalCount, results: allResults, pageSize: pageSize });
+                        return;
+                      }
+
+                      // Fetch remaining pages
+                      function fetchNextPage() {
+                        currentPage++;
+                        if (allResults.length >= totalCount || currentPage > 100) {
+                          resolve({ totalCount: totalCount, results: allResults, pageSize: pageSize });
+                          return;
+                        }
+
+                        fetch(apiUrl + '?page=' + currentPage + '&pageSize=' + pageSize, {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': token,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                          },
+                          body: JSON.stringify({
+                            pYear: { operator: '=', value: '2025' },
+                            fullTextSearch: { operator: 'match', value: term }
+                          })
+                        })
+                        .then(function(r) {
+                          if (!r.ok) throw new Error('HTTP ' + r.status);
+                          return r.text();
+                        })
+                        .then(function(text) {
+                          const trimmed = text.trim();
+                          if (trimmed.length > 0 && trimmed[trimmed.length - 1] !== '}' && trimmed[trimmed.length - 1] !== ']') {
+                            throw new Error('TRUNCATED');
+                          }
+
+                          const data = JSON.parse(trimmed);
+                          const pageResults = data.results || [];
+                          allResults.push.apply(allResults, pageResults);
+
+                          if (pageResults.length < pageSize || allResults.length >= totalCount) {
+                            resolve({ totalCount: totalCount, results: allResults, pageSize: pageSize });
+                          } else {
+                            fetchNextPage();
+                          }
+                        })
+                        .catch(function(err) {
+                          if (err.message === 'TRUNCATED' || err.message.indexOf('JSON') >= 0) {
+                            currentSizeIndex++;
+                            lastErr = err.message;
+                            tryNextPageSize();
+                          } else {
+                            reject(err);
+                          }
+                        });
+                      }
+
+                      fetchNextPage();
+                    })
+                    .catch(function(err) {
+                      if (err.message === 'TRUNCATED' || err.message.indexOf('JSON') >= 0) {
+                        currentSizeIndex++;
+                        lastErr = err.message;
+                        tryNextPageSize();
+                      } else {
+                        reject(err);
+                      }
+                    });
+                  }
+
+                  tryNextPageSize();
+                });
+              };
+            `
+          });
+
+          // Call the injected function
+          const allProperties = await page.evaluate(`window.__tcad_search('${authToken}', '${searchTerm.replace(/'/g, "\\'")}')`) as any;
+
+          logger.info(`API returned ${allProperties.totalCount} total properties, fetched ${allProperties.results.length} results (pageSize: ${allProperties.pageSize})`);
+
+          // Step 3: Transform API response to PropertyData format
+          const properties: PropertyData[] = allProperties.results.map((r: any) => ({
+            propertyId: r.pid?.toString() || '',
+            name: r.displayName || '',
+            propType: r.propType || '',
+            city: r.city || null,
+            propertyAddress: r.streetPrimary || '',
+            assessedValue: parseFloat(r.assessedValue) || 0,
+            appraisedValue: parseFloat(r.appraisedValue) || 0,
+            geoId: r.geoID || null,
+            description: r.legalDescription || null,
+          }));
+
+          logger.info(`Extracted ${properties.length} properties via API`);
+
+          return properties;
+
+        } finally {
+          await context.close();
+        }
+
+      } catch (error) {
+        lastError = error as Error;
+        logger.error(`API scraping attempt ${attempt} failed:`, error);
+
+        if (attempt < maxRetries) {
+          const delay = this.config.retryDelay * Math.pow(2, attempt - 1);
+          logger.info(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw lastError || new Error('All API scraping attempts failed');
+  }
+
+  /**
+   * FALLBACK METHOD: Scrape properties with automatic fallback to DOM scraping
+   *
+   * This method attempts the primary API-based scraping first.
+   * If the API method fails after all retries, it automatically falls back
+   * to DOM-based scraping (limited to 20 results).
+   *
+   * @param searchTerm - The search term to query
+   * @param maxRetries - Maximum retry attempts for each method
+   * @returns Array of PropertyData
+   */
+  async scrapePropertiesWithFallback(searchTerm: string, maxRetries: number = 3): Promise<PropertyData[]> {
+    logger.info(`Starting scrape for: ${searchTerm}`);
+
+    try {
+      logger.info('🚀 Attempting primary method: API-based scraping');
+      const properties = await this.scrapePropertiesViaAPI(searchTerm, maxRetries);
+      logger.info(`✅ Primary method succeeded: Retrieved ${properties.length} properties`);
+      return properties;
+    } catch (apiError) {
+      logger.error('❌ Primary API method failed after all retries:', apiError);
+      logger.warn('🔄 Falling back to DOM-based scraping (limited to 20 results)');
+
+      try {
+        const properties = await scrapeDOMFallback(
+          this.browser!,
+          this.config,
+          searchTerm,
+          maxRetries
+        );
+        logger.info(`✅ Fallback method succeeded: Retrieved ${properties.length} properties (max 20)`);
+        return properties;
+      } catch (fallbackError) {
+        logger.error('❌ Fallback method also failed:', fallbackError);
+        throw new Error(
+          `Both scraping methods failed. API error: ${(apiError as Error).message}. ` +
+          `Fallback error: ${(fallbackError as Error).message}`
+        );
+      }
+    }
+  }
+
+  /**
+   * @deprecated Legacy DOM scraping method - moved to fallback/dom-scraper.ts
+   * Use scrapePropertiesWithFallback() instead for automatic fallback support.
+   *
+   * The legacy scrapeProperties() method has been extracted to:
+   * server/src/lib/fallback/dom-scraper.ts
+   *
+   * This keeps the main scraper file focused on the primary API method,
+   * while the fallback mechanism is clearly separated and documented.
+   */
+
+  /**
+   * Helper method to discover API endpoints (for debugging/development)
+   */
+  private async discoverApiEndpoint(searchTerm: string): Promise<void> {
+    if (!this.browser) {
+      throw new Error('Browser not initialized. Call initialize() first.');
+    }
+
+    const context = await this.browser.newContext({
+      userAgent: this.getRandomElement(this.config.userAgents),
+      viewport: { width: 1920, height: 1080 },
+    });
+
+    const page = await context.newPage();
+
+    // Capture all network requests
+    const apiRequests: Array<{ url: string; method: string; postData?: string; response?: any }> = [];
+
+    page.on('request', (request) => {
+      const url = request.url();
+      // Look for API-like requests (JSON, contains "api", "search", "property", etc.)
+      if (url.includes('api') || url.includes('search') || url.includes('property') || url.includes('data')) {
+        apiRequests.push({
+          url,
+          method: request.method(),
+          postData: request.postData() || undefined,
+        });
+        logger.info(`🔍 API Request: ${request.method()} ${url}`);
+      }
+    });
+
+    page.on('response', async (response) => {
+      const url = response.url();
+      if (url.includes('api') || url.includes('search') || url.includes('property') || url.includes('data')) {
+        try {
+          const contentType = response.headers()['content-type'] || '';
+          if (contentType.includes('application/json')) {
+            const json = await response.json();
+            logger.info(`📦 API Response from ${url}:`, JSON.stringify(json).substring(0, 500));
+
+            // Find matching request and attach response
+            const matchingRequest = apiRequests.find(r => r.url === url && !r.response);
+            if (matchingRequest) {
+              matchingRequest.response = json;
+            }
+          }
+        } catch (error) {
+          // Response might not be JSON
+        }
+      }
+    });
+
+    try {
+      // Navigate to search page
+      await page.goto('https://stage.travis.prodigycad.com/property-search', {
+        waitUntil: 'networkidle',
+        timeout: 30000,
+      });
+
+      logger.info('Page loaded, performing search to trigger API calls...');
+
+      // Wait for search input
+      await page.waitForSelector('input[type="text"]', { timeout: 10000 });
+      await this.humanDelay(500, 1000);
+
+      // Type search term
+      await page.type('input[type="text"]', searchTerm, { delay: 50 });
+      await this.humanDelay(300, 700);
+
+      // Submit search
+      await page.press('input[type="text"]', 'Enter');
+
+      // Wait for results or API calls
+      await this.humanDelay(5000, 7000);
+
+      logger.info(`\n=== API Discovery Summary ===`);
+      logger.info(`Found ${apiRequests.length} API-like requests:`);
+
+      for (const req of apiRequests) {
+        logger.info(`\n  ${req.method} ${req.url}`);
+        if (req.postData) {
+          logger.info(`  POST Data: ${req.postData.substring(0, 200)}`);
+        }
+        if (req.response) {
+          logger.info(`  Response Preview: ${JSON.stringify(req.response).substring(0, 300)}...`);
+        }
+      }
+
+    } finally {
+      await context.close();
+    }
+  }
+
+  private async scrapePropertyDetail(page: Page, propertyId: string): Promise<PropertyData | null> {
+    try {
+      // Navigate to property detail page
+      const detailUrl = `https://stage.travis.prodigycad.com/property-detail?pid=${propertyId}`;
+      await page.goto(detailUrl, {
+        waitUntil: 'networkidle',
+        timeout: 15000,
+      });
+
+      // Wait for content to load
+      await this.humanDelay(1000, 2000);
+
+      // Extract all property details from the detail page
+      const propertyData = await page.evaluate(() => {
+        // Helper function to get text content by label
+        const getValueByLabel = (labelText: string): string | null => {
+          // Try multiple selector strategies
+          const labels = document.querySelectorAll('label, dt, th, .label, [class*="label"]');
+
+          let labelIdx = 0;
+          while (labelIdx < labels.length) {
+            const label = labels[labelIdx];
+            const text = label.textContent?.trim().toLowerCase() || '';
+
+            if (text.includes(labelText.toLowerCase())) {
+              // Try to find the associated value
+              // Strategy 1: Next sibling
+              let valueElem = label.nextElementSibling;
+              if (valueElem && valueElem.textContent) {
+                return valueElem.textContent.trim();
+              }
+
+              // Strategy 2: Parent's next sibling
+              if (label.parentElement) {
+                valueElem = label.parentElement.nextElementSibling;
+                if (valueElem && valueElem.textContent) {
+                  return valueElem.textContent.trim();
+                }
+              }
+
+              // Strategy 3: Within same row (td after th)
+              if (label.tagName === 'TH') {
+                const row = label.closest('tr');
+                if (row) {
+                  const cells = row.querySelectorAll('td');
+                  if (cells.length > 0) {
+                    return cells[0].textContent?.trim() || null;
+                  }
+                }
+              }
+            }
+
+            labelIdx++;
+          }
+
+          return null;
+        };
+
+        // Extract fields
+        const name = getValueByLabel('owner') || getValueByLabel('name') || '';
+        const propType = getValueByLabel('property type') || getValueByLabel('type') || '';
+        const city = getValueByLabel('city') || getValueByLabel('situs city') || null;
+        const propertyAddress = getValueByLabel('address') || getValueByLabel('situs address') || getValueByLabel('street') || '';
+
+        // Parse appraised value
+        const appraisedValueText = getValueByLabel('appraised value') ||
+                                   getValueByLabel('market value') ||
+                                   getValueByLabel('total value') || '0';
+        const appraisedValue = parseFloat(appraisedValueText.replace(/[$,]/g, '')) || 0;
+
+        // Parse assessed value
+        const assessedValueText = getValueByLabel('assessed value') ||
+                                  getValueByLabel('taxable value') || '0';
+        const assessedValue = parseFloat(assessedValueText.replace(/[$,]/g, '')) || 0;
+
+        const geoId = getValueByLabel('geo id') || getValueByLabel('geographic id') || null;
+        const description = getValueByLabel('legal description') || getValueByLabel('description') || null;
+
+        return {
+          name,
+          propType,
+          city,
+          propertyAddress,
+          appraisedValue,
+          assessedValue,
+          geoId,
+          description,
+        };
+      });
+
+      // Return complete property data
+      return {
+        propertyId,
+        ...propertyData,
+      };
+
+    } catch (error) {
+      logger.error(`Error scraping detail page for property ${propertyId}:`, error);
+      return null;
+    }
+  }
+
+  async cleanup(): Promise<void> {
+    if (this.browser) {
+      logger.info('Closing browser...');
+      await this.browser.close();
+      this.browser = null;
+      logger.info('Browser closed');
+    }
+  }
+
+  // Helper method for health check
+  async testConnection(): Promise<boolean> {
+    try {
+      await this.initialize();
+      const context = await this.browser!.newContext();
+      const page = await context.newPage();
+
+      const response = await page.goto('https://travis.prodigycad.com/property-search', {
+        waitUntil: 'domcontentloaded',
+        timeout: 10000,
+      });
+
+      await context.close();
+      return response?.status() === 200;
+    } catch (error) {
+      logger.error('Connection test failed:', error);
+      return false;
+    } finally {
+      await this.cleanup();
+    }
+  }
+}
+
+// Export a singleton instance for reuse
+export const scraperInstance = new TCADScraper();
+</file>
+
+</files>

@@ -1,0 +1,411 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+__tests__/
+  formatters.test.ts
+constants.ts
+formatters.ts
+helpers.ts
+index.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="__tests__/formatters.test.ts">
+import { describe, it, expect } from 'vitest';
+import { formatCurrency, formatNumber, formatDate, formatPropertyType, truncateText } from '../formatters';
+
+describe('formatCurrency', () => {
+  describe('valid numbers', () => {
+    it('should format positive numbers correctly', () => {
+      expect(formatCurrency(1000)).toBe('$1,000');
+      expect(formatCurrency(1234567)).toBe('$1,234,567');
+      expect(formatCurrency(999)).toBe('$999');
+    });
+
+    it('should format zero correctly', () => {
+      expect(formatCurrency(0)).toBe('$0');
+    });
+
+    it('should format negative numbers correctly', () => {
+      expect(formatCurrency(-1000)).toBe('-$1,000');
+      expect(formatCurrency(-500)).toBe('-$500');
+    });
+
+    it('should format decimal numbers and round to whole dollars', () => {
+      expect(formatCurrency(1234.56)).toBe('$1,235');
+      expect(formatCurrency(999.99)).toBe('$1,000');
+      expect(formatCurrency(100.49)).toBe('$100');
+    });
+
+    it('should format very large numbers', () => {
+      expect(formatCurrency(1000000000)).toBe('$1,000,000,000');
+      expect(formatCurrency(3900000000)).toBe('$3,900,000,000');
+    });
+
+    it('should format very small numbers', () => {
+      expect(formatCurrency(0.01)).toBe('$0');
+      expect(formatCurrency(0.99)).toBe('$1');
+    });
+  });
+
+  describe('edge cases that could cause $NaN', () => {
+    it('should handle null values gracefully', () => {
+      expect(formatCurrency(null)).toBe('-');
+    });
+
+    it('should handle undefined values gracefully', () => {
+      expect(formatCurrency(undefined)).toBe('-');
+    });
+
+    it('should handle NaN values gracefully', () => {
+      expect(formatCurrency(NaN)).toBe('-');
+    });
+
+    it('should handle Infinity gracefully', () => {
+      expect(formatCurrency(Infinity)).toBe('-');
+      expect(formatCurrency(-Infinity)).toBe('-');
+    });
+
+    it('should handle division by zero results', () => {
+      const result = 10 / 0;
+      expect(formatCurrency(result)).toBe('-');
+    });
+
+    it('should handle calculation that produces NaN', () => {
+      const result = Math.sqrt(-1);
+      expect(formatCurrency(result)).toBe('-');
+    });
+
+    it('should handle string to number conversion failures', () => {
+      const invalidNumber = Number('not a number');
+      expect(formatCurrency(invalidNumber)).toBe('-');
+    });
+  });
+
+  describe('type safety', () => {
+    it('should accept number type', () => {
+      const value: number = 1000;
+      expect(formatCurrency(value)).toBe('$1,000');
+    });
+
+    it('should accept null type', () => {
+      const value: null = null;
+      expect(formatCurrency(value)).toBe('-');
+    });
+
+    it('should accept undefined type', () => {
+      const value: undefined = undefined;
+      expect(formatCurrency(value)).toBe('-');
+    });
+
+    it('should handle optional number (number | undefined)', () => {
+      const value: number | undefined = undefined;
+      expect(formatCurrency(value)).toBe('-');
+    });
+
+    it('should handle nullable number (number | null)', () => {
+      const value: number | null = null;
+      expect(formatCurrency(value)).toBe('-');
+    });
+  });
+});
+
+describe('formatNumber', () => {
+  it('should format numbers with thousands separators', () => {
+    expect(formatNumber(1000)).toBe('1,000');
+    expect(formatNumber(1234567)).toBe('1,234,567');
+  });
+
+  it('should format zero', () => {
+    expect(formatNumber(0)).toBe('0');
+  });
+
+  it('should preserve decimals', () => {
+    expect(formatNumber(1234.56)).toBe('1,234.56');
+  });
+});
+
+describe('formatDate', () => {
+  it('should format ISO date strings', () => {
+    const result = formatDate('2024-01-15T10:30:00Z');
+    expect(result).toMatch(/Jan 15, 2024/);
+  });
+
+  it('should include time in formatted output', () => {
+    const result = formatDate('2024-01-15T10:30:00Z');
+    expect(result).toMatch(/\d{2}:\d{2}/); // Should contain time like "10:30"
+  });
+});
+
+describe('formatPropertyType', () => {
+  it('should format single word types', () => {
+    expect(formatPropertyType('RESIDENTIAL')).toBe('Residential');
+  });
+
+  it('should format multi-word types with underscores', () => {
+    expect(formatPropertyType('COMMERCIAL_RETAIL')).toBe('Commercial Retail');
+  });
+
+  it('should handle empty strings', () => {
+    expect(formatPropertyType('')).toBe('Unknown');
+  });
+
+  it('should handle mixed case', () => {
+    expect(formatPropertyType('rEsIdEnTiAl')).toBe('Residential');
+  });
+});
+
+describe('truncateText', () => {
+  it('should not truncate text shorter than maxLength', () => {
+    expect(truncateText('Hello', 10)).toBe('Hello');
+  });
+
+  it('should truncate text longer than maxLength', () => {
+    expect(truncateText('Hello World', 8)).toBe('Hello...');
+  });
+
+  it('should handle exact length match', () => {
+    expect(truncateText('Hello', 5)).toBe('Hello');
+  });
+
+  it('should handle empty strings', () => {
+    expect(truncateText('', 10)).toBe('');
+  });
+});
+</file>
+
+<file path="constants.ts">
+/**
+ * Application constants
+ */
+
+export const DEFAULT_PAGE_SIZE = 50;
+
+export const PROPERTY_TYPES = [
+  'Residential',
+  'Commercial',
+  'Industrial',
+  'Agricultural',
+  'Vacant Land',
+  'Multi-Family',
+] as const;
+
+export const VALUE_RANGES = [
+  { label: 'Under $100k', min: 0, max: 100000 },
+  { label: '$100k - $300k', min: 100000, max: 300000 },
+  { label: '$300k - $500k', min: 300000, max: 500000 },
+  { label: '$500k - $1M', min: 500000, max: 1000000 },
+  { label: 'Over $1M', min: 1000000, max: Infinity },
+] as const;
+
+export const EXAMPLE_QUERIES = [
+  'properties in Austin worth over $500k',
+  'commercial properties owned by Smith',
+  'show me the most expensive residential properties',
+  'properties on Congress Ave',
+  'find properties appraised between $300k and $600k',
+] as const;
+
+export const STATUS_COLORS = {
+  active: '#10b981',
+  completed: '#3b82f6',
+  failed: '#ef4444',
+  pending: '#f59e0b',
+} as const;
+
+export const BREAKPOINTS = {
+  mobile: '640px',
+  tablet: '768px',
+  desktop: '1024px',
+  wide: '1280px',
+} as const;
+</file>
+
+<file path="formatters.ts">
+/**
+ * Formatting utilities for the application
+ * Consolidates all formatting logic in one place
+ */
+
+/**
+ * Format a number as US currency
+ * Handles null, undefined, and NaN values gracefully
+ */
+export const formatCurrency = (value: number | null | undefined): string => {
+  // Handle null, undefined, NaN, or invalid values
+  if (value === null || value === undefined || !isFinite(value)) {
+    return '-';
+  }
+
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
+/**
+ * Format a number with thousands separators
+ */
+export const formatNumber = (value: number): string => {
+  return new Intl.NumberFormat('en-US').format(value);
+};
+
+/**
+ * Format a date string to readable format
+ */
+export const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};
+
+/**
+ * Format property type for display
+ */
+export const formatPropertyType = (type: string): string => {
+  if (!type) return 'Unknown';
+  return type
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
+/**
+ * Truncate text with ellipsis
+ */
+export const truncateText = (text: string, maxLength: number): string => {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength - 3) + '...';
+};
+</file>
+
+<file path="helpers.ts">
+/**
+ * Helper utility functions
+ */
+
+/**
+ * Debounce a function call
+ */
+export const debounce = <T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): ((...args: Parameters<T>) => void) => {
+  let timeoutId: NodeJS.Timeout;
+
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+};
+
+/**
+ * Throttle a function call
+ */
+export const throttle = <T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): ((...args: Parameters<T>) => void) => {
+  let lastCall = 0;
+
+  return (...args: Parameters<T>) => {
+    const now = Date.now();
+    if (now - lastCall >= delay) {
+      lastCall = now;
+      fn(...args);
+    }
+  };
+};
+
+/**
+ * Group array items by a key
+ */
+export const groupBy = <T, K extends keyof T>(
+  array: T[],
+  key: K
+): Record<string, T[]> => {
+  return array.reduce((groups, item) => {
+    const groupKey = String(item[key]);
+    if (!groups[groupKey]) {
+      groups[groupKey] = [];
+    }
+    groups[groupKey].push(item);
+    return groups;
+  }, {} as Record<string, T[]>);
+};
+
+/**
+ * Check if a value is defined and not null
+ */
+export const isDefined = <T>(value: T | null | undefined): value is T => {
+  return value !== null && value !== undefined;
+};
+
+/**
+ * Safely parse JSON with fallback
+ */
+export const parseJSON = <T>(json: string, fallback: T): T => {
+  try {
+    return JSON.parse(json);
+  } catch {
+    return fallback;
+  }
+};
+</file>
+
+<file path="index.ts">
+// Utilities Barrel Export
+export * from './formatters';
+export * from './helpers';
+export * from './constants';
+</file>
+
+</files>

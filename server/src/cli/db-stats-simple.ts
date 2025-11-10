@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 
-import { prisma } from './src/lib/prisma';
+import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
 
 async function checkDatabaseStats() {

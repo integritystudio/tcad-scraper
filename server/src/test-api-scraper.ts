@@ -1,5 +1,5 @@
 import { TCADScraper } from './lib/tcad-scraper';
-import logger from '../lib/logger';
+import logger from './lib/logger';
 
 async function testApiScraper() {
   logger.info('Testing API-based scraper...\n');

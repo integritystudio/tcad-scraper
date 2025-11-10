@@ -55,7 +55,12 @@ The application supports two scraping methods:
 - **RESTful API**: Express server with rate limiting, CORS, security middleware
 - **AI-Powered Search**: Natural language property search using Claude AI (Anthropic)
 - **Bull Dashboard**: Web UI for monitoring job queues at `/admin/queues`
-- **React Frontend**: Modern UI for searching and viewing property data (in development)
+- **React Frontend**: Modern UI for searching and viewing property data
+  - **Expandable Property Cards**: Progressive disclosure UI pattern for detailed property information
+  - **Financial Analysis**: Visual comparison of appraised vs assessed values with difference calculations
+  - **Data Freshness Indicators**: Color-coded badges showing data age and quality
+  - **Mobile Responsive**: Optimized layouts for mobile (< 640px), tablet (640px-1024px), and desktop
+  - **WCAG Compliant**: Full keyboard navigation and screen reader support
 - **Optional Authentication**: JWT and API key support for production environments
 - **Health Monitoring**: Endpoints for application and queue health checks
 
@@ -89,7 +94,8 @@ The application supports two scraping methods:
 ### Frontend (React Application)
 - **React 19.2** with TypeScript
 - **Vite 7.1** for development and building
-- **CSS** for component styling
+- **CSS Modules** for component styling
+- **Progressive UI** with expandable property cards
 
 ### Security & Middleware
 - **Helmet** for security headers
@@ -1224,6 +1230,22 @@ Long-running scraper processes can accumulate memory. Recommended:
 - Restart scraper process daily via cron
 - Use systemd service with restart policies
 
+## Recent Updates
+
+### November 8, 2025 - PropertyCard UI Enhancement 🎉
+- ✨ **Major Frontend Update**: Implemented expandable PropertyCard component with progressive disclosure pattern
+- 🎨 **29 New Components**: Added ExpandButton, PropertyDetails container, and 4 detail sections with 5 reusable utilities
+  - **Components**: ExpandButton, PropertyDetails, SectionHeader, ValueComparison, TruncatedText, TimestampList, FreshnessIndicator
+  - **Sections**: FinancialSection, IdentifiersSection, DescriptionSection, MetadataSection
+- 💰 **Financial Analysis**: Visual value comparison with color-coded difference indicators (🔺🔻) and percentage calculations
+- 📱 **Mobile Optimized**: Fully responsive design with breakpoints at 640px and 1024px
+- ♿ **Accessibility**: WCAG AA compliant with full keyboard navigation, screen reader support, and proper ARIA attributes
+- 🎭 **Smooth Animations**: 300ms expand/collapse transitions with graceful null value handling
+- 🟢 **Data Freshness**: Color-coded indicators (Fresh: 0-7 days 🟢, Aging: 7-30 days 🟡, Stale: 30+ days 🔴)
+- 📖 **Documentation**: Complete implementation guides (COMPONENT_IMPLEMENTATION_GUIDE.md, VISUAL_DESIGN_PLAN.md, VISUAL_WIREFRAMES.md)
+
+See [CHANGELOG.md](./CHANGELOG.md) for complete version history and detailed changes.
+
 ## Documentation
 
 Comprehensive documentation is available in the `docs/` directory:
@@ -1233,8 +1255,14 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[TESTING.md](docs/TESTING.md)** - Testing strategy and test execution
 - **[CLAUDE.md](docs/CLAUDE.md)** - AI assistant context and development guidelines
 - **[CODEBASE_ANALYSIS.md](CODEBASE_ANALYSIS.md)** - Code quality analysis and recommendations (ast-grep)
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** ⭐ **NEW!** - Complete system architecture with diagrams
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete system architecture with diagrams
 - **[ANALYSIS_SUMMARY.md](ANALYSIS_SUMMARY.md)** - Analysis summary and completed improvements
+
+### Frontend Documentation
+- **[PropertySearch Component Guide](src/components/features/PropertySearch/README.md)** ⭐ **NEW!** - Complete guide to PropertyCard expansion UI
+- **[COMPONENT_IMPLEMENTATION_GUIDE.md](COMPONENT_IMPLEMENTATION_GUIDE.md)** ⭐ **NEW!** - Component templates and implementation patterns
+- **[VISUAL_DESIGN_PLAN.md](VISUAL_DESIGN_PLAN.md)** ⭐ **NEW!** - Visual design system and UI patterns
+- **[VISUAL_WIREFRAMES.md](VISUAL_WIREFRAMES.md)** ⭐ **NEW!** - ASCII wireframes and interaction diagrams
 
 ### API & Monitoring
 - **[Swagger API Docs](http://localhost:3002/api-docs)** ⭐ **NEW!** - Interactive API documentation (when server is running)
