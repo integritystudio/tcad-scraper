@@ -1,5 +1,5 @@
 const express = require('express');
-const { Queue } = require('bullmq');
+const { getQueue: _getQueue, discoverQueues } = require('./shared/bullmq-utils');
 
 const app = express();
 const PORT = process.env.PORT;
@@ -15,38 +15,9 @@ const connection = {
 // Store queue instances
 const queues = new Map();
 
-// Function to get or create a queue instance
+// Wrapper function to maintain backward compatibility
 function getQueue(queueName) {
-  if (!queues.has(queueName)) {
-    const queue = new Queue(queueName, { connection });
-    queues.set(queueName, queue);
-  }
-  return queues.get(queueName);
-}
-
-// Discover queues from Redis
-async function discoverQueues() {
-  try {
-    const Redis = require('ioredis');
-    const redis = new Redis(connection);
-    
-    // Find all BullMQ queues
-    const keys = await redis.keys('bull:*:meta');
-    const queueNames = new Set();
-    
-    keys.forEach(key => {
-      const match = key.match(/^bull:([^:]+):meta$/);
-      if (match) {
-        queueNames.add(match[1]);
-      }
-    });
-    
-    await redis.quit();
-    return Array.from(queueNames);
-  } catch (error) {
-    console.error('Error discovering queues:', error);
-    return [];
-  }
+  return _getQueue(queueName, connection, queues);
 }
 
 // Health check endpoint
@@ -57,7 +28,7 @@ app.get('/health', (req, res) => {
 // List discovered queues
 app.get('/queues', async (req, res) => {
   try {
-    const queueNames = await discoverQueues();
+    const queueNames = await discoverQueues(connection);
     res.json({ queues: queueNames });
   } catch (error) {
     res.status(500).json({ error: error.message });

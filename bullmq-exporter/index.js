@@ -1,5 +1,5 @@
 const http = require('http');
-const { Queue } = require('bullmq');
+const { getQueue: _getQueue, discoverQueues } = require('../shared/bullmq-utils');
 
 const PORT = process.env.PORT || 3000;
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
@@ -12,40 +12,15 @@ const connection = {
 
 const queues = new Map();
 
+// Wrapper function to maintain backward compatibility
 function getQueue(queueName) {
-  if (!queues.has(queueName)) {
-    const queue = new Queue(queueName, { connection });
-    queues.set(queueName, queue);
-  }
-  return queues.get(queueName);
-}
-
-async function discoverQueues() {
-  try {
-    const Redis = require('ioredis');
-    const redis = new Redis(connection);
-    const keys = await redis.keys('bull:*:meta');
-    const queueNames = new Set();
-
-    keys.forEach(key => {
-      const match = key.match(/^bull:([^:]+):meta$/);
-      if (match) {
-        queueNames.add(match[1]);
-      }
-    });
-
-    await redis.quit();
-    return Array.from(queueNames);
-  } catch (error) {
-    console.error('Error discovering queues:', error);
-    return [];
-  }
+  return _getQueue(queueName, connection, queues);
 }
 
 const server = http.createServer(async (req, res) => {
   try {
     if (req.url === '/metrics' && req.method === 'GET') {
-      const queueNames = await discoverQueues();
+      const queueNames = await discoverQueues(connection);
 
       if (queueNames.length === 0) {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -71,7 +46,7 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ status: 'ok' }));
     }
     else if (req.url === '/queues' && req.method === 'GET') {
-      const queueNames = await discoverQueues();
+      const queueNames = await discoverQueues(connection);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ queues: queueNames }));
     }
