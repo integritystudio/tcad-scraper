@@ -395,29 +395,112 @@ npx prisma generate
 
 ## Testing Strategy
 
-### Unit Tests (`server/src/__tests__/`)
-- Controller logic
-- Database operations
-- Queue enqueue/dequeue
-- Authentication middleware
+### Test Framework: Vitest
 
-### Integration Tests
-- API endpoints end-to-end
-- Database connection via Tailscale
-- Auth flow with tokens
-- Queue job processing
+**Migration Status**: Jest → Vitest (70% complete)
+- 195 unit tests passing (69% pass rate)
+- Vitest provides faster execution and better ESM support
+- See `server/src/__tests__/README.md` for complete documentation
+
+### Test Structure
+
+```
+server/
+├── vitest.config.ts              # Unit test configuration
+├── vitest.integration.config.ts  # Integration test configuration
+└── src/
+    ├── __tests__/                # Integration tests
+    │   ├── integration.test.ts
+    │   ├── api.test.ts
+    │   ├── auth-database.*.test.ts
+    │   ├── security.test.ts
+    │   └── README.md             # Test documentation
+    ├── controllers/__tests__/    # Unit tests
+    ├── middleware/__tests__/
+    ├── services/__tests__/
+    └── utils/__tests__/
+```
+
+### Unit Tests (282 tests, 22 files)
+
+**Characteristics**:
+- Fast execution (< 10 seconds)
+- All dependencies mocked (no database/Redis)
+- Run in parallel
+- Suitable for CI/CD
+
+**Coverage Areas**:
+- ✅ Middleware (99%): Auth, validation, error handling, metrics
+- ✅ Utils (100%): JSON-LD, deduplication
+- ✅ Controllers: Property CRUD operations
+- ✅ Routes (93%): API endpoints
+- ⚠️ Services (partial): Token refresh, search optimization
+- ⚠️ Library (partial): Prisma, Redis, scraper engine
+
+**Commands**:
+```bash
+cd server
+npm test                  # Run all unit tests
+npm run test:watch        # Watch mode
+npm run test:coverage     # With coverage report
+```
+
+### Integration Tests (141 tests, 6 files)
+
+**Characteristics**:
+- Longer execution (up to 60 seconds per test)
+- Requires external services (PostgreSQL, Redis)
+- Sequential execution (no conflicts)
+- Retry on failure
+
+**Prerequisites**:
+- ✅ Tailscale VPN running (`tailscale status`)
+- ✅ PostgreSQL accessible via Tailscale
+- ✅ Redis running (local or hobbes)
+- ✅ DATABASE_URL configured
+
+**Test Files**:
+- `integration.test.ts` - Server health, API routes
+- `api.test.ts` - Complete API endpoint testing
+- `auth-database.integration.test.ts` - Auth → Database flow
+- `auth-database.connection.test.ts` - Database connectivity
+- `enqueue.test.ts` - Queue job enqueueing
+- `security.test.ts` - Security middleware, rate limiting
+
+**Commands**:
+```bash
+cd server
+npm run test:integration              # Run all integration tests
+npm run test:integration:watch        # Watch mode
+npm run test:auth-db                  # Auth-database tests only
+npm run test:enqueue                  # Queue tests only
+npm run test:all                      # Both unit and integration
+```
 
 ### Security Tests
+
+Included in integration test suite:
 - API key validation
 - JWT token verification
 - Rate limiting
 - CORS policies
+- XSS protection (CSP headers)
 
-**Run All Tests**:
+**Command**:
 ```bash
-cd server
-npm run test:all:coverage
+npm run test:security
 ```
+
+### Coverage Goals
+
+**Current**: 34.55%
+**Target**: 60%
+
+**Focus Areas**:
+- Service layer (token refresh, search optimizer)
+- Repository pattern
+- Error handling edge cases
+- Business logic validation
 
 ---
 
