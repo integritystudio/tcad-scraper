@@ -197,6 +197,9 @@ npm run test:unit
 npm run test:integration
 npm run test:all:coverage
 
+# Linting
+npm run lint
+
 # Security tests
 npm run test:security
 
@@ -397,8 +400,10 @@ npx prisma generate
 
 ### Test Framework: Vitest
 
-**Migration Status**: Jest → Vitest (70% complete)
-- 195 unit tests passing (69% pass rate)
+**Migration Status**: Jest → Vitest (85% complete)
+- 411 unit tests passing (67% pass rate, 85% excluding skipped tests)
+- 70 tests failing (11%)
+- 129 tests skipped (21%)
 - Vitest provides faster execution and better ESM support
 - See `server/src/__tests__/README.md` for complete documentation
 
@@ -443,6 +448,15 @@ cd server
 npm test                  # Run all unit tests
 npm run test:watch        # Watch mode
 npm run test:coverage     # With coverage report
+
+# Run a single test file
+npm test src/middleware/__tests__/auth.test.ts
+
+# Run tests matching a pattern
+npm test -- auth
+
+# Run with watch mode for specific file
+npm run test:watch src/middleware/__tests__/auth.test.ts
 ```
 
 ### Integration Tests (141 tests, 6 files)
@@ -501,6 +515,23 @@ npm run test:security
 - Repository pattern
 - Error handling edge cases
 - Business logic validation
+
+### Known Test Issues
+
+**Remaining Jest → Vitest Migration** (70 tests failing, 9%):
+- **Frontend tests** (api-config.test.ts): Mock configuration for xcontroller DataController needs adjustment
+- **Backend tests**:
+  - `claude.service.test.ts` - Anthropic SDK mock configuration
+  - `property.routes.claude.test.ts` - Claude integration route mocks
+  - `tcad-scraper.test.ts` - Playwright browser mock initialization
+  - `token-refresh.service.test.ts` - Playwright + node-cron mock issues
+
+**Skipped Tests** (129 tests, 21%):
+- `scrape-scheduler.test.ts` - Scheduler tests (27 tests) - Complex mocking of node-cron, Bull queues, and Prisma
+- Integration tests skipped when infrastructure unavailable (Tailscale, Redis, PostgreSQL)
+- Redis cache tests skipped by design (marked with `.skip()`)
+
+These complex mocks are tracked for future optimization and don't block development.
 
 ---
 
