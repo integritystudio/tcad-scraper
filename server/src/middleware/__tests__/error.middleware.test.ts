@@ -5,7 +5,12 @@ import logger from '../../lib/logger';
 
 // Mock logger
 vi.mock('../../lib/logger', () => ({
-  error: vi.fn(),
+  default: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
 }));
 
 describe('Error Middleware', () => {

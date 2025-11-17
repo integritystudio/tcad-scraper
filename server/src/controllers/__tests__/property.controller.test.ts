@@ -75,7 +75,7 @@ describe('PropertyController', () => {
   let claudeSearchService: any;
   let cacheService: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Clear all mocks
     vi.clearAllMocks();
 
@@ -96,18 +96,18 @@ describe('PropertyController', () => {
     };
 
     // Import mocked modules
-    const scraperQueueModule = require('../../queues/scraper.queue');
+    const scraperQueueModule = await import('../../queues/scraper.queue');
     scraperQueue = scraperQueueModule.scraperQueue;
     canScheduleJob = scraperQueueModule.canScheduleJob;
 
-    const prismaModule = require('../../lib/prisma');
+    const prismaModule = await import('../../lib/prisma');
     prisma = prismaModule.prisma;
     prismaReadOnly = prismaModule.prismaReadOnly;
 
-    const claudeModule = require('../../lib/claude.service');
+    const claudeModule = await import('../../lib/claude.service');
     claudeSearchService = claudeModule.claudeSearchService;
 
-    const cacheModule = require('../../lib/redis-cache.service');
+    const cacheModule = await import('../../lib/redis-cache.service');
     cacheService = cacheModule.cacheService;
 
     // Create controller instance

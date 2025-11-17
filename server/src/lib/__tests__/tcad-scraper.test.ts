@@ -4,17 +4,15 @@
  * Tests for helper methods and configuration
  */
 
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock Playwright
-const mockBrowser = {
-  newContext: vi.fn(),
-  close: vi.fn(),
-};
-
 vi.mock('playwright', () => ({
   chromium: {
-    launch: vi.fn().mockResolvedValue(mockBrowser),
+    launch: vi.fn().mockResolvedValue({
+      newContext: vi.fn(),
+      close: vi.fn(),
+    }),
   },
 }));
 

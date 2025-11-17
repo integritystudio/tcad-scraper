@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, test, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
 import request from 'supertest';
 import express, { Express } from 'express';
 import { propertyRouter } from '../property.routes';

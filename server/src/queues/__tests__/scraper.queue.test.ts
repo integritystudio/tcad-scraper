@@ -7,7 +7,7 @@
  * - Event listeners
  */
 
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, test, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock dependencies BEFORE imports
 const mockBullQueue = {
@@ -22,9 +22,9 @@ const mockBullQueue = {
   close: vi.fn(),
 };
 
-vi.mock('bull', () => {
-  return vi.fn(() => mockBullQueue);
-});
+vi.mock('bull', () => ({
+  default: vi.fn(() => mockBullQueue),
+}));
 
 vi.mock('../../lib/tcad-scraper');
 vi.mock('../../lib/prisma', () => ({
@@ -121,16 +121,16 @@ describe('Scraper Queue', () => {
 
     beforeEach(async () => {
       // Use fake timers for this test suite
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       // Reset module to clear the activeJobs Map
-      jest.resetModules();
+      vi.resetModules();
       const module = await import('../scraper.queue');
       canScheduleJob = module.canScheduleJob;
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it.skip('should allow scheduling a new job for a search term - SKIPPED (covered by other tests)', async () => {

@@ -7,40 +7,32 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock dependencies before imports
-vi.mock('node-cron', () => {
-  const mockSchedule = vi.fn();
-  // Set default implementation
-  mockSchedule.mockImplementation(() => ({
-    start: vi.fn(),
-    stop: vi.fn(),
-  }));
-
-  return {
-    schedule: mockSchedule,
-  };
-});
-
-const mockScraperQueue = {
-  add: vi.fn().mockResolvedValue(undefined),
-  clean: vi.fn().mockResolvedValue(undefined),
-};
-
-vi.mock('../../queues/scraper.queue', () => ({
-  scraperQueue: mockScraperQueue,
+vi.mock('node-cron', () => ({
+  default: {
+    schedule: vi.fn().mockImplementation(() => ({
+      start: vi.fn(),
+      stop: vi.fn(),
+    })),
+  },
 }));
 
-const mockPrisma = {
-  monitoredSearch: {
-    findMany: vi.fn(),
-    update: vi.fn(),
+vi.mock('../../queues/scraper.queue', () => ({
+  scraperQueue: {
+    add: vi.fn().mockResolvedValue(undefined),
+    clean: vi.fn().mockResolvedValue(undefined),
   },
-  scrapeJob: {
-    deleteMany: vi.fn(),
-  },
-};
+}));
 
 vi.mock('../../lib/prisma', () => ({
-  prisma: mockPrisma,
+  prisma: {
+    monitoredSearch: {
+      findMany: vi.fn(),
+      update: vi.fn(),
+    },
+    scrapeJob: {
+      deleteMany: vi.fn(),
+    },
+  },
 }));
 
 // Mock winston to suppress logs during tests
@@ -52,7 +44,17 @@ vi.mock('winston', () => {
   };
 
   return {
-    createLogger: jest.fn(() => mockLogger),
+    default: {
+      createLogger: vi.fn(() => mockLogger),
+      format: {
+        json: vi.fn(),
+        simple: vi.fn(),
+      },
+      transports: {
+        Console: vi.fn(),
+      },
+    },
+    createLogger: vi.fn(() => mockLogger),
     format: {
       json: vi.fn(),
       simple: vi.fn(),

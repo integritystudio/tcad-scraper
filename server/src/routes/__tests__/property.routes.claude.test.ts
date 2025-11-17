@@ -2,7 +2,7 @@
  * Property Routes - Claude Search Tests
  */
 
-import { describe, test, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi, Mock } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { claudeSearchService } from '../../lib/claude.service';
@@ -119,9 +119,9 @@ describe('Property Routes - Claude Search', () => {
   });
 
   describe('POST /api/properties/search', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       // Reset and configure Prisma mocks for each test
-      const { prismaReadOnly } = require('../../lib/prisma');
+      const { prismaReadOnly } = await import('../../lib/prisma');
       prismaReadOnly.property.findMany.mockClear();
       prismaReadOnly.property.count.mockClear();
 
@@ -284,7 +284,7 @@ describe('Property Routes - Claude Search', () => {
 
       (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
-      const { prismaReadOnly } = require('../../lib/prisma');
+      const { prismaReadOnly } = await import('../../lib/prisma');
       prismaReadOnly.property.count.mockResolvedValue(250);
 
       const response = await request(app)
@@ -339,8 +339,8 @@ describe('Property Routes - Claude Search', () => {
   });
 
   describe('Query Types', () => {
-    beforeEach(() => {
-      const { prismaReadOnly } = require('../../lib/prisma');
+    beforeEach(async () => {
+      const { prismaReadOnly } = await import('../../lib/prisma');
       prismaReadOnly.property.findMany.mockClear();
       prismaReadOnly.property.count.mockClear();
       prismaReadOnly.property.findMany.mockResolvedValue([]);
@@ -448,8 +448,8 @@ describe('Property Routes - Claude Search', () => {
   });
 
   describe('Edge Cases', () => {
-    beforeEach(() => {
-      const { prismaReadOnly } = require('../../lib/prisma');
+    beforeEach(async () => {
+      const { prismaReadOnly } = await import('../../lib/prisma');
       prismaReadOnly.property.findMany.mockClear();
       prismaReadOnly.property.count.mockClear();
       prismaReadOnly.property.findMany.mockResolvedValue([]);

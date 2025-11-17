@@ -5,38 +5,32 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock Playwright
-const mockPage = {
-  goto: vi.fn(),
-  waitForFunction: vi.fn(),
-  waitForSelector: vi.fn(),
-  type: vi.fn(),
-  press: vi.fn(),
-  on: vi.fn(),
-};
-
-const mockContext = {
-  newPage: vi.fn().mockResolvedValue(mockPage),
-  close: vi.fn(),
-};
-
-const mockBrowser = {
-  newContext: vi.fn().mockResolvedValue(mockContext),
-  close: vi.fn(),
-};
-
 vi.mock('playwright', () => ({
   chromium: {
-    launch: vi.fn().mockResolvedValue(mockBrowser),
+    launch: vi.fn().mockResolvedValue({
+      newContext: vi.fn().mockResolvedValue({
+        newPage: vi.fn().mockResolvedValue({
+          goto: vi.fn(),
+          waitForFunction: vi.fn(),
+          waitForSelector: vi.fn(),
+          type: vi.fn(),
+          press: vi.fn(),
+          on: vi.fn(),
+        }),
+        close: vi.fn(),
+      }),
+      close: vi.fn(),
+    }),
   },
 }));
 
 // Mock node-cron
-const mockCronJob = {
-  stop: vi.fn(),
-};
-
 vi.mock('node-cron', () => ({
-  schedule: vi.fn().mockReturnValue(mockCronJob),
+  default: {
+    schedule: vi.fn().mockReturnValue({
+      stop: vi.fn(),
+    }),
+  },
 }));
 
 // Mock config

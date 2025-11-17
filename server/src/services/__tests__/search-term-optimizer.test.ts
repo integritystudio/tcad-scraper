@@ -4,7 +4,7 @@
  * Tests for the search term performance analysis and optimization service
  */
 
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, it, expect, beforeEach, vi } from 'vitest';
 import {
   OPTIMIZED_4_CHAR_STARTER_TERMS,
   SearchTermOptimizer,
@@ -28,9 +28,11 @@ const mockPrisma = {
 
 // Mock logger
 vi.mock('../../lib/logger', () => ({
-  info: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
+  default: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+  },
 }));
 
 describe('Search Term Optimizer', () => {

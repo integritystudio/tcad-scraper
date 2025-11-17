@@ -18,10 +18,12 @@ vi.mock('../../lib/prisma', () => ({
 }));
 
 vi.mock('../../lib/logger', () => ({
-  info: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-  debug: vi.fn(),
+  default: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
 }));
 
 describe('removeDuplicatesFromQueue', () => {
@@ -29,16 +31,17 @@ describe('removeDuplicatesFromQueue', () => {
   let prisma: any;
   let logger: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
-    const scraperQueueModule = require('../../queues/scraper.queue');
+    const scraperQueueModule = await import('../../queues/scraper.queue');
     scraperQueue = scraperQueueModule.scraperQueue;
 
-    const prismaModule = require('../../lib/prisma');
+    const prismaModule = await import('../../lib/prisma');
     prisma = prismaModule.prisma;
 
-    logger = require('../../lib/logger');
+    const loggerModule = await import('../../lib/logger');
+    logger = loggerModule.default;
   });
 
   describe('with no duplicates', () => {

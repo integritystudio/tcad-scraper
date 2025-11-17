@@ -17,13 +17,15 @@ vi.mock('../../config', () => ({
 
 // Mock Anthropic SDK
 const mockCreate = vi.fn();
-vi.mock('@anthropic-ai/sdk', () => {
-  return vi.fn().mockImplementation(() => ({
-    messages: {
-      create: mockCreate,
-    },
-  }));
-});
+class MockAnthropic {
+  messages = {
+    create: mockCreate,
+  };
+}
+
+vi.mock('@anthropic-ai/sdk', () => ({
+  default: MockAnthropic,
+}));
 
 // Import after mocks are set up
 import { ClaudeSearchService } from '../claude.service';

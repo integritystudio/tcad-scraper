@@ -88,7 +88,7 @@ describe('Metrics Middleware', () => {
       finishListeners = [];
 
       mockReq.method = method;
-      mockRes!.on = jest.fn((event: string, callback: () => void) => {
+      mockRes!.on = vi.fn((event: string, callback: () => void) => {
         if (event === 'finish') finishListeners.push(callback);
         return mockRes as Response;
       });
@@ -113,7 +113,7 @@ describe('Metrics Middleware', () => {
       finishListeners = [];
 
       mockRes!.statusCode = statusCode;
-      mockRes!.on = jest.fn((event: string, callback: () => void) => {
+      mockRes!.on = vi.fn((event: string, callback: () => void) => {
         if (event === 'finish') finishListeners.push(callback);
         return mockRes as Response;
       });
