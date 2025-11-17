@@ -8,7 +8,8 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     ports:
-      - "5432:5432"
+      # Uses POSTGRES_PORT from .env
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -35,7 +36,8 @@ services:
       - LOG_FILES_ENABLED=false
       - TCAD_API_KEY=${TCAD_API_KEY}
     ports:
-      - "5050:5050"
+      # Backend port override (uses BACKEND_PORT from .env, defaults to 5050)
+      - "${BACKEND_PORT:-5050}:5050"
     depends_on:
       redis:
         condition: service_started

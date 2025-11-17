@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code when working with the TCAD Scraper database and codebase.
 
-**Last Updated**: November 10, 2025
+**Last Updated**: November 17, 2025
 
 
 ## Project Overview
@@ -13,6 +13,83 @@ TCAD Scraper is a production web scraper for extracting property tax data from T
 - **Queue**: BullMQ with Redis
 - **Scraping**: Playwright with dual methods (API-based primary, browser-based fallback)
 - **ORM**: Prisma
+
+---
+
+## Doppler Configuration (Secrets Management)
+
+### ⚠️ IMPORTANT: Doppler Authentication
+
+**This project uses Doppler for secrets management.**
+
+**Doppler Project Configuration**:
+- **Project Name**: `integrity-studio`
+- **Environment**: `dev`
+- **Config**: `dev`
+
+### Setting Up Doppler
+
+1. **Install Doppler CLI** (if not already installed):
+   ```bash
+   # macOS
+   brew install dopplerhq/cli/doppler
+
+   # Or use the installation script
+   curl -Ls https://cli.doppler.com/install.sh | sh
+   ```
+
+2. **Login to Doppler**:
+   ```bash
+   doppler login
+   ```
+
+3. **Setup Project in Root Directory**:
+   ```bash
+   cd /Users/alyshialedlie/code/ISPublicSites/tcad-scraper
+
+   # Select project: integrity-studio
+   # Select config: dev
+   doppler setup --project integrity-studio --config dev
+   ```
+
+4. **Setup Project in Server Directory**:
+   ```bash
+   cd /Users/alyshialedlie/code/ISPublicSites/tcad-scraper/server
+
+   # Select project: integrity-studio
+   # Select config: dev
+   doppler setup --project integrity-studio --config dev
+   ```
+
+### Using Doppler
+
+**Run commands with Doppler**:
+```bash
+# From root (frontend)
+doppler run -- npm run dev
+
+# From server directory (backend)
+cd server
+doppler run -- npm run dev
+```
+
+**Docker Compose with Doppler**:
+```bash
+# Doppler automatically injects secrets into docker-compose
+doppler run -- docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up -d
+```
+
+**Verify Doppler Configuration**:
+```bash
+# Check current project/config
+doppler configure get
+
+# View available secrets (without values)
+doppler secrets
+
+# Test a specific command with Doppler
+doppler run -- env | grep DATABASE_URL
+```
 
 ---
 

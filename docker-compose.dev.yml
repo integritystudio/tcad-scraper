@@ -1,8 +1,29 @@
 version: '3.8'
 
-# Development environment configuration
+# ============================================
+# Development Environment Configuration
+# ============================================
+#
+# IMPORTANT: This project uses Doppler for secrets management
+#
+# Doppler Configuration:
+#   - Project: integrity-studio
+#   - Environment: dev
+#   - Config: dev
+#
+# Setup Doppler:
+#   1. Install: brew install dopplerhq/cli/doppler
+#   2. Login: doppler login
+#   3. Setup: doppler setup --project integrity-studio --config dev
+#
+# Usage with Doppler (RECOMMENDED):
+#   doppler run -- docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up -d
+#
+# Usage without Doppler (requires .env file):
+#   docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up -d
+#
 # Extends docker-compose.base.yml with development-specific overrides
-# Usage: docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up
+# ============================================
 
 services:
   # ============================================
@@ -16,15 +37,16 @@ services:
       # Expose initialization scripts for development
       - ./server/prisma/migrations:/docker-entrypoint-initdb.d
     ports:
-      # Expose on standard port for local access
-      - "5432:5432"
+      # Expose on standard port for local access (uses POSTGRES_PORT from .env)
+      - "${POSTGRES_PORT:-5432}:5432"
 
   # ============================================
   # Redis - Development
   # ============================================
   redis:
     ports:
-      - "6379:6379"
+      # Uses REDIS_PORT from .env
+      - "${REDIS_PORT:-6379}:6379"
     # Use less restrictive memory settings in dev
     command: redis-server --appendonly yes
 
@@ -53,9 +75,10 @@ services:
       # Mount results directory
       - ./results:/app/results
     ports:
-      - "3000:3000"
+      # Uses BACKEND_PORT and BACKEND_DEBUG_PORT from .env
+      - "${BACKEND_PORT:-3000}:3000"
       # Expose debugger port
-      - "9229:9229"
+      - "${BACKEND_DEBUG_PORT:-9229}:9229"
     command: npx tsx watch --inspect=0.0.0.0:9229 src/index.ts
 
   # ============================================
@@ -71,6 +94,8 @@ services:
       - NODE_ENV=development
       # Vite specific
       - VITE_API_URL=http://localhost:3000
+      # Frontend port configuration (reads from .env or defaults to 3002)
+      - FRONTEND_PORT=${FRONTEND_PORT:-3002}
     volumes:
       # Mount source code for hot reload
       - ./src:/app/src:ro
@@ -82,7 +107,8 @@ services:
       # Preserve node_modules from container
       - /app/node_modules
     ports:
-      - "5173:5173"
+      # Map host port to container port (uses FRONTEND_PORT from .env)
+      - "${FRONTEND_PORT:-5174}:${FRONTEND_PORT:-5174}"
     command: npm run dev -- --host 0.0.0.0
 
   # ============================================
@@ -91,7 +117,8 @@ services:
   bullmq-metrics:
     container_name: tcad-bullmq-metrics-dev
     ports:
-      - "4000:3000"
+      # Uses BULLMQ_METRICS_PORT from .env
+      - "${BULLMQ_METRICS_PORT:-4000}:3000"
 
   # ============================================
   # Prometheus - Development (Optional)
@@ -112,7 +139,8 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
     ports:
-      - "9090:9090"
+      # Uses PROMETHEUS_PORT from .env
+      - "${PROMETHEUS_PORT:-9090}:9090"
     restart: unless-stopped
     depends_on:
       - bullmq-metrics
@@ -134,7 +162,8 @@ services:
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
     ports:
-      - "3001:3000"
+      # Uses GRAFANA_PORT from .env
+      - "${GRAFANA_PORT:-3001}:3000"
     restart: unless-stopped
     depends_on:
       - prometheus
