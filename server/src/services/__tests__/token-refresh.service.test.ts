@@ -2,43 +2,45 @@
  * Token Refresh Service Tests
  */
 
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+
 // Mock Playwright
 const mockPage = {
-  goto: jest.fn(),
-  waitForFunction: jest.fn(),
-  waitForSelector: jest.fn(),
-  type: jest.fn(),
-  press: jest.fn(),
-  on: jest.fn(),
+  goto: vi.fn(),
+  waitForFunction: vi.fn(),
+  waitForSelector: vi.fn(),
+  type: vi.fn(),
+  press: vi.fn(),
+  on: vi.fn(),
 };
 
 const mockContext = {
-  newPage: jest.fn().mockResolvedValue(mockPage),
-  close: jest.fn(),
+  newPage: vi.fn().mockResolvedValue(mockPage),
+  close: vi.fn(),
 };
 
 const mockBrowser = {
-  newContext: jest.fn().mockResolvedValue(mockContext),
-  close: jest.fn(),
+  newContext: vi.fn().mockResolvedValue(mockContext),
+  close: vi.fn(),
 };
 
-jest.mock('playwright', () => ({
+vi.mock('playwright', () => ({
   chromium: {
-    launch: jest.fn().mockResolvedValue(mockBrowser),
+    launch: vi.fn().mockResolvedValue(mockBrowser),
   },
 }));
 
 // Mock node-cron
 const mockCronJob = {
-  stop: jest.fn(),
+  stop: vi.fn(),
 };
 
-jest.mock('node-cron', () => ({
-  schedule: jest.fn().mockReturnValue(mockCronJob),
+vi.mock('node-cron', () => ({
+  schedule: vi.fn().mockReturnValue(mockCronJob),
 }));
 
 // Mock config
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     logging: {
       level: 'error',
@@ -58,7 +60,7 @@ describe('TCADTokenRefreshService', () => {
   let service: TCADTokenRefreshService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     service = new TCADTokenRefreshService();
   });
 
@@ -275,7 +277,7 @@ describe('TCADTokenRefreshService', () => {
       expect(stats1.isRunning).toBe(true);
 
       // Clear mocks after first start
-      jest.clearAllMocks();
+      vi.clearAllMocks();
 
       // Try to start again
       service.startAutoRefresh();

@@ -4,13 +4,15 @@
  * Tests for Prisma client initialization and configuration
  */
 
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 // Mock PrismaClient before imports
-const mockPrismaClient = jest.fn().mockImplementation(() => ({
-  $connect: jest.fn().mockResolvedValue(undefined),
-  $disconnect: jest.fn().mockResolvedValue(undefined),
+const mockPrismaClient = vi.fn().mockImplementation(() => ({
+  $connect: vi.fn().mockResolvedValue(undefined),
+  $disconnect: vi.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('@prisma/client', () => ({
+vi.mock('@prisma/client', () => ({
   PrismaClient: mockPrismaClient,
 }));
 
@@ -22,12 +24,12 @@ describe('Prisma Client Module', () => {
     originalEnv = { ...process.env };
 
     // Clear module cache and global state
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     delete (global as any).prisma;
     delete (global as any).prismaReadOnly;
 
     // Reset module cache to force re-import
-    jest.resetModules();
+    vi.resetModules();
   });
 
   afterEach(() => {

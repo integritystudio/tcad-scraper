@@ -7,7 +7,7 @@
  * The controller is tested via integration tests and route tests instead.
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 
 describe.skip('PropertyController Unit Tests', () => {
   it('should be tested via integration tests', () => {

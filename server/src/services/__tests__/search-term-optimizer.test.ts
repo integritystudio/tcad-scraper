@@ -4,6 +4,7 @@
  * Tests for the search term performance analysis and optimization service
  */
 
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import {
   OPTIMIZED_4_CHAR_STARTER_TERMS,
   SearchTermOptimizer,
@@ -12,31 +13,31 @@ import {
 // Mock Prisma
 const mockPrisma = {
   searchTermAnalytics: {
-    count: jest.fn(),
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    upsert: jest.fn(),
-    groupBy: jest.fn(),
-    update: jest.fn(),
+    count: vi.fn(),
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    upsert: vi.fn(),
+    groupBy: vi.fn(),
+    update: vi.fn(),
   },
   scrapeJob: {
-    count: jest.fn(),
+    count: vi.fn(),
   },
 };
 
 // Mock logger
-jest.mock('../../lib/logger', () => ({
-  info: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
+vi.mock('../../lib/logger', () => ({
+  info: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
 }));
 
 describe('Search Term Optimizer', () => {
   let optimizer: SearchTermOptimizer;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     optimizer = new SearchTermOptimizer(mockPrisma as any);
   });
 

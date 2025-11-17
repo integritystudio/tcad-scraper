@@ -6,7 +6,7 @@
  * authentication middleware, and PostgreSQL database layer.
  */
 
-import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../index';
 import { generateToken } from '../middleware/auth';

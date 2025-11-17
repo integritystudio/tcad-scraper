@@ -5,7 +5,7 @@
  * read/write client separation, and connection pooling.
  */
 
-import { describe, test, expect, afterAll } from '@jest/globals';
+import { describe, test, expect, afterAll } from 'vitest';
 import { prisma, prismaReadOnly } from '../lib/prisma';
 import { PrismaClient } from '@prisma/client';
 

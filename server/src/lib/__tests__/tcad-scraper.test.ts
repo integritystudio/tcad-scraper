@@ -4,20 +4,22 @@
  * Tests for helper methods and configuration
  */
 
+import { describe, test, expect, beforeEach, vi } from 'vitest';
+
 // Mock Playwright
 const mockBrowser = {
-  newContext: jest.fn(),
-  close: jest.fn(),
+  newContext: vi.fn(),
+  close: vi.fn(),
 };
 
-jest.mock('playwright', () => ({
+vi.mock('playwright', () => ({
   chromium: {
-    launch: jest.fn().mockResolvedValue(mockBrowser),
+    launch: vi.fn().mockResolvedValue(mockBrowser),
   },
 }));
 
 // Mock config
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     logging: {
       level: 'error',
@@ -56,15 +58,15 @@ jest.mock('../../config', () => ({
 }));
 
 // Mock token refresh service
-jest.mock('../../services/token-refresh.service', () => ({
+vi.mock('../../services/token-refresh.service', () => ({
   tokenRefreshService: {
-    getCurrentToken: jest.fn().mockReturnValue(null),
+    getCurrentToken: vi.fn().mockReturnValue(null),
   },
 }));
 
 // Mock DOM scraper fallback
-jest.mock('../fallback/dom-scraper', () => ({
-  scrapeDOMFallback: jest.fn().mockResolvedValue([]),
+vi.mock('../fallback/dom-scraper', () => ({
+  scrapeDOMFallback: vi.fn().mockResolvedValue([]),
 }));
 
 import { TCADScraper } from '../tcad-scraper';
@@ -74,7 +76,7 @@ describe.skip('TCADScraper - SKIPPED (complex Playwright mocking)', () => {
   let scraper: TCADScraper;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     scraper = new TCADScraper();
   });
 
@@ -148,7 +150,7 @@ describe.skip('TCADScraper - SKIPPED (complex Playwright mocking)', () => {
     });
 
     it('should handle browser launch failure', async () => {
-      (chromium.launch as jest.Mock).mockRejectedValue(new Error('Launch failed'));
+      (chromium.launch as Mock).mockRejectedValue(new Error('Launch failed'));
 
       await expect(scraper.initialize()).rejects.toThrow('Launch failed');
     });
@@ -309,7 +311,7 @@ describe.skip('TCADScraper - SKIPPED (complex Playwright mocking)', () => {
     it('should use random user agent from config', async () => {
       await scraper.initialize();
 
-      const mockNewContext = mockBrowser.newContext as jest.Mock;
+      const mockNewContext = mockBrowser.newContext as Mock;
 
       // Initialize will be called later, but config is set in constructor
       expect(scraper).toBeDefined();

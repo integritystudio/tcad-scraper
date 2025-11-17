@@ -2,7 +2,7 @@
  * XController Client Tests
  */
 
-import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
 import { DataController } from '../xcontroller.client';
 
 describe('DataController', () => {
@@ -147,7 +147,7 @@ describe('DataController', () => {
   describe('loadDataWithFallback', () => {
     beforeEach(() => {
       // Mock fetch
-      global.fetch = jest.fn();
+      global.fetch = vi.fn();
     });
 
     test('should use script tag data first', async () => {
@@ -167,7 +167,7 @@ describe('DataController', () => {
     });
 
     test('should fallback to API when script tag missing', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({ source: 'api' }),
       });
@@ -182,7 +182,7 @@ describe('DataController', () => {
     });
 
     test('should cache API fallback data', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({ cached: true }),
       });
@@ -194,7 +194,7 @@ describe('DataController', () => {
     });
 
     test('should return null on API error', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as Mock).mockResolvedValue({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
@@ -205,7 +205,7 @@ describe('DataController', () => {
     });
 
     test('should return null on network error', async () => {
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      (global.fetch as Mock).mockRejectedValue(new Error('Network error'));
 
       const data = await controller.loadDataWithFallback('missing', '/api/network-error');
       expect(data).toBeNull();
@@ -324,7 +324,7 @@ describe('DataController', () => {
 
   describe('Error Handling', () => {
     test('should log errors in debug mode', () => {
-      const consoleError = jest.spyOn(console, 'error').mockImplementation();
+      const consoleError = vi.spyOn(console, 'error').mockImplementation();
 
       scriptElement = document.createElement('script');
       scriptElement.type = 'application/json';

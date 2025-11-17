@@ -1,61 +1,62 @@
+import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
 import { Request, Response } from 'express';
 import { PropertyController } from '../property.controller';
 
 // Mock dependencies with proper structure
-jest.mock('../../queues/scraper.queue', () => ({
+vi.mock('../../queues/scraper.queue', () => ({
   scraperQueue: {
-    add: jest.fn(),
-    getJob: jest.fn(),
-    clean: jest.fn(),
+    add: vi.fn(),
+    getJob: vi.fn(),
+    clean: vi.fn(),
   },
-  canScheduleJob: jest.fn(),
+  canScheduleJob: vi.fn(),
 }));
 
-jest.mock('../../lib/prisma', () => ({
+vi.mock('../../lib/prisma', () => ({
   prisma: {
     property: {
-      findMany: jest.fn(),
-      count: jest.fn(),
-      groupBy: jest.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+      groupBy: vi.fn(),
     },
     scrapeJob: {
-      findMany: jest.fn(),
-      count: jest.fn(),
-      create: jest.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+      create: vi.fn(),
     },
     monitoredSearch: {
-      upsert: jest.fn(),
-      findMany: jest.fn(),
+      upsert: vi.fn(),
+      findMany: vi.fn(),
     },
   },
   prismaReadOnly: {
     property: {
-      findMany: jest.fn(),
-      count: jest.fn(),
-      groupBy: jest.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+      groupBy: vi.fn(),
     },
     scrapeJob: {
-      findMany: jest.fn(),
-      count: jest.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
     },
     monitoredSearch: {
-      findMany: jest.fn(),
+      findMany: vi.fn(),
     },
   },
 }));
 
-jest.mock('../../lib/claude.service', () => ({
+vi.mock('../../lib/claude.service', () => ({
   claudeSearchService: {
-    parseNaturalLanguageQuery: jest.fn(),
+    parseNaturalLanguageQuery: vi.fn(),
   },
 }));
 
-jest.mock('../../lib/redis-cache.service', () => ({
+vi.mock('../../lib/redis-cache.service', () => ({
   cacheService: {
-    getOrSet: jest.fn(),
-    get: jest.fn(),
-    set: jest.fn(),
-    invalidatePattern: jest.fn(),
+    getOrSet: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    invalidatePattern: vi.fn(),
   },
 }));
 
@@ -63,8 +64,8 @@ describe('PropertyController', () => {
   let controller: PropertyController;
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
-  let jsonMock: jest.Mock;
-  let statusMock: jest.Mock;
+  let jsonMock: Mock;
+  let statusMock: Mock;
 
   // Import mocked modules
   let scraperQueue: any;
@@ -76,11 +77,11 @@ describe('PropertyController', () => {
 
   beforeEach(() => {
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Set up response mocks
-    jsonMock = jest.fn();
-    statusMock = jest.fn().mockReturnValue({ json: jsonMock });
+    jsonMock = vi.fn();
+    statusMock = vi.fn().mockReturnValue({ json: jsonMock });
 
     mockReq = {
       body: {},
@@ -123,7 +124,7 @@ describe('PropertyController', () => {
 
       // Mock queue add
       const mockJobId = 'job-123';
-      scraperQueue.add = jest.fn().mockResolvedValue({
+      scraperQueue.add = vi.fn().mockResolvedValue({
         id: mockJobId,
       });
 
@@ -175,13 +176,13 @@ describe('PropertyController', () => {
         id: jobId,
         timestamp: Date.now(),
         finishedOn: Date.now() + 5000,
-        getState: jest.fn().mockResolvedValue('completed'),
-        progress: jest.fn().mockReturnValue(100),
+        getState: vi.fn().mockResolvedValue('completed'),
+        progress: vi.fn().mockReturnValue(100),
         returnvalue: { count: 42 },
         failedReason: null,
       };
 
-      scraperQueue.getJob = jest.fn().mockResolvedValue(mockJob);
+      scraperQueue.getJob = vi.fn().mockResolvedValue(mockJob);
 
       await controller.getJobStatus(
         mockReq as Request,
@@ -208,13 +209,13 @@ describe('PropertyController', () => {
         id: jobId,
         timestamp: Date.now(),
         finishedOn: null,
-        getState: jest.fn().mockResolvedValue('failed'),
-        progress: jest.fn().mockReturnValue(50),
+        getState: vi.fn().mockResolvedValue('failed'),
+        progress: vi.fn().mockReturnValue(50),
         returnvalue: null,
         failedReason: 'Network timeout',
       };
 
-      scraperQueue.getJob = jest.fn().mockResolvedValue(mockJob);
+      scraperQueue.getJob = vi.fn().mockResolvedValue(mockJob);
 
       await controller.getJobStatus(
         mockReq as Request,
@@ -236,7 +237,7 @@ describe('PropertyController', () => {
       const jobId = 'nonexistent';
       mockReq.params = { jobId };
 
-      scraperQueue.getJob = jest.fn().mockResolvedValue(null);
+      scraperQueue.getJob = vi.fn().mockResolvedValue(null);
 
       await controller.getJobStatus(
         mockReq as Request,
@@ -272,7 +273,7 @@ describe('PropertyController', () => {
       };
 
       // Mock cacheService to return cached data
-      cacheService.getOrSet = jest.fn().mockResolvedValue(mockResult);
+      cacheService.getOrSet = vi.fn().mockResolvedValue(mockResult);
 
       await controller.getProperties(
         mockReq as Request,
@@ -375,7 +376,7 @@ describe('PropertyController', () => {
         explanation: 'Looking for properties in Austin',
       };
 
-      claudeSearchService.parseNaturalLanguageQuery = jest.fn().mockResolvedValue(mockResult);
+      claudeSearchService.parseNaturalLanguageQuery = vi.fn().mockResolvedValue(mockResult);
 
       await controller.testClaudeConnection(
         mockReq as Request,
@@ -558,7 +559,7 @@ describe('PropertyController', () => {
         ],
       };
 
-      cacheService.getOrSet = jest.fn().mockResolvedValue(mockStats);
+      cacheService.getOrSet = vi.fn().mockResolvedValue(mockStats);
 
       await controller.getStats(
         mockReq as Request,

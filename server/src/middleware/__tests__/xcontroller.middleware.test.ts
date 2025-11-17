@@ -2,11 +2,11 @@
  * XController Middleware Tests
  */
 
-import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 
 // Mock the config module before importing middleware
-jest.mock('../../config', () => {
+vi.mock('../../config', () => {
   const mockConfig = {
     env: {
       nodeEnv: 'development',
@@ -137,7 +137,7 @@ describe('XController Middleware', () => {
       res = {
         locals: {},
       };
-      next = jest.fn();
+      next = vi.fn();
     });
 
     test('should add nonce to res.locals', () => {
@@ -173,9 +173,9 @@ describe('XController Middleware', () => {
       };
       res = {
         locals: { nonce: 'test-nonce-12345' },
-        setHeader: jest.fn(),
+        setHeader: vi.fn(),
       };
-      next = jest.fn();
+      next = vi.fn();
       // Reset config to development mode
       (config.env as any).isProduction = false;
       (config.env as any).nodeEnv = 'development';
@@ -214,7 +214,7 @@ describe('XController Middleware', () => {
 
     test('should include default-src directive', () => {
       cspMiddleware(req as Request, res as Response, next);
-      const cspCall = (res.setHeader as jest.Mock).mock.calls.find(
+      const cspCall = (res.setHeader as Mock).mock.calls.find(
         call => call[0] === 'Content-Security-Policy'
       );
       expect(cspCall[1]).toContain("default-src 'self'");
@@ -222,7 +222,7 @@ describe('XController Middleware', () => {
 
     test('should include script-src with nonce', () => {
       cspMiddleware(req as Request, res as Response, next);
-      const cspCall = (res.setHeader as jest.Mock).mock.calls.find(
+      const cspCall = (res.setHeader as Mock).mock.calls.find(
         call => call[0] === 'Content-Security-Policy'
       );
       expect(cspCall[1]).toContain("script-src 'self' 'nonce-test-nonce-12345'");

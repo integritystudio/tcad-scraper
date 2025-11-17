@@ -1,26 +1,27 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { removeDuplicatesFromQueue } from '../deduplication';
 
 // Mock dependencies
-jest.mock('../../queues/scraper.queue', () => ({
+vi.mock('../../queues/scraper.queue', () => ({
   scraperQueue: {
-    getWaiting: jest.fn(),
-    getDelayed: jest.fn(),
+    getWaiting: vi.fn(),
+    getDelayed: vi.fn(),
   },
 }));
 
-jest.mock('../../lib/prisma', () => ({
+vi.mock('../../lib/prisma', () => ({
   prisma: {
     scrapeJob: {
-      findMany: jest.fn(),
+      findMany: vi.fn(),
     },
   },
 }));
 
-jest.mock('../../lib/logger', () => ({
-  info: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-  debug: jest.fn(),
+vi.mock('../../lib/logger', () => ({
+  info: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
+  debug: vi.fn(),
 }));
 
 describe('removeDuplicatesFromQueue', () => {
@@ -29,7 +30,7 @@ describe('removeDuplicatesFromQueue', () => {
   let logger: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     const scraperQueueModule = require('../../queues/scraper.queue');
     scraperQueue = scraperQueueModule.scraperQueue;
@@ -59,13 +60,13 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn(),
+          remove: vi.fn(),
         },
         {
           id: 'job-2',
           data: { searchTerm: 'Johnson' },
           opts: { priority: 10 },
-          remove: jest.fn(),
+          remove: vi.fn(),
         },
       ];
 
@@ -88,19 +89,19 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' },
           opts: { priority: 5 }, // Higher priority (lower number)
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-2',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 }, // Lower priority (higher number)
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-3',
           data: { searchTerm: 'Smith' },
           opts: { priority: 15 }, // Lowest priority
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
       ];
 
@@ -122,13 +123,13 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' },
           opts: {}, // No priority
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-2',
           data: { searchTerm: 'Smith' },
           opts: { priority: 15 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
       ];
 
@@ -149,25 +150,25 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-2',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-3',
           data: { searchTerm: 'Johnson' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-4',
           data: { searchTerm: 'Johnson' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
       ];
 
@@ -188,13 +189,13 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-2',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
       ];
 
@@ -220,13 +221,13 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' }, // Already completed
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-2',
           data: { searchTerm: 'Johnson' }, // Not completed
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
       ];
 
@@ -251,7 +252,7 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
       ];
 
@@ -260,7 +261,7 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-2',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
       ];
 
@@ -281,19 +282,19 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-2',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockRejectedValue(new Error('Remove failed')),
+          remove: vi.fn().mockRejectedValue(new Error('Remove failed')),
         },
         {
           id: 'job-3',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
       ];
 
@@ -313,19 +314,19 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-2',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockRejectedValue(new Error('Failed 1')),
+          remove: vi.fn().mockRejectedValue(new Error('Failed 1')),
         },
         {
           id: 'job-3',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockRejectedValue(new Error('Failed 2')),
+          remove: vi.fn().mockRejectedValue(new Error('Failed 2')),
         },
       ];
 
@@ -346,7 +347,7 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'CompletedTerm' },
           opts: { priority: 10 },
-          remove: jest.fn().mockRejectedValue(new Error('Remove failed for completed term')),
+          remove: vi.fn().mockRejectedValue(new Error('Remove failed for completed term')),
         },
       ];
 
@@ -371,13 +372,13 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-2',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
       ];
 
@@ -421,13 +422,13 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-2',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockRejectedValue(new Error('Remove failed')),
+          remove: vi.fn().mockRejectedValue(new Error('Remove failed')),
         },
       ];
 
@@ -449,13 +450,13 @@ describe('removeDuplicatesFromQueue', () => {
             id: `job-${i}-1`,
             data: { searchTerm: `Term${i}` },
             opts: { priority: 10 },
-            remove: jest.fn().mockResolvedValue(true),
+            remove: vi.fn().mockResolvedValue(true),
           },
           {
             id: `job-${i}-2`,
             data: { searchTerm: `Term${i}` },
             opts: { priority: 15 },
-            remove: jest.fn().mockResolvedValue(true),
+            remove: vi.fn().mockResolvedValue(true),
           }
         );
       }
@@ -480,7 +481,7 @@ describe('removeDuplicatesFromQueue', () => {
           id: `job-${i}`,
           data: { searchTerm: `CompletedTerm${i}` },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         });
         completedTerms.push({ searchTerm: `CompletedTerm${i}` });
       }
@@ -507,13 +508,13 @@ describe('removeDuplicatesFromQueue', () => {
             id: `job-${i}-1`,
             data: { searchTerm: 'DuplicateTerm' },
             opts: { priority: 10 },
-            remove: jest.fn().mockResolvedValue(true),
+            remove: vi.fn().mockResolvedValue(true),
           }
         );
       }
 
       // Mock process.stdout.write to verify progress output
-      const stdoutWriteSpy = jest.spyOn(process.stdout, 'write').mockImplementation();
+      const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockImplementation();
 
       scraperQueue.getWaiting.mockResolvedValue(mockJobs);
       scraperQueue.getDelayed.mockResolvedValue([]);
@@ -537,12 +538,12 @@ describe('removeDuplicatesFromQueue', () => {
             id: `job-${i}-1`,
             data: { searchTerm: 'DuplicateTerm' },
             opts: { priority: 10 },
-            remove: jest.fn().mockResolvedValue(true),
+            remove: vi.fn().mockResolvedValue(true),
           }
         );
       }
 
-      const stdoutWriteSpy = jest.spyOn(process.stdout, 'write').mockImplementation();
+      const stdoutWriteSpy = vi.spyOn(process.stdout, 'write').mockImplementation();
 
       scraperQueue.getWaiting.mockResolvedValue(mockJobs);
       scraperQueue.getDelayed.mockResolvedValue([]);
@@ -563,7 +564,7 @@ describe('removeDuplicatesFromQueue', () => {
           id: `job-${i}`,
           data: { searchTerm: 'CompletedTerm' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         });
       }
 
@@ -588,27 +589,27 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: 'Smith' },
           opts: { priority: 5 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-2',
           data: { searchTerm: 'Smith' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         // Already completed 'Johnson' (should remove all)
         {
           id: 'job-3',
           data: { searchTerm: 'Johnson' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         // Unique 'Williams' (should keep)
         {
           id: 'job-4',
           data: { searchTerm: 'Williams' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
       ];
 
@@ -634,13 +635,13 @@ describe('removeDuplicatesFromQueue', () => {
           id: 'job-1',
           data: { searchTerm: '' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
         {
           id: 'job-2',
           data: { searchTerm: '' },
           opts: { priority: 10 },
-          remove: jest.fn().mockResolvedValue(true),
+          remove: vi.fn().mockResolvedValue(true),
         },
       ];
 

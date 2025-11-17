@@ -7,48 +7,50 @@
  * - Event listeners
  */
 
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+
 // Mock dependencies BEFORE imports
 const mockBullQueue = {
-  process: jest.fn(),
-  on: jest.fn(),
-  clean: jest.fn().mockResolvedValue(undefined),
-  add: jest.fn(),
-  getJob: jest.fn(),
-  getJobs: jest.fn(),
-  pause: jest.fn(),
-  resume: jest.fn(),
-  close: jest.fn(),
+  process: vi.fn(),
+  on: vi.fn(),
+  clean: vi.fn().mockResolvedValue(undefined),
+  add: vi.fn(),
+  getJob: vi.fn(),
+  getJobs: vi.fn(),
+  pause: vi.fn(),
+  resume: vi.fn(),
+  close: vi.fn(),
 };
 
-jest.mock('bull', () => {
-  return jest.fn(() => mockBullQueue);
+vi.mock('bull', () => {
+  return vi.fn(() => mockBullQueue);
 });
 
-jest.mock('../../lib/tcad-scraper');
-jest.mock('../../lib/prisma', () => ({
+vi.mock('../../lib/tcad-scraper');
+vi.mock('../../lib/prisma', () => ({
   prisma: {
     scrapeJob: {
-      create: jest.fn(),
-      update: jest.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
     },
-    $executeRawUnsafe: jest.fn(),
+    $executeRawUnsafe: vi.fn(),
   },
 }));
 
-jest.mock('../../lib/redis-cache.service', () => ({
+vi.mock('../../lib/redis-cache.service', () => ({
   cacheService: {
-    deletePattern: jest.fn().mockResolvedValue(undefined),
-    delete: jest.fn().mockResolvedValue(undefined),
+    deletePattern: vi.fn().mockResolvedValue(undefined),
+    delete: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
-jest.mock('../../services/search-term-optimizer', () => ({
+vi.mock('../../services/search-term-optimizer', () => ({
   searchTermOptimizer: {
-    updateAnalytics: jest.fn().mockResolvedValue(undefined),
+    updateAnalytics: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     logging: {
       level: 'error',
@@ -106,11 +108,11 @@ jest.mock('../../config', () => ({
 }));
 
 // Mock setInterval at module level to prevent cleanup interval from running
-jest.spyOn(global, 'setInterval').mockReturnValue({} as any);
+vi.spyOn(global, 'setInterval').mockReturnValue({} as any);
 
 describe('Scraper Queue', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('canScheduleJob', () => {

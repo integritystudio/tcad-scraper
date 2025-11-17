@@ -2,10 +2,10 @@
  * Claude Search Service Tests
  */
 
-import { describe, test, expect, jest, beforeEach, afterEach } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock the config module before importing claude.service
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     claude: {
       apiKey: 'test-api-key',
@@ -16,9 +16,9 @@ jest.mock('../../config', () => ({
 }));
 
 // Mock Anthropic SDK
-const mockCreate = jest.fn();
-jest.mock('@anthropic-ai/sdk', () => {
-  return jest.fn().mockImplementation(() => ({
+const mockCreate = vi.fn();
+vi.mock('@anthropic-ai/sdk', () => {
+  return vi.fn().mockImplementation(() => ({
     messages: {
       create: mockCreate,
     },
@@ -33,12 +33,12 @@ describe('ClaudeSearchService', () => {
 
   beforeEach(() => {
     // Reset mocks before each test
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     service = new ClaudeSearchService();
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('parseNaturalLanguageQuery', () => {
