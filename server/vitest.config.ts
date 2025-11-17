@@ -35,6 +35,7 @@ export default defineConfig({
       'src/__tests__/enqueue.test.ts',
       'src/__tests__/api.test.ts',
       'src/__tests__/auth-database.connection.test.ts',
+      'src/__tests__/auth-database.integration.test.ts',
       'src/__tests__/security.test.ts',
     ],
 
