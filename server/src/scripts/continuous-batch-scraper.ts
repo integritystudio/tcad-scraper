@@ -286,6 +286,7 @@ class SearchPatternGenerator {
     return this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
   }
 
+  // @ts-expect-error - Kept for future use
   private _generateStreetAddress(): string {
     const number = Math.floor(Math.random() * 9999) + 1;
     const street = this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
@@ -306,6 +307,7 @@ class SearchPatternGenerator {
     return this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
   }
 
+  // @ts-expect-error - Kept for future use
   private _generateFourLetterWord(): string {
     const words = ['Park', 'Lake', 'Hill', 'Wood', 'Glen', 'Dale', 'View', 'Rock', 'Pine', 'Sage'];
     return words[Math.floor(Math.random() * words.length)];
@@ -317,6 +319,7 @@ class SearchPatternGenerator {
   }
 
   // NEW: Generate property type with descriptor
+  // @ts-expect-error - Kept for future use
   private _generatePropertyWithDescriptor(): string {
     const type = this.propertyTypes[Math.floor(Math.random() * this.propertyTypes.length)];
     const descriptor = this.propertyDescriptors[Math.floor(Math.random() * this.propertyDescriptors.length)];
@@ -324,6 +327,7 @@ class SearchPatternGenerator {
   }
 
   // NEW: Generate partial street address (just number + street, more common)
+  // @ts-expect-error - Kept for future use
   private _generatePartialAddress(): string {
     const number = Math.floor(Math.random() * 9999) + 1;
     const street = this.streetNames[Math.floor(Math.random() * this.streetNames.length)];

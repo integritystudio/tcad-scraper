@@ -425,6 +425,7 @@ export class TCADScraper {
   /**
    * Helper method to discover API endpoints (for debugging/development)
    */
+  // @ts-expect-error - Intentional debug method kept for future use
   private async _discoverApiEndpoint(searchTerm: string): Promise<void> {
     if (!this.browser) {
       throw new Error('Browser not initialized. Call initialize() first.');
@@ -515,6 +516,10 @@ export class TCADScraper {
     }
   }
 
+  /**
+   * Helper method to scrape property details (for debugging/development)
+   */
+  // @ts-expect-error - Intentional debug method kept for future use
   private async _scrapePropertyDetail(page: Page, propertyId: string): Promise<PropertyData | null> {
     try {
       // Navigate to property detail page

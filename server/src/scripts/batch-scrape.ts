@@ -69,13 +69,15 @@ const PROPERTY_TYPES = [
   'X', // Totally Exempt Property
 ];
 
-// Street name prefixes for comprehensive coverage
+// Street name prefixes for comprehensive coverage (kept for future use)
+// @ts-expect-error - Kept for future use
 const _STREET_PREFIXES = [
   'North', 'South', 'East', 'West',
   'N', 'S', 'E', 'W',
 ];
 
-// Common street suffixes
+// Common street suffixes (kept for future use)
+// @ts-expect-error - Kept for future use
 const _STREET_SUFFIXES = [
   'Street', 'St', 'Avenue', 'Ave', 'Road', 'Rd', 'Drive', 'Dr',
   'Lane', 'Ln', 'Court', 'Ct', 'Circle', 'Cir', 'Boulevard', 'Blvd',

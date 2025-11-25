@@ -100,7 +100,7 @@ describe('Error Middleware', () => {
 
       errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
 
-      expect(logger.error).toHaveBeenCalledWith('Error:', error);
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Error: Generic error'));
       expect(statusMock).toHaveBeenCalledWith(500);
       expect(jsonMock).toHaveBeenCalledWith({
         error: 'Internal server error',
@@ -153,7 +153,7 @@ describe('Error Middleware', () => {
 
       errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
 
-      expect(logger.error).toHaveBeenCalledWith('Error:', error);
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Error: Test error'));
     });
 
     it('should hide error details in production', () => {
