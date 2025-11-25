@@ -38,7 +38,7 @@ export class PropertyController {
       message: 'Scrape job queued successfully',
     };
 
-    res.status(202).json(response);
+    return res.status(202).json(response);
   }
 
   /**
@@ -65,7 +65,7 @@ export class PropertyController {
       error = job.failedReason;
     }
 
-    res.json({
+    return res.json({
       id: jobId,
       status: state,
       progress: typeof progress === 'number' ? progress : 0,
@@ -133,17 +133,17 @@ export class PropertyController {
       300 // 5 minutes TTL
     );
 
-    res.json(result);
+    return res.json(result);
   }
 
   /**
    * GET /api/properties/search/test - Test Claude API connection
    */
-  async testClaudeConnection(req: Request, res: Response) {
+  async testClaudeConnection(_req: Request, res: Response) {
     const testQuery = 'properties in Austin';
     const result = await claudeSearchService.parseNaturalLanguageQuery(testQuery);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Claude API connection successful',
       testQuery,
@@ -193,7 +193,7 @@ export class PropertyController {
       updated_at: prop.updatedAt.toISOString(),
     }));
 
-    res.json({
+    return res.json({
       data: transformedProperties,
       pagination: {
         total,
@@ -222,7 +222,7 @@ export class PropertyController {
 
     const total = await prismaReadOnly.scrapeJob.count();
 
-    res.json({
+    return res.json({
       data: jobs,
       pagination: {
         total,
@@ -237,7 +237,7 @@ export class PropertyController {
    * GET /api/properties/stats - Get statistics
    * Cached for 10 minutes (expensive aggregation queries)
    */
-  async getStats(req: Request, res: Response) {
+  async getStats(_req: Request, res: Response) {
     const cacheKey = 'properties:stats:all';
 
     // Cache stats for 10 minutes (600 seconds)
@@ -292,7 +292,7 @@ export class PropertyController {
       600 // 10 minutes TTL
     );
 
-    res.json(stats);
+    return res.json(stats);
   }
 
   /**
@@ -311,7 +311,7 @@ export class PropertyController {
       create: { searchTerm, frequency },
     });
 
-    res.json({
+    return res.json({
       message: 'Search term added to monitoring',
       data: monitoredSearch,
     });
@@ -320,13 +320,13 @@ export class PropertyController {
   /**
    * GET /api/properties/monitor - Get monitored search terms
    */
-  async getMonitoredSearches(req: Request, res: Response) {
+  async getMonitoredSearches(_req: Request, res: Response) {
     const monitoredSearches = await prismaReadOnly.monitoredSearch.findMany({
       where: { active: true },
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ data: monitoredSearches });
+    return res.json({ data: monitoredSearches });
   }
 
   /**
