@@ -114,7 +114,7 @@ router.post(
  */
 router.get(
   '/jobs/:jobId',
-  asyncHandler(propertyController.getJobStatus.bind(propertyController))
+  asyncHandler(propertyController.getJobStatus.bind(propertyController) as any)
 );
 
 /**
@@ -176,7 +176,7 @@ router.get(
 router.get(
   '/history',
   validateQuery(historyQuerySchema),
-  asyncHandler(propertyController.getScrapeHistory.bind(propertyController))
+  asyncHandler(propertyController.getScrapeHistory.bind(propertyController) as any)
 );
 
 // ============================================================================
@@ -265,7 +265,7 @@ router.get(
 router.get(
   '/',
   validateQuery(propertyFilterSchema),
-  asyncHandler(propertyController.getProperties.bind(propertyController))
+  asyncHandler(propertyController.getProperties.bind(propertyController) as any)
 );
 
 /**

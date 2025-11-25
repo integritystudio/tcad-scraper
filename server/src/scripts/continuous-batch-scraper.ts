@@ -277,7 +277,7 @@ class SearchPatternGenerator {
       this.dbTermsLoaded = true;
       this.lastDbRefresh = now;
     } catch (error) {
-      logger.error({ err: error }, '❌ Failed to load used terms from database:');
+      logger.error(`❌ Failed to load used terms from database: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
@@ -286,7 +286,9 @@ class SearchPatternGenerator {
     return this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
   }
 
-  private generateStreetAddress(): string {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Intentionally unused method kept for future use
+  private _generateStreetAddress(): string {
     const number = Math.floor(Math.random() * 9999) + 1;
     const street = this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
     return `${number} ${street}`;
@@ -306,7 +308,9 @@ class SearchPatternGenerator {
     return this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
   }
 
-  private generateFourLetterWord(): string {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Intentionally unused method kept for future use
+  private _generateFourLetterWord(): string {
     const words = ['Park', 'Lake', 'Hill', 'Wood', 'Glen', 'Dale', 'View', 'Rock', 'Pine', 'Sage'];
     return words[Math.floor(Math.random() * words.length)];
   }
@@ -317,14 +321,18 @@ class SearchPatternGenerator {
   }
 
   // NEW: Generate property type with descriptor
-  private generatePropertyWithDescriptor(): string {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Intentionally unused method kept for future use
+  private _generatePropertyWithDescriptor(): string {
     const type = this.propertyTypes[Math.floor(Math.random() * this.propertyTypes.length)];
     const descriptor = this.propertyDescriptors[Math.floor(Math.random() * this.propertyDescriptors.length)];
     return Math.random() > 0.5 ? `${type} ${descriptor}` : type;
   }
 
   // NEW: Generate partial street address (just number + street, more common)
-  private generatePartialAddress(): string {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Intentionally unused method kept for future use
+  private _generatePartialAddress(): string {
     const number = Math.floor(Math.random() * 9999) + 1;
     const street = this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
     const words = street.split(' ');
@@ -404,7 +412,7 @@ class SearchPatternGenerator {
       // Combine optimized and suggested terms
       return [...optimizedTerms, ...suggestedTerms];
     } catch (error) {
-      logger.error({ err: error }, '❌ Failed to optimize strategy:');
+      logger.error(`❌ Failed to optimize strategy: ${error instanceof Error ? error.message : String(error)}`);
       return [];
     }
   }
@@ -619,7 +627,7 @@ class ContinuousBatchScraper {
 
         this.stats.totalQueued++;
       } catch (error) {
-        logger.error({ err: error }, `Failed to queue ${searchTerm}:`);
+        logger.error(`Failed to queue ${searchTerm}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
@@ -672,7 +680,7 @@ class ContinuousBatchScraper {
           logger.info(`⏱️  Estimated time to target: ${hoursRemaining.toFixed(1)} hours`);
         }
       } catch (error) {
-        logger.error({ err: error }, 'Monitoring error:');
+        logger.error(`Monitoring error: ${error instanceof Error ? error.message : String(error)}`);
       }
     }, CHECK_INTERVAL);
   }
@@ -719,6 +727,6 @@ class ContinuousBatchScraper {
 // Run the continuous scraper
 const scraper = new ContinuousBatchScraper();
 scraper.run().catch((error) => {
-  logger.error({ err: error }, 'Fatal error:');
+  logger.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 });

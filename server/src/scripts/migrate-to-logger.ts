@@ -14,7 +14,6 @@ function migrateFile(filePath: string): void {
   const lines = content.split('\n');
 
   let hasImport = false;
-  let importLineIndex = -1;
   let lastImportIndex = -1;
 
   // Check if logger is already imported
@@ -22,7 +21,6 @@ function migrateFile(filePath: string): void {
     const line = lines[i];
     if (line.includes("import") && line.includes("logger") && line.includes("../lib/logger")) {
       hasImport = true;
-      importLineIndex = i;
       break;
     }
     if (line.startsWith('import ') && !line.includes('type')) {

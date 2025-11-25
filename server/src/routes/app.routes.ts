@@ -20,7 +20,7 @@ router.get(
   '/',
   nonceMiddleware,
   cspMiddleware,
-  (req: Request, res: Response) => {
+  (_req: Request, res: Response) => {
     try {
       const nonce = res.locals.nonce;
       const initialData = getInitialAppData();
@@ -36,7 +36,7 @@ router.get(
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.send(html);
     } catch (error) {
-      logger.error('Error serving app:', error);
+      logger.error(`Error serving app: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).send('Internal Server Error');
     }
   }
@@ -45,7 +45,7 @@ router.get(
 /**
  * Health check endpoint
  */
-router.get('/health', (req: Request, res: Response) => {
+router.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),

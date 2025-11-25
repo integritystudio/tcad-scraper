@@ -15,7 +15,7 @@ exports.appRouter = router;
 /**
  * Serve the main application with secure initial data
  */
-router.get('/', xcontroller_middleware_1.nonceMiddleware, xcontroller_middleware_1.cspMiddleware, (req, res) => {
+router.get('/', xcontroller_middleware_1.nonceMiddleware, xcontroller_middleware_1.cspMiddleware, (_req, res) => {
     try {
         const nonce = res.locals.nonce;
         const initialData = (0, xcontroller_middleware_1.getInitialAppData)();
@@ -30,14 +30,14 @@ router.get('/', xcontroller_middleware_1.nonceMiddleware, xcontroller_middleware
         res.send(html);
     }
     catch (error) {
-        logger_1.default.error('Error serving app:', error);
+        logger_1.default.error(`Error serving app: ${error instanceof Error ? error.message : String(error)}`);
         res.status(500).send('Internal Server Error');
     }
 });
 /**
  * Health check endpoint
  */
-router.get('/health', (req, res) => {
+router.get('/health', (_req, res) => {
     res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),

@@ -80,7 +80,7 @@ async function clearAndQueueSearches() {
                 removedCount++;
             }
             catch (error) {
-                logger_1.default.error(`Failed to remove job ${job.id}:`, error instanceof Error ? error.message : 'Unknown error');
+                logger_1.default.error(`Failed to remove job ${job.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
         }
         logger_1.default.info(`✅ Removed ${removedCount} failed jobs\n`);
@@ -111,7 +111,7 @@ async function clearAndQueueSearches() {
             }
             catch (error) {
                 failedCount++;
-                logger_1.default.error(`❌ Failed to queue "${searchTerm}":`, error instanceof Error ? error.message : 'Unknown error');
+                logger_1.default.error(`❌ Failed to queue "${searchTerm}": ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
         }
         logger_1.default.info('\n' + '─'.repeat(80));
@@ -136,7 +136,7 @@ async function clearAndQueueSearches() {
         logger_1.default.info('✨ Entity term searches queued successfully!\n');
     }
     catch (error) {
-        logger_1.default.error('❌ Fatal error:', error);
+        logger_1.default.error(`❌ Fatal error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
     }
 }

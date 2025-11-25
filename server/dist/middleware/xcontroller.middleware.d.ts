@@ -16,7 +16,7 @@ export declare function encodeJsonForHtml(data: any): string;
  * Middleware to add CSP nonce to response locals
  * Usage: app.use(nonceMiddleware)
  */
-export declare function nonceMiddleware(req: Request, res: Response, next: NextFunction): void;
+export declare function nonceMiddleware(_req: Request, res: Response, next: NextFunction): void;
 /**
  * Middleware to set CSP headers with nonce support
  * Usage: app.use(cspMiddleware)

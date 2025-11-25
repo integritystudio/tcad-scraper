@@ -319,7 +319,7 @@ export function logConfigSummary(): void {
   logger.info(`TCAD Auto Refresh: ${config.scraper.autoRefreshToken ? `Enabled (every ${config.scraper.tokenRefreshInterval / 60000} min)` : 'Disabled'}`);
   logger.info(`Scraper Proxy: ${config.scraper.proxy.enabled ? 'Enabled' : 'Disabled'}`);
   logger.info(`Bright Data: ${config.scraper.brightData.enabled ? 'Enabled' : 'Disabled'}`);
-  logger.info(`Monitoring: ${config.monitoring.enabled ? 'Enabled' : 'Disabled'}`);
+  logger.info(`Monitoring: ${config.monitoring.sentry.enabled ? 'Enabled' : 'Disabled'}`);
 
   if (config.doppler.enabled) {
     logger.info(`Doppler: ${config.doppler.project}/${config.doppler.config}`);

@@ -85,7 +85,7 @@ async function queueBatch() {
 
     } catch (error) {
       failed++;
-      logger.error({ err: error }, `  ✗ ${searchTerm}:`);
+      logger.error(`  ✗ ${searchTerm}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -109,6 +109,6 @@ async function queueBatch() {
 }
 
 queueBatch().catch((error) => {
-  logger.error({ err: error }, 'Fatal error:');
+  logger.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 });

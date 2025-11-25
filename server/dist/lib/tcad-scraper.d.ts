@@ -48,9 +48,14 @@ export declare class TCADScraper {
      */
     /**
      * Helper method to discover API endpoints (for debugging/development)
+     * @internal Reserved for future debugging use
      */
-    private discoverApiEndpoint;
-    private scrapePropertyDetail;
+    private _discoverApiEndpoint;
+    /**
+     * Helper method to scrape property details (for debugging/development)
+     * @internal Reserved for future debugging use
+     */
+    private _scrapePropertyDetail;
     cleanup(): Promise<void>;
     testConnection(): Promise<boolean>;
 }

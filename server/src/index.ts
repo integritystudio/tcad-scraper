@@ -30,8 +30,8 @@ import { metricsMiddleware } from './middleware/metrics.middleware';
 import { getMetrics, updateQueueMetrics } from './lib/metrics.service';
 import { startPeriodicAnalysis, stopPeriodicAnalysis } from './services/code-complexity.service';
 
-// Initialize Sentry (must be first)
-initializeSentry();
+// Initialize Sentry with service tagging (must be first)
+initializeSentry('tcad-scraper');
 
 // Validate configuration
 validateConfig();

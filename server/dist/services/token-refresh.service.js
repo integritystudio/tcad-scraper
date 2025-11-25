@@ -114,7 +114,8 @@ class TCADTokenRefreshService {
                     authHeader.startsWith('eyJ') &&
                     !capturedToken) {
                     capturedToken = authHeader;
-                    logger.info(`Authorization token captured from request: length: ${capturedToken.length}, preview: ${capturedToken.substring(0, 50)}...`);
+                    const tokenPreview = authHeader.substring(0, 50);
+                    logger.info(`Authorization token captured from request: length: ${authHeader.length}, preview: ${tokenPreview}...`);
                 }
             });
             try {
@@ -142,14 +143,16 @@ class TCADTokenRefreshService {
                 if (!capturedToken) {
                     throw new Error('Failed to capture authorization token from network requests');
                 }
-                // Update current token
-                this.currentToken = capturedToken;
+                // Update current token (TypeScript assertion needed after null check)
+                const token = capturedToken;
+                this.currentToken = token;
                 this.lastRefreshTime = new Date();
                 this.refreshCount++;
                 const duration = Date.now() - startTime;
+                const tokenPreview2 = token.substring(0, 30);
                 logger.info(`Token refreshed successfully in ${duration}ms (refresh #${this.refreshCount})`);
-                logger.info(`New token: ${capturedToken.substring(0, 30)}...`);
-                return capturedToken;
+                logger.info(`New token: ${tokenPreview2}...`);
+                return token;
             }
             finally {
                 await context.close();

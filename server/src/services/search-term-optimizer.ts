@@ -103,7 +103,7 @@ export class SearchTermOptimizer {
     searchTerm: string,
     resultCount: number,
     wasSuccessful: boolean,
-    error?: string
+    _error?: string
   ): Promise<void> {
     const existing = await this.prisma.searchTermAnalytics.findUnique({
       where: { searchTerm },

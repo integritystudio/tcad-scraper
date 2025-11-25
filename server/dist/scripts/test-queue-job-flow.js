@@ -88,7 +88,7 @@ async function simulateQueueJobProcessing() {
         logger_1.default.info('✅ Job marked as completed\n');
     }
     catch (error) {
-        logger_1.default.error('❌ Error during simulation:', error);
+        logger_1.default.error(`❌ Error during simulation: ${error instanceof Error ? error.message : String(error)}`);
     }
     finally {
         logger_1.default.info('Step 7: Cleanup');

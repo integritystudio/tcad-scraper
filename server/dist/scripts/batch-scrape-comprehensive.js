@@ -158,7 +158,7 @@ class ComprehensiveBatchScraper {
                     logger.info(`  ✓ ${searchTerm} (Job ${job.id})`);
                 }
                 catch (error) {
-                    logger.error({ err: error }, `  ✗ ${searchTerm}:`);
+                    logger.error(`  ✗ ${searchTerm}: ${error instanceof Error ? error.message : String(error)}`);
                 }
             }
             // Delay between batches
@@ -281,7 +281,7 @@ Coverage Strategy:
             process.exit(0);
         }
         catch (error) {
-            logger.error({ err: error }, '❌ Fatal error:');
+            logger.error(`❌ Fatal error: ${error instanceof Error ? error.message : String(error)}`);
             process.exit(1);
         }
     }
