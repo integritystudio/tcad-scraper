@@ -17,20 +17,22 @@ exports.asyncHandler = asyncHandler;
 /**
  * Global error handling middleware
  */
-const errorHandler = (error, req, res, next) => {
-    logger_1.default.error('Error:', error);
+const errorHandler = (error, _req, res, _next) => {
+    logger_1.default.error(`Error: ${error.message}${error.stack ? '\nStack: ' + error.stack : ''}`);
     // Handle specific error types
     if (error.name === 'ValidationError') {
-        return res.status(400).json({
+        res.status(400).json({
             error: 'Validation failed',
             message: error.message,
         });
+        return;
     }
     if (error.name === 'UnauthorizedError') {
-        return res.status(401).json({
+        res.status(401).json({
             error: 'Unauthorized',
             message: error.message,
         });
+        return;
     }
     // Default to 500 server error
     res.status(500).json({

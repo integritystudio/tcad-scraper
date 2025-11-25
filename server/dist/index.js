@@ -59,14 +59,16 @@ const sentry_service_1 = require("./lib/sentry.service");
 const metrics_middleware_1 = require("./middleware/metrics.middleware");
 const metrics_service_1 = require("./lib/metrics.service");
 const code_complexity_service_1 = require("./services/code-complexity.service");
-// Initialize Sentry (must be first)
-(0, sentry_service_1.initializeSentry)();
+// Initialize Sentry with service tagging (must be first)
+(0, sentry_service_1.initializeSentry)('tcad-scraper');
 // Validate configuration
 (0, config_1.validateConfig)();
 // Log configuration summary
 (0, config_1.logConfigSummary)();
 // Create Express app
 const app = (0, express_1.default)();
+// Trust proxy - required for X-Forwarded-For header handling behind reverse proxy
+app.set('trust proxy', true);
 // Sentry request handler MUST be the first middleware
 app.use((0, sentry_service_1.sentryRequestHandler)());
 // Sentry tracing handler (for performance monitoring)

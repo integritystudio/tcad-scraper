@@ -16,13 +16,14 @@ const validate = (schema, source = 'body') => {
         }
         catch (error) {
             if (error instanceof zod_1.z.ZodError) {
-                return res.status(400).json({
+                res.status(400).json({
                     error: 'Invalid request data',
                     details: error.errors.map(err => ({
                         path: err.path.join('.'),
                         message: err.message,
                     })),
                 });
+                return;
             }
             next(error);
         }

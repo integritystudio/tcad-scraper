@@ -9,11 +9,11 @@
   "programmingLanguage": [
     {
       "@type": "ComputerLanguage",
-      "name": "Typescript"
+      "name": "Python"
     },
     {
       "@type": "ComputerLanguage",
-      "name": "Python"
+      "name": "Typescript"
     }
   ],
   "featureList": [
@@ -31,6 +31,7 @@ This directory contains 5 code file(s) with extracted schemas.
 - `data/`
 - `docs/`
 - `fallbackBrowserSearch/`
+- `logs/`
 - `one-off-enqueues/`
 - `prisma/`
 - `scripts/`

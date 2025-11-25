@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const tcad_scraper_1 = require("./lib/tcad-scraper");
-const logger_1 = __importDefault(require("../lib/logger"));
+const logger_1 = __importDefault(require("./lib/logger"));
 async function testApiScraper() {
     logger_1.default.info('Testing API-based scraper...\n');
     const scraper = new tcad_scraper_1.TCADScraper({
@@ -36,7 +36,7 @@ async function testApiScraper() {
         }
     }
     catch (error) {
-        logger_1.default.error('\n❌ Test failed:', error);
+        logger_1.default.error(`\n❌ Test failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     finally {
         await scraper.cleanup();
