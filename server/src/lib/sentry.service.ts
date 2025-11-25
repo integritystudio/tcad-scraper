@@ -7,18 +7,21 @@
  * - User context
  * - Release tracking
  * - Environment separation
+ * - Anthropic AI agent monitoring
+ * - Service tagging for unified Sentry project
  */
 
 import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
 import logger from './logger';
 
 /**
- * Initialize Sentry with configuration
+ * Initialize Sentry with configuration and service tagging
+ * @param serviceName - Unique service identifier for unified Sentry project (default: 'tcad-scraper')
  */
-export function initializeSentry(): void {
+export function initializeSentry(serviceName: string = 'tcad-scraper'): void {
   if (!config.monitoring.sentry.enabled) {
     logger.info('Sentry monitoring is disabled');
     return;
@@ -40,7 +43,13 @@ export function initializeSentry(): void {
     // Integrations
     integrations: [
       // Performance profiling
-      new ProfilingIntegration(),
+      nodeProfilingIntegration(),
+
+      // Anthropic AI Integration - REQUIRED for Claude agent monitoring
+      Sentry.anthropicAIIntegration({
+        recordInputs: true,   // Capture prompts sent to Claude
+        recordOutputs: true,  // Capture responses from Claude
+      }),
 
       // Automatic instrumentation
       new Sentry.Integrations.Http({ tracing: true }),
@@ -57,8 +66,16 @@ export function initializeSentry(): void {
       }),
     ],
 
+    // REQUIRED: Send PII for AI agent context (prompts/responses)
+    sendDefaultPii: true,
+
     // Error Filtering
     beforeSend(event, hint) {
+      // CRITICAL: Set service tag on every event for unified Sentry project
+      event.tags = event.tags || {};
+      event.tags.service = serviceName;
+      event.tags.language = 'typescript';
+
       // Filter out expected errors
       const error = hint.originalException;
 
@@ -91,7 +108,11 @@ export function initializeSentry(): void {
     debug: config.env.isDevelopment,
   });
 
-  logger.info(`Sentry initialized (environment: ${config.monitoring.sentry.environment})`);
+  // Set global tags for all future events
+  Sentry.setTag('service', serviceName);
+  Sentry.setTag('language', 'typescript');
+
+  logger.info(`Sentry initialized for ${serviceName} with Anthropic AI integration (environment: ${config.monitoring.sentry.environment})`);
 }
 
 /**
