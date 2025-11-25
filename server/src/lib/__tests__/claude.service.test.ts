@@ -2,10 +2,21 @@
  * Claude Search Service Tests
  */
 
-import { describe, test, expect, jest, beforeEach, afterEach } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Use vi.hoisted to declare mocks before they're used
+const { mockCreate, MockAnthropic } = vi.hoisted(() => {
+  const mockCreate = vi.fn();
+  class MockAnthropic {
+    messages = {
+      create: mockCreate,
+    };
+  }
+  return { mockCreate, MockAnthropic };
+});
 
 // Mock the config module before importing claude.service
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     claude: {
       apiKey: 'test-api-key',
@@ -16,14 +27,9 @@ jest.mock('../../config', () => ({
 }));
 
 // Mock Anthropic SDK
-const mockCreate = jest.fn();
-jest.mock('@anthropic-ai/sdk', () => {
-  return jest.fn().mockImplementation(() => ({
-    messages: {
-      create: mockCreate,
-    },
-  }));
-});
+vi.mock('@anthropic-ai/sdk', () => ({
+  default: MockAnthropic,
+}));
 
 // Import after mocks are set up
 import { ClaudeSearchService } from '../claude.service';
@@ -33,12 +39,12 @@ describe('ClaudeSearchService', () => {
 
   beforeEach(() => {
     // Reset mocks before each test
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     service = new ClaudeSearchService();
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('parseNaturalLanguageQuery', () => {

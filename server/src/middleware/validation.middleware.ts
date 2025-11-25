@@ -5,7 +5,7 @@ import { z, ZodSchema } from 'zod';
  * Middleware factory for validating request data using Zod schemas
  */
 export const validate = (schema: ZodSchema, source: 'body' | 'query' | 'params' = 'body') => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     try {
       const dataToValidate = req[source];
       const validatedData = schema.parse(dataToValidate);
@@ -16,13 +16,14 @@ export const validate = (schema: ZodSchema, source: 'body' | 'query' | 'params' 
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({
+        res.status(400).json({
           error: 'Invalid request data',
           details: error.errors.map(err => ({
             path: err.path.join('.'),
             message: err.message,
           })),
         });
+        return;
       }
       next(error);
     }

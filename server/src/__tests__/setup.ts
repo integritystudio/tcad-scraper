@@ -1,10 +1,10 @@
 /**
- * Jest Setup File
+ * Vitest Setup File
  *
  * This file runs before all tests to configure the test environment
  */
 
-import { jest } from '@jest/globals';
+import { afterAll } from 'vitest';
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
@@ -41,9 +41,6 @@ if (!process.env.DATABASE_READ_ONLY_URL) {
 if (!process.env.PORT) {
   process.env.PORT = '3000';
 }
-
-// Increase timeout for slower operations
-jest.setTimeout(30000);
 
 // Global test cleanup
 afterAll(async () => {

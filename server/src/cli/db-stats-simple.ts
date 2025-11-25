@@ -44,7 +44,7 @@ async function checkDatabaseStats() {
     },
     orderBy: {
       _count: {
-        _all: 'desc'
+        city: 'desc'
       }
     },
     take: 10
@@ -52,7 +52,7 @@ async function checkDatabaseStats() {
 
   logger.info('\n🏙️  Top 10 Cities:');
   propertiesByCity.forEach((city, idx) => {
-    logger.info(`  ${idx + 1}. ${city.city || 'Unknown'}: ${city._count._all.toLocaleString()} properties`);
+    logger.info(`  ${idx + 1}. ${city.city || 'Unknown'}: ${city._count?._all?.toLocaleString() ?? 0} properties`);
   });
 
   // Most recent scrapes

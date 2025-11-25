@@ -1,22 +1,28 @@
+import { describe, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 import { asyncHandler, errorHandler, notFoundHandler } from '../error.middleware';
 import logger from '../../lib/logger';
 
 // Mock logger
-jest.mock('../../lib/logger', () => ({
-  error: jest.fn(),
+vi.mock('../../lib/logger', () => ({
+  default: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
 }));
 
 describe('Error Middleware', () => {
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
   let mockNext: NextFunction;
-  let jsonMock: jest.Mock;
-  let statusMock: jest.Mock;
+  let jsonMock: Mock;
+  let statusMock: Mock;
 
   beforeEach(() => {
-    jsonMock = jest.fn();
-    statusMock = jest.fn().mockReturnValue({ json: jsonMock });
+    jsonMock = vi.fn();
+    statusMock = vi.fn().mockReturnValue({ json: jsonMock });
 
     mockReq = {
       method: 'GET',
@@ -28,16 +34,16 @@ describe('Error Middleware', () => {
       json: jsonMock,
     };
 
-    mockNext = jest.fn();
+    mockNext = vi.fn();
 
     // Clear mock calls
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('asyncHandler', () => {
     it('should call next with error when async function throws', async () => {
       const error = new Error('Test error');
-      const asyncFn = jest.fn().mockRejectedValue(error);
+      const asyncFn = vi.fn().mockRejectedValue(error);
 
       const wrappedFn = asyncHandler(asyncFn);
       wrappedFn(mockReq as Request, mockRes as Response, mockNext);
@@ -50,7 +56,7 @@ describe('Error Middleware', () => {
     });
 
     it('should not call next when async function succeeds', async () => {
-      const asyncFn = jest.fn().mockResolvedValue('success');
+      const asyncFn = vi.fn().mockResolvedValue('success');
 
       const wrappedFn = asyncHandler(asyncFn);
       wrappedFn(mockReq as Request, mockRes as Response, mockNext);
@@ -64,7 +70,7 @@ describe('Error Middleware', () => {
 
     it('should handle errors in async operations', async () => {
       const errorMessage = 'Async operation error';
-      const asyncFn = jest.fn().mockImplementation(async () => {
+      const asyncFn = vi.fn().mockImplementation(async () => {
         await Promise.resolve(); // Make it actually async
         throw new Error(errorMessage);
       });
@@ -94,7 +100,7 @@ describe('Error Middleware', () => {
 
       errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
 
-      expect(logger.error).toHaveBeenCalledWith('Error:', error);
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Error: Generic error'));
       expect(statusMock).toHaveBeenCalledWith(500);
       expect(jsonMock).toHaveBeenCalledWith({
         error: 'Internal server error',
@@ -147,7 +153,7 @@ describe('Error Middleware', () => {
 
       errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
 
-      expect(logger.error).toHaveBeenCalledWith('Error:', error);
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Error: Test error'));
     });
 
     it('should hide error details in production', () => {
@@ -193,7 +199,7 @@ describe('Error Middleware', () => {
       const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
       methods.forEach(method => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         mockReq.method = method;
         mockReq.path = '/test';
 

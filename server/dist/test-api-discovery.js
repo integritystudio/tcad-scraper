@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const tcad_scraper_1 = require("./lib/tcad-scraper");
-const logger_1 = __importDefault(require("../lib/logger"));
+const logger_1 = __importDefault(require("./lib/logger"));
 async function testApiDiscovery() {
     logger_1.default.info('Starting API discovery...');
     const scraper = new tcad_scraper_1.TCADScraper({
@@ -18,7 +18,7 @@ async function testApiDiscovery() {
         logger_1.default.info('\n✅ API discovery complete!');
     }
     catch (error) {
-        logger_1.default.error('❌ API discovery failed:', error);
+        logger_1.default.error(`❌ API discovery failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     finally {
         await scraper.cleanup();

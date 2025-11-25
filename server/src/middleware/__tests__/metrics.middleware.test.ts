@@ -1,10 +1,11 @@
+import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 import { metricsMiddleware } from '../metrics.middleware';
 import * as metricsService from '../../lib/metrics.service';
 
 // Mock the metrics service
-jest.mock('../../lib/metrics.service', () => ({
-  recordHttpRequest: jest.fn(),
+vi.mock('../../lib/metrics.service', () => ({
+  recordHttpRequest: vi.fn(),
 }));
 
 describe('Metrics Middleware', () => {
@@ -27,7 +28,7 @@ describe('Metrics Middleware', () => {
 
     mockRes = {
       statusCode: 200,
-      on: jest.fn((event: string, callback: () => void) => {
+      on: vi.fn((event: string, callback: () => void) => {
         if (event === 'finish') {
           finishListeners.push(callback);
         }
@@ -35,9 +36,9 @@ describe('Metrics Middleware', () => {
       }),
     };
 
-    mockNext = jest.fn();
+    mockNext = vi.fn();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should call next immediately', () => {
@@ -71,7 +72,7 @@ describe('Metrics Middleware', () => {
     // Simulate response finishing
     finishListeners.forEach(listener => listener());
 
-    const call = (metricsService.recordHttpRequest as jest.Mock).mock.calls[0];
+    const call = (metricsService.recordHttpRequest as Mock).mock.calls[0];
     const duration = call[3];
 
     // Duration should be in seconds and approximately 0.1
@@ -83,11 +84,11 @@ describe('Metrics Middleware', () => {
     const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
     methods.forEach(method => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       finishListeners = [];
 
       mockReq.method = method;
-      mockRes!.on = jest.fn((event: string, callback: () => void) => {
+      mockRes!.on = vi.fn((event: string, callback: () => void) => {
         if (event === 'finish') finishListeners.push(callback);
         return mockRes as Response;
       });
@@ -108,11 +109,11 @@ describe('Metrics Middleware', () => {
     const statusCodes = [200, 201, 400, 401, 404, 500, 503];
 
     statusCodes.forEach(statusCode => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       finishListeners = [];
 
       mockRes!.statusCode = statusCode;
-      mockRes!.on = jest.fn((event: string, callback: () => void) => {
+      mockRes!.on = vi.fn((event: string, callback: () => void) => {
         if (event === 'finish') finishListeners.push(callback);
         return mockRes as Response;
       });
@@ -228,7 +229,7 @@ describe('Metrics Middleware', () => {
     // Immediately finish
     finishListeners.forEach(listener => listener());
 
-    const call = (metricsService.recordHttpRequest as jest.Mock).mock.calls[0];
+    const call = (metricsService.recordHttpRequest as Mock).mock.calls[0];
     const duration = call[3];
 
     // Duration should be very small but >= 0

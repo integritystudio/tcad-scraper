@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from 'vitest';
 import { SearchTermDeduplicator } from '../search-term-deduplicator';
 
 describe('SearchTermDeduplicator', () => {

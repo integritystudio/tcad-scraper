@@ -109,7 +109,7 @@ Now generate the JSON for the user's query above.`,
                 ],
             });
             const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
-            logger_1.default.info('Claude response:', { responseText });
+            logger_1.default.info(`Claude response: ${responseText}`);
             // Parse the JSON response
             const parsed = JSON.parse(responseText);
             return {
@@ -125,8 +125,8 @@ Now generate the JSON for the user's query above.`,
                 name: error instanceof Error ? error.name : 'Unknown',
                 stack: error instanceof Error ? error.stack : undefined,
             };
-            logger_1.default.error('Error parsing natural language query with Claude:', errorDetails);
-            logger_1.default.error('Claude API Error Details:', JSON.stringify(errorDetails, null, 2));
+            logger_1.default.error(`Error parsing natural language query with Claude: ${JSON.stringify(errorDetails)}`);
+            logger_1.default.error(`Claude API Error Details: ${JSON.stringify(errorDetails, null, 2)}`);
             // Fallback: simple text search across multiple fields
             return {
                 whereClause: {

@@ -2,7 +2,7 @@
  * Integration Tests for XController Implementation
  */
 
-import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../index';
 

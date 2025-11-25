@@ -5,20 +5,20 @@
   "@context": "https://schema.org",
   "@type": "SoftwareSourceCode",
   "name": "tcad-scraper",
-  "description": "Directory containing 3 code files with 0 classes and 5 functions",
+  "description": "Directory containing 3 code files with 0 classes and 4 functions",
   "programmingLanguage": [
     {
       "@type": "ComputerLanguage",
-      "name": "Typescript"
+      "name": "Python"
     },
     {
       "@type": "ComputerLanguage",
-      "name": "Python"
+      "name": "Typescript"
     }
   ],
   "codeRepository": "git@github.com:aledlie/tcad-scraper.git",
   "featureList": [
-    "5 function definitions"
+    "4 function definitions"
   ]
 }
 </script>
@@ -57,7 +57,6 @@ This directory contains 3 code file(s) with extracted schemas.
 
 **Functions:**
 - `getQueue()` - Line 18
-- `async discoverQueues()` - Line 27
 
 ### `test-database.ts` (typescript)
 

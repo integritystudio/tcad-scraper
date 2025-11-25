@@ -114,28 +114,45 @@ async function viewRecentJobs() {
   }
 }
 
+/**
+ * Clear jobs of a specific type from the queue
+ * @param {string} jobType - Type of jobs to clear ('completed' or 'failed')
+ */
+async function clearJobs(jobType) {
+  const jobTypeLabel = jobType.charAt(0).toUpperCase() + jobType.slice(1);
+  console.log(`\n🧹 Clearing ${jobType} jobs...`);
+  await scrapingQueue.clean(0, 1000, jobType);
+  console.log(`✅ ${jobTypeLabel} jobs cleared!\n`);
+}
+
 async function clearCompletedJobs() {
-  console.log('\n🧹 Clearing completed jobs...');
-  await scrapingQueue.clean(0, 1000, 'completed');
-  console.log('✅ Completed jobs cleared!\n');
+  await clearJobs('completed');
 }
 
 async function clearFailedJobs() {
-  console.log('\n🧹 Clearing failed jobs...');
-  await scrapingQueue.clean(0, 1000, 'failed');
-  console.log('✅ Failed jobs cleared!\n');
+  await clearJobs('failed');
+}
+
+/**
+ * Control queue state (pause or resume)
+ * @param {string} action - Action to perform ('pause' or 'resume')
+ */
+async function controlQueue(action) {
+  const emoji = action === 'pause' ? '⏸️' : '▶️';
+  const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
+  const actionPastTense = action === 'pause' ? 'paused' : 'resumed';
+
+  console.log(`\n${emoji}  ${actionLabel}ing queue...`);
+  await scrapingQueue[action]();
+  console.log(`✅ Queue ${actionPastTense}!\n`);
 }
 
 async function pauseQueue() {
-  console.log('\n⏸️  Pausing queue...');
-  await scrapingQueue.pause();
-  console.log('✅ Queue paused!\n');
+  await controlQueue('pause');
 }
 
 async function resumeQueue() {
-  console.log('\n▶️  Resuming queue...');
-  await scrapingQueue.resume();
-  console.log('✅ Queue resumed!\n');
+  await controlQueue('resume');
 }
 
 async function exportResults() {

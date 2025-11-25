@@ -107,7 +107,7 @@ async function removeDuplicatesFromQueue(options = {}) {
     let removed = 0;
     let failed = 0;
     // Remove duplicates (keep highest priority)
-    for (const [term, jobs] of duplicateTerms) {
+    for (const [_term, jobs] of duplicateTerms) {
         // Sort by priority (lower number = higher priority)
         jobs.sort((a, b) => a.priority - b.priority);
         // Remove all but the first (highest priority) job
@@ -128,7 +128,7 @@ async function removeDuplicatesFromQueue(options = {}) {
         }
     }
     // Remove already completed terms
-    for (const [term, jobs] of alreadyCompletedTerms) {
+    for (const [_term, jobs] of alreadyCompletedTerms) {
         for (const jobInfo of jobs) {
             try {
                 await jobInfo.job.remove();

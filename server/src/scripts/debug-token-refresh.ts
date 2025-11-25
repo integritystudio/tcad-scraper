@@ -14,10 +14,10 @@ async function debugTokenRefresh() {
 
   // Check initial state
   logger.info('\n1. Initial State:');
-  logger.info('   currentToken:', tokenRefreshService.getCurrentToken());
+  logger.info(`   currentToken: ${tokenRefreshService.getCurrentToken()}`);
 
   const initialStats = tokenRefreshService.getStats();
-  logger.info('   Stats:', JSON.stringify(initialStats, null, 2));
+  logger.info(`   Stats: ${JSON.stringify(initialStats, null, 2)}`);
 
   // Try to refresh token
   logger.info('\n2. Calling refreshToken()...');
@@ -28,27 +28,27 @@ async function debugTokenRefresh() {
     const duration = Date.now() - startTime;
 
     logger.info(`\n3. refreshToken() returned after ${duration}ms:`);
-    logger.info('   Type:', typeof token);
-    logger.info('   Value:', token);
-    logger.info('   Length:', token ? token.length : 'N/A');
-    logger.info('   First 50 chars:', token ? token.substring(0, 50) : 'N/A');
+    logger.info(`   Type: ${typeof token}`);
+    logger.info(`   Value: ${token}`);
+    logger.info(`   Length: ${token ? token.length : 'N/A'}`);
+    logger.info(`   First 50 chars: ${token ? token.substring(0, 50) : 'N/A'}`);
 
   } catch (error) {
-    logger.error('\n3. refreshToken() threw error:', error);
+    logger.error(`\n3. refreshToken() threw error: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // Check state after refresh
   logger.info('\n4. State After Refresh:');
-  logger.info('   currentToken:', tokenRefreshService.getCurrentToken());
+  logger.info(`   currentToken: ${tokenRefreshService.getCurrentToken()}`);
 
   const afterStats = tokenRefreshService.getStats();
-  logger.info('   Stats:', JSON.stringify(afterStats, null, 2));
+  logger.info(`   Stats: ${JSON.stringify(afterStats, null, 2)}`);
 
   // Test getCurrentToken multiple times
   logger.info('\n5. Multiple getCurrentToken() calls:');
   for (let i = 0; i < 3; i++) {
     const token = tokenRefreshService.getCurrentToken();
-    logger.info(`   Call ${i + 1}:`, token ? token.substring(0, 50) : 'null');
+    logger.info(`   Call ${i + 1}: ${token ? token.substring(0, 50) : 'null'}`);
   }
 
   // Cleanup

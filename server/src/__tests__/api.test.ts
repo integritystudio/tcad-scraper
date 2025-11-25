@@ -8,7 +8,7 @@
  */
 
 import request from 'supertest';
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 // Skip these tests in CI or if database is not available
 const shouldSkip = !process.env.RUN_INTEGRATION_TESTS && process.env.CI === 'true';

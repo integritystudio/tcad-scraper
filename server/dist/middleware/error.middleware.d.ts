@@ -6,7 +6,7 @@ export declare const asyncHandler: (fn: (req: Request, res: Response, next: Next
 /**
  * Global error handling middleware
  */
-export declare const errorHandler: (error: Error, req: Request, res: Response, next: NextFunction) => Response<any, Record<string, any>> | undefined;
+export declare const errorHandler: (error: Error, _req: Request, res: Response, _next: NextFunction) => void;
 /**
  * 404 Not Found handler
  */

@@ -9,26 +9,26 @@
  * @see https://developers.google.com/search/docs/appearance/structured-data
  */
 
-import { PropertyAPI, PropertyDatabase, PaginatedPropertyResponse } from '../types/property.types';
+import { PropertyAPI, PaginatedPropertyResponse } from '../types/property.types';
 
 // ============================================================================
 // Type Definitions for JSON-LD
 // ============================================================================
 
-interface JsonLdBase {
+export interface JsonLdBase {
   '@context': 'https://schema.org';
   '@type': string | string[];
   '@id'?: string;
 }
 
-interface BreadcrumbItem {
+export interface BreadcrumbItem {
   '@type': 'ListItem';
   position: number;
   name: string;
   item?: string;
 }
 
-interface SearchAction {
+export interface SearchAction {
   '@type': 'SearchAction';
   target: {
     '@type': 'EntryPoint';

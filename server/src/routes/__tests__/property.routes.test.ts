@@ -1,20 +1,21 @@
+import { describe, test, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
 import request from 'supertest';
 import express, { Express } from 'express';
 import { propertyRouter } from '../property.routes';
 import { propertyController } from '../../controllers/property.controller';
 
 // Mock the controller
-jest.mock('../../controllers/property.controller', () => ({
+vi.mock('../../controllers/property.controller', () => ({
   propertyController: {
-    scrapeProperties: jest.fn(),
-    getJobStatus: jest.fn(),
-    getScrapeHistory: jest.fn(),
-    getProperties: jest.fn(),
-    naturalLanguageSearch: jest.fn(),
-    testClaudeConnection: jest.fn(),
-    getStats: jest.fn(),
-    addMonitoredSearch: jest.fn(),
-    getMonitoredSearches: jest.fn(),
+    scrapeProperties: vi.fn(),
+    getJobStatus: vi.fn(),
+    getScrapeHistory: vi.fn(),
+    getProperties: vi.fn(),
+    naturalLanguageSearch: vi.fn(),
+    testClaudeConnection: vi.fn(),
+    getStats: vi.fn(),
+    addMonitoredSearch: vi.fn(),
+    getMonitoredSearches: vi.fn(),
   },
 }));
 
@@ -28,34 +29,34 @@ describe('Property Routes', () => {
     app.use('/api/properties', propertyRouter);
 
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup default successful responses
-    (propertyController.scrapeProperties as jest.Mock).mockImplementation(
+    (propertyController.scrapeProperties as Mock).mockImplementation(
       (req, res) => res.status(202).json({ jobId: '123', message: 'Scrape job queued successfully' })
     );
-    (propertyController.getJobStatus as jest.Mock).mockImplementation(
+    (propertyController.getJobStatus as Mock).mockImplementation(
       (req, res) => res.json({ id: '123', status: 'completed' })
     );
-    (propertyController.getScrapeHistory as jest.Mock).mockImplementation(
+    (propertyController.getScrapeHistory as Mock).mockImplementation(
       (req, res) => res.json({ data: [], pagination: { total: 0, limit: 20, offset: 0, hasMore: false } })
     );
-    (propertyController.getProperties as jest.Mock).mockImplementation(
+    (propertyController.getProperties as Mock).mockImplementation(
       (req, res) => res.json({ data: [], pagination: { total: 0, limit: 20, offset: 0, hasMore: false } })
     );
-    (propertyController.naturalLanguageSearch as jest.Mock).mockImplementation(
+    (propertyController.naturalLanguageSearch as Mock).mockImplementation(
       (req, res) => res.json({ data: [], query: req.body.query, parsedFilters: {} })
     );
-    (propertyController.testClaudeConnection as jest.Mock).mockImplementation(
+    (propertyController.testClaudeConnection as Mock).mockImplementation(
       (req, res) => res.json({ status: 'success', message: 'Claude AI connection test successful' })
     );
-    (propertyController.getStats as jest.Mock).mockImplementation(
+    (propertyController.getStats as Mock).mockImplementation(
       (req, res) => res.json({ totalProperties: 0, totalJobs: 0 })
     );
-    (propertyController.addMonitoredSearch as jest.Mock).mockImplementation(
+    (propertyController.addMonitoredSearch as Mock).mockImplementation(
       (req, res) => res.status(201).json({ id: 'uuid', searchTerm: req.body.searchTerm, enabled: true })
     );
-    (propertyController.getMonitoredSearches as jest.Mock).mockImplementation(
+    (propertyController.getMonitoredSearches as Mock).mockImplementation(
       (req, res) => res.json({ data: [] })
     );
   });
@@ -421,7 +422,7 @@ describe('Property Routes', () => {
 
   describe('Error Handling', () => {
     it('should handle controller errors gracefully', async () => {
-      (propertyController.getStats as jest.Mock).mockImplementation(() => {
+      (propertyController.getStats as Mock).mockImplementation(() => {
         throw new Error('Database connection failed');
       });
 
@@ -431,7 +432,7 @@ describe('Property Routes', () => {
     });
 
     it('should handle async controller errors', async () => {
-      (propertyController.naturalLanguageSearch as jest.Mock).mockImplementation(async () => {
+      (propertyController.naturalLanguageSearch as Mock).mockImplementation(async () => {
         throw new Error('Claude AI error');
       });
 

@@ -383,8 +383,10 @@ class TCADScraper {
      */
     /**
      * Helper method to discover API endpoints (for debugging/development)
+     * @internal Reserved for future debugging use
      */
-    async discoverApiEndpoint(searchTerm) {
+    // @ts-ignore - Intentionally unused debug method kept for future use
+    async _discoverApiEndpoint(searchTerm) {
         if (!this.browser) {
             throw new Error('Browser not initialized. Call initialize() first.');
         }
@@ -460,7 +462,12 @@ class TCADScraper {
             await context.close();
         }
     }
-    async scrapePropertyDetail(page, propertyId) {
+    /**
+     * Helper method to scrape property details (for debugging/development)
+     * @internal Reserved for future debugging use
+     */
+    // @ts-ignore - Intentionally unused debug method kept for future use
+    async _scrapePropertyDetail(page, propertyId) {
         try {
             // Navigate to property detail page
             const detailUrl = `https://stage.travis.prodigycad.com/property-detail?pid=${propertyId}`;

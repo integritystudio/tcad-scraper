@@ -116,7 +116,7 @@ The application supports two scraping methods:
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │  React Frontend │────▶│  Express API     │────▶│  PostgreSQL     │
-│  (Port 5173)    │     │  (Port 3001)     │     │  Database       │
+│  (Port 5174)    │     │  (Port 3001)     │     │  Database       │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
                                │
                                │ BullMQ Jobs
@@ -372,7 +372,7 @@ doppler secrets set REDIS_HOST="localhost"
 doppler secrets set REDIS_PORT="6379"
 doppler secrets set JWT_SECRET="your-secure-random-secret"
 doppler secrets set API_KEY="your-api-key"
-doppler secrets set FRONTEND_URL="http://localhost:5173"
+doppler secrets set FRONTEND_URL="http://localhost:5174"
 doppler secrets set ANTHROPIC_API_KEY="sk-ant-api03-xxxxx"  # For Claude AI search
 ```
 
@@ -383,7 +383,8 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 JWT_SECRET=your-secure-random-secret
 API_KEY=your-api-key
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:5174
+FRONTEND_PORT=5174
 ANTHROPIC_API_KEY=sk-ant-api03-xxxxx
 NODE_ENV=development
 PORT=3001
@@ -424,7 +425,7 @@ npm run dev
 
 ### Access Points
 
-- **Frontend UI**: http://localhost:5173
+- **Frontend UI**: http://localhost:5174
 - **Backend API**: http://localhost:5050/api
 - **Health Check**: http://localhost:5050/health
 - **Queue Health**: http://localhost:5050/health/queue
@@ -1018,7 +1019,7 @@ Includes:
 **Development Mode:**
 ```bash
 npm run dev
-# Open http://localhost:5173
+# Open http://localhost:5174
 # Check browser console for: [Analytics Event: ...]
 ```
 

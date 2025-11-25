@@ -2,43 +2,48 @@
  * Token Refresh Service Tests
  */
 
+import { describe, it, test, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Use vi.hoisted to declare mocks before they're used
+const { mockPage, mockCronJob } = vi.hoisted(() => {
+  const mockPage = {
+    goto: vi.fn(),
+    waitForFunction: vi.fn(),
+    waitForSelector: vi.fn(),
+    type: vi.fn(),
+    press: vi.fn(),
+    on: vi.fn(),
+  };
+
+  const mockCronJob = {
+    stop: vi.fn(),
+  };
+
+  return { mockPage, mockCronJob };
+});
+
 // Mock Playwright
-const mockPage = {
-  goto: jest.fn(),
-  waitForFunction: jest.fn(),
-  waitForSelector: jest.fn(),
-  type: jest.fn(),
-  press: jest.fn(),
-  on: jest.fn(),
-};
-
-const mockContext = {
-  newPage: jest.fn().mockResolvedValue(mockPage),
-  close: jest.fn(),
-};
-
-const mockBrowser = {
-  newContext: jest.fn().mockResolvedValue(mockContext),
-  close: jest.fn(),
-};
-
-jest.mock('playwright', () => ({
+vi.mock('playwright', () => ({
   chromium: {
-    launch: jest.fn().mockResolvedValue(mockBrowser),
+    launch: vi.fn().mockResolvedValue({
+      newContext: vi.fn().mockResolvedValue({
+        newPage: vi.fn().mockResolvedValue(mockPage),
+        close: vi.fn(),
+      }),
+      close: vi.fn(),
+    }),
   },
 }));
 
 // Mock node-cron
-const mockCronJob = {
-  stop: jest.fn(),
-};
-
-jest.mock('node-cron', () => ({
-  schedule: jest.fn().mockReturnValue(mockCronJob),
+vi.mock('node-cron', () => ({
+  default: {
+    schedule: vi.fn().mockReturnValue(mockCronJob),
+  },
 }));
 
 // Mock config
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     logging: {
       level: 'error',
@@ -58,7 +63,7 @@ describe('TCADTokenRefreshService', () => {
   let service: TCADTokenRefreshService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     service = new TCADTokenRefreshService();
   });
 
@@ -275,7 +280,7 @@ describe('TCADTokenRefreshService', () => {
       expect(stats1.isRunning).toBe(true);
 
       // Clear mocks after first start
-      jest.clearAllMocks();
+      vi.clearAllMocks();
 
       // Try to start again
       service.startAutoRefresh();
@@ -301,11 +306,11 @@ describe('TCADTokenRefreshService', () => {
 
   describe('startAutoRefreshInterval', () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should start interval with default time', () => {
@@ -351,7 +356,7 @@ describe('TCADTokenRefreshService', () => {
     });
 
     it('should stop interval if running', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       service.startAutoRefreshInterval();
       service.stopAutoRefresh();
@@ -359,7 +364,7 @@ describe('TCADTokenRefreshService', () => {
       const stats = service.getStats();
       expect(stats.isRunning).toBe(false);
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should handle being called when not running', () => {

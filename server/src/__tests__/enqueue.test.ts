@@ -8,7 +8,7 @@
  * - Queue configuration is correct
  */
 
-import { describe, test, expect, beforeAll, afterAll, jest } from '@jest/globals';
+import { describe, test, expect, beforeAll, afterAll, vi } from 'vitest';
 import { scraperQueue } from '../queues/scraper.queue';
 import { ScrapeJobData } from '../types';
 import Bull from 'bull';

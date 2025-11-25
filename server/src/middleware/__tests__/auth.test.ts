@@ -1,9 +1,10 @@
+import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { apiKeyAuth, jwtAuth, optionalAuth, generateToken, AuthRequest } from '../auth';
 
 // Mock the config module
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     env: {
       isDevelopment: false,
@@ -23,12 +24,12 @@ describe('Auth Middleware', () => {
   let mockReq: Partial<AuthRequest>;
   let mockRes: Partial<Response>;
   let mockNext: NextFunction;
-  let jsonMock: jest.Mock;
-  let statusMock: jest.Mock;
+  let jsonMock: Mock;
+  let statusMock: Mock;
 
-  beforeEach(() => {
-    jsonMock = jest.fn();
-    statusMock = jest.fn().mockReturnValue({ json: jsonMock });
+  beforeEach(async () => {
+    jsonMock = vi.fn();
+    statusMock = vi.fn().mockReturnValue({ json: jsonMock });
 
     mockReq = {
       headers: {},
@@ -39,10 +40,10 @@ describe('Auth Middleware', () => {
       json: jsonMock,
     };
 
-    mockNext = jest.fn();
+    mockNext = vi.fn();
 
     // Reset config to default test values
-    const { config } = require('../../config');
+    const { config } = await import('../../config');
     config.env.isDevelopment = false;
     config.auth.skipInDevelopment = false;
     config.auth.apiKey = 'test-api-key';
@@ -79,8 +80,8 @@ describe('Auth Middleware', () => {
       expect(jsonMock).toHaveBeenCalledWith({ error: 'Unauthorized - Invalid API key' });
     });
 
-    it('should skip auth in development when skipInDevelopment is true and no API key configured', () => {
-      const { config } = require('../../config');
+    it('should skip auth in development when skipInDevelopment is true and no API key configured', async () => {
+      const { config } = await import('../../config');
       config.env.isDevelopment = true;
       config.auth.skipInDevelopment = true;
       config.auth.apiKey = undefined;
@@ -93,8 +94,8 @@ describe('Auth Middleware', () => {
       expect(statusMock).not.toHaveBeenCalled();
     });
 
-    it('should still validate API key in development if skipInDevelopment is false', () => {
-      const { config } = require('../../config');
+    it('should still validate API key in development if skipInDevelopment is false', async () => {
+      const { config } = await import('../../config');
       config.env.isDevelopment = true;
       config.auth.skipInDevelopment = false;
 
@@ -173,8 +174,8 @@ describe('Auth Middleware', () => {
       expect(jsonMock).toHaveBeenCalledWith({ error: 'Forbidden - Invalid token' });
     });
 
-    it('should skip auth in development when skipInDevelopment is true and no JWT secret configured', () => {
-      const { config } = require('../../config');
+    it('should skip auth in development when skipInDevelopment is true and no JWT secret configured', async () => {
+      const { config } = await import('../../config');
       config.env.isDevelopment = true;
       config.auth.skipInDevelopment = true;
       config.auth.jwt.secret = undefined;
@@ -217,8 +218,8 @@ describe('Auth Middleware', () => {
       expect(mockReq.user).toBeUndefined();
     });
 
-    it('should continue without user when token secret is not configured', () => {
-      const { config } = require('../../config');
+    it('should continue without user when token secret is not configured', async () => {
+      const { config } = await import('../../config');
       config.auth.jwt.secret = undefined;
 
       const token = jwt.sign({ id: 'user123' }, 'some-secret');
@@ -254,8 +255,8 @@ describe('Auth Middleware', () => {
       expect(decoded.email).toBeUndefined();
     });
 
-    it('should generate token that expires according to config', () => {
-      const { config } = require('../../config');
+    it('should generate token that expires according to config', async () => {
+      const { config } = await import('../../config');
       config.auth.jwt.expiresIn = '2h';
 
       const token = generateToken('user123');

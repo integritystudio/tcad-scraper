@@ -69,7 +69,7 @@ async function testTokenUsage() {
         }
     }
     catch (error) {
-        logger_1.default.error('❌ Error during test:', error);
+        logger_1.default.error(`❌ Error during test: ${error instanceof Error ? error.message : String(error)}`);
     }
     finally {
         await scraper.cleanup();

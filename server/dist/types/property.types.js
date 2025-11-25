@@ -74,7 +74,7 @@ exports.monitorRequestSchema = zod_1.z.object({
  * Transform database property to API format with Schema.org alignment
  */
 function transformPropertyToAPI(dbProperty, includeSchemaContext = true) {
-    const [streetAddress, ...addressParts] = dbProperty.propertyAddress.split(',').map(s => s.trim());
+    const [streetAddress] = dbProperty.propertyAddress.split(',').map(s => s.trim());
     return {
         ...(includeSchemaContext && {
             '@context': 'https://schema.org',

@@ -1,28 +1,30 @@
+import { describe, test, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 // Mock redis BEFORE importing the service
-jest.mock('redis', () => {
+vi.mock('redis', () => {
   const mockClient = {
-    connect: jest.fn().mockResolvedValue(undefined),
-    quit: jest.fn().mockResolvedValue(undefined),
-    get: jest.fn(),
-    set: jest.fn(),
-    setEx: jest.fn(),
-    del: jest.fn(),
-    keys: jest.fn(),
-    exists: jest.fn(),
-    ttl: jest.fn(),
-    flushDb: jest.fn(),
-    ping: jest.fn(),
-    on: jest.fn(),
+    connect: vi.fn().mockResolvedValue(undefined),
+    quit: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn(),
+    set: vi.fn(),
+    setEx: vi.fn(),
+    del: vi.fn(),
+    keys: vi.fn(),
+    exists: vi.fn(),
+    ttl: vi.fn(),
+    flushDb: vi.fn(),
+    ping: vi.fn(),
+    on: vi.fn(),
   };
 
   return {
-    createClient: jest.fn(() => mockClient),
+    createClient: vi.fn(() => mockClient),
   };
 });
 
 import { RedisCacheService } from '../redis-cache.service';
 
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     redis: {
       host: 'localhost',
@@ -42,7 +44,7 @@ describe.skip('RedisCacheService - SKIPPED (complex Redis mocking issue)', () =>
   let mockRedisClient: any;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Create service and connect
     service = new RedisCacheService();
@@ -427,7 +429,7 @@ describe.skip('RedisCacheService - SKIPPED (complex Redis mocking issue)', () =>
       const cachedValue = { data: 'cached' };
       mockRedisClient.get.mockResolvedValue(JSON.stringify(cachedValue));
 
-      const fetchFn = jest.fn();
+      const fetchFn = vi.fn();
       const result = await service.getOrSet(key, fetchFn);
 
       expect(result).toEqual(cachedValue);
@@ -440,7 +442,7 @@ describe.skip('RedisCacheService - SKIPPED (complex Redis mocking issue)', () =>
       mockRedisClient.get.mockResolvedValue(null); // cache miss
       mockRedisClient.setEx.mockResolvedValue('OK');
 
-      const fetchFn = jest.fn().mockResolvedValue(fetchedValue);
+      const fetchFn = vi.fn().mockResolvedValue(fetchedValue);
       const result = await service.getOrSet(key, fetchFn);
 
       expect(result).toEqual(fetchedValue);
@@ -459,7 +461,7 @@ describe.skip('RedisCacheService - SKIPPED (complex Redis mocking issue)', () =>
       mockRedisClient.get.mockResolvedValue(null);
       mockRedisClient.setEx.mockResolvedValue('OK');
 
-      const fetchFn = jest.fn().mockResolvedValue(value);
+      const fetchFn = vi.fn().mockResolvedValue(value);
       await service.getOrSet(key, fetchFn, ttl);
 
       expect(mockRedisClient.setEx).toHaveBeenCalledWith(

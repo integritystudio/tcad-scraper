@@ -22,7 +22,7 @@
  * - Emergency data retrieval
  */
 
-import { Browser, Page, BrowserContext } from 'playwright';
+import { Browser, Page } from 'playwright';
 import winston from 'winston';
 import { PropertyData, ScraperConfig } from '../../types';
 import { config as appConfig } from '../../config';

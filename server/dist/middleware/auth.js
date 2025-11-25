@@ -41,7 +41,7 @@ const jwtAuth = (req, res, next) => {
 };
 exports.jwtAuth = jwtAuth;
 // Optional auth middleware (allows both authenticated and unauthenticated access)
-const optionalAuth = (req, res, next) => {
+const optionalAuth = (req, _res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     if (token && config_1.config.auth.jwt.secret) {
@@ -58,9 +58,7 @@ const optionalAuth = (req, res, next) => {
 exports.optionalAuth = optionalAuth;
 // Generate JWT token
 const generateToken = (userId, email) => {
-    return jsonwebtoken_1.default.sign({ id: userId, email }, config_1.config.auth.jwt.secret, {
-        expiresIn: config_1.config.auth.jwt.expiresIn,
-    });
+    return jsonwebtoken_1.default.sign({ id: userId, email }, config_1.config.auth.jwt.secret, { expiresIn: config_1.config.auth.jwt.expiresIn });
 };
 exports.generateToken = generateToken;
 //# sourceMappingURL=auth.js.map

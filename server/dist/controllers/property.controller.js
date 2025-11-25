@@ -27,12 +27,12 @@ class PropertyController {
             jobId: job.id.toString(),
             message: 'Scrape job queued successfully',
         };
-        res.status(202).json(response);
+        return res.status(202).json(response);
     }
     /**
      * GET /api/properties/jobs/:jobId - Get job status
      */
-    async getJobStatus(req, res) {
+    async getJobStatus(req, res, _next) {
         const { jobId } = req.params;
         const job = await scraper_queue_1.scraperQueue.getJob(jobId);
         if (!job) {
@@ -48,7 +48,7 @@ class PropertyController {
         if (state === 'failed') {
             error = job.failedReason;
         }
-        res.json({
+        return res.json({
             id: jobId,
             status: state,
             progress: typeof progress === 'number' ? progress : 0,
@@ -62,7 +62,7 @@ class PropertyController {
      * GET /api/properties - Get properties from database with filters
      * Cached for 5 minutes per unique filter combination
      */
-    async getProperties(req, res) {
+    async getProperties(req, res, _next) {
         const filters = req.query;
         // Generate cache key based on filters
         const cacheKey = `properties:list:${JSON.stringify(filters)}`;
@@ -78,8 +78,25 @@ class PropertyController {
                 }),
                 prisma_1.prismaReadOnly.property.count({ where }),
             ]);
+            // Transform properties from camelCase (Prisma) to snake_case (frontend expectation)
+            const transformedProperties = properties.map(prop => ({
+                id: prop.id,
+                property_id: prop.propertyId,
+                name: prop.name,
+                prop_type: prop.propType,
+                city: prop.city,
+                property_address: prop.propertyAddress,
+                assessed_value: prop.assessedValue,
+                appraised_value: prop.appraisedValue,
+                geo_id: prop.geoId,
+                description: prop.description,
+                search_term: prop.searchTerm,
+                scraped_at: prop.scrapedAt.toISOString(),
+                created_at: prop.createdAt.toISOString(),
+                updated_at: prop.updatedAt.toISOString(),
+            }));
             return {
-                data: properties,
+                data: transformedProperties,
                 pagination: {
                     total,
                     limit: filters.limit,
@@ -89,15 +106,15 @@ class PropertyController {
             };
         }, 300 // 5 minutes TTL
         );
-        res.json(result);
+        return res.json(result);
     }
     /**
      * GET /api/properties/search/test - Test Claude API connection
      */
-    async testClaudeConnection(req, res) {
+    async testClaudeConnection(_req, res) {
         const testQuery = 'properties in Austin';
         const result = await claude_service_1.claudeSearchService.parseNaturalLanguageQuery(testQuery);
-        res.json({
+        return res.json({
             success: true,
             message: 'Claude API connection successful',
             testQuery,
@@ -124,8 +141,25 @@ class PropertyController {
             }),
             prisma_1.prismaReadOnly.property.count({ where: whereClause }),
         ]);
-        res.json({
-            data: properties,
+        // Transform properties from camelCase (Prisma) to snake_case (frontend expectation)
+        const transformedProperties = properties.map(prop => ({
+            id: prop.id,
+            property_id: prop.propertyId,
+            name: prop.name,
+            prop_type: prop.propType,
+            city: prop.city,
+            property_address: prop.propertyAddress,
+            assessed_value: prop.assessedValue,
+            appraised_value: prop.appraisedValue,
+            geo_id: prop.geoId,
+            description: prop.description,
+            search_term: prop.searchTerm,
+            scraped_at: prop.scrapedAt.toISOString(),
+            created_at: prop.createdAt.toISOString(),
+            updated_at: prop.updatedAt.toISOString(),
+        }));
+        return res.json({
+            data: transformedProperties,
             pagination: {
                 total,
                 limit: Math.min(limit, 1000),
@@ -141,7 +175,7 @@ class PropertyController {
     /**
      * GET /api/properties/history - Get scrape job history
      */
-    async getScrapeHistory(req, res) {
+    async getScrapeHistory(req, res, _next) {
         const { limit = 20, offset = 0 } = req.query;
         const jobs = await prisma_1.prismaReadOnly.scrapeJob.findMany({
             orderBy: { startedAt: 'desc' },
@@ -149,7 +183,7 @@ class PropertyController {
             take: limit,
         });
         const total = await prisma_1.prismaReadOnly.scrapeJob.count();
-        res.json({
+        return res.json({
             data: jobs,
             pagination: {
                 total,
@@ -163,7 +197,7 @@ class PropertyController {
      * GET /api/properties/stats - Get statistics
      * Cached for 10 minutes (expensive aggregation queries)
      */
-    async getStats(req, res) {
+    async getStats(_req, res) {
         const cacheKey = 'properties:stats:all';
         // Cache stats for 10 minutes (600 seconds)
         const stats = await redis_cache_service_1.cacheService.getOrSet(cacheKey, async () => {
@@ -212,7 +246,7 @@ class PropertyController {
             };
         }, 600 // 10 minutes TTL
         );
-        res.json(stats);
+        return res.json(stats);
     }
     /**
      * POST /api/properties/monitor - Add a search term to monitor
@@ -227,7 +261,7 @@ class PropertyController {
             update: { active: true, frequency },
             create: { searchTerm, frequency },
         });
-        res.json({
+        return res.json({
             message: 'Search term added to monitoring',
             data: monitoredSearch,
         });
@@ -235,12 +269,12 @@ class PropertyController {
     /**
      * GET /api/properties/monitor - Get monitored search terms
      */
-    async getMonitoredSearches(req, res) {
+    async getMonitoredSearches(_req, res) {
         const monitoredSearches = await prisma_1.prismaReadOnly.monitoredSearch.findMany({
             where: { active: true },
             orderBy: { createdAt: 'desc' },
         });
-        res.json({ data: monitoredSearches });
+        return res.json({ data: monitoredSearches });
     }
     /**
      * Helper method to build Prisma where clause from filters

@@ -2,7 +2,7 @@
  * Security Tests for XController Implementation
  */
 
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect } from 'vitest';
 import request from 'supertest';
 import app from '../index';
 import { encodeJsonForHtml } from '../middleware/xcontroller.middleware';

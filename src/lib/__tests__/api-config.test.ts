@@ -3,20 +3,20 @@
  * Tests the API URL resolution fallback chain to prevent production errors
  */
 
-import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, vi, MockedFunction } from 'vitest';
 import { getApiBaseUrl } from '../api-config';
 import { DataController } from '../xcontroller.client';
 import logger from '../logger';
 
 // Mock the xcontroller module
-jest.mock('../xcontroller.client', () => ({
+vi.mock('../xcontroller.client', () => ({
   dataController: {
-    loadData: jest.fn(),
+    loadData: vi.fn(),
   },
 }));
 
 describe('API Configuration', () => {
-  let mockLoadData: jest.MockedFunction<typeof DataController.prototype.loadData>;
+  let mockLoadData: MockedFunction<typeof DataController.prototype.loadData>;
   let originalEnv: any;
 
   beforeEach(() => {
@@ -24,10 +24,10 @@ describe('API Configuration', () => {
     originalEnv = { ...import.meta.env };
 
     // Get mocked loadData
-    mockLoadData = (require('../xcontroller.client').dataController.loadData as jest.MockedFunction<typeof DataController.prototype.loadData>);
+    mockLoadData = (require('../xcontroller.client').dataController.loadData as MockedFunction<typeof DataController.prototype.loadData>);
 
     // Reset all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {

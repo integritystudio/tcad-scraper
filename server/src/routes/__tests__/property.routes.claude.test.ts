@@ -2,44 +2,44 @@
  * Property Routes - Claude Search Tests
  */
 
-import { describe, test, expect, beforeAll, afterAll, jest } from '@jest/globals';
+import { describe, test, expect, beforeAll, afterAll, beforeEach, vi, Mock } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { claudeSearchService } from '../../lib/claude.service';
 
 // Mock the Claude search service
-jest.mock('../../lib/claude.service');
+vi.mock('../../lib/claude.service');
 
 // Mock Redis cache service
-jest.mock('../../lib/redis-cache.service', () => ({
+vi.mock('../../lib/redis-cache.service', () => ({
   cacheService: {
-    getOrSet: jest.fn((key, fn) => fn()),
-    get: jest.fn().mockResolvedValue(null),
-    set: jest.fn().mockResolvedValue(undefined),
+    getOrSet: vi.fn((key, fn) => fn()),
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
 // Mock Queue
-jest.mock('../../queues/scraper.queue', () => ({
+vi.mock('../../queues/scraper.queue', () => ({
   scraperQueue: {
-    add: jest.fn().mockResolvedValue({ id: '123' }),
-    getJob: jest.fn().mockResolvedValue(null),
+    add: vi.fn().mockResolvedValue({ id: '123' }),
+    getJob: vi.fn().mockResolvedValue(null),
   },
-  canScheduleJob: jest.fn().mockResolvedValue(true),
+  canScheduleJob: vi.fn().mockResolvedValue(true),
 }));
 
 // Mock Prisma
-jest.mock('../../lib/prisma', () => ({
+vi.mock('../../lib/prisma', () => ({
   prisma: {
     property: {
-      findMany: jest.fn().mockResolvedValue([]),
-      count: jest.fn().mockResolvedValue(0),
+      findMany: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(0),
     },
   },
   prismaReadOnly: {
     property: {
-      findMany: jest.fn().mockResolvedValue([]),
-      count: jest.fn().mockResolvedValue(0),
+      findMany: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(0),
     },
   },
 }));
@@ -59,7 +59,7 @@ describe('Property Routes - Claude Search', () => {
   });
 
   afterAll(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('GET /api/properties/search/test', () => {
@@ -71,7 +71,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Searching for properties in Austin'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app).get('/api/properties/search/test');
 
@@ -84,7 +84,7 @@ describe('Property Routes - Claude Search', () => {
 
     test('should return failure when Claude API fails', async () => {
       const mockError = new Error('API Error');
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockRejectedValue(mockError);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockRejectedValue(mockError);
 
       const response = await request(app).get('/api/properties/search/test');
 
@@ -96,7 +96,7 @@ describe('Property Routes - Claude Search', () => {
     test('should handle authentication errors', async () => {
       const authError = new Error('401 authentication_error: invalid x-api-key');
       authError.name = 'AuthenticationError';
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockRejectedValue(authError);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockRejectedValue(authError);
 
       const response = await request(app).get('/api/properties/search/test');
 
@@ -108,7 +108,7 @@ describe('Property Routes - Claude Search', () => {
     test('should handle model not found errors', async () => {
       const modelError = new Error('404 not_found_error: model: claude-3-5-sonnet-20241022');
       modelError.name = 'NotFoundError';
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockRejectedValue(modelError);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockRejectedValue(modelError);
 
       const response = await request(app).get('/api/properties/search/test');
 
@@ -119,9 +119,9 @@ describe('Property Routes - Claude Search', () => {
   });
 
   describe('POST /api/properties/search', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       // Reset and configure Prisma mocks for each test
-      const { prismaReadOnly } = require('../../lib/prisma');
+      const { prismaReadOnly } = await import('../../lib/prisma');
       prismaReadOnly.property.findMany.mockClear();
       prismaReadOnly.property.count.mockClear();
 
@@ -175,7 +175,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Searching for properties in Austin'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -199,7 +199,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Searching for properties in Austin worth over $500,000'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -215,7 +215,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Test'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -234,7 +234,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Test'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -266,7 +266,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Test'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -282,9 +282,9 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Test'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
-      const { prismaReadOnly } = require('../../lib/prisma');
+      const { prismaReadOnly } = await import('../../lib/prisma');
       prismaReadOnly.property.count.mockResolvedValue(250);
 
       const response = await request(app)
@@ -300,7 +300,7 @@ describe('Property Routes - Claude Search', () => {
     });
 
     test('should handle errors gracefully', async () => {
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockRejectedValue(
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockRejectedValue(
         new Error('Unexpected error')
       );
 
@@ -327,7 +327,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Searching for "test" across property names, addresses, cities, and descriptions'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(fallbackResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(fallbackResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -339,8 +339,8 @@ describe('Property Routes - Claude Search', () => {
   });
 
   describe('Query Types', () => {
-    beforeEach(() => {
-      const { prismaReadOnly } = require('../../lib/prisma');
+    beforeEach(async () => {
+      const { prismaReadOnly } = await import('../../lib/prisma');
       prismaReadOnly.property.findMany.mockClear();
       prismaReadOnly.property.count.mockClear();
       prismaReadOnly.property.findMany.mockResolvedValue([]);
@@ -353,7 +353,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Searching for properties in Round Rock'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -369,7 +369,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Searching for properties owned by Smith'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -384,7 +384,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Searching for commercial properties'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -399,7 +399,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: "Searching for properties with 'Congress' in the address"
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -417,7 +417,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Searching for properties with appraised value between $300,000 and $600,000'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -437,7 +437,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Searching for residential properties in Austin worth over $1,000,000'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -448,8 +448,8 @@ describe('Property Routes - Claude Search', () => {
   });
 
   describe('Edge Cases', () => {
-    beforeEach(() => {
-      const { prismaReadOnly } = require('../../lib/prisma');
+    beforeEach(async () => {
+      const { prismaReadOnly } = await import('../../lib/prisma');
       prismaReadOnly.property.findMany.mockClear();
       prismaReadOnly.property.count.mockClear();
       prismaReadOnly.property.findMany.mockResolvedValue([]);
@@ -487,7 +487,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Test'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')
@@ -502,7 +502,7 @@ describe('Property Routes - Claude Search', () => {
         explanation: 'Test'
       };
 
-      (claudeSearchService.parseNaturalLanguageQuery as jest.Mock).mockResolvedValue(mockResult);
+      (claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/properties/search')

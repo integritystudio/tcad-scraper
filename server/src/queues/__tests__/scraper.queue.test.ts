@@ -7,48 +7,61 @@
  * - Event listeners
  */
 
-// Mock dependencies BEFORE imports
-const mockBullQueue = {
-  process: jest.fn(),
-  on: jest.fn(),
-  clean: jest.fn().mockResolvedValue(undefined),
-  add: jest.fn(),
-  getJob: jest.fn(),
-  getJobs: jest.fn(),
-  pause: jest.fn(),
-  resume: jest.fn(),
-  close: jest.fn(),
-};
+import { describe, test, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-jest.mock('bull', () => {
-  return jest.fn(() => mockBullQueue);
+// Use vi.hoisted to declare mocks before they're used
+const { mockBullQueue, MockBull } = vi.hoisted(() => {
+  const mockBullQueue = {
+    process: vi.fn(),
+    on: vi.fn(),
+    clean: vi.fn().mockResolvedValue(undefined),
+    add: vi.fn(),
+    getJob: vi.fn(),
+    getJobs: vi.fn(),
+    pause: vi.fn(),
+    resume: vi.fn(),
+    close: vi.fn(),
+  };
+
+  // Create a proper constructor function that returns mockBullQueue
+  class MockBull {
+    constructor() {
+      return mockBullQueue;
+    }
+  }
+
+  return { mockBullQueue, MockBull };
 });
 
-jest.mock('../../lib/tcad-scraper');
-jest.mock('../../lib/prisma', () => ({
+vi.mock('bull', () => ({
+  default: MockBull,
+}));
+
+vi.mock('../../lib/tcad-scraper');
+vi.mock('../../lib/prisma', () => ({
   prisma: {
     scrapeJob: {
-      create: jest.fn(),
-      update: jest.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
     },
-    $executeRawUnsafe: jest.fn(),
+    $executeRawUnsafe: vi.fn(),
   },
 }));
 
-jest.mock('../../lib/redis-cache.service', () => ({
+vi.mock('../../lib/redis-cache.service', () => ({
   cacheService: {
-    deletePattern: jest.fn().mockResolvedValue(undefined),
-    delete: jest.fn().mockResolvedValue(undefined),
+    deletePattern: vi.fn().mockResolvedValue(undefined),
+    delete: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
-jest.mock('../../services/search-term-optimizer', () => ({
+vi.mock('../../services/search-term-optimizer', () => ({
   searchTermOptimizer: {
-    updateAnalytics: jest.fn().mockResolvedValue(undefined),
+    updateAnalytics: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
-jest.mock('../../config', () => ({
+vi.mock('../../config', () => ({
   config: {
     logging: {
       level: 'error',
@@ -106,11 +119,11 @@ jest.mock('../../config', () => ({
 }));
 
 // Mock setInterval at module level to prevent cleanup interval from running
-jest.spyOn(global, 'setInterval').mockReturnValue({} as any);
+vi.spyOn(global, 'setInterval').mockReturnValue({} as any);
 
 describe('Scraper Queue', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('canScheduleJob', () => {
@@ -119,16 +132,16 @@ describe('Scraper Queue', () => {
 
     beforeEach(async () => {
       // Use fake timers for this test suite
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       // Reset module to clear the activeJobs Map
-      jest.resetModules();
+      vi.resetModules();
       const module = await import('../scraper.queue');
       canScheduleJob = module.canScheduleJob;
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it.skip('should allow scheduling a new job for a search term - SKIPPED (covered by other tests)', async () => {
@@ -156,7 +169,7 @@ describe('Scraper Queue', () => {
       expect(result1).toBe(true);
 
       // Advance time past the job delay (60 seconds)
-      jest.advanceTimersByTime(61000);
+      vi.advanceTimersByTime(61000);
 
       // Should allow second job after delay
       const result2 = await canScheduleJob(searchTerm);
@@ -181,7 +194,7 @@ describe('Scraper Queue', () => {
       await canScheduleJob(searchTerm);
 
       // Advance time past cleanup interval (5 minutes)
-      jest.advanceTimersByTime(301000);
+      vi.advanceTimersByTime(301000);
 
       // Schedule another job to trigger cleanup
       await canScheduleJob('Moore');
@@ -330,15 +343,15 @@ describe('Scraper Queue', () => {
   });
 
   describe('Queue Export', () => {
-    it('should export scraperQueue instance', () => {
-      const { scraperQueue } = require('../scraper.queue');
+    it('should export scraperQueue instance', async () => {
+      const { scraperQueue } = await import('../scraper.queue');
 
       expect(scraperQueue).toBeDefined();
       expect(scraperQueue).toBe(mockBullQueue);
     });
 
-    it('should export canScheduleJob function', () => {
-      const { canScheduleJob } = require('../scraper.queue');
+    it('should export canScheduleJob function', async () => {
+      const { canScheduleJob } = await import('../scraper.queue');
 
       expect(canScheduleJob).toBeDefined();
       expect(typeof canScheduleJob).toBe('function');

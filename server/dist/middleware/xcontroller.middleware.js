@@ -38,7 +38,7 @@ function encodeJsonForHtml(data) {
  * Middleware to add CSP nonce to response locals
  * Usage: app.use(nonceMiddleware)
  */
-function nonceMiddleware(req, res, next) {
+function nonceMiddleware(_req, res, next) {
     res.locals.nonce = generateNonce();
     next();
 }
@@ -118,7 +118,7 @@ function generateSecureHtml(options) {
  */
 function getInitialAppData() {
     return {
-        apiUrl: config_1.config.frontend.apiUrl,
+        apiUrl: config_1.config.frontend.apiUrl || '',
         environment: config_1.config.env.nodeEnv,
         features: {
             search: config_1.config.frontend.features.search,
