@@ -236,8 +236,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
-          cd server && npm install
+          npm ci --omit=optional || npm install
+          cd server && npm ci --omit=optional || npm install
 
       - name: Check licenses
         run: |
