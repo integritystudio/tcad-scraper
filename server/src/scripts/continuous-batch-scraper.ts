@@ -286,6 +286,7 @@ class SearchPatternGenerator {
     return this.lastNames[Math.floor(Math.random() * this.lastNames.length)];
   }
 
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore - Intentionally unused method kept for future use
   private _generateStreetAddress(): string {
     const number = Math.floor(Math.random() * 9999) + 1;
@@ -307,6 +308,7 @@ class SearchPatternGenerator {
     return this.streetNames[Math.floor(Math.random() * this.streetNames.length)];
   }
 
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore - Intentionally unused method kept for future use
   private _generateFourLetterWord(): string {
     const words = ['Park', 'Lake', 'Hill', 'Wood', 'Glen', 'Dale', 'View', 'Rock', 'Pine', 'Sage'];
@@ -319,6 +321,7 @@ class SearchPatternGenerator {
   }
 
   // NEW: Generate property type with descriptor
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore - Intentionally unused method kept for future use
   private _generatePropertyWithDescriptor(): string {
     const type = this.propertyTypes[Math.floor(Math.random() * this.propertyTypes.length)];
@@ -327,6 +330,7 @@ class SearchPatternGenerator {
   }
 
   // NEW: Generate partial street address (just number + street, more common)
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore - Intentionally unused method kept for future use
   private _generatePartialAddress(): string {
     const number = Math.floor(Math.random() * 9999) + 1;

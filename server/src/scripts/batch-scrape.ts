@@ -70,6 +70,7 @@ const PROPERTY_TYPES = [
 ];
 
 // Street name prefixes for comprehensive coverage (kept for future use)
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Intentionally unused constant kept for future use
 const _STREET_PREFIXES = [
   'North', 'South', 'East', 'West',
@@ -77,6 +78,7 @@ const _STREET_PREFIXES = [
 ];
 
 // Common street suffixes (kept for future use)
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Intentionally unused constant kept for future use
 const _STREET_SUFFIXES = [
   'Street', 'St', 'Avenue', 'Ave', 'Road', 'Rd', 'Drive', 'Dr',
