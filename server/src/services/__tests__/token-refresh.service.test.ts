@@ -2,21 +2,32 @@
  * Token Refresh Service Tests
  */
 
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, test, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Use vi.hoisted to declare mocks before they're used
+const { mockPage, mockCronJob } = vi.hoisted(() => {
+  const mockPage = {
+    goto: vi.fn(),
+    waitForFunction: vi.fn(),
+    waitForSelector: vi.fn(),
+    type: vi.fn(),
+    press: vi.fn(),
+    on: vi.fn(),
+  };
+
+  const mockCronJob = {
+    stop: vi.fn(),
+  };
+
+  return { mockPage, mockCronJob };
+});
 
 // Mock Playwright
 vi.mock('playwright', () => ({
   chromium: {
     launch: vi.fn().mockResolvedValue({
       newContext: vi.fn().mockResolvedValue({
-        newPage: vi.fn().mockResolvedValue({
-          goto: vi.fn(),
-          waitForFunction: vi.fn(),
-          waitForSelector: vi.fn(),
-          type: vi.fn(),
-          press: vi.fn(),
-          on: vi.fn(),
-        }),
+        newPage: vi.fn().mockResolvedValue(mockPage),
         close: vi.fn(),
       }),
       close: vi.fn(),
@@ -27,9 +38,7 @@ vi.mock('playwright', () => ({
 // Mock node-cron
 vi.mock('node-cron', () => ({
   default: {
-    schedule: vi.fn().mockReturnValue({
-      stop: vi.fn(),
-    }),
+    schedule: vi.fn().mockReturnValue(mockCronJob),
   },
 }));
 
@@ -297,11 +306,11 @@ describe('TCADTokenRefreshService', () => {
 
   describe('startAutoRefreshInterval', () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should start interval with default time', () => {
@@ -347,7 +356,7 @@ describe('TCADTokenRefreshService', () => {
     });
 
     it('should stop interval if running', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       service.startAutoRefreshInterval();
       service.stopAutoRefresh();
@@ -355,7 +364,7 @@ describe('TCADTokenRefreshService', () => {
       const stats = service.getStats();
       expect(stats.isRunning).toBe(false);
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should handle being called when not running', () => {

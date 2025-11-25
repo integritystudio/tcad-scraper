@@ -4,6 +4,17 @@
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 
+// Use vi.hoisted to declare mocks before they're used
+const { mockCreate, MockAnthropic } = vi.hoisted(() => {
+  const mockCreate = vi.fn();
+  class MockAnthropic {
+    messages = {
+      create: mockCreate,
+    };
+  }
+  return { mockCreate, MockAnthropic };
+});
+
 // Mock the config module before importing claude.service
 vi.mock('../../config', () => ({
   config: {
@@ -16,13 +27,6 @@ vi.mock('../../config', () => ({
 }));
 
 // Mock Anthropic SDK
-const mockCreate = vi.fn();
-class MockAnthropic {
-  messages = {
-    create: mockCreate,
-  };
-}
-
 vi.mock('@anthropic-ai/sdk', () => ({
   default: MockAnthropic,
 }));
