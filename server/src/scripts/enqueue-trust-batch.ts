@@ -4,9 +4,8 @@
  * Queues trust and estate-related search terms (high-yield searches)
  */
 
-import { scraperQueue } from '../queues/scraper.queue';
 import logger from '../lib/logger';
-import { config } from '../config';
+import { enqueueBatchGeneric } from './utils/batch-enqueue';
 
 const TRUST_TERMS = [
   'Trust',
@@ -22,46 +21,12 @@ const TRUST_TERMS = [
 ];
 
 async function enqueueTrustBatch() {
-  logger.info('📜 Starting Trust & Estate Batch Enqueue');
-  logger.info(`Auto-refresh token enabled: ${config.scraper.autoRefreshToken}`);
-  logger.info(`Expected high yield: ~70+ properties per term`);
-
-  try {
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const term of TRUST_TERMS) {
-      try {
-        const job = await scraperQueue.add('scrape-properties', {
-          searchTerm: term,
-          userId: 'trust-batch-enqueue',
-          scheduled: true,
-        }, {
-          attempts: 3,
-          backoff: {
-            type: 'exponential',
-            delay: 2000,
-          },
-          priority: 1, // Highest priority - best yield
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        });
-
-        successCount++;
-        logger.info(`✅ [${successCount}/${TRUST_TERMS.length}] Queued: "${term}" (Job ID: ${job.id})`);
-      } catch (error) {
-        failCount++;
-        logger.error({ err: error }, `❌ Failed to queue "${term}":`);
-      }
-    }
-
-    logger.info(`\n📊 Summary: ${successCount} queued, ${failCount} failed`);
-    logger.info(`📈 Estimated total properties: ${successCount * 70} (if all succeed)`);
-    logger.info('✨ Trust batch enqueue completed!');
-  } catch (error) {
-    logger.error({ err: error }, '❌ Fatal error:');
-    process.exit(1);
-  }
+  return enqueueBatchGeneric({
+    batchName: 'Trust & Estate',
+    emoji: '📜',
+    terms: TRUST_TERMS,
+    userId: 'trust-batch-enqueue',
+  });
 }
 
 enqueueTrustBatch()
