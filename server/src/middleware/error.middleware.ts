@@ -7,7 +7,7 @@ import logger from '../lib/logger';
 export const asyncHandler = (
   fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
 ) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
@@ -17,25 +17,27 @@ export const asyncHandler = (
  */
 export const errorHandler = (
   error: Error,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
-) => {
-  logger.error('Error:', error);
+  _next: NextFunction
+): void => {
+  logger.error(`Error: ${error.message}${error.stack ? '\nStack: ' + error.stack : ''}`);
 
   // Handle specific error types
   if (error.name === 'ValidationError') {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'Validation failed',
       message: error.message,
     });
+    return;
   }
 
   if (error.name === 'UnauthorizedError') {
-    return res.status(401).json({
+    res.status(401).json({
       error: 'Unauthorized',
       message: error.message,
     });
+    return;
   }
 
   // Default to 500 server error

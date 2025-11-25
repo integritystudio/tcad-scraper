@@ -55,9 +55,9 @@ This directory contains 6 code file(s) with extracted schemas.
 ### `sentry.service.ts` (typescript)
 
 **Functions:**
-- `sentryRequestHandler()` - Line 99
-- `sentryTracingHandler()` - Line 109
-- `sentryErrorHandler()` - Line 119
+- `sentryRequestHandler()` - Line 120
+- `sentryTracingHandler()` - Line 130
+- `sentryErrorHandler()` - Line 140
 
 ### `tcad-scraper.ts` (typescript)
 

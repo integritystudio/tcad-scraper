@@ -49,7 +49,7 @@ export const jwtAuth = (req: AuthRequest, res: Response, next: NextFunction) => 
 };
 
 // Optional auth middleware (allows both authenticated and unauthenticated access)
-export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const optionalAuth = (req: AuthRequest, _res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -67,7 +67,9 @@ export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction
 
 // Generate JWT token
 export const generateToken = (userId: string, email?: string): string => {
-  return jwt.sign({ id: userId, email }, config.auth.jwt.secret, {
-    expiresIn: config.auth.jwt.expiresIn as string | number,
-  });
+  return jwt.sign(
+    { id: userId, email },
+    config.auth.jwt.secret,
+    { expiresIn: config.auth.jwt.expiresIn as any }
+  );
 };

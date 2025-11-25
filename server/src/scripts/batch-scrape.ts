@@ -70,13 +70,13 @@ const PROPERTY_TYPES = [
 ];
 
 // Street name prefixes for comprehensive coverage
-const STREET_PREFIXES = [
+const _STREET_PREFIXES = [
   'North', 'South', 'East', 'West',
   'N', 'S', 'E', 'W',
 ];
 
 // Common street suffixes
-const STREET_SUFFIXES = [
+const _STREET_SUFFIXES = [
   'Street', 'St', 'Avenue', 'Ave', 'Road', 'Rd', 'Drive', 'Dr',
   'Lane', 'Ln', 'Court', 'Ct', 'Circle', 'Cir', 'Boulevard', 'Blvd',
   'Way', 'Trail', 'Path', 'Place', 'Pl',
@@ -177,7 +177,7 @@ class BatchScraper {
           this.stats.totalQueued++;
           logger.info(`  ✓ Queued: ${searchTerm} (Job ID: ${job.id})`);
         } catch (error) {
-          logger.error({ err: error }, `  ✗ Failed to queue: ${searchTerm}`);
+          logger.error(`  ✗ Failed to queue: ${searchTerm}: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
@@ -195,7 +195,6 @@ class BatchScraper {
     logger.info('\n=== Monitoring Job Progress ===\n');
 
     const checkInterval = 10000; // Check every 10 seconds
-    let lastCheck = Date.now();
 
     while (this.stats.totalCompleted + this.stats.totalFailed < this.stats.totalQueued) {
       await this.delay(checkInterval);
@@ -310,7 +309,7 @@ Strategy Used: ${this.config.searchStrategy}
       logger.info('\n✓ Batch scraping completed successfully!');
       process.exit(0);
     } catch (error) {
-      logger.error({ err: error }, 'Fatal error during batch scraping:');
+      logger.error(`Fatal error during batch scraping: ${error instanceof Error ? error.message : String(error)}`);
       process.exit(1);
     }
   }

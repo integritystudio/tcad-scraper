@@ -17,7 +17,7 @@ async function testApiDiscovery() {
 
     logger.info('\n✅ API discovery complete!');
   } catch (error) {
-    logger.error('❌ API discovery failed:', error);
+    logger.error(`❌ API discovery failed: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
     await scraper.cleanup();
   }

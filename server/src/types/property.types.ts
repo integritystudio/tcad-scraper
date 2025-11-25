@@ -343,7 +343,7 @@ export function transformPropertyToAPI(
   dbProperty: PropertyDatabase,
   includeSchemaContext = true
 ): PropertyAPI {
-  const [streetAddress, ...addressParts] = dbProperty.propertyAddress.split(',').map(s => s.trim());
+  const [streetAddress] = dbProperty.propertyAddress.split(',').map(s => s.trim());
 
   return {
     ...(includeSchemaContext && {

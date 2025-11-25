@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { scraperQueue, canScheduleJob } from '../queues/scraper.queue';
 import { prisma, prismaReadOnly } from '../lib/prisma';
 import { ScrapeResponse } from '../types';
@@ -44,7 +44,7 @@ export class PropertyController {
   /**
    * GET /api/properties/jobs/:jobId - Get job status
    */
-  async getJobStatus(req: Request<{ jobId: string }>, res: Response) {
+  async getJobStatus(req: Request<{ jobId: string }>, res: Response, _next: NextFunction) {
     const { jobId } = req.params;
 
     const job = await scraperQueue.getJob(jobId);
@@ -80,7 +80,7 @@ export class PropertyController {
    * GET /api/properties - Get properties from database with filters
    * Cached for 5 minutes per unique filter combination
    */
-  async getProperties(req: Request<{}, {}, {}, PropertyFilters>, res: Response) {
+  async getProperties(req: Request<{}, {}, {}, PropertyFilters>, res: Response, _next: NextFunction) {
     const filters = req.query as PropertyFilters;
 
     // Generate cache key based on filters
@@ -211,7 +211,7 @@ export class PropertyController {
   /**
    * GET /api/properties/history - Get scrape job history
    */
-  async getScrapeHistory(req: Request<{}, {}, {}, HistoryQueryParams>, res: Response) {
+  async getScrapeHistory(req: Request<{}, {}, {}, HistoryQueryParams>, res: Response, _next: NextFunction) {
     const { limit = 20, offset = 0 } = req.query;
 
     const jobs = await prismaReadOnly.scrapeJob.findMany({

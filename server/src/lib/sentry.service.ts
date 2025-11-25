@@ -13,6 +13,14 @@
 
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import {
+  httpIntegration,
+  expressIntegration,
+  postgresIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
+  expressErrorHandler,
+} from '@sentry/node';
 import { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
 import logger from './logger';
@@ -51,17 +59,17 @@ export function initializeSentry(serviceName: string = 'tcad-scraper'): void {
         recordOutputs: true,  // Capture responses from Claude
       }),
 
-      // Automatic instrumentation
-      new Sentry.Integrations.Http({ tracing: true }),
-      new Sentry.Integrations.Express({ app: true }),
-      new Sentry.Integrations.Postgres(),
-      new Sentry.Integrations.OnUncaughtException({
-        onFatalError: async (err) => {
-          logger.error('Fatal error:', err);
+      // Automatic instrumentation (Sentry v8 API)
+      httpIntegration(),
+      expressIntegration(),
+      postgresIntegration(),
+      onUncaughtExceptionIntegration({
+        onFatalError: async (err: Error) => {
+          logger.error(`Fatal error: ${err.message}`);
           process.exit(1);
         },
       }),
-      new Sentry.Integrations.OnUnhandledRejection({
+      onUnhandledRejectionIntegration({
         mode: 'warn',
       }),
     ],
@@ -117,33 +125,37 @@ export function initializeSentry(serviceName: string = 'tcad-scraper'): void {
 
 /**
  * Sentry request handler middleware (must be first)
+ * In Sentry v8, request data is automatically captured by requestDataIntegration
  */
 export const sentryRequestHandler = () => {
   if (!config.monitoring.sentry.enabled) {
-    return (req: Request, res: Response, next: NextFunction) => next();
+    return (_req: Request, _res: Response, next: NextFunction) => next();
   }
-  return Sentry.Handlers.requestHandler();
+  // Sentry v8: requestDataIntegration handles this automatically
+  return (_req: Request, _res: Response, next: NextFunction) => next();
 };
 
 /**
  * Sentry tracing middleware (must be after requestHandler)
+ * In Sentry v8, tracing is automatically handled by httpIntegration and expressIntegration
  */
 export const sentryTracingHandler = () => {
   if (!config.monitoring.sentry.enabled) {
-    return (req: Request, res: Response, next: NextFunction) => next();
+    return (_req: Request, _res: Response, next: NextFunction) => next();
   }
-  return Sentry.Handlers.tracingHandler();
+  // Sentry v8: httpIntegration and expressIntegration handle this automatically
+  return (_req: Request, _res: Response, next: NextFunction) => next();
 };
 
 /**
  * Sentry error handler middleware (must be last, before other error handlers)
  */
-export const sentryErrorHandler = () => {
+export const sentryErrorHandler = (): any => {
   if (!config.monitoring.sentry.enabled) {
-    return (err: Error, req: Request, res: Response, next: NextFunction) => next(err);
+    return (_err: Error, _req: Request, _res: Response, next: NextFunction) => next(_err);
   }
-  return Sentry.Handlers.errorHandler({
-    shouldHandleError(error) {
+  return expressErrorHandler({
+    shouldHandleError(_error: Error) {
       // Capture all 5xx errors
       return true;
     },
@@ -155,7 +167,7 @@ export const sentryErrorHandler = () => {
  */
 export function captureException(error: Error, context?: Record<string, any>): string {
   if (!config.monitoring.sentry.enabled) {
-    logger.error('Error (Sentry disabled):', error);
+    logger.error(`Error (Sentry disabled): ${error.message}`);
     return '';
   }
 
@@ -169,7 +181,7 @@ export function captureException(error: Error, context?: Record<string, any>): s
  */
 export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, any>): string {
   if (!config.monitoring.sentry.enabled) {
-    logger.info(`Message (Sentry disabled) [${level}]:`, message);
+    logger.info(`Message (Sentry disabled) [${level}]: ${message}`);
     return '';
   }
 
@@ -262,21 +274,26 @@ export function setTags(tags: Record<string, string>): void {
 }
 
 /**
- * Start a performance transaction
+ * Start a performance transaction (Sentry v8: use startSpan instead)
+ * @deprecated Use Sentry.startSpan() directly for Sentry v8
  */
-export function startTransaction(name: string, op: string): Sentry.Transaction | null {
+export function startTransaction(name: string, op: string): any {
   if (!config.monitoring.sentry.enabled) {
     return null;
   }
 
-  return Sentry.startTransaction({
-    name,
-    op,
+  // Sentry v8: startTransaction is deprecated, use startSpan instead
+  return Sentry.startSpan({ name, op }, () => {
+    // Return a mock transaction-like object for backwards compatibility
+    return {
+      setStatus: () => {},
+      finish: () => {},
+    };
   });
 }
 
 /**
- * Wrap async function with error tracking
+ * Wrap async function with error tracking (Sentry v8: use startSpan)
  */
 export function wrapAsync<T extends (...args: any[]) => Promise<any>>(
   fn: T,
@@ -287,22 +304,21 @@ export function wrapAsync<T extends (...args: any[]) => Promise<any>>(
   }
 
   return (async (...args: any[]) => {
-    const transaction = Sentry.startTransaction({
-      name: name || fn.name || 'anonymous',
-      op: 'function',
-    });
-
-    try {
-      const result = await fn(...args);
-      transaction.setStatus('ok');
-      return result;
-    } catch (error) {
-      transaction.setStatus('internal_error');
-      Sentry.captureException(error);
-      throw error;
-    } finally {
-      transaction.finish();
-    }
+    // Sentry v8: Use startSpan instead of startTransaction
+    return await Sentry.startSpan(
+      {
+        name: name || fn.name || 'anonymous',
+        op: 'function',
+      },
+      async () => {
+        try {
+          return await fn(...args);
+        } catch (error) {
+          Sentry.captureException(error);
+          throw error;
+        }
+      }
+    );
   }) as T;
 }
 

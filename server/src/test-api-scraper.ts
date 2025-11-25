@@ -39,7 +39,7 @@ async function testApiScraper() {
     }
 
   } catch (error) {
-    logger.error('\n❌ Test failed:', error);
+    logger.error(`\n❌ Test failed: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
     await scraper.cleanup();
   }

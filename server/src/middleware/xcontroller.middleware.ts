@@ -32,7 +32,7 @@ export function encodeJsonForHtml(data: any): string {
  * Middleware to add CSP nonce to response locals
  * Usage: app.use(nonceMiddleware)
  */
-export function nonceMiddleware(req: Request, res: Response, next: NextFunction) {
+export function nonceMiddleware(_req: Request, res: Response, next: NextFunction) {
   res.locals.nonce = generateNonce();
   next();
 }
@@ -146,7 +146,7 @@ export interface InitialAppData {
  */
 export function getInitialAppData(): InitialAppData {
   return {
-    apiUrl: config.frontend.apiUrl,
+    apiUrl: config.frontend.apiUrl || '',
     environment: config.env.nodeEnv,
     features: {
       search: config.frontend.features.search,

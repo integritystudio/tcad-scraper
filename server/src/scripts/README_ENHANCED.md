@@ -5,7 +5,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareSourceCode",
   "name": "scripts",
-  "description": "Directory containing 30 code files with 6 classes and 29 functions",
+  "description": "Directory containing 31 code files with 6 classes and 30 functions",
   "programmingLanguage": [
     {
       "@type": "ComputerLanguage",
@@ -14,14 +14,18 @@
   ],
   "featureList": [
     "6 class definitions",
-    "29 function definitions"
+    "30 function definitions"
   ]
 }
 </script>
 
 ## Overview
 
-This directory contains 30 code file(s) with extracted schemas.
+This directory contains 31 code file(s) with extracted schemas.
+
+## Subdirectories
+
+- `utils/`
 
 ## Files and Schemas
 
@@ -71,22 +75,22 @@ This directory contains 30 code file(s) with extracted schemas.
 ### `enqueue-commercial-batch.ts` (typescript)
 
 **Functions:**
-- `async enqueueCommercialBatch()` - Line 23
+- `async enqueueCommercialBatch()` - Line 22
 
 ### `enqueue-construction-batch.ts` (typescript)
 
 **Functions:**
-- `async enqueueConstructionBatch()` - Line 23
+- `async enqueueConstructionBatch()` - Line 22
 
 ### `enqueue-corporation-batch.ts` (typescript)
 
 **Functions:**
-- `async enqueueCorporationBatch()` - Line 23
+- `async enqueueCorporationBatch()` - Line 22
 
 ### `enqueue-foundation-batch.ts` (typescript)
 
 **Functions:**
-- `async enqueueFoundationBatch()` - Line 23
+- `async enqueueFoundationBatch()` - Line 22
 
 ### `enqueue-grove.ts` (typescript)
 
@@ -106,17 +110,17 @@ This directory contains 30 code file(s) with extracted schemas.
 ### `enqueue-investment-batch.ts` (typescript)
 
 **Functions:**
-- `async enqueueInvestmentBatch()` - Line 23
+- `async enqueueInvestmentBatch()` - Line 22
 
 ### `enqueue-llc-batch.ts` (typescript)
 
 **Functions:**
-- `async enqueueLLCBatch()` - Line 23
+- `async enqueueLLCBatch()` - Line 22
 
 ### `enqueue-partnership-batch.ts` (typescript)
 
 **Functions:**
-- `async enqueuePartnershipBatch()` - Line 23
+- `async enqueuePartnershipBatch()` - Line 22
 
 ### `enqueue-priority-terms.ts` (typescript)
 
@@ -126,7 +130,7 @@ This directory contains 30 code file(s) with extracted schemas.
 ### `enqueue-property-type-batch.ts` (typescript)
 
 **Functions:**
-- `async enqueuePropertyTypeBatch()` - Line 23
+- `async enqueuePropertyTypeBatch()` - Line 22
 
 ### `enqueue-residential-batch.ts` (typescript)
 
@@ -141,12 +145,17 @@ This directory contains 30 code file(s) with extracted schemas.
 ### `enqueue-trust-batch.ts` (typescript)
 
 **Functions:**
-- `async enqueueTrustBatch()` - Line 23
+- `async enqueueTrustBatch()` - Line 22
 
 ### `enqueue-ultra-high-priority.ts` (typescript)
 
 **Functions:**
 - `async enqueueUltraHighPriority()` - Line 22
+
+### `get-fresh-token.ts` (typescript)
+
+**Functions:**
+- `async getFreshToken()` - Line 6
 
 ### `queue-entity-searches-fresh.ts` (typescript)
 

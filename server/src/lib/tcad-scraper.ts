@@ -1,4 +1,4 @@
-import { chromium, Browser, Page, BrowserContext } from 'playwright';
+import { chromium, Browser, Page } from 'playwright';
 import winston from 'winston';
 import { ScraperConfig, PropertyData } from '../types';
 import { config as appConfig } from '../config';
@@ -425,7 +425,7 @@ export class TCADScraper {
   /**
    * Helper method to discover API endpoints (for debugging/development)
    */
-  private async discoverApiEndpoint(searchTerm: string): Promise<void> {
+  private async _discoverApiEndpoint(searchTerm: string): Promise<void> {
     if (!this.browser) {
       throw new Error('Browser not initialized. Call initialize() first.');
     }
@@ -515,7 +515,7 @@ export class TCADScraper {
     }
   }
 
-  private async scrapePropertyDetail(page: Page, propertyId: string): Promise<PropertyData | null> {
+  private async _scrapePropertyDetail(page: Page, propertyId: string): Promise<PropertyData | null> {
     try {
       // Navigate to property detail page
       const detailUrl = `https://stage.travis.prodigycad.com/property-detail?pid=${propertyId}`;

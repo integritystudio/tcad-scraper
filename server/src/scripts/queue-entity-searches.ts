@@ -107,7 +107,7 @@ async function queueEntitySearches() {
 
       } catch (error) {
         failedCount++;
-        logger.error(`❌ Failed to queue "${searchTerm}":`, error instanceof Error ? error.message : 'Unknown error');
+        logger.error(`❌ Failed to queue "${searchTerm}": ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
@@ -134,7 +134,7 @@ async function queueEntitySearches() {
     logger.info('✨ Entity term searches queued successfully!\n');
 
   } catch (error) {
-    logger.error('❌ Fatal error:', error);
+    logger.error(`❌ Fatal error: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 }
