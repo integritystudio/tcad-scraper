@@ -452,19 +452,27 @@ function getDataFreshness(scrapedAt: Date): 'current' | 'stale' | 'historical' {
 // Type Guards
 // ============================================================================
 
-export function isPropertyDatabase(obj: any): obj is PropertyDatabase {
-  return obj &&
+export function isPropertyDatabase(obj: unknown): obj is PropertyDatabase {
+  return obj !== null &&
+    typeof obj === 'object' &&
+    'propertyId' in obj &&
     typeof obj.propertyId === 'string' &&
+    'name' in obj &&
     typeof obj.name === 'string' &&
+    'propType' in obj &&
     typeof obj.propType === 'string' &&
+    'propertyAddress' in obj &&
     typeof obj.propertyAddress === 'string' &&
+    'appraisedValue' in obj &&
     typeof obj.appraisedValue === 'number';
 }
 
-export function isPropertyAPI(obj: any): obj is PropertyAPI {
-  return obj &&
+export function isPropertyAPI(obj: unknown): obj is PropertyAPI {
+  return obj !== null &&
+    typeof obj === 'object' &&
+    'propertyId' in obj &&
     typeof obj.propertyId === 'string' &&
-    obj.owner &&
-    obj.address &&
-    obj.valuation;
+    'owner' in obj &&
+    'address' in obj &&
+    'valuation' in obj;
 }
