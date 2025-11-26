@@ -114,7 +114,7 @@ router.post(
  */
 router.get(
   '/jobs/:jobId',
-  asyncHandler(propertyController.getJobStatus.bind(propertyController) as any)
+  asyncHandler(propertyController.getJobStatus.bind(propertyController) as any)  // Type inference limitation with .bind()
 );
 
 /**
@@ -176,7 +176,7 @@ router.get(
 router.get(
   '/history',
   validateQuery(historyQuerySchema),
-  asyncHandler(propertyController.getScrapeHistory.bind(propertyController) as any)
+  asyncHandler(propertyController.getScrapeHistory.bind(propertyController) as any)  // Type inference limitation with .bind()
 );
 
 // ============================================================================
@@ -265,7 +265,7 @@ router.get(
 router.get(
   '/',
   validateQuery(propertyFilterSchema),
-  asyncHandler(propertyController.getProperties.bind(propertyController) as any)
+  asyncHandler(propertyController.getProperties.bind(propertyController) as any)  // Type inference limitation with .bind()
 );
 
 /**
