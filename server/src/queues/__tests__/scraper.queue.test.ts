@@ -238,9 +238,8 @@ describe('Scraper Queue', () => {
 
   describe.skip('Queue Configuration - SKIPPED (complex module loading)', () => {
     it('should create Bull queue with correct configuration', () => {
-      const Bull = require('bull');
-
-      expect(Bull).toHaveBeenCalledWith(
+      // Use the mocked Bull constructor from vi.hoisted
+      expect(MockBull).toHaveBeenCalledWith(
         'tcad-scraper',
         expect.objectContaining({
           redis: expect.objectContaining({

@@ -1,4 +1,5 @@
 import { describe, test, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { createClient } from 'redis';
 
 // Mock redis BEFORE importing the service
 vi.mock('redis', () => {
@@ -52,9 +53,8 @@ describe.skip('RedisCacheService - SKIPPED (complex Redis mocking issue)', () =>
     // Connect to Redis (this will call createClient)
     await service.connect();
 
-    // Get the mock client instance
-    const { createClient } = require('redis');
-    mockRedisClient = createClient.mock.results[0].value;
+    // Get the mock client instance from vi.mocked
+    mockRedisClient = vi.mocked(createClient).mock.results[0].value;
 
     // Trigger the 'ready' event to set isConnected = true
     const onReadyHandler = mockRedisClient.on.mock.calls.find(
