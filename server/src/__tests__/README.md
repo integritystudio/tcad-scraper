@@ -142,12 +142,19 @@ npm run test:enqueue                  # Queue enqueue test only
 **Pass Rate**: 88% (100% excluding intentionally skipped tests)
 
 ### Integration Tests
-- ✅ **3 passing** (2%)
-- ⚠️ **1 failing** (1%)
-- ℹ️ **27 skipped** (97%)
+- ✅ **15 passing** (11%)
+- ⚠️ **3 failing** (2%)
+- ℹ️ **27 skipped** (19%)
 - **Total**: 141 tests in 6 files
 
-**Note**: Integration tests are mostly skipped because they require external services (database, Redis). They run in production/staging environments or when services are available locally.
+**Status** (as of 2025-11-26):
+- Database connectivity tests: ✅ All passing (22 tests)
+- Auth-database integration: ✅ All passing (26 tests)
+- Security tests: ⚠️ 1 nonce test failing (30/31 passing)
+- Queue tests: ⚠️ Failing due to Redis unavailable (requires hobbes connection)
+- Server health checks: ⚠️ Queue health failing due to Redis
+
+**Note**: Integration tests require external services (PostgreSQL via Tailscale, Redis on hobbes). Most tests pass when infrastructure is available.
 
 ## Running All Tests
 
@@ -227,6 +234,13 @@ Tests are intentionally skipped when:
 - Redis cache tests skipped by design (40 tests)
 
 ## Recent Fixes (November 26, 2025)
+
+### Trust Proxy Configuration Fixed
+Fixed `ERR_ERL_PERMISSIVE_TRUST_PROXY` error from express-rate-limit:
+- **Root cause**: `app.set('trust proxy', true)` was too permissive
+- **Solution**: Changed to `app.set('trust proxy', 1)` to trust only first hop (nginx)
+- **Impact**: Resolved rate limiting ValidationError, improved security
+- **File**: `server/src/index.ts:48`
 
 ### BullMQ Queue Tests Fixed
 Fixed 8 previously skipped tests in `queues/__tests__/scraper.queue.test.ts`:
