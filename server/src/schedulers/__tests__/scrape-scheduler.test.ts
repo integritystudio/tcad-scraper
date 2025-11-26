@@ -67,8 +67,26 @@ vi.mock('winston', () => {
 
 import cron from 'node-cron';
 import { scheduledJobs } from '../scrape-scheduler';
+import { scraperQueue } from '../../queues/scraper.queue';
+import { prisma } from '../../lib/prisma';
 
-describe.skip('ScheduledJobs', () => {
+// Get mock instances for testing
+const mockScraperQueue = scraperQueue as unknown as {
+  add: Mock;
+  clean: Mock;
+};
+
+const mockPrisma = prisma as unknown as {
+  monitoredSearch: {
+    findMany: Mock;
+    update: Mock;
+  };
+  scrapeJob: {
+    deleteMany: Mock;
+  };
+};
+
+describe('ScheduledJobs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
