@@ -39,7 +39,7 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
   const completedTermSet = new Set(completedTerms.map(j => j.searchTerm));
 
   // Track search terms and their job IDs
-  const termMap = new Map<string, Array<{ job: any; priority: number; state: string }>>();
+  const termMap = new Map<string, Array<{ job: any; priority: number; state: string }>>();  // BullMQ job types vary based on queue state
 
   // Build map of search terms to jobs
   for (const job of allPendingJobs) {
