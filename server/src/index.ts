@@ -485,13 +485,20 @@ app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Start server
-const server = app.listen(config.server.port, config.server.host, () => {
-  logger.info(`Server running on http://${config.server.host}:${config.server.port}`);
-  if (config.queue.dashboard.enabled) {
-    logger.info(`Bull Dashboard available at http://${config.server.host}:${config.server.port}${config.queue.dashboard.basePath}`);
-  }
-  logger.info(`Environment: ${config.env.nodeEnv}`);
+// Export the app for testing
+export default app;
+
+// Only start the server if this file is run directly (not imported in tests)
+// This prevents EADDRINUSE errors when multiple test files import the app
+let server: ReturnType<typeof app.listen>;
+
+if (require.main === module) {
+  server = app.listen(config.server.port, config.server.host, () => {
+    logger.info(`Server running on http://${config.server.host}:${config.server.port}`);
+    if (config.queue.dashboard.enabled) {
+      logger.info(`Bull Dashboard available at http://${config.server.host}:${config.server.port}${config.queue.dashboard.basePath}`);
+    }
+    logger.info(`Environment: ${config.env.nodeEnv}`);
 
   // Initialize scheduled jobs
   scheduledJobs.initialize();
@@ -519,51 +526,50 @@ const server = app.listen(config.server.port, config.server.host, () => {
     updateIntervalMs: 3600000, // 1 hour (configurable)
   });
   logger.info('Code complexity analysis will run every 1 hour');
-});
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM signal received: closing HTTP server');
-
-  server.close(() => {
-    logger.info('HTTP server closed');
   });
 
-  // Flush Sentry events before shutdown
-  logger.info('Flushing Sentry events...');
-  await sentryFlush(2000);
+  // Graceful shutdown handlers (only register when server is running)
+  process.on('SIGTERM', async () => {
+    logger.info('SIGTERM signal received: closing HTTP server');
 
-  // Close queue connections
-  await scraperQueue.close();
+    server.close(() => {
+      logger.info('HTTP server closed');
+    });
 
-  // Close scheduled jobs
-  scheduledJobs.stop();
+    // Flush Sentry events before shutdown
+    logger.info('Flushing Sentry events...');
+    await sentryFlush(2000);
 
-  // Cleanup token refresh service
-  await tokenRefreshService.cleanup();
+    // Close queue connections
+    await scraperQueue.close();
 
-  // Stop code complexity analysis
-  stopPeriodicAnalysis();
+    // Close scheduled jobs
+    scheduledJobs.stop();
 
-  process.exit(0);
-});
+    // Cleanup token refresh service
+    await tokenRefreshService.cleanup();
 
-process.on('SIGINT', async () => {
-  logger.info('SIGINT signal received: closing HTTP server');
+    // Stop code complexity analysis
+    stopPeriodicAnalysis();
 
-  server.close(() => {
-    logger.info('HTTP server closed');
+    process.exit(0);
   });
 
-  // Flush Sentry events before shutdown
-  await sentryFlush(2000);
+  process.on('SIGINT', async () => {
+    logger.info('SIGINT signal received: closing HTTP server');
 
-  await scraperQueue.close();
-  scheduledJobs.stop();
-  await tokenRefreshService.cleanup();
-  stopPeriodicAnalysis();
+    server.close(() => {
+      logger.info('HTTP server closed');
+    });
 
-  process.exit(0);
-});
+    // Flush Sentry events before shutdown
+    await sentryFlush(2000);
 
-export default app;
+    await scraperQueue.close();
+    scheduledJobs.stop();
+    await tokenRefreshService.cleanup();
+    stopPeriodicAnalysis();
+
+    process.exit(0);
+  });
+}
