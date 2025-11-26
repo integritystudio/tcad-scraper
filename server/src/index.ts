@@ -43,7 +43,9 @@ logConfigSummary();
 const app = express();
 
 // Trust proxy - required for X-Forwarded-For header handling behind reverse proxy
-app.set('trust proxy', true);
+// Set to 1 to trust the first hop (nginx reverse proxy)
+// This is more secure than `true` which trusts all proxies
+app.set('trust proxy', 1);
 
 // Sentry request handler MUST be the first middleware
 app.use(sentryRequestHandler());
