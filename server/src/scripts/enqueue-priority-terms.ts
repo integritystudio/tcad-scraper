@@ -1,9 +1,10 @@
 import { scraperQueue } from '../queues/scraper.queue';
+import logger from '../lib/logger';
 
 const PRIORITY_TERMS = ['Lake', 'River', 'Pecan', 'Maple', 'Oak', 'Mount', 'Limited'];
 
 async function enqueuePriorityTerms() {
-  console.log('Enqueueing priority search terms...');
+  logger.info('Enqueueing priority search terms...');
 
   for (const term of PRIORITY_TERMS) {
     try {
@@ -12,18 +13,18 @@ async function enqueuePriorityTerms() {
         { searchTerm: term },
         { priority: 1 } // Higher priority (lower number = higher priority in Bull)
       );
-      console.log(`✓ Enqueued: ${term}`);
+      logger.info(`✓ Enqueued: ${term}`);
     } catch (error) {
-      console.error(`✗ Failed to enqueue ${term}:`, error);
+      logger.error({ error, term }, `✗ Failed to enqueue ${term}`);
     }
   }
 
-  console.log(`\n✓ Successfully enqueued ${PRIORITY_TERMS.length} priority terms`);
-  console.log('These jobs will be processed before other waiting jobs');
+  logger.info(`\n✓ Successfully enqueued ${PRIORITY_TERMS.length} priority terms`);
+  logger.info('These jobs will be processed before other waiting jobs');
   process.exit(0);
 }
 
 enqueuePriorityTerms().catch((err) => {
-  console.error('Error:', err);
+  logger.error({ err }, 'Error');
   process.exit(1);
 });

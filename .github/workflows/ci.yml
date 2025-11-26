@@ -34,11 +34,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install root dependencies
-        run: npm install
+        run: npm ci --omit=optional || npm install
 
       - name: Install server dependencies
         working-directory: ./server
-        run: npm install
+        run: npm ci --omit=optional || npm install
 
       - name: Run ESLint (Root)
         run: npm run lint --if-present
@@ -192,11 +192,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install root dependencies
-        run: npm install
+        run: npm ci || npm install
 
       - name: Install server dependencies
         working-directory: ./server
-        run: npm install
+        run: npm ci || npm install
 
       - name: Build Frontend
         env:
@@ -257,19 +257,20 @@ jobs:
         continue-on-error: true
 
   # Job 6: Dependency Review (PRs only)
-  dependency-review:
-    name: Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: moderate
+  # NOTE: Disabled - Requires GitHub Advanced Security to be enabled
+  # dependency-review:
+  #   name: Dependency Review
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'pull_request'
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Dependency Review
+  #       uses: actions/dependency-review-action@v4
+  #       with:
+  #         fail-on-severity: moderate
 
   # Summary Job
   ci-success:

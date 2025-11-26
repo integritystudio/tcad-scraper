@@ -10,6 +10,7 @@
  */
 
 import dotenv from 'dotenv';
+import { execSync } from 'child_process';
 import logger from '../lib/logger';
 
 // Load environment variables from .env or Doppler
@@ -219,7 +220,6 @@ export const config = {
     apiKey: process.env.ANTHROPIC_API_KEY || (() => {
       // Fallback: Try to fetch from Doppler personal-info/dev if not in current env
       try {
-        const { execSync } = require('child_process');
         const key = execSync('doppler secrets get ANTHROPIC_API_KEY -p personal-info -c dev --plain', {
           encoding: 'utf-8',
           stdio: ['pipe', 'pipe', 'pipe']

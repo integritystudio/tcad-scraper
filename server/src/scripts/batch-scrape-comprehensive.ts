@@ -218,6 +218,7 @@ class ComprehensiveBatchScraper {
 
     const checkInterval = 30000; // Check every 30 seconds
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       await this.delay(checkInterval);
 
