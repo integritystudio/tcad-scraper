@@ -5,7 +5,7 @@
  * These tests ensure the fixes remain stable and prevent regression.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('CI/CD Fixes - Property Controller', () => {
   describe('Return statement validation', () => {
@@ -36,11 +36,11 @@ describe('CI/CD Fixes - Property Controller', () => {
       // This test verifies that unused parameters are prefixed with underscore
       // The actual validation happens at TypeScript compile time
       // We just verify the methods are defined
-      const mockReq = {} as any;
+      const mockReq = {} as unknown;
       const mockRes = {
         json: vi.fn().mockReturnThis(),
         status: vi.fn().mockReturnThis(),
-      } as any;
+      } as unknown;
 
       // Verify methods accept _req parameter without TypeScript errors
       expect(() => {

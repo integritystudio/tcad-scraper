@@ -8,7 +8,7 @@
  * - Queue configuration is correct
  */
 
-import { describe, test, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, test, expect, afterAll } from 'vitest';
 import { scraperQueue } from '../queues/scraper.queue';
 import { ScrapeJobData } from '../types';
 import Bull from 'bull';
@@ -140,7 +140,7 @@ describe.skipIf(!(await checkRedis()))('Queue Enqueuing Tests', () => {
       const invalidData = {
         userId: 'test-user',
         scheduled: true,
-      } as any;
+      } as ScrapeJobData;
 
       const job = await scraperQueue.add('scrape-properties', invalidData);
 
@@ -201,8 +201,8 @@ describe.skipIf(!(await checkRedis()))('Queue Enqueuing Tests', () => {
       });
 
       expect(job.opts.backoff).toBeDefined();
-      expect((job.opts.backoff as any).type).toBe('exponential');
-      expect((job.opts.backoff as any).delay).toBe(5000);
+      expect((job.opts.backoff as { type: string; delay: number }).type).toBe('exponential');
+      expect((job.opts.backoff as { type: string; delay: number }).delay).toBe(5000);
 
       // Clean up
       await job.remove();
@@ -300,7 +300,7 @@ describe.skipIf(!(await checkRedis()))('Queue Enqueuing Tests', () => {
       jobs.forEach(job => {
         expect(job.opts.attempts).toBe(3);
         expect(job.opts.priority).toBe(1);
-        expect((job.opts.backoff as any).delay).toBe(2000);
+        expect((job.opts.backoff as { type: string; delay: number }).delay).toBe(2000);
       });
 
       // Clean up

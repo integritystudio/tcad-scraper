@@ -2,7 +2,7 @@
  * Integration Tests for XController Implementation
  */
 
-import { describe, test, expect, beforeAll, afterAll } from 'vitest';
+import { describe, test, expect } from 'vitest';
 import request from 'supertest';
 import app from '../index';
 import { isRedisAvailable } from './test-utils';
@@ -165,7 +165,6 @@ describe('Integration Tests', () => {
       const response = await request(app).get('/');
 
       // Should not have unescaped script tags in data
-      const dangerousPattern = /<script[^>]*>[\s\S]*?<\/script>[\s\S]*?<script>/;
       const scriptSections = response.text.match(/<script[^>]*>[\s\S]*?<\/script>/g);
 
       if (scriptSections && scriptSections.length > 0) {

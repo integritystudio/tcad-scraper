@@ -11,11 +11,11 @@ import request from 'supertest';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 // Skip these tests in CI or if database is not available
-const shouldSkip = !process.env.RUN_INTEGRATION_TESTS && process.env.CI === 'true';
+const _shouldSkip = !process.env.RUN_INTEGRATION_TESTS && process.env.CI === 'true';
 
 describe.skip('API Integration Tests', () => {
-  let app: any;
-  let prisma: any;
+  let app: unknown;
+  let prisma: unknown;
 
   beforeAll(async () => {
     // Import dependencies
@@ -152,7 +152,7 @@ describe.skip('API Integration Tests', () => {
         .get('/api/properties?minValue=400000')
         .expect(200);
 
-      response.body.data.forEach((property: any) => {
+      response.body.data.forEach((property: { appraisedValue: number }) => {
         expect(property.appraisedValue).toBeGreaterThanOrEqual(400000);
       });
     });
