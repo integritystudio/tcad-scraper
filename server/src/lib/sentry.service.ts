@@ -13,6 +13,7 @@
 
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import type { ErrorRequestHandler } from 'express';
 import {
   httpIntegration,
   expressIntegration,
@@ -150,7 +151,7 @@ export const sentryTracingHandler = () => {
 /**
  * Sentry error handler middleware (must be last, before other error handlers)
  */
-export const sentryErrorHandler = (): any => {
+export const sentryErrorHandler = (): ErrorRequestHandler => {
   if (!config.monitoring.sentry.enabled) {
     return (_err: Error, _req: Request, _res: Response, next: NextFunction) => next(_err);
   }
@@ -165,7 +166,7 @@ export const sentryErrorHandler = (): any => {
 /**
  * Manually capture an exception
  */
-export function captureException(error: Error, context?: Record<string, any>): string {
+export function captureException(error: Error, context?: Record<string, unknown>): string {
   if (!config.monitoring.sentry.enabled) {
     logger.error(`Error (Sentry disabled): ${error.message}`);
     return '';
@@ -179,7 +180,7 @@ export function captureException(error: Error, context?: Record<string, any>): s
 /**
  * Capture a message
  */
-export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, any>): string {
+export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, unknown>): string {
   if (!config.monitoring.sentry.enabled) {
     logger.info(`Message (Sentry disabled) [${level}]: ${message}`);
     return '';
@@ -198,7 +199,7 @@ export function addBreadcrumb(breadcrumb: {
   message: string;
   category?: string;
   level?: Sentry.SeverityLevel;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }): void {
   if (!config.monitoring.sentry.enabled) {
     return;
@@ -277,7 +278,7 @@ export function setTags(tags: Record<string, string>): void {
  * Start a performance transaction (Sentry v8: use startSpan instead)
  * @deprecated Use Sentry.startSpan() directly for Sentry v8
  */
-export function startTransaction(name: string, op: string): any {
+export function startTransaction(name: string, op: string): { setStatus: () => void; finish: () => void } | null {
   if (!config.monitoring.sentry.enabled) {
     return null;
   }
@@ -295,7 +296,7 @@ export function startTransaction(name: string, op: string): any {
 /**
  * Wrap async function with error tracking (Sentry v8: use startSpan)
  */
-export function wrapAsync<T extends (...args: any[]) => Promise<any>>(
+export function wrapAsync<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   name?: string
 ): T {
