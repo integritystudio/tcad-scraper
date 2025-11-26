@@ -1,4 +1,5 @@
 import { scraperQueue } from '../queues/scraper.queue';
+import logger from '../lib/logger';
 
 // High-value terms identified from last hour analysis
 const HIGH_PRIORITY_TERMS = [
@@ -11,7 +12,7 @@ const HIGH_PRIORITY_TERMS = [
 ];
 
 async function enqueueHighPriority() {
-  console.log('Enqueueing high-priority search terms from analysis...\n');
+  logger.info('Enqueueing high-priority search terms from analysis...\n');
 
   for (const term of HIGH_PRIORITY_TERMS) {
     try {
@@ -20,18 +21,18 @@ async function enqueueHighPriority() {
         { searchTerm: term },
         { priority: 1 } // Highest priority
       );
-      console.log(`✓ Enqueued: ${term}`);
+      logger.info(`✓ Enqueued: ${term}`);
     } catch (error) {
-      console.error(`✗ Failed to enqueue ${term}:`, error);
+      logger.error(`✗ Failed to enqueue ${term}:`, error);
     }
   }
 
-  console.log(`\n✓ Successfully enqueued ${HIGH_PRIORITY_TERMS.length} high-priority terms`);
-  console.log('Expected total: 24,000+ properties from these 6 terms alone!');
+  logger.info(`\n✓ Successfully enqueued ${HIGH_PRIORITY_TERMS.length} high-priority terms`);
+  logger.info('Expected total: 24,000+ properties from these 6 terms alone!');
   process.exit(0);
 }
 
 enqueueHighPriority().catch((err) => {
-  console.error('Error:', err);
+  logger.error('Error:', err);
   process.exit(1);
 });

@@ -1,4 +1,5 @@
 import { scraperQueue } from '../queues/scraper.queue';
+import logger from '../lib/logger';
 
 // Ultra-high-value terms based on complete database analysis
 // These are PROVEN patterns that haven't been tried yet
@@ -21,8 +22,8 @@ const ULTRA_HIGH_PRIORITY = [
 ];
 
 async function enqueueUltraHighPriority() {
-  console.log('🚀 Enqueueing ULTRA-high-priority terms...\n');
-  console.log('Expected yield: 40,000-60,000 properties from these 10 terms!\n');
+  logger.info('🚀 Enqueueing ULTRA-high-priority terms...\n');
+  logger.info('Expected yield: 40,000-60,000 properties from these 10 terms!\n');
 
   for (const term of ULTRA_HIGH_PRIORITY) {
     try {
@@ -31,17 +32,17 @@ async function enqueueUltraHighPriority() {
         { searchTerm: term },
         { priority: -100 }  // Ultra-high priority
       );
-      console.log(`✓ Enqueued: ${term}`);
+      logger.info(`✓ Enqueued: ${term}`);
     } catch (error) {
-      console.error(`✗ Failed to enqueue ${term}:`, error);
+      logger.error(`✗ Failed to enqueue ${term}:`, error);
     }
   }
 
-  console.log(`\n✅ Successfully enqueued ${ULTRA_HIGH_PRIORITY.length} ultra-high-priority terms`);
+  logger.info(`\n✅ Successfully enqueued ${ULTRA_HIGH_PRIORITY.length} ultra-high-priority terms`);
   process.exit(0);
 }
 
 enqueueUltraHighPriority().catch((err) => {
-  console.error('Error:', err);
+  logger.error('Error:', err);
   process.exit(1);
 });
