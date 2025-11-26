@@ -16,7 +16,7 @@ export class PropertyController {
   /**
    * POST /api/properties/scrape - Trigger a new scrape job
    */
-  async scrapeProperties(req: Request<Record<string, never>, Record<string, never>, ScrapeRequestBody>, res: Response) {
+  async scrapeProperties(req: Request<object, object, ScrapeRequestBody>, res: Response) {
     const validatedData = req.body;
 
     // Check rate limiting
@@ -80,7 +80,7 @@ export class PropertyController {
    * GET /api/properties - Get properties from database with filters
    * Cached for 5 minutes per unique filter combination
    */
-  async getProperties(req: Request<Record<string, never>, Record<string, never>, Record<string, never>, PropertyFilters>, res: Response, _next: NextFunction) {
+  async getProperties(req: Request<object, object, object, PropertyFilters>, res: Response, _next: NextFunction) {
     const filters = req.query as PropertyFilters;
 
     // Generate cache key based on filters
@@ -154,7 +154,7 @@ export class PropertyController {
   /**
    * POST /api/properties/search - Natural language search powered by Claude
    */
-  async naturalLanguageSearch(req: Request<Record<string, never>, Record<string, never>, NaturalLanguageSearchBody>, res: Response) {
+  async naturalLanguageSearch(req: Request<object, object, NaturalLanguageSearchBody>, res: Response) {
     const { query, limit = 100, offset = 0 } = req.body;
 
     if (!query || typeof query !== 'string') {
@@ -211,7 +211,7 @@ export class PropertyController {
   /**
    * GET /api/properties/history - Get scrape job history
    */
-  async getScrapeHistory(req: Request<Record<string, never>, Record<string, never>, Record<string, never>, HistoryQueryParams>, res: Response, _next: NextFunction) {
+  async getScrapeHistory(req: Request<object, object, object, HistoryQueryParams>, res: Response, _next: NextFunction) {
     const { limit = 20, offset = 0 } = req.query;
 
     const jobs = await prismaReadOnly.scrapeJob.findMany({
@@ -298,7 +298,7 @@ export class PropertyController {
   /**
    * POST /api/properties/monitor - Add a search term to monitor
    */
-  async addMonitoredSearch(req: Request<Record<string, never>, Record<string, never>, MonitorRequestBody>, res: Response) {
+  async addMonitoredSearch(req: Request<object, object, MonitorRequestBody>, res: Response) {
     const { searchTerm, frequency = 'daily' } = req.body;
 
     if (!searchTerm) {
