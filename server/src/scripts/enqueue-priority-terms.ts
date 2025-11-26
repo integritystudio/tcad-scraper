@@ -15,7 +15,7 @@ async function enqueuePriorityTerms() {
       );
       logger.info(`✓ Enqueued: ${term}`);
     } catch (error) {
-      logger.error(`✗ Failed to enqueue ${term}:`, error);
+      logger.error({ error, term }, `✗ Failed to enqueue ${term}`);
     }
   }
 
@@ -25,6 +25,6 @@ async function enqueuePriorityTerms() {
 }
 
 enqueuePriorityTerms().catch((err) => {
-  logger.error('Error:', err);
+  logger.error({ err }, 'Error');
   process.exit(1);
 });
