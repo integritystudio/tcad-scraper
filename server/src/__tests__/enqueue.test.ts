@@ -12,8 +12,16 @@ import { describe, test, expect, beforeAll, afterAll, vi } from 'vitest';
 import { scraperQueue } from '../queues/scraper.queue';
 import { ScrapeJobData } from '../types';
 import Bull from 'bull';
+import { isRedisAvailable } from './test-utils';
 
-describe('Queue Enqueuing Tests', () => {
+// Check Redis availability at module load time
+let redisAvailable = false;
+const checkRedis = async () => {
+  redisAvailable = await isRedisAvailable(3000);
+  return redisAvailable;
+};
+
+describe.skipIf(!(await checkRedis()))('Queue Enqueuing Tests', () => {
   // Clean up after tests
   afterAll(async () => {
     await scraperQueue.close();
