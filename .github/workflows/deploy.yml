@@ -58,6 +58,9 @@ jobs:
 
             # Get FRONTEND_PORT from Doppler (used for build, not deployment)
             export FRONTEND_PORT=$(doppler secrets get FRONTEND_PORT --plain 2>/dev/null || echo "5174")
+
+            # Get DATABASE_URL for build-time constant generation
+            export DATABASE_URL=$(doppler secrets get DATABASE_URL --plain 2>/dev/null || echo "")
           else
             # Fallback if Doppler token is not available
             export VITE_API_URL="https://api.alephatx.info/api"
@@ -66,6 +69,11 @@ jobs:
 
           echo "Building with API_URL: $VITE_API_URL"
           echo "Frontend Port: $FRONTEND_PORT"
+
+          # Install server dependencies for Prisma client (needed for build-time script)
+          cd server && npm install && npx prisma generate && cd ..
+
+          # Run build (prebuild script will generate constants from database)
           npm run build
 
       # Note: Removed "Build db layer" step - not needed for static GitHub Pages deployment

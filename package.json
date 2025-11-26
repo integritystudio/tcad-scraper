@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "npx tsx scripts/generate-build-constants.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",

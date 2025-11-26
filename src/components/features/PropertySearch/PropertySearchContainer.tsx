@@ -3,7 +3,7 @@ import { usePropertySearch, useAnalytics } from '../../../hooks';
 import { SearchBox } from './SearchBox';
 import { ExampleQueries } from './ExampleQueries';
 import { SearchResults } from './SearchResults';
-import { propertyAPI } from '../../../services/api.service';
+import { BUILD_CONSTANTS } from '../../../constants/build';
 import styles from './PropertySearchContainer.module.css';
 
 export const PropertySearchContainer = () => {
@@ -11,7 +11,6 @@ export const PropertySearchContainer = () => {
     usePropertySearch();
   const { logSearch, logSearchResults, logError } = useAnalytics();
   const [searchQuery, setSearchQuery] = useState('');
-  const [propertyCount, setPropertyCount] = useState<number | null>(null);
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -36,23 +35,9 @@ export const PropertySearchContainer = () => {
     }
   }, [error, logError]);
 
-  // Fetch property count on mount
-  useEffect(() => {
-    const fetchPropertyCount = async () => {
-      try {
-        const count = await propertyAPI.getPropertyCount();
-        setPropertyCount(count);
-      } catch (err) {
-        console.error('Failed to fetch property count:', err);
-        // Fall back to null, will show loading or default message
-      }
-    };
-
-    fetchPropertyCount();
-  }, []);
-
-  // Format property count with commas
-  const formattedCount = propertyCount?.toLocaleString();
+  // Use build-time constant for property count (calculated during build)
+  const propertyCount = BUILD_CONSTANTS.TOTAL_PROPERTIES;
+  const formattedCount = BUILD_CONSTANTS.TOTAL_PROPERTIES_FORMATTED;
 
   return (
     <div className={styles.container}>

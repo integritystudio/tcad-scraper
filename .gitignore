@@ -35,3 +35,5 @@ repomix-output.xml
 .DS_Store
 Thumbs.db
 coverage/
+# Auto-generated build constants
+src/constants/build.ts
