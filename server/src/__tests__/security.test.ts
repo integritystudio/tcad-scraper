@@ -46,8 +46,10 @@ describe('Security Tests', () => {
       const malicious = { text: '\u003Cscript\u003Ealert("xss")\u003C/script\u003E' };
       const encoded = encodeJsonForHtml(malicious);
 
-      // Should be double-encoded
-      expect(encoded).toContain('\\\\u003C');
+      // Unicode escapes in source code become literal characters at runtime (<script>)
+      // So they should be encoded the same way as literal < characters
+      expect(encoded).not.toContain('<script>');
+      expect(encoded).toContain('\\u003Cscript\\u003E');
     });
 
     test('should prevent data URI injection', () => {
