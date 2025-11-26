@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import logger from '../lib/logger';
 
 const prisma = new PrismaClient();
@@ -174,7 +174,7 @@ export class SearchTermOptimizer {
       recentDays = 7,
     } = config;
 
-    const whereClause: any = {
+    const whereClause: Prisma.SearchTermAnalyticsWhereInput = {
       efficiency: { gte: minEfficiency },
       successRate: { gte: minSuccessRate },
     };
@@ -263,7 +263,21 @@ export class SearchTermOptimizer {
   }> {
     const allAnalytics = await this.prisma.searchTermAnalytics.findMany();
 
-    const byLength: Record<number, any> = {};
+    interface LengthAccumulator {
+      count: number;
+      totalEfficiency: number;
+      totalAvgResults: number;
+      totalSuccessRate: number;
+    }
+
+    interface LengthAggregation {
+      count: number;
+      avgEfficiency: number;
+      avgResultsPerSearch: number;
+      avgSuccessRate: number;
+    }
+
+    const byLength: Record<number, LengthAccumulator | LengthAggregation> = {};
 
     for (const analytics of allAnalytics) {
       if (!byLength[analytics.termLength]) {
@@ -275,15 +289,16 @@ export class SearchTermOptimizer {
         };
       }
 
-      byLength[analytics.termLength].count++;
-      byLength[analytics.termLength].totalEfficiency += analytics.efficiency;
-      byLength[analytics.termLength].totalAvgResults += analytics.avgResultsPerSearch;
-      byLength[analytics.termLength].totalSuccessRate += analytics.successRate;
+      const accumulator = byLength[analytics.termLength] as LengthAccumulator;
+      accumulator.count++;
+      accumulator.totalEfficiency += analytics.efficiency;
+      accumulator.totalAvgResults += analytics.avgResultsPerSearch;
+      accumulator.totalSuccessRate += analytics.successRate;
     }
 
     // Calculate averages
     for (const length in byLength) {
-      const data = byLength[length];
+      const data = byLength[length] as LengthAccumulator;
       byLength[length] = {
         count: data.count,
         avgEfficiency: data.totalEfficiency / data.count,
@@ -292,7 +307,7 @@ export class SearchTermOptimizer {
       };
     }
 
-    return { byLength };
+    return { byLength: byLength as Record<number, LengthAggregation> };
   }
 
   /**

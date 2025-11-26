@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { scraperQueue, canScheduleJob } from '../queues/scraper.queue';
 import { prisma, prismaReadOnly } from '../lib/prisma';
+import { Prisma } from '@prisma/client';
 import { ScrapeResponse } from '../types';
 import { claudeSearchService } from '../lib/claude.service';
 import { cacheService } from '../lib/redis-cache.service';
@@ -332,8 +333,8 @@ export class PropertyController {
   /**
    * Helper method to build Prisma where clause from filters
    */
-  private buildWhereClause(filters: PropertyFilters) {
-    const where: any = {};
+  private buildWhereClause(filters: PropertyFilters): Prisma.PropertyWhereInput {
+    const where: Prisma.PropertyWhereInput = {};
 
     if (filters.searchTerm) {
       where.OR = [
