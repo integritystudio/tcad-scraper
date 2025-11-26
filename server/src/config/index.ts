@@ -150,7 +150,7 @@ export const config = {
       directives: {
         defaultSrc: parseArrayEnv('CSP_DEFAULT_SRC', ["'self'"]),
         scriptSrc: parseArrayEnv('CSP_SCRIPT_SRC', ["'self'"]),
-        styleSrc: parseArrayEnv('CSP_STYLE_SRC', ["'self'", "'unsafe-inline'"]),
+        styleSrc: parseArrayEnv('CSP_STYLE_SRC', ["'self'"]),
         imgSrc: parseArrayEnv('CSP_IMG_SRC', ["'self'", 'data:', 'https:']),
         fontSrc: parseArrayEnv('CSP_FONT_SRC', ["'self'", 'data:']),
         connectSrc: parseArrayEnv('CSP_CONNECT_SRC', ["'self'"]),

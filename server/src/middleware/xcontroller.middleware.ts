@@ -24,6 +24,7 @@ export function encodeJsonForHtml(data: any): string {
     .replace(/</g, '\\u003C')
     .replace(/>/g, '\\u003E')
     .replace(/&/g, '\\u0026')
+    .replace(/=/g, '\\u003D')       // Equals sign (prevents attribute injection)
     .replace(/\u2028/g, '\\u2028')  // Line separator
     .replace(/\u2029/g, '\\u2029'); // Paragraph separator
 }
