@@ -1,29 +1,44 @@
 /**
  * Token Refresh Service Tests
- *
- * REFACTORED: Using factory-based mocking pattern for Playwright
- * See: server/MOCKING_BEST_PRACTICES.md
  */
 
 import { describe, it, test, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Declare mock variables (will be populated in beforeEach)
-let mockBrowser: any;
-let mockContext: any;
-let mockPage: any;
-let mockCronJob: any;
+// Use vi.hoisted to declare mocks before they're used
+const { mockPage, mockCronJob } = vi.hoisted(() => {
+  const mockPage = {
+    goto: vi.fn(),
+    waitForFunction: vi.fn(),
+    waitForSelector: vi.fn(),
+    type: vi.fn(),
+    press: vi.fn(),
+    on: vi.fn(),
+  };
 
-// Mock Playwright using factory function that accesses current mock values
+  const mockCronJob = {
+    stop: vi.fn(),
+  };
+
+  return { mockPage, mockCronJob };
+});
+
+// Mock Playwright
 vi.mock('playwright', () => ({
   chromium: {
-    launch: vi.fn(() => Promise.resolve(mockBrowser)),
+    launch: vi.fn().mockResolvedValue({
+      newContext: vi.fn().mockResolvedValue({
+        newPage: vi.fn().mockResolvedValue(mockPage),
+        close: vi.fn(),
+      }),
+      close: vi.fn(),
+    }),
   },
 }));
 
-// Mock node-cron using factory function
+// Mock node-cron
 vi.mock('node-cron', () => ({
   default: {
-    schedule: vi.fn(() => mockCronJob),
+    schedule: vi.fn().mockReturnValue(mockCronJob),
   },
 }));
 
@@ -48,31 +63,6 @@ describe('TCADTokenRefreshService', () => {
   let service: TCADTokenRefreshService;
 
   beforeEach(() => {
-    // Create fresh mocks for each test (factory pattern)
-    mockPage = {
-      goto: vi.fn().mockResolvedValue(undefined),
-      waitForFunction: vi.fn().mockResolvedValue(undefined),
-      waitForSelector: vi.fn().mockResolvedValue(undefined),
-      type: vi.fn().mockResolvedValue(undefined),
-      press: vi.fn().mockResolvedValue(undefined),
-      on: vi.fn(),
-      close: vi.fn().mockResolvedValue(undefined),
-    };
-
-    mockContext = {
-      newPage: vi.fn().mockResolvedValue(mockPage),
-      close: vi.fn().mockResolvedValue(undefined),
-    };
-
-    mockBrowser = {
-      newContext: vi.fn().mockResolvedValue(mockContext),
-      close: vi.fn().mockResolvedValue(undefined),
-    };
-
-    mockCronJob = {
-      stop: vi.fn(),
-    };
-
     vi.clearAllMocks();
     service = new TCADTokenRefreshService();
   });
@@ -191,7 +181,7 @@ describe('TCADTokenRefreshService', () => {
 
     it('should initialize browser on first refresh', async () => {
       // Mock successful token capture
-      mockPage.on.mockImplementation((event: string, handler: any) => {
+      mockPage.on.mockImplementation((event, handler) => {
         if (event === 'request') {
           // Simulate a request with auth header
           setTimeout(() => {

@@ -76,8 +76,9 @@ describe('Metrics Middleware', () => {
     const duration = call[3];
 
     // Duration should be in seconds and approximately 0.1
-    expect(duration).toBeGreaterThanOrEqual(0.1);
-    expect(duration).toBeLessThan(0.2); // Allow some tolerance
+    // Allow 5ms tolerance for timing precision (0.095s - 0.2s range)
+    expect(duration).toBeGreaterThanOrEqual(0.095);
+    expect(duration).toBeLessThan(0.2);
   });
 
   it('should record correct HTTP method', () => {
