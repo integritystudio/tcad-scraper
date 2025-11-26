@@ -66,7 +66,10 @@ npm run test:coverage # With coverage report
 **Prerequisites**:
 - ✅ **Tailscale VPN** must be running (`tailscale status`)
 - ✅ **PostgreSQL** database accessible via Tailscale
-- ✅ **Redis** must be running (local or hobbes)
+- ✅ **Redis** must be running (local or hobbes via Tailscale)
+  - For production scraping: Use hobbes Redis (`REDIS_HOST=hobbes`)
+  - For local testing: Can use `REDIS_HOST=localhost`
+  - Tests auto-skip if Redis unavailable (using `isRedisAvailable()` helper)
 - ✅ **DATABASE_URL** configured in environment
 
 **Run with**:
@@ -154,7 +157,7 @@ npm run test:enqueue                  # Queue enqueue test only
 - Queue tests: ⚠️ Failing due to Redis unavailable (requires hobbes connection)
 - Server health checks: ⚠️ Queue health failing due to Redis
 
-**Note**: Integration tests require external services (PostgreSQL via Tailscale, Redis on hobbes). Most tests pass when infrastructure is available.
+**Note**: Integration tests require external services (PostgreSQL via Tailscale, Redis on hobbes). Tests automatically skip when infrastructure is unavailable to prevent timeouts and false failures.
 
 ## Running All Tests
 
@@ -165,6 +168,41 @@ npm run test:all
 # With coverage
 npm run test:all:coverage
 ```
+
+## Test Utilities
+
+### Infrastructure Availability Checking
+
+`src/__tests__/test-utils.ts` provides helper functions for handling infrastructure dependencies:
+
+**`isRedisAvailable(timeoutMs?: number): Promise<boolean>`**
+- Checks if Redis is responsive within the timeout (default 2000ms)
+- Returns `true` if Redis can be pinged, `false` otherwise
+- Uses fail-fast connection strategy to avoid test timeouts
+
+**Usage in tests**:
+```typescript
+import { isRedisAvailable } from './test-utils';
+
+// Skip entire test suite if Redis unavailable
+describe.skipIf(!(await isRedisAvailable()))('Queue Tests', () => {
+  // Tests that require Redis
+});
+
+// Skip individual test
+test('should use queue', async () => {
+  if (!(await isRedisAvailable())) {
+    console.log('⏭️  Skipping: Redis not available');
+    return;
+  }
+  // Test code
+});
+```
+
+**Other utilities**:
+- `skipIfRedisUnavailable()` - Programmatically skip test if Redis unavailable
+- `skipIfDatabaseUnavailable()` - Skip if DATABASE_URL not configured
+- `isTailscaleConnected()` - Heuristic check for Tailscale VPN requirement
 
 ## Common Test Patterns
 
