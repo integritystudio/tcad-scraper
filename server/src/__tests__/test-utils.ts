@@ -74,7 +74,7 @@ export async function skipIfDatabaseUnavailable(): Promise<void> {
  *   // test code
  * });
  */
-export function testWithRedis(name: string, fn: () => void | Promise<void>, testTimeout?: number) {
+export function testWithRedis(name: string, fn: () => void | Promise<void>, _testTimeout?: number) {
   return async () => {
     const available = await isRedisAvailable();
     if (!available) {
