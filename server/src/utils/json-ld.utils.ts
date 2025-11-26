@@ -37,6 +37,50 @@ export interface SearchAction {
   'query-input': string;
 }
 
+export interface RealEstateListingJsonLd extends JsonLdBase {
+  '@type': 'RealEstateListing' | string;
+  identifier: string;
+  name: string;
+  description: string;
+  address: {
+    '@type': 'PostalAddress';
+    streetAddress?: string;
+    addressLocality?: string;
+    addressRegion: string;
+    addressCountry: string;
+    postalCode?: string;
+  };
+  geo?: {
+    '@type': 'GeoCoordinates';
+    latitude: number;
+    longitude: number;
+  };
+  additionalType?: string;
+  seller?: {
+    '@type': string;
+    name: string;
+  };
+  offers: Record<string, unknown>;
+  url?: string;
+  provider?: {
+    '@type': 'Organization';
+    name: string;
+    url?: string;
+    sameAs?: string[];
+  };
+  containedInPlace?: {
+    '@type': string;
+    name: string;
+  };
+  datePosted?: string;
+  dateModified?: string;
+  potentialAction?: Array<{
+    '@type': string;
+    target?: string;
+    name?: string;
+  }>;
+}
+
 // ============================================================================
 // Individual Property JSON-LD
 // ============================================================================
@@ -49,8 +93,8 @@ export function generatePropertyJsonLd(
   property: PropertyAPI,
   organizationName = 'Travis County Appraisal District',
   websiteUrl = 'https://example.com'
-): object {
-  const jsonLd: any = {
+): RealEstateListingJsonLd {
+  const jsonLd: RealEstateListingJsonLd = {
     '@context': 'https://schema.org',
     '@type': property['@type'] || 'RealEstateListing',
     '@id': `${websiteUrl}/properties/${property.propertyId}`,
@@ -64,11 +108,11 @@ export function generatePropertyJsonLd(
     // Address with full PostalAddress structure
     address: {
       '@type': 'PostalAddress',
-      streetAddress: property.address.streetAddress,
-      addressLocality: property.address.addressLocality,
+      ...(property.address.streetAddress && { streetAddress: property.address.streetAddress }),
+      ...(property.address.addressLocality && { addressLocality: property.address.addressLocality }),
       addressRegion: property.address.addressRegion,
       addressCountry: property.address.addressCountry,
-      postalCode: property.address.postalCode
+      ...(property.address.postalCode && { postalCode: property.address.postalCode })
     },
 
     // Geographic coordinates if available
