@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Last Updated**: November 17, 2025
+**Last Updated**: November 26, 2025
 
 ## Project Overview
 
@@ -400,10 +400,10 @@ npx prisma generate
 
 ### Test Framework: Vitest
 
-**Migration Status**: Jest → Vitest (85% complete)
-- 411 unit tests passing (67% pass rate, 85% excluding skipped tests)
-- 70 tests failing (11%)
-- 129 tests skipped (21%)
+**Migration Status**: Jest → Vitest (95% complete)
+- 489 unit tests passing (88% pass rate)
+- 0 tests failing (0%)
+- 67 tests skipped (12%)
 - Vitest provides faster execution and better ESM support
 - See `server/src/__tests__/README.md` for complete documentation
 
@@ -518,20 +518,16 @@ npm run test:security
 
 ### Known Test Issues
 
-**Remaining Jest → Vitest Migration** (70 tests failing, 9%):
-- **Frontend tests** (api-config.test.ts): Mock configuration for xcontroller DataController needs adjustment
-- **Backend tests**:
-  - `claude.service.test.ts` - Anthropic SDK mock configuration
-  - `property.routes.claude.test.ts` - Claude integration route mocks
-  - `tcad-scraper.test.ts` - Playwright browser mock initialization
-  - `token-refresh.service.test.ts` - Playwright + node-cron mock issues
-
-**Skipped Tests** (129 tests, 21%):
-- `scrape-scheduler.test.ts` - Scheduler tests (27 tests) - Complex mocking of node-cron, Bull queues, and Prisma
+**Skipped Tests** (67 tests, 12%):
 - Integration tests skipped when infrastructure unavailable (Tailscale, Redis, PostgreSQL)
 - Redis cache tests skipped by design (marked with `.skip()`)
+- `tcad-scraper.test.ts` - Playwright browser mock initialization (21 tests)
+- `token-refresh.service.test.ts` - Playwright + node-cron mock issues (3 tests)
 
-These complex mocks are tracked for future optimization and don't block development.
+**Recently Fixed** (November 26, 2025):
+- ✅ `scraper.queue.test.ts` - Fixed 8 BullMQ queue configuration and event listener tests
+- ✅ `scrape-scheduler.test.ts` - Fixed all 27 cron scheduler tests
+- All tests now use proper `vi.resetModules()` pattern for module isolation
 
 ---
 
