@@ -197,7 +197,7 @@ export class TCADTokenRefreshService {
                 const headers = request.headers();
                 return (
                   url.includes('api') &&
-                  (headers['authorization'] || headers['x-api-key'])
+                  !!(headers['authorization'] || headers['x-api-key'])
                 );
               },
               { timeout: 5000 }
