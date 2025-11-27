@@ -1,10 +1,35 @@
-import { chromium, Browser, Page } from 'playwright';
+import { chromium, Browser, Page, LaunchOptions } from 'playwright';
 import winston from 'winston';
 import { ScraperConfig, PropertyData } from '../types';
 import { config as appConfig } from '../config';
 import { scrapeDOMFallback } from './fallback/dom-scraper';
 import { tokenRefreshService } from '../services/token-refresh.service';
 import { suppressBrowserConsoleWarnings } from '../utils/browser-console-suppression';
+
+interface TCADApiResponse {
+  totalCount: number;
+  results: TCADPropertyResult[];
+  pageSize: number;
+}
+
+interface TCADPropertyResult {
+  pid?: number;
+  displayName?: string;
+  propType?: string;
+  city?: string;
+  streetPrimary?: string;
+  assessedValue?: string | number;
+  appraisedValue?: string | number;
+  geoID?: string;
+  legalDescription?: string;
+}
+
+interface NetworkRequest {
+  url: string;
+  method: string;
+  postData?: string;
+  response?: unknown;
+}
 
 const logger = winston.createLogger({
   level: appConfig.logging.level,
@@ -59,7 +84,7 @@ export class TCADScraper {
       const proxyEnabled = !!this.config.proxyServer;
       logger.info(`Initializing browser${proxyEnabled ? ' with Bright Data proxy' : ''}...`);
 
-      const launchOptions: any = {
+      const launchOptions: LaunchOptions = {
         headless: this.config.headless,
         executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
         args: [
@@ -349,19 +374,19 @@ export class TCADScraper {
           });
 
           // Call the injected function
-          const allProperties = await page.evaluate(`window.__tcad_search('${authToken}', '${searchTerm.replace(/'/g, "\\'")}')`) as any;
+          const allProperties = await page.evaluate(`window.__tcad_search('${authToken}', '${searchTerm.replace(/'/g, "\\'")}')`) as TCADApiResponse;
 
           logger.info(`API returned ${allProperties.totalCount} total properties, fetched ${allProperties.results.length} results (pageSize: ${allProperties.pageSize})`);
 
           // Step 3: Transform API response to PropertyData format
-          const properties: PropertyData[] = allProperties.results.map((r: any) => ({
+          const properties: PropertyData[] = allProperties.results.map((r: TCADPropertyResult) => ({
             propertyId: r.pid?.toString() || '',
             name: r.displayName || '',
             propType: r.propType || '',
             city: r.city || null,
             propertyAddress: r.streetPrimary || '',
-            assessedValue: parseFloat(r.assessedValue) || 0,
-            appraisedValue: parseFloat(r.appraisedValue) || 0,
+            assessedValue: typeof r.assessedValue === 'number' ? r.assessedValue : parseFloat(String(r.assessedValue || 0)),
+            appraisedValue: typeof r.appraisedValue === 'number' ? r.appraisedValue : parseFloat(String(r.appraisedValue || 0)),
             geoId: r.geoID || null,
             description: r.legalDescription || null,
           }));
@@ -464,7 +489,7 @@ export class TCADScraper {
     suppressBrowserConsoleWarnings(page, logger);
 
     // Capture all network requests
-    const apiRequests: Array<{ url: string; method: string; postData?: string; response?: any }> = [];
+    const apiRequests: NetworkRequest[] = [];
 
     page.on('request', (request) => {
       const url = request.url();
