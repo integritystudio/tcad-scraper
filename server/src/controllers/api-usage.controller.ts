@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { prismaReadOnly } from '../lib/prisma';
 
 export class ApiUsageController {
@@ -13,7 +14,7 @@ export class ApiUsageController {
     startDate.setDate(startDate.getDate() - daysNum);
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.ApiUsageLogWhereInput = {
       timestamp: {
         gte: startDate,
       },
@@ -149,7 +150,7 @@ export class ApiUsageController {
   async getUsageLogs(req: Request, res: Response) {
     const { limit = 50, offset = 0, environment, success } = req.query;
 
-    const where: any = {};
+    const where: Prisma.ApiUsageLogWhereInput = {};
     if (environment) {
       where.environment = environment as string;
     }
