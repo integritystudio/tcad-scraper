@@ -59,3 +59,6 @@ export interface ScrapeJobResult {
   searchTerm: string;
   duration: number;
 }
+
+// Re-export queue types for convenience
+export * from './queue.types';
