@@ -14,6 +14,12 @@ import { prisma } from '../lib/prisma';
 import { removeDuplicatesFromQueue } from '../utils/deduplication';
 import logger from '../lib/logger';
 
+interface CleanupOptions {
+  dryRun?: boolean;
+  threshold?: string;
+  minAttempts?: string;
+}
+
 const program = new Command();
 
 program
@@ -39,7 +45,7 @@ program
       // Analyze duplicates without removing
       const waitingJobs = await scraperQueue.getWaiting();
       const seenTerms = new Set<string>();
-      const duplicates: any[] = [];
+      const duplicates: typeof waitingJobs = [];
 
       waitingJobs.forEach(job => {
         const term = job.data.searchTerm;
@@ -173,12 +179,12 @@ program
   .option('--threshold <n>', 'Max average results to be considered inefficient', '5')
   .option('--min-attempts <n>', 'Minimum attempts before considering term inefficient', '2')
   .option('--dry-run', 'Show what would be removed without removing')
-  .action(async (options: any) => {
+  .action(async (options: CleanupOptions) => {
     logger.info('🧹 Removing Inefficient Search Terms\n');
     logger.info('='.repeat(70));
 
-    const threshold = parseInt(options.threshold);
-    const minAttempts = parseInt(options.minAttempts);
+    const threshold = parseInt(options.threshold || '5');
+    const minAttempts = parseInt(options.minAttempts || '2');
 
     logger.info(`\n📊 Criteria:`);
     logger.info(`   - Average results <= ${threshold} properties`);
@@ -390,7 +396,7 @@ program
   .command('all')
   .description('Run all cleanup operations (short, numeric, duplicates, inefficient)')
   .option('--dry-run', 'Show what would be done without actually doing it')
-  .action(async (options: any) => {
+  .action(async (options: CleanupOptions) => {
     logger.info('🧹 COMPREHENSIVE DATA CLEANUP\n');
     logger.info('='.repeat(70));
 
@@ -436,8 +442,9 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-process.on('unhandledRejection', async (error: any) => {
-  logger.error('\n❌ Unhandled error:', error.message);
+process.on('unhandledRejection', async (reason: unknown) => {
+  const error = reason instanceof Error ? reason : new Error(String(reason));
+  logger.error(error, '\n❌ Unhandled error');
   await cleanup();
   process.exit(1);
 });

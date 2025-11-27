@@ -5,6 +5,13 @@ import { scraperQueue } from '../queues/scraper.queue';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
 
+interface AnalyzerOptions {
+  top?: string;
+  minResults?: string;
+  limit?: string;
+  days?: string;
+}
+
 const program = new Command();
 
 program
@@ -19,7 +26,7 @@ program
   .command('success')
   .description('Analyze most successful search term patterns')
   .option('--top <n>', 'Show top N examples per category', '5')
-  .action(async (options: any) => {
+  .action(async (options: AnalyzerOptions) => {
     logger.info('🔍 Analyzing Most Successful Search Term Types\n');
     logger.info('='.repeat(70));
 
@@ -128,7 +135,7 @@ program
     logger.info('='.repeat(70));
     logger.info('\n🏆 TOP PERFORMERS BY CATEGORY:\n');
 
-    const topN = parseInt(options.top);
+    const topN = parseInt(options.top || '0');
 
     for (const [categoryName, jobs] of Object.entries(categories)) {
       if (jobs.length === 0) continue;
@@ -163,7 +170,7 @@ program
   .command('failures')
   .description('Analyze failed search patterns and zero-result terms')
   .option('--limit <n>', 'Limit results', '50')
-  .action(async (options: any) => {
+  .action(async (options: AnalyzerOptions) => {
     logger.info('❌ Analyzing Failed and Zero-Result Searches\n');
     logger.info('='.repeat(70));
 
@@ -174,7 +181,7 @@ program
         searchTerm: true,
         error: true,
       },
-      take: parseInt(options.limit)
+      take: parseInt(options.limit || '0')
     });
 
     logger.info(`\n📊 Failed Jobs: ${failedJobs.length}`);
@@ -204,7 +211,7 @@ program
       select: {
         searchTerm: true,
       },
-      take: parseInt(options.limit)
+      take: parseInt(options.limit || '0')
     });
 
     logger.info(`\n📊 Zero-Result Searches: ${zeroResultJobs.length}`);
@@ -247,11 +254,11 @@ program
   .command('performance')
   .description('Analyze queue performance metrics and throughput')
   .option('--days <n>', 'Analyze last N days', '7')
-  .action(async (options: any) => {
+  .action(async (options: AnalyzerOptions) => {
     logger.info('⚡ Queue Performance Analysis\n');
     logger.info('='.repeat(70));
 
-    const days = parseInt(options.days);
+    const days = parseInt(options.days || '0');
     const since = new Date();
     since.setDate(since.getDate() - days);
 
@@ -415,8 +422,9 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-process.on('unhandledRejection', async (error: any) => {
-  logger.error('\n❌ Unhandled error:', error.message);
+process.on('unhandledRejection', async (reason: unknown) => {
+  const error = reason instanceof Error ? reason : new Error(String(reason));
+  logger.error(error, '\n❌ Unhandled error');
   await cleanup();
   process.exit(1);
 });

@@ -7,6 +7,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 import logger from '../lib/logger';
 
+interface QueueManagerOptions {
+  priority?: boolean;
+  dedupe?: boolean;
+  priorityLevel?: string;
+  confirm?: boolean;
+  minResults?: string;
+  force?: boolean;
+  olderThan?: string;
+  zeroResults?: boolean;
+  detailed?: boolean;
+  aggressive?: boolean;
+}
+
 const program = new Command();
 
 program
@@ -24,7 +37,7 @@ program
   .option('-p, --priority', 'Add as priority jobs (highest priority)')
   .option('-d, --dedupe', 'Remove duplicates from database first')
   .option('--priority-level <level>', 'Set priority level (1-10, lower is higher priority)', '10')
-  .action(async (file: string, options: any) => {
+  .action(async (file: string, options: QueueManagerOptions) => {
     logger.info('📝 Adding Search Terms to Queue\n');
     logger.info('='.repeat(60));
 
@@ -69,7 +82,7 @@ program
       terms.push(...newTerms);
     }
 
-    const priorityLevel = options.priority ? 1 : parseInt(options.priorityLevel);
+    const priorityLevel = options.priority ? 1 : parseInt(options.priorityLevel || '10');
 
     logger.info(`\n🚀 Adding ${terms.length} jobs to queue...`);
     logger.info(`   Priority: ${priorityLevel} ${options.priority ? '(highest)' : ''}`);
@@ -97,8 +110,9 @@ program
         if (added % 10 === 0) {
           process.stdout.write(`\r   Progress: ${added}/${terms.length} (${((added/terms.length)*100).toFixed(1)}%)`);
         }
-      } catch (error: any) {
-        logger.error(`\n   ❌ Failed to add "${term}":`, error.message);
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error(err, `\n   ❌ Failed to add "${term}"`);
       }
     }
 
@@ -124,7 +138,7 @@ program
   .command('stop')
   .description('Stop all pending jobs in queue (active jobs will complete)')
   .option('--force', 'Also attempt to fail active jobs')
-  .action(async (options: any) => {
+  .action(async (options: QueueManagerOptions) => {
     logger.info('🛑 Stopping All Jobs in Queue\n');
     logger.info('='.repeat(60));
 
@@ -167,10 +181,11 @@ program
           if (removed % 50 === 0) {
             process.stdout.write(`\r   Progress: ${removed}/${waiting + delayed} (${((removed/(waiting + delayed))*100).toFixed(1)}%)`);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           failed++;
           if (failed <= 3) {
-            logger.error(`\n   ❌ Failed to remove job ${job.id}:`, error.message);
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error(err, `\n   ❌ Failed to remove job ${job.id}`);
           }
         }
       }
@@ -188,10 +203,11 @@ program
           if (removed % 50 === 0) {
             process.stdout.write(`\r   Progress: ${removed}/${waiting + delayed} (${((removed/(waiting + delayed))*100).toFixed(1)}%)`);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           failed++;
           if (failed <= 3) {
-            logger.error(`\n   ❌ Failed to remove job ${job.id}:`, error.message);
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error(err, `\n   ❌ Failed to remove job ${job.id}`);
           }
         }
       }
@@ -209,10 +225,11 @@ program
           if (removed % 10 === 0) {
             process.stdout.write(`\r   Progress: ${removed}/${waiting + delayed + active} jobs`);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           failed++;
           if (failed <= 3) {
-            logger.error(`\n   ❌ Failed to stop job ${job.id}:`, error.message);
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error(err, `\n   ❌ Failed to stop job ${job.id}`);
           }
         }
       }
@@ -246,7 +263,7 @@ program
   .option('--aggressive', 'Remove all completed and failed jobs')
   .option('--older-than <days>', 'Remove jobs older than N days', '7')
   .option('--zero-results', 'Remove waiting jobs for terms that previously returned zero results')
-  .action(async (options: any) => {
+  .action(async (options: QueueManagerOptions) => {
     logger.info('🧹 Queue Cleanup\n');
     logger.info('='.repeat(60));
 
@@ -332,7 +349,7 @@ program
             if (removed % 20 === 0) {
               process.stdout.write(`\r   Progress: ${removed}/${jobsToRemove.length} (${((removed/jobsToRemove.length)*100).toFixed(1)}%)`);
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
             totalFailed++;
           }
         }
@@ -367,7 +384,7 @@ program
   .command('status')
   .description('Show current queue status with job counts')
   .option('--detailed', 'Show detailed information about recent jobs')
-  .action(async (options: any) => {
+  .action(async (options: QueueManagerOptions) => {
     logger.info('📊 Queue Status\n');
     logger.info('='.repeat(60));
 
@@ -462,8 +479,9 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-process.on('unhandledRejection', async (error: any) => {
-  logger.error('\n❌ Unhandled error:', error.message);
+process.on('unhandledRejection', async (reason: unknown) => {
+  const error = reason instanceof Error ? reason : new Error(String(reason));
+  logger.error(error, '\n❌ Unhandled error');
   await cleanup();
   process.exit(1);
 });

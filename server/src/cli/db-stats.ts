@@ -5,6 +5,15 @@ import { prisma } from '../lib/prisma';
 import { scraperQueue } from '../queues/scraper.queue';
 import logger from '../lib/logger';
 
+interface StatsOptions {
+  byCity?: boolean;
+  byType?: boolean;
+  top?: string;
+  days?: string;
+  limit?: string;
+  recent?: string;
+}
+
 const program = new Command();
 
 program
@@ -105,7 +114,7 @@ program
   .option('--by-city', 'Show properties grouped by city')
   .option('--by-type', 'Show properties grouped by type')
   .option('--top <n>', 'Show top N results', '10')
-  .action(async (options: any) => {
+  .action(async (options: StatsOptions) => {
     logger.info('🏠 Property Statistics\n');
     logger.info('='.repeat(70));
 
@@ -124,7 +133,7 @@ program
             id: 'desc'
           }
         },
-        take: parseInt(options.top)
+        take: parseInt(options.top || '0')
       });
 
       logger.info(`\n🏙️  Top ${options.top} Cities:`);
@@ -147,7 +156,7 @@ program
             id: 'desc'
           }
         },
-        take: parseInt(options.top)
+        take: parseInt(options.top || '0')
       });
 
       logger.info(`\n🏗️  Top ${options.top} Property Types:`);
@@ -192,11 +201,11 @@ program
   .command('rate')
   .description('Show scraping rate and time-based statistics')
   .option('--days <n>', 'Analyze last N days', '7')
-  .action(async (options: any) => {
+  .action(async (options: StatsOptions) => {
     logger.info('⚡ Scraping Rate Analysis\n');
     logger.info('='.repeat(70));
 
-    const days = parseInt(options.days);
+    const days = parseInt(options.days || '0');
     const since = new Date();
     since.setDate(since.getDate() - days);
 
@@ -272,7 +281,7 @@ program
   .command('search-terms')
   .description('Show statistics about search terms')
   .option('--top <n>', 'Show top N most productive terms', '10')
-  .action(async (options: any) => {
+  .action(async (options: StatsOptions) => {
     logger.info('🔍 Search Term Statistics\n');
     logger.info('='.repeat(70));
 
@@ -306,7 +315,7 @@ program
       orderBy: {
         resultCount: 'desc'
       },
-      take: parseInt(options.top),
+      take: parseInt(options.top || '0'),
       select: {
         searchTerm: true,
         resultCount: true
@@ -353,7 +362,7 @@ program
   .command('priority')
   .description('Show statistics for priority jobs')
   .option('--recent <n>', 'Show last N priority jobs', '10')
-  .action(async (options: any) => {
+  .action(async (options: StatsOptions) => {
     logger.info('⭐ Priority Job Statistics\n');
     logger.info('='.repeat(70));
 
@@ -373,7 +382,7 @@ program
       orderBy: {
         startedAt: 'desc'
       },
-      take: parseInt(options.recent)
+      take: parseInt(options.recent || '0')
     });
 
     logger.info(`\n📊 Priority jobs found: ${priorityJobs.length}`);
@@ -457,8 +466,9 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-process.on('unhandledRejection', async (error: any) => {
-  logger.error('\n❌ Unhandled error:', error.message);
+process.on('unhandledRejection', async (reason: unknown) => {
+  const error = reason instanceof Error ? reason : new Error(String(reason));
+  logger.error(error, '\n❌ Unhandled error');
   await cleanup();
   process.exit(1);
 });
