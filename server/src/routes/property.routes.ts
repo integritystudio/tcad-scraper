@@ -10,6 +10,21 @@ import {
   monitorRequestSchema,
 } from '../types/property.types';
 
+/**
+ * Property Routes
+ *
+ * Type Safety Note:
+ * Controller methods are bound using .bind() to preserve 'this' context.
+ * TypeScript cannot properly infer the exact signature through .bind(), so
+ * we use 'any' type assertions. The actual types are enforced by:
+ * 1. Zod schemas (scrapeRequestSchema, propertyFilterSchema, etc.)
+ * 2. Controller method signatures in property.controller.ts
+ * 3. Type definitions in types/property.types.ts
+ *
+ * This is a known TypeScript limitation with class method binding.
+ * See: https://github.com/microsoft/TypeScript/issues/212
+ */
+
 const router = Router();
 
 // ============================================================================
@@ -114,7 +129,7 @@ router.post(
  */
 router.get(
   '/jobs/:jobId',
-  asyncHandler(propertyController.getJobStatus.bind(propertyController) as any)  // Type inference limitation with .bind()
+  asyncHandler(propertyController.getJobStatus.bind(propertyController) as any)
 );
 
 /**
@@ -176,7 +191,7 @@ router.get(
 router.get(
   '/history',
   validateQuery(historyQuerySchema),
-  asyncHandler(propertyController.getScrapeHistory.bind(propertyController) as any)  // Type inference limitation with .bind()
+  asyncHandler(propertyController.getScrapeHistory.bind(propertyController) as any)
 );
 
 // ============================================================================
@@ -265,7 +280,7 @@ router.get(
 router.get(
   '/',
   validateQuery(propertyFilterSchema),
-  asyncHandler(propertyController.getProperties.bind(propertyController) as any)  // Type inference limitation with .bind()
+  asyncHandler(propertyController.getProperties.bind(propertyController) as any)
 );
 
 /**
