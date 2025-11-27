@@ -11,6 +11,7 @@ import { swaggerSpec } from './config/swagger';
 import { config, validateConfig, logConfigSummary } from './config';
 import { scraperQueue } from './queues/scraper.queue';
 import { propertyRouter } from './routes/property.routes';
+import { apiUsageRouter } from './routes/api-usage.routes';
 import { scheduledJobs } from './schedulers/scrape-scheduler';
 import { optionalAuth } from './middleware/auth';
 import { nonceMiddleware } from './middleware/xcontroller.middleware';
@@ -462,6 +463,7 @@ app.get('/metrics', async (_req, res) => {
 
 // API Routes (with optional authentication)
 app.use('/api/properties', optionalAuth, propertyRouter);
+app.use('/api/usage', optionalAuth, apiUsageRouter);
 
 // Frontend app routes (with xcontroller security)
 // This must come last to serve the SPA for all unmatched routes

@@ -81,3 +81,23 @@ model SearchTermAnalytics {
   @@index([lastSearched])
   @@map("search_term_analytics")
 }
+
+model ApiUsageLog {
+  id            String   @id @default(uuid())
+  queryText     String   @map("query_text") @db.Text
+  queryCost     Float    @map("query_cost") // Cost in USD
+  inputTokens   Int      @map("input_tokens")
+  outputTokens  Int      @map("output_tokens")
+  model         String   // Claude model used (e.g., "claude-3-5-sonnet-20241022")
+  environment   String   // "development", "production", "staging"
+  success       Boolean  @default(true) // Whether the API call succeeded
+  errorMessage  String?  @map("error_message") @db.Text
+  responseTime  Int?     @map("response_time") // Response time in milliseconds
+  timestamp     DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([environment])
+  @@index([success])
+  @@index([model])
+  @@map("api_usage_logs")
+}

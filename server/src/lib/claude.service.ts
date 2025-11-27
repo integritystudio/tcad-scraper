@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Prisma } from '@prisma/client';
 import logger from './logger';
 import { config } from '../config';
+import { prisma } from './prisma';
+import { calculateClaudeCost } from './claude-pricing';
 
 const anthropic = new Anthropic({
   apiKey: config.claude.apiKey,
@@ -14,7 +16,53 @@ interface SearchFilters {
 }
 
 export class ClaudeSearchService {
+  /**
+   * Log API usage to the database for monitoring and cost tracking
+   */
+  private async logApiUsage(
+    queryText: string,
+    inputTokens: number,
+    outputTokens: number,
+    model: string,
+    success: boolean,
+    responseTime: number,
+    errorMessage?: string
+  ): Promise<void> {
+    try {
+      const queryCost = calculateClaudeCost(model, inputTokens, outputTokens);
+      const environment = config.env.nodeEnv || 'development';
+
+      await prisma.apiUsageLog.create({
+        data: {
+          queryText,
+          queryCost,
+          inputTokens,
+          outputTokens,
+          model,
+          environment,
+          success,
+          errorMessage,
+          responseTime,
+        },
+      });
+
+      logger.info(
+        `Claude API usage logged: ${inputTokens} input + ${outputTokens} output tokens, cost: $${queryCost.toFixed(6)}, success: ${success}`
+      );
+    } catch (error) {
+      // Don't fail the main request if logging fails
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to log API usage: ${errorMsg}`);
+    }
+  }
+
   async parseNaturalLanguageQuery(query: string): Promise<SearchFilters> {
+    const startTime = Date.now();
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let success = false;
+    let errorMessage: string | undefined;
+
     try {
       const message = await anthropic.messages.create({
         model: config.claude.model,
@@ -115,6 +163,10 @@ Now generate the JSON for the user's query above.`,
       const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
       logger.info(`Claude response: ${responseText.substring(0, 200)}...`);
 
+      // Extract token usage from the response
+      inputTokens = message.usage.input_tokens;
+      outputTokens = message.usage.output_tokens;
+
       // Validate and parse the JSON response
       let cleanedResponse = responseText.trim();
 
@@ -145,12 +197,27 @@ Now generate the JSON for the user's query above.`,
         throw new Error(`Failed to parse Claude response as JSON: ${errorMsg}`);
       }
 
+      success = true;
+      const responseTime = Date.now() - startTime;
+
+      // Log successful API usage
+      await this.logApiUsage(
+        query,
+        inputTokens,
+        outputTokens,
+        config.claude.model,
+        success,
+        responseTime
+      );
+
       return {
         whereClause: parsed.whereClause || {},
         orderBy: parsed.orderBy,
         explanation: parsed.explanation || 'Searching properties based on your query',
       };
     } catch (error) {
+      const responseTime = Date.now() - startTime;
+      errorMessage = error instanceof Error ? error.message : String(error);
       // Safely log the error without risking serialization issues
       const errorDetails = {
         message: error instanceof Error ? error.message : String(error),
@@ -159,6 +226,17 @@ Now generate the JSON for the user's query above.`,
       };
       logger.error(`Error parsing natural language query with Claude: ${JSON.stringify(errorDetails)}`);
       logger.error(`Claude API Error Details: ${JSON.stringify(errorDetails, null, 2)}`);
+
+      // Log failed API usage (even if we don't have token counts)
+      await this.logApiUsage(
+        query,
+        inputTokens,
+        outputTokens,
+        config.claude.model,
+        false, // success = false
+        responseTime,
+        errorMessage
+      );
 
       // Fallback: simple text search across multiple fields
       return {
