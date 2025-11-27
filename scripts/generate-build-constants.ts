@@ -10,8 +10,8 @@
  * Note: This script imports Prisma from the server directory
  */
 
-import { writeFileSync } from 'fs';
-import { resolve, join } from 'path';
+import { writeFileSync, mkdirSync } from 'fs';
+import { resolve, join, dirname } from 'path';
 
 // Import Prisma client from server directory
 async function importPrismaClient() {
@@ -69,6 +69,7 @@ export const BUILD_CONSTANTS = {
 
     // Write to src/constants/build.ts
     const outputPath = resolve(process.cwd(), 'src/constants/build.ts');
+    mkdirSync(dirname(outputPath), { recursive: true });
     writeFileSync(outputPath, constantsFileContent, 'utf-8');
 
     console.log(`✓ Generated constants file: ${outputPath}`);
@@ -102,6 +103,7 @@ export const BUILD_CONSTANTS = {
 `;
 
     const outputPath = resolve(process.cwd(), 'src/constants/build.ts');
+    mkdirSync(dirname(outputPath), { recursive: true });
     writeFileSync(outputPath, fallbackContent, 'utf-8');
 
     console.log('⚠️  Generated fallback constants file (database unavailable)');
