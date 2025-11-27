@@ -113,10 +113,37 @@ Now generate the JSON for the user's query above.`,
       });
 
       const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
-      logger.info(`Claude response: ${responseText}`);
+      logger.info(`Claude response: ${responseText.substring(0, 200)}...`);
 
-      // Parse the JSON response
-      const parsed = JSON.parse(responseText);
+      // Validate and parse the JSON response
+      let cleanedResponse = responseText.trim();
+
+      // Strip markdown code blocks if present (Claude sometimes wraps JSON in ```json...```)
+      if (cleanedResponse.startsWith('```')) {
+        const match = cleanedResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (match) {
+          cleanedResponse = match[1].trim();
+          logger.info('Stripped markdown code block from response');
+        }
+      }
+
+      // Validate response starts with { or [ (valid JSON)
+      if (!cleanedResponse.startsWith('{') && !cleanedResponse.startsWith('[')) {
+        throw new Error(
+          `Invalid JSON response from Claude: Response starts with "${cleanedResponse.substring(0, 50)}..."`
+        );
+      }
+
+      // Parse with error handling
+      let parsed: any;
+      try {
+        parsed = JSON.parse(cleanedResponse);
+      } catch (parseError) {
+        const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
+        logger.error(`JSON parse failed: ${errorMsg}`);
+        logger.error(`Failed to parse response: ${cleanedResponse.substring(0, 500)}`);
+        throw new Error(`Failed to parse Claude response as JSON: ${errorMsg}`);
+      }
 
       return {
         whereClause: parsed.whereClause || {},

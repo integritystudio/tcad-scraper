@@ -53,9 +53,11 @@ describe('TCADTokenRefreshService', () => {
       goto: vi.fn().mockResolvedValue(undefined),
       waitForFunction: vi.fn().mockResolvedValue(undefined),
       waitForSelector: vi.fn().mockResolvedValue(undefined),
+      waitForRequest: vi.fn().mockRejectedValue(new Error('No matching request')),
       type: vi.fn().mockResolvedValue(undefined),
       press: vi.fn().mockResolvedValue(undefined),
       on: vi.fn(),
+      evaluate: vi.fn().mockResolvedValue(null), // Returns null (no storage token)
       close: vi.fn().mockResolvedValue(undefined),
     };
 

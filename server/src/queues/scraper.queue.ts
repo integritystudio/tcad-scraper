@@ -131,34 +131,52 @@ scraperQueue.process(config.queue.jobName, config.queue.concurrency, async (job)
             search_term = EXCLUDED.search_term,
             scraped_at = EXCLUDED.scraped_at,
             updated_at = EXCLUDED.updated_at
+          RETURNING (xmax = 0) AS inserted
         `;
 
-        await prisma.$executeRawUnsafe(sql, ...params);
+        // Execute query and get result indicating which were INSERTs (new) vs UPDATEs (existing)
+        const result = await prisma.$queryRawUnsafe<{ inserted: boolean }[]>(sql, ...params);
 
-        savedCount += chunk.length;
-        logger.info(`Batch upserted ${chunk.length} properties (${savedCount}/${properties.length} total)`);
+        // Count only the actual new properties (INSERTs)
+        const newPropertyCount = result.filter(r => r.inserted).length;
+        const updatedPropertyCount = result.length - newPropertyCount;
+
+        savedCount += newPropertyCount;
+        logger.info(
+          `Batch processed ${chunk.length} properties: ` +
+          `${newPropertyCount} new, ${updatedPropertyCount} updated ` +
+          `(${savedCount}/${properties.length} new total)`
+        );
       }
     }
 
-    const savedProperties = properties;
+    // savedCount now contains the actual number of NEW properties inserted (not updates)
+    const totalScraped = properties.length;
+    const totalUpdated = totalScraped - savedCount;
 
     // Update progress: Complete
     await job.progress(100);
 
-    // Update job record
+    // Log final results with breakdown
+    logger.info(
+      `Scrape complete for "${searchTerm}": ` +
+      `${savedCount} new properties, ${totalUpdated} updated, ${totalScraped} total processed`
+    );
+
+    // Update job record with ACTUAL new property count (not total scraped)
     await prisma.scrapeJob.update({
       where: { id: scrapeJob.id },
       data: {
         status: 'completed',
-        resultCount: savedProperties.length,
+        resultCount: savedCount, // ✅ FIX: Report actual NEW properties, not total scraped
         completedAt: new Date(),
       },
     });
 
-    // Update search term analytics for optimization
+    // Update search term analytics with ACTUAL new properties (for optimization)
     await searchTermOptimizer.updateAnalytics(
       searchTerm,
-      savedProperties.length,
+      savedCount, // ✅ FIX: Use actual new count, not total scraped
       true // wasSuccessful
     );
 
@@ -172,13 +190,16 @@ scraperQueue.process(config.queue.jobName, config.queue.concurrency, async (job)
 
     const duration = Date.now() - startTime;
     const result: ScrapeJobResult = {
-      count: savedProperties.length,
-      properties: savedProperties,
+      count: savedCount, // ✅ FIX: Report actual NEW properties saved
+      properties: properties, // Return all scraped properties for reference
       searchTerm,
       duration,
     };
 
-    logger.info(`Job ${job.id} completed successfully. Found ${result.count} properties in ${duration}ms`);
+    logger.info(
+      `Job ${job.id} completed successfully: ` +
+      `${savedCount} new properties saved (${totalUpdated} duplicates updated) in ${duration}ms`
+    );
 
     return result;
 

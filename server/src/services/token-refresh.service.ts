@@ -115,21 +115,50 @@ export class TCADTokenRefreshService {
 
       const page = await context.newPage();
       let capturedToken: string | null = null;
+      let tokenSource: string = 'none';
 
-      // Set up request interception to capture Authorization header
+      // Helper function to validate and capture token
+      const isValidToken = (value: string | undefined | null): boolean => {
+        return !!(
+          value &&
+          value !== 'null' &&
+          value.length > 50 &&
+          value.startsWith('eyJ')
+        );
+      };
+
+      const tryCapture = (value: string | undefined | null, source: string): boolean => {
+        if (isValidToken(value) && !capturedToken) {
+          capturedToken = value!;
+          tokenSource = source;
+          const tokenPreview = value!.substring(0, 50);
+          logger.info(`Token captured from ${source}: length ${value!.length}, preview: ${tokenPreview}...`);
+          return true;
+        }
+        return false;
+      };
+
+      // Strategy 1: Capture from REQUEST headers (multiple possible header names)
       page.on('request', (request) => {
         const headers = request.headers();
-        const authHeader = headers['authorization'];
+        const possibleHeaders = ['authorization', 'x-api-key', 'x-auth-token', 'bearer', 'token'];
 
-        // Only capture valid tokens (ignore "null" string and ensure it looks like a JWT)
-        if (authHeader &&
-            authHeader !== 'null' &&
-            authHeader.length > 50 &&
-            authHeader.startsWith('eyJ') &&
-            !capturedToken) {
-          capturedToken = authHeader;
-          const tokenPreview = authHeader.substring(0, 50);
-          logger.info(`Authorization token captured from request: length: ${authHeader.length}, preview: ${tokenPreview}...`);
+        for (const headerName of possibleHeaders) {
+          if (tryCapture(headers[headerName], `request header: ${headerName}`)) {
+            break;
+          }
+        }
+      });
+
+      // Strategy 2: Capture from RESPONSE headers
+      page.on('response', (response) => {
+        const headers = response.headers();
+        const possibleHeaders = ['authorization', 'x-api-key', 'x-auth-token', 'set-authorization'];
+
+        for (const headerName of possibleHeaders) {
+          if (tryCapture(headers[headerName], `response header: ${headerName}`)) {
+            break;
+          }
         }
       });
 
@@ -158,12 +187,73 @@ export class TCADTokenRefreshService {
         await page.type('#searchInput', 'test', { delay: 50 });
         await page.press('#searchInput', 'Enter');
 
-        // Wait for API request to be made
-        await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 1000));
+        // Strategy 3: Wait for actual API request (not fixed delay)
+        if (!capturedToken) {
+          logger.info('Waiting for API request with auth token...');
+          try {
+            await page.waitForRequest(
+              (request) => {
+                const url = request.url();
+                const headers = request.headers();
+                return (
+                  url.includes('api') &&
+                  (headers['authorization'] || headers['x-api-key'])
+                );
+              },
+              { timeout: 5000 }
+            );
+            logger.info('API request detected');
+          } catch (waitError) {
+            logger.warn('No API request with auth header detected within 5 seconds');
+          }
+        }
+
+        // Strategy 4: Extract from browser storage if still not captured
+        if (!capturedToken) {
+          logger.info('Attempting to extract token from browser storage...');
+
+          const storageToken = await page.evaluate(() => {
+            const possibleKeys = ['token', 'authToken', 'auth_token', 'bearer', 'api_key', 'apiKey'];
+
+            // Check localStorage
+            for (const key of possibleKeys) {
+              const value = localStorage.getItem(key);
+              if (value && value !== 'null' && value.length > 50) {
+                return { source: 'localStorage', key, value };
+              }
+            }
+
+            // Check sessionStorage
+            for (const key of possibleKeys) {
+              const value = sessionStorage.getItem(key);
+              if (value && value !== 'null' && value.length > 50) {
+                return { source: 'sessionStorage', key, value };
+              }
+            }
+
+            // Check cookies
+            const cookies = document.cookie.split(';');
+            for (const cookie of cookies) {
+              const [name, value] = cookie.trim().split('=');
+              if (possibleKeys.some(k => name.toLowerCase().includes(k)) &&
+                  value && value.length > 50) {
+                return { source: 'cookie', key: name, value };
+              }
+            }
+
+            return null;
+          });
+
+          if (storageToken && tryCapture(storageToken.value, `${storageToken.source}: ${storageToken.key}`)) {
+            logger.info(`Token successfully extracted from ${storageToken.source}`);
+          }
+        }
 
         if (!capturedToken) {
-          throw new Error('Failed to capture authorization token from network requests');
+          throw new Error(`Failed to capture authorization token from any source (tried: request headers, response headers, localStorage, sessionStorage, cookies)`);
         }
+
+        logger.info(`Token successfully captured from: ${tokenSource}`);
 
         // Update current token (TypeScript assertion needed after null check)
         const token: string = capturedToken;
@@ -173,7 +263,7 @@ export class TCADTokenRefreshService {
 
         const duration = Date.now() - startTime;
         const tokenPreview2 = token.substring(0, 30);
-        logger.info(`Token refreshed successfully in ${duration}ms (refresh #${this.refreshCount})`);
+        logger.info(`Token refreshed successfully in ${duration}ms (refresh #${this.refreshCount}, source: ${tokenSource})`);
         logger.info(`New token: ${tokenPreview2}...`);
 
         return token;
