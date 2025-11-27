@@ -6,6 +6,7 @@
 
 import { scraperQueue } from '../queues/scraper.queue';
 import logger from '../lib/logger';
+import type { ScraperJob, CompletedScraperJob, FailedScraperJob } from '../types/queue.types';
 
 async function checkQueueStatus() {
   try {
@@ -55,8 +56,8 @@ async function checkQueueStatus() {
     if (active.length > 0) {
       logger.info('\n⚡ ACTIVE JOBS:');
       for (const job of active.slice(0, 5)) {
-        const data = job.data as any;
-        logger.info(`  Job ${job.id}: "${data.searchTerm}" (Progress: ${job.progress}%)`);
+        const typedJob = job as ScraperJob;
+        logger.info(`  Job ${typedJob.id}: "${typedJob.data.searchTerm}" (Progress: ${typedJob.progress}%)`);
       }
       if (active.length > 5) {
         logger.info(`  ... and ${active.length - 5} more`);
@@ -67,10 +68,9 @@ async function checkQueueStatus() {
     if (completed.length > 0) {
       logger.info('\n✅ RECENT COMPLETED JOBS (last 10):');
       for (const job of completed.slice(-10).reverse()) {
-        const data = job.data as any;
-        const returnValue = job.returnvalue as any;
-        const propertiesCount = returnValue?.propertiesCount || 0;
-        logger.info(`  Job ${job.id}: "${data.searchTerm}" → ${propertiesCount} properties`);
+        const typedJob = job as CompletedScraperJob;
+        const propertiesCount = typedJob.returnvalue?.count || 0;
+        logger.info(`  Job ${typedJob.id}: "${typedJob.data.searchTerm}" → ${propertiesCount} properties`);
       }
     }
 
@@ -78,9 +78,9 @@ async function checkQueueStatus() {
     if (failed.length > 0) {
       logger.info('\n❌ RECENT FAILED JOBS (last 5):');
       for (const job of failed.slice(-5).reverse()) {
-        const data = job.data as any;
-        const failedReason = job.failedReason || 'Unknown error';
-        logger.info(`  Job ${job.id}: "${data.searchTerm}" - ${failedReason.substring(0, 80)}`);
+        const typedJob = job as FailedScraperJob;
+        const failedReason = typedJob.failedReason || 'Unknown error';
+        logger.info(`  Job ${typedJob.id}: "${typedJob.data.searchTerm}" - ${failedReason.substring(0, 80)}`);
       }
     }
 
@@ -88,9 +88,9 @@ async function checkQueueStatus() {
     if (waiting.length > 0) {
       logger.info('\n⏳ NEXT WAITING JOBS (first 10):');
       for (const job of waiting.slice(0, 10)) {
-        const data = job.data as any;
-        const priority = job.opts.priority || 3;
-        logger.info(`  Job ${job.id}: "${data.searchTerm}" (Priority: ${priority})`);
+        const typedJob = job as ScraperJob;
+        const priority = typedJob.opts.priority || 3;
+        logger.info(`  Job ${typedJob.id}: "${typedJob.data.searchTerm}" (Priority: ${priority})`);
       }
       if (waiting.length > 10) {
         logger.info(`  ... and ${waiting.length - 10} more`);

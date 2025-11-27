@@ -59,8 +59,9 @@ async function checkColumnIds() {
       });
     }
 
-  } catch (error: any) {
-    logger.error(`❌ Error: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`❌ Error: ${errorMessage}`);
   } finally {
     await context.close();
     await browser.close();

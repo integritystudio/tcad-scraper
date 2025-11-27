@@ -109,8 +109,9 @@ async function check401Errors() {
                 removeOnFail: false,
               }
             );
-          } catch (error: any) {
-            logger.error(`   ❌ Failed to enqueue "${term}":`, error.message);
+          } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger.error(`   ❌ Failed to enqueue "${term}": ${errorMessage}`);
           }
         }
 
