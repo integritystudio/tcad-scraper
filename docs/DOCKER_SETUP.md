@@ -125,10 +125,17 @@ All images use multi-stage builds for optimization:
 ### Compose File Structure
 
 ```
-docker-compose.base.yml      # Shared service definitions
-docker-compose.dev.yml       # Development overrides
-docker-compose.prod.yml      # Production overrides
-docker-compose.monitoring.yml # Legacy monitoring (kept for compatibility)
+config/
+├── docker-compose.base.yml      # Shared service definitions
+├── docker-compose.dev.yml       # Development overrides
+├── docker-compose.prod.yml      # Production overrides
+├── docker-compose.monitoring.yml # Legacy monitoring (kept for compatibility)
+└── monitoring/                  # Monitoring configuration files
+    ├── prometheus/
+    │   ├── prometheus.yml
+    │   └── prometheus.rules.yml
+    └── grafana/
+        └── provisioning/
 ```
 
 ---
@@ -172,7 +179,7 @@ This command:
 ./scripts/docker-dev.sh migrate
 
 # Or manually
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml exec backend npx prisma migrate dev
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml exec backend npx prisma migrate dev
 ```
 
 **Viewing Logs:**
@@ -366,7 +373,7 @@ doppler login
 doppler setup
 
 # Run with Doppler
-doppler run -- docker-compose -f docker-compose.base.yml -f docker-compose.prod.yml up -d
+doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker-compose.prod.yml up -d
 ```
 
 ---
@@ -379,7 +386,7 @@ Migrations run automatically on first start. To create new migrations:
 
 ```bash
 # Create migration
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml exec backend npx prisma migrate dev --name your_migration_name
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml exec backend npx prisma migrate dev --name your_migration_name
 
 # Apply migrations
 ./scripts/docker-dev.sh migrate
@@ -392,14 +399,14 @@ docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml exec backend
 ./scripts/docker-prod.sh migrate
 
 # Or manually
-docker-compose -f docker-compose.base.yml -f docker-compose.prod.yml exec backend npx prisma migrate deploy
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.prod.yml exec backend npx prisma migrate deploy
 ```
 
 ### Prisma Studio (Database GUI)
 
 ```bash
 # Development
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml exec backend npx prisma studio
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml exec backend npx prisma studio
 # Access at http://localhost:5555
 ```
 
@@ -446,7 +453,7 @@ Import additional dashboards in Grafana UI.
 docker ps -a
 
 # Remove and recreate
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up -d --force-recreate <service>
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d --force-recreate <service>
 ```
 
 ### Port Already in Use
@@ -497,11 +504,11 @@ docker info | grep Memory
 
 ```bash
 # Test Redis connection
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml exec redis redis-cli ping
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml exec redis redis-cli ping
 # Should return: PONG
 
 # Check if password is required
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml exec redis redis-cli auth $REDIS_PASSWORD
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml exec redis redis-cli auth $REDIS_PASSWORD
 ```
 
 ### Slow Build Times
@@ -547,11 +554,11 @@ cp .env.docker.example .env
 ./scripts/docker-dev.sh start
 
 # Import PostgreSQL backup
-cat backup_local.sql | docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml exec -T postgres psql -U postgres tcad_scraper
+cat backup_local.sql | docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml exec -T postgres psql -U postgres tcad_scraper
 
 # Import Redis (if needed)
 docker cp backup_redis.rdb tcad-redis:/data/dump.rdb
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml restart redis
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml restart redis
 ```
 
 ### Step 4: Verify Migration
@@ -635,7 +642,7 @@ jobs:
       - name: Build images
         run: ./scripts/docker-build.sh prod
       - name: Run tests
-        run: docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml run backend npm test
+        run: docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml run backend npm test
 ```
 
 ---
@@ -655,19 +662,19 @@ For issues and questions:
 
 ```bash
 # Start services
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up -d
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d
 
 # Stop services
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml down
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml down
 
 # View logs
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml logs -f
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml logs -f
 
 # Rebuild service
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml build <service>
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml build <service>
 
 # Scale service
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up -d --scale backend=3
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d --scale backend=3
 ```
 
 ### Useful Docker Commands

@@ -17,12 +17,12 @@ version: '3.8'
 #   3. Setup: doppler setup --project integrity-studio --config dev
 #
 # Usage with Doppler (RECOMMENDED):
-#   doppler run -- docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up -d
+#   doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d
 #
 # Usage without Doppler (requires .env file):
-#   docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up -d
+#   docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d
 #
-# Extends docker-compose.base.yml with development-specific overrides
+# Extends config/docker-compose.base.yml with development-specific overrides
 # ============================================
 
 services:
@@ -129,8 +129,8 @@ services:
     networks:
       - tcad-network
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/prometheus/prometheus.rules.yml:/etc/prometheus/prometheus.rules.yml:ro
+      - ./config/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/monitoring/prometheus/prometheus.rules.yml:/etc/prometheus/prometheus.rules.yml:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -160,7 +160,7 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./config/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
     ports:
       # Uses GRAFANA_PORT from .env
       - "${GRAFANA_PORT:-3001}:3000"

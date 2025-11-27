@@ -10,8 +10,8 @@ services:
       # Uses PROMETHEUS_PORT from .env
       - "${PROMETHEUS_PORT:-9090}:9090"
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./monitoring/prometheus/prometheus.rules.yml:/etc/prometheus/prometheus.rules.yml
+      - ./config/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./config/monitoring/prometheus/prometheus.rules.yml:/etc/prometheus/prometheus.rules.yml
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -57,7 +57,7 @@ services:
       - GF_DATAPROXY_KEEP_ALIVE_SECONDS=300
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
     networks:
       - monitoring

@@ -1,5 +1,32 @@
 name: Deploy
 
+# ==================================
+# Backend Deployment Workflow
+# ==================================
+# This workflow deploys the backend to staging/production servers
+#
+# Doppler Configuration:
+#   - Project: integrity-studio
+#   - Environment: dev (staging) / prod (production)
+#   - Doppler CLI must be installed and configured on target servers
+#   - Secrets are injected via `doppler run --` commands
+#
+# Required GitHub Secrets:
+#   - STAGING_HOST, STAGING_USER, STAGING_SSH_KEY, STAGING_PORT
+#   - PRODUCTION_HOST, PRODUCTION_USER, PRODUCTION_SSH_KEY, PRODUCTION_PORT
+#   - SENTRY_AUTH_TOKEN, SENTRY_ORG (for production releases)
+#   - SLACK_WEBHOOK (optional, for notifications)
+#
+# Deployment Process:
+#   1. Pre-deploy checks (tests, build)
+#   2. SSH to target server
+#   3. Git pull/checkout
+#   4. Install dependencies
+#   5. Build with Doppler (doppler run -- npm run build)
+#   6. Run migrations with Doppler (doppler run -- npx prisma migrate deploy)
+#   7. Restart PM2 process (uses start.sh which calls doppler run)
+# ==================================
+
 on:
   push:
     branches:
@@ -82,12 +109,14 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           port: ${{ secrets.STAGING_PORT || 22 }}
           script: |
-            cd /var/www/tcad-scraper
+            cd /var/www/tcad-scraper/server
             git pull origin main
             npm ci --production
-            npm run build
-            npx prisma migrate deploy
-            pm2 restart tcad-scraper
+            # Build and migrate with Doppler for secrets
+            doppler run -- npm run build
+            doppler run -- npx prisma migrate deploy
+            # PM2 restart (uses start.sh which calls doppler run)
+            pm2 restart tcad-api
             pm2 save
 
       - name: Notify deployment
@@ -128,13 +157,15 @@ jobs:
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           port: ${{ secrets.PRODUCTION_PORT || 22 }}
           script: |
-            cd /var/www/tcad-scraper
+            cd /home/aledlie/tcad-scraper/server
             git fetch --tags
             git checkout ${{ github.ref_name }}
             npm ci --production
-            npm run build
-            npx prisma migrate deploy
-            pm2 restart tcad-scraper
+            # Build and migrate with Doppler for secrets
+            doppler run -- npm run build
+            doppler run -- npx prisma migrate deploy
+            # PM2 restart (uses start.sh which calls doppler run)
+            pm2 restart tcad-api
             pm2 save
 
       - name: Create Sentry release

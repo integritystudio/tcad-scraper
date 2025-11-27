@@ -158,7 +158,7 @@ services:
     networks:
       - tcad-network
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
       - ./backups/prometheus:/backups
@@ -200,7 +200,7 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./config/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./backups/grafana:/backups
     # Don't expose externally (use reverse proxy)
     ports: []

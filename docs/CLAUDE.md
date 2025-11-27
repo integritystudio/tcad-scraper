@@ -76,7 +76,7 @@ doppler run -- npm run dev
 **Docker Compose with Doppler**:
 ```bash
 # Doppler automatically injects secrets into docker-compose
-doppler run -- docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up -d
+doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d
 ```
 
 **Verify Doppler Configuration**:

@@ -63,7 +63,7 @@ doppler setup --project integrity-studio --config dev
 
 # Usage
 doppler run -- npm run dev
-doppler run -- docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up -d
+doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d
 ```
 
 **Project**: `integrity-studio` | **Config**: `dev` (local), `prod` (production)
@@ -97,7 +97,7 @@ npm install && doppler run -- npm run dev
 cd server && npm install && doppler run -- npm run dev
 
 # Docker
-doppler run -- docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up -d
+doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d
 ```
 
 ### Database (Requires Tailscale)

@@ -25,7 +25,7 @@
   - Health checks included
 
 ### ✅ Docker Compose Files
-- **docker-compose.base.yml** - Shared service definitions
+- **config/docker-compose.base.yml** - Shared service definitions
   - PostgreSQL 15 with health checks
   - Redis 7 with persistence
   - Backend API server
@@ -242,9 +242,10 @@ Before considering this migration complete, test:
 server/.dockerignore                   # Server build context exclusions
 bullmq-exporter/.dockerignore          # Exporter build context exclusions
 .env.docker.example                    # Docker environment template
-docker-compose.base.yml                # Base service definitions
-docker-compose.dev.yml                 # Development overrides
-docker-compose.prod.yml                # Production overrides
+config/docker-compose.base.yml         # Base service definitions
+config/docker-compose.dev.yml          # Development overrides
+config/docker-compose.prod.yml         # Production overrides
+config/monitoring/                     # Monitoring configuration files
 scripts/docker-dev.sh                  # Dev environment manager
 scripts/docker-prod.sh                 # Prod environment manager
 scripts/docker-build.sh                # Build automation

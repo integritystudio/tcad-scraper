@@ -128,7 +128,7 @@ docker stats
 docker inspect <container-name>
 
 # Restart specific service
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml restart backend
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml restart backend
 
 # Remove stopped containers
 docker container prune
@@ -144,16 +144,16 @@ docker volume prune
 
 ```bash
 # Access PostgreSQL CLI
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml exec postgres psql -U postgres tcad_scraper
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml exec postgres psql -U postgres tcad_scraper
 
 # Run SQL file
-cat backup.sql | docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml exec -T postgres psql -U postgres tcad_scraper
+cat backup.sql | docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml exec -T postgres psql -U postgres tcad_scraper
 
 # Create backup
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml exec postgres pg_dump -U postgres tcad_scraper > backup.sql
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml exec postgres pg_dump -U postgres tcad_scraper > backup.sql
 
 # Prisma Studio (Database GUI)
-docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml exec backend npx prisma studio
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml exec backend npx prisma studio
 # Opens on http://localhost:5555
 ```
 
@@ -199,9 +199,11 @@ GRAFANA_ADMIN_PASSWORD=strong_password
 ├── Dockerfile                    # Frontend multi-stage build
 ├── server/Dockerfile            # Backend multi-stage build
 ├── bullmq-exporter/Dockerfile   # Metrics exporter
-├── docker-compose.base.yml      # Base configuration
-├── docker-compose.dev.yml       # Development overrides
-├── docker-compose.prod.yml      # Production overrides
+├── config/
+│   ├── docker-compose.base.yml  # Base configuration
+│   ├── docker-compose.dev.yml   # Development overrides
+│   ├── docker-compose.prod.yml  # Production overrides
+│   └── monitoring/              # Monitoring configuration files
 ├── .env                         # Your environment (create from .env.docker.example)
 ├── .dockerignore                # Build exclusions
 └── scripts/

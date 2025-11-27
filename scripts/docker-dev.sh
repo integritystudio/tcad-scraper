@@ -15,7 +15,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-COMPOSE_FILES="-f docker-compose.base.yml -f docker-compose.dev.yml"
+COMPOSE_FILES="-f config/docker-compose.base.yml -f config/docker-compose.dev.yml"
 PROJECT_NAME="tcad-dev"
 
 # Check if Doppler is available and configured
