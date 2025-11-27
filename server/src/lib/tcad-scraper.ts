@@ -216,6 +216,7 @@ export class TCADScraper {
                 const pageSizes = [1000, 500, 100, 50];
                 let currentSizeIndex = 0;
                 let lastErr = '';
+                const RATE_LIMIT_DELAY = 1000; // 1 second delay between requests to avoid 409
 
                 return new Promise(function(resolve, reject) {
                   function tryNextPageSize() {
@@ -262,7 +263,7 @@ export class TCADScraper {
                         return;
                       }
 
-                      // Fetch remaining pages
+                      // Fetch remaining pages with rate-limit delay
                       function fetchNextPage() {
                         currentPage++;
                         if (allResults.length >= totalCount || currentPage > 100) {
@@ -270,7 +271,9 @@ export class TCADScraper {
                           return;
                         }
 
-                        fetch(apiUrl + '?page=' + currentPage + '&pageSize=' + pageSize, {
+                        // Add delay between pagination requests to avoid rate limiting
+                        setTimeout(function() {
+                          fetch(apiUrl + '?page=' + currentPage + '&pageSize=' + pageSize, {
                           method: 'POST',
                           headers: {
                             'Authorization': token,
@@ -307,10 +310,16 @@ export class TCADScraper {
                             currentSizeIndex++;
                             lastErr = err.message;
                             tryNextPageSize();
+                          } else if (err.message.indexOf('HTTP 409') >= 0) {
+                            // Rate limit hit - wait longer before retrying
+                            setTimeout(function() {
+                              fetchNextPage();
+                            }, RATE_LIMIT_DELAY * 2); // Wait 2 seconds before retry
                           } else {
                             reject(err);
                           }
                         });
+                        }, RATE_LIMIT_DELAY); // Close the setTimeout for pagination delay
                       }
 
                       fetchNextPage();
@@ -320,6 +329,13 @@ export class TCADScraper {
                         currentSizeIndex++;
                         lastErr = err.message;
                         tryNextPageSize();
+                      } else if (err.message.indexOf('HTTP 409') >= 0) {
+                        // Rate limit hit on first page - wait longer before retrying with different page size
+                        setTimeout(function() {
+                          currentSizeIndex++;
+                          lastErr = err.message;
+                          tryNextPageSize();
+                        }, RATE_LIMIT_DELAY * 3); // Wait 3 seconds before trying different page size
                       } else {
                         reject(err);
                       }
