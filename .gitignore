@@ -19,6 +19,7 @@ server/*.deb
 
 # Build artifacts
 dist/
+**/dist/
 .next/
 out/
 repomix-output.xml
