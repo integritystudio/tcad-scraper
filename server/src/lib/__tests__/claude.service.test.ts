@@ -59,7 +59,8 @@ describe('ClaudeSearchService', () => {
               },
               explanation: 'Searching for properties in Austin'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('properties in Austin');
@@ -82,7 +83,8 @@ describe('ClaudeSearchService', () => {
               orderBy: { appraisedValue: 'asc' },
               explanation: 'Searching for properties with appraised value between $300,000 and $600,000'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('properties appraised between 300k and 600k');
@@ -104,7 +106,8 @@ describe('ClaudeSearchService', () => {
               },
               explanation: 'Searching for properties owned by Smith'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('properties owned by Smith');
@@ -125,7 +128,8 @@ describe('ClaudeSearchService', () => {
               },
               explanation: 'Searching for commercial properties'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('commercial properties');
@@ -146,7 +150,8 @@ describe('ClaudeSearchService', () => {
               },
               explanation: "Searching for properties with 'Congress' in the address"
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('properties on Congress Ave');
@@ -170,7 +175,8 @@ describe('ClaudeSearchService', () => {
               orderBy: { appraisedValue: 'desc' },
               explanation: 'Searching for residential properties in Austin with appraised value over $500,000, sorted by value (highest first)'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('residential properties in Austin worth over 500k');
@@ -194,7 +200,8 @@ describe('ClaudeSearchService', () => {
               },
               explanation: 'Searching for properties in Austin'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('properties in Austin');
@@ -273,7 +280,8 @@ describe('ClaudeSearchService', () => {
             text: JSON.stringify({
               explanation: 'Some explanation'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('test query');
@@ -289,7 +297,8 @@ describe('ClaudeSearchService', () => {
             text: JSON.stringify({
               whereClause: { city: 'Austin' }
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('test query');
@@ -304,7 +313,8 @@ describe('ClaudeSearchService', () => {
           content: [{
             type: 'text',
             text: JSON.stringify({ whereClause: {}, explanation: 'Test' })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         await service.parseNaturalLanguageQuery('test');
@@ -321,7 +331,8 @@ describe('ClaudeSearchService', () => {
           content: [{
             type: 'text',
             text: JSON.stringify({ whereClause: {}, explanation: 'Test' })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         await service.parseNaturalLanguageQuery('test');
@@ -338,7 +349,8 @@ describe('ClaudeSearchService', () => {
           content: [{
             type: 'text',
             text: JSON.stringify({ whereClause: {}, explanation: 'Test' })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         await service.parseNaturalLanguageQuery('find expensive homes');
@@ -366,7 +378,8 @@ describe('ClaudeSearchService', () => {
               whereClause: { city: 'Austin' },
               explanation: 'Processed long query'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery(longQuery);
@@ -383,7 +396,8 @@ describe('ClaudeSearchService', () => {
               whereClause: { propertyAddress: { contains: "O'Connor", mode: 'insensitive' } },
               explanation: 'Searching for properties on O\'Connor'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery("properties on O'Connor St");
@@ -399,7 +413,8 @@ describe('ClaudeSearchService', () => {
               whereClause: { city: { contains: 'São Paulo', mode: 'insensitive' } },
               explanation: 'Searching for properties in São Paulo'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('properties in São Paulo');
@@ -419,7 +434,8 @@ describe('ClaudeSearchService', () => {
               },
               explanation: 'Searching for properties found via Smith search term'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('properties from Smith search');
@@ -440,7 +456,8 @@ describe('ClaudeSearchService', () => {
               },
               explanation: 'Searching for residential properties'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('residential properties');
@@ -459,7 +476,8 @@ describe('ClaudeSearchService', () => {
               },
               explanation: 'Searching for properties on Main St'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('properties on Main St');
@@ -479,7 +497,8 @@ describe('ClaudeSearchService', () => {
               orderBy: { appraisedValue: 'desc' },
               explanation: 'Searching for properties appraised over $500,000'
             })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         const result = await service.parseNaturalLanguageQuery('properties worth over 500k');
@@ -494,7 +513,8 @@ describe('ClaudeSearchService', () => {
           content: [{
             type: 'text',
             text: JSON.stringify({ whereClause: {}, explanation: 'Test' })
-          }]
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 }
         });
 
         await service.parseNaturalLanguageQuery('test');

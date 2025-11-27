@@ -5,6 +5,11 @@
  */
 
 import { afterAll } from 'vitest';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load .env file from server directory
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';

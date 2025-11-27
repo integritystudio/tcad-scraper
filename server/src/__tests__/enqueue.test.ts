@@ -8,7 +8,7 @@
  * - Queue configuration is correct
  */
 
-import { describe, test, expect, afterAll } from 'vitest';
+import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import { scraperQueue } from '../queues/scraper.queue';
 import { ScrapeJobData } from '../types';
 import Bull from 'bull';
@@ -22,8 +22,14 @@ const checkRedis = async () => {
 };
 
 describe.skipIf(!(await checkRedis()))('Queue Enqueuing Tests', () => {
+  // Pause queue before tests to prevent jobs from actually being processed
+  beforeAll(async () => {
+    await scraperQueue.pause();
+  });
+
   // Clean up after tests
   afterAll(async () => {
+    await scraperQueue.resume();
     await scraperQueue.close();
   });
 

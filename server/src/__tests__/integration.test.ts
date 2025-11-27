@@ -101,6 +101,9 @@ describe('Integration Tests', () => {
       expect(response.headers['content-type']).not.toContain('text/html');
     });
 
+    // TODO: FAILING - Returns 404 instead of 200
+    // Issue: Frontend build files not available in test environment
+    // Fix: Either build frontend before tests or mock the static file serving
     test('should serve frontend for unmatched routes', async () => {
       const response = await request(app).get('/some-spa-route');
       expect(response.status).toBe(200);
@@ -109,6 +112,9 @@ describe('Integration Tests', () => {
   });
 
   describe('Data Passing', () => {
+    // TODO: LIKELY SKIPPED - Depends on frontend build files
+    // Issue: Frontend HTML template not available in test environment
+    // Fix: Build frontend before tests or create test HTML fixture
     test('should embed initial data in HTML', async () => {
       const response = await request(app).get('/');
 
@@ -128,6 +134,9 @@ describe('Integration Tests', () => {
       expect(data).toHaveProperty('version');
     });
 
+    // TODO: LIKELY SKIPPED - Depends on frontend build files
+    // Issue: Frontend HTML template not available in test environment
+    // Fix: Build frontend before tests or create test HTML fixture
     test('should not expose sensitive environment variables', async () => {
       const response = await request(app).get('/');
 
@@ -143,6 +152,9 @@ describe('Integration Tests', () => {
   });
 
   describe('XSS Prevention', () => {
+    // TODO: LIKELY SKIPPED - Depends on frontend build files
+    // Issue: Frontend HTML template not available in test environment
+    // Fix: Build frontend before tests or create test HTML fixture
     test('should encode dangerous characters in embedded data', async () => {
       const response = await request(app).get('/');
 
@@ -161,6 +173,9 @@ describe('Integration Tests', () => {
       }
     });
 
+    // TODO: LIKELY SKIPPED - Depends on frontend build files
+    // Issue: Frontend HTML template not available in test environment
+    // Fix: Build frontend before tests or create test HTML fixture
     test('should not allow script breakout', async () => {
       const response = await request(app).get('/');
 
@@ -179,11 +194,17 @@ describe('Integration Tests', () => {
   });
 
   describe('Error Handling', () => {
+    // TODO: LIKELY SKIPPED - May depend on error handling setup
+    // Issue: Unclear if API 404 handler is properly configured
+    // Fix: Verify API error middleware is properly registered
     test('should handle 404 for non-existent API routes', async () => {
       const response = await request(app).get('/api/nonexistent');
       expect(response.status).toBe(404);
     });
 
+    // TODO: LIKELY SKIPPED - Returns 404 instead of 200
+    // Issue: Frontend build files not available in test environment
+    // Fix: Build frontend before tests or mock the static file serving
     test('should serve frontend for non-existent SPA routes', async () => {
       const response = await request(app).get('/dashboard/analytics/report');
       expect(response.status).toBe(200);
