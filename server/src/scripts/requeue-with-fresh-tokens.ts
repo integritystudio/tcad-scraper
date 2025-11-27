@@ -104,8 +104,9 @@ async function main() {
         if (removed % 50 === 0) {
           process.stdout.write(`\r   Removed: ${removed}/${waitingJobs.length + delayedJobs.length}`);
         }
-      } catch (error: any) {
-        logger.error(`   Failed to remove job ${job.id}:`, error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`   Failed to remove job ${job.id}: ${errorMessage}`);
       }
     }
 
@@ -117,8 +118,9 @@ async function main() {
         if (removed % 50 === 0) {
           process.stdout.write(`\r   Removed: ${removed}/${waitingJobs.length + delayedJobs.length}`);
         }
-      } catch (error: any) {
-        logger.error(`   Failed to remove job ${job.id}:`, error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`   Failed to remove job ${job.id}: ${errorMessage}`);
       }
     }
 
@@ -176,8 +178,9 @@ async function main() {
         if (enqueued % 50 === 0) {
           process.stdout.write(`\r   Progress: ${enqueued}/${allTerms.length} (${((enqueued/allTerms.length)*100).toFixed(1)}%)`);
         }
-      } catch (error: any) {
-        logger.error(`\n   ❌ Failed to enqueue "${term}":`, error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`\n   ❌ Failed to enqueue "${term}": ${errorMessage}`);
       }
     }
 

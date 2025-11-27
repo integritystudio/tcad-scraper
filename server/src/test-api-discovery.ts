@@ -12,7 +12,7 @@ async function testApiDiscovery() {
     await scraper.initialize();
 
     // Use the discoverApiEndpoint method via type assertion
-    // @ts-ignore - accessing private method for testing
+    // @ts-expect-error - accessing private method for testing
     await scraper.discoverApiEndpoint('Willow');
 
     logger.info('\n✅ API discovery complete!');
