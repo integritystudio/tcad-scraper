@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: November 26, 2025 | **Version**: 3.0
+**Last Updated**: November 27, 2025 | **Version**: 3.1
 
 ## Project Overview
 
@@ -200,6 +200,125 @@ curl -s "https://api.alephatx.info/health" | jq
 
 ---
 
+## TypeScript Type Safety Standards
+
+**Enforcement**: ESLint `@typescript-eslint/no-explicit-any` (warning level)
+
+### Rule: NEVER Use 'any' Type
+
+**Bad**:
+```typescript
+} catch (error: any) {
+  logger.error(error.message);
+}
+
+const data = job.data as any;
+```
+
+**Good**:
+```typescript
+} catch (error: unknown) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  logger.error(`Failed: ${errorMessage}`);
+}
+
+import { ScraperJob } from '../types/queue.types';
+const scraperJob = job as ScraperJob;
+const data = scraperJob.data; // Type-safe access
+```
+
+### BullMQ Job Typing
+
+**Pattern**: Use typed Job interfaces from `server/src/types/queue.types.ts`
+
+```typescript
+import { Job } from 'bull';
+import { ScraperJob, CompletedScraperJob, FailedScraperJob } from '../types/queue.types';
+
+// Type-safe job access
+const scraperJob = job as ScraperJob;
+console.log(scraperJob.data.searchTerm); // ✅ Type-safe
+
+// Type guards for job states
+if (isCompletedJob(job)) {
+  console.log(job.returnvalue.count); // ✅ Type-safe
+}
+```
+
+**Available Types**:
+- `ScraperJob` - Active/waiting jobs
+- `CompletedScraperJob` - Jobs with return values
+- `FailedScraperJob` - Jobs with errors
+- Type guards: `isCompletedJob()`, `isFailedJob()`, `hasJobData()`
+
+### Error Handling Pattern
+
+**Rule**: Use `unknown` not `any`, add type guards
+
+```typescript
+// ✅ Correct pattern
+try {
+  await someOperation();
+} catch (error: unknown) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  logger.error(`Operation failed: ${errorMessage}`);
+
+  // Type-safe error details access
+  if (error instanceof Error && error.stack) {
+    logger.debug(error.stack);
+  }
+}
+
+// ❌ Wrong - unsafe access
+} catch (error: any) {
+  logger.error(error.message); // Runtime error if not an Error object
+}
+```
+
+### Logging Standard
+
+**Rule**: Use structured logger (Pino), NOT console.*
+
+```typescript
+// ✅ Correct
+import logger from '../lib/logger';
+logger.info('Processing search term', { searchTerm });
+logger.error('Failed to process', { error: errorMessage });
+
+// ❌ Wrong
+console.log('Processing:', searchTerm);
+console.error('Failed:', error);
+```
+
+### Documented Exceptions
+
+**Legitimate 'any' usage** (4 occurrences):
+
+1. **`auth.ts:75`** - `jwt.sign()` requires `any` for options (library limitation)
+2. **`property.routes.ts:132,194,283`** - `Function.bind()` requires `any` for this context (TypeScript limitation)
+
+These are documented with inline comments explaining why `any` is necessary.
+
+### Verification Commands
+
+```bash
+# Check for new 'any' types
+grep -r ": any\|as any" server/src/ --include="*.ts" | wc -l
+
+# Run type check
+npx tsc --noEmit
+
+# Check ESLint warnings
+npm run lint | grep "no-explicit-any"
+```
+
+**Current Status** (Nov 27, 2025):
+- 'any' types: 11 total (4 documented exceptions, 7 in legacy scripts)
+- Console statements: 17 (2 legacy scripts only)
+- Target: <5 'any' types (exceptions only), 0 console statements
+
+---
+
 ## Critical Debugging
 
 ### Database Connection Failed
@@ -255,6 +374,7 @@ npm run analyze:overview
 
 ## Document History
 
+**v3.1** (Nov 27, 2025): Added TypeScript type safety standards section, BullMQ job typing patterns
 **v3.0** (Nov 26, 2025): Added critical bug fixes, condensed architecture, deployment via file copy
 **v2.0** (Nov 17, 2025): Database via Tailscale, Doppler secrets, port configuration
 **v1.0**: Initial documentation
