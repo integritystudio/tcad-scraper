@@ -123,7 +123,7 @@ export class RedisCacheService {
    * @param value Value to cache (will be JSON stringified)
    * @param ttlSeconds Time to live in seconds (default: 300 = 5 minutes)
    */
-  async set(key: string, value: any, ttlSeconds: number = 300): Promise<boolean> {
+  async set(key: string, value: unknown, ttlSeconds: number = 300): Promise<boolean> {
     if (!this.client || !this.isConnected) {
       logger.warn('Redis cache not connected, skipping set');
       return false;

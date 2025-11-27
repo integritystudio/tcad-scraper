@@ -70,6 +70,8 @@ export const generateToken = (userId: string, email?: string): string => {
   return jwt.sign(
     { id: userId, email },
     config.auth.jwt.secret,
+    // Type assertion needed: jwt library's SignOptions type is overly strict
+    // expiresIn accepts string values like '7d' but TypeScript infers our config value too narrowly
     { expiresIn: config.auth.jwt.expiresIn as any }
   );
 };

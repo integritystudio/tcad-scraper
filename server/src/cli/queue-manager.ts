@@ -372,7 +372,7 @@ program
     logger.info(`   - Active: ${active}`);
     logger.info(`   - Completed: ${completed}`);
     logger.info(`   - Failed: ${failed}`);
-    logger.info(`\n✨ Cleanup complete! Removed ${totalRemoved} jobs.`);
+    logger.info(`\n✨ Cleanup complete! Removed ${totalRemoved} jobs${totalFailed > 0 ? ` (${totalFailed} failed to remove)` : ''}.`);
 
     await cleanup();
   });

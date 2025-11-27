@@ -244,7 +244,7 @@ export function clearUser(): void {
 /**
  * Set custom context for error tracking
  */
-export function setContext(name: string, context: Record<string, any>): void {
+export function setContext(name: string, context: Record<string, unknown>): void {
   if (!config.monitoring.sentry.enabled) {
     return;
   }
@@ -304,7 +304,7 @@ export function wrapAsync<T extends (...args: unknown[]) => Promise<unknown>>(
     return fn;
   }
 
-  return (async (...args: any[]) => {
+  return (async (...args: unknown[]) => {
     // Sentry v8: Use startSpan instead of startTransaction
     return await Sentry.startSpan(
       {

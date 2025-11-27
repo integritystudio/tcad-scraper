@@ -19,7 +19,7 @@ export function generateNonce(): string {
  * Encode JSON safely for embedding in HTML
  * Prevents XSS by encoding dangerous characters
  */
-export function encodeJsonForHtml(data: any): string {
+export function encodeJsonForHtml(data: unknown): string {
   return JSON.stringify(data)
     .replace(/</g, '\\u003C')
     .replace(/>/g, '\\u003E')
@@ -95,7 +95,7 @@ export function cspMiddleware(req: Request, res: Response, next: NextFunction) {
 export function generateSecureHtml(options: {
   title: string;
   nonce: string;
-  initialData?: any;
+  initialData?: unknown;
   scriptSrc: string;
   styleSrc?: string;
 }): string {

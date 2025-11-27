@@ -82,7 +82,7 @@ scraperQueue.process(config.queue.jobName, config.queue.concurrency, async (job)
         // Build the VALUES clause dynamically
         const now = new Date();
         const valuesClauses: string[] = [];
-        const params: any[] = [];
+        const params: (string | number | Date | null)[] = [];
         let paramIndex = 1;
 
         for (const property of chunk) {

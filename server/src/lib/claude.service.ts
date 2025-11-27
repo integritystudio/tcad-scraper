@@ -187,9 +187,9 @@ Now generate the JSON for the user's query above.`,
       }
 
       // Parse with error handling
-      let parsed: any;
+      let parsed: Partial<SearchFilters>;
       try {
-        parsed = JSON.parse(cleanedResponse);
+        parsed = JSON.parse(cleanedResponse) as Partial<SearchFilters>;
       } catch (parseError) {
         const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
         logger.error(`JSON parse failed: ${errorMsg}`);
