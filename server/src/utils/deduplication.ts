@@ -1,6 +1,7 @@
 import { scraperQueue } from '../queues/scraper.queue';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
+import type { ScraperJob } from '../types/queue.types';
 
 interface DeduplicationOptions {
   verbose?: boolean;
@@ -39,7 +40,7 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
   const completedTermSet = new Set(completedTerms.map(j => j.searchTerm));
 
   // Track search terms and their job IDs
-  const termMap = new Map<string, Array<{ job: any; priority: number; state: string }>>();  // BullMQ job types vary based on queue state
+  const termMap = new Map<string, Array<{ job: ScraperJob; priority: number; state: string }>>();
 
   // Build map of search terms to jobs
   for (const job of allPendingJobs) {
@@ -140,10 +141,11 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
         if (showProgress && removed % 10 === 0) {
           process.stdout.write(`\r   Progress: ${removed}/${totalToRemove} (${((removed/totalToRemove)*100).toFixed(1)}%)`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         failed++;
         if (verbose && failed <= 3) {
-          logger.error(`${showProgress ? '\n' : ''}   ❌ Failed to remove job ${jobs[i].job.id}:`, error.message);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error(`${showProgress ? '\n' : ''}   ❌ Failed to remove job ${jobs[i].job.id}: ${errorMessage}`);
         }
       }
     }
@@ -158,10 +160,11 @@ export async function removeDuplicatesFromQueue(options: DeduplicationOptions = 
         if (showProgress && removed % 10 === 0) {
           process.stdout.write(`\r   Progress: ${removed}/${totalToRemove} (${((removed/totalToRemove)*100).toFixed(1)}%)`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         failed++;
         if (verbose && failed <= 3) {
-          logger.error(`${showProgress ? '\n' : ''}   ❌ Failed to remove job ${jobInfo.job.id}:`, error.message);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error(`${showProgress ? '\n' : ''}   ❌ Failed to remove job ${jobInfo.job.id}: ${errorMessage}`);
         }
       }
     }

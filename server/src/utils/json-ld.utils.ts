@@ -456,7 +456,7 @@ ${JSON.stringify(jsonLd, null, 2)}
  */
 export function generatePageJsonLd(
   type: 'property' | 'listing' | 'home',
-  data: any,
+  data: PropertyAPI | PaginatedPropertyResponse | Record<string, unknown>,
   websiteUrl = 'https://example.com'
 ): string[] {
   const scripts: string[] = [];
@@ -464,17 +464,17 @@ export function generatePageJsonLd(
   switch (type) {
     case 'property':
       // Individual property page
-      scripts.push(injectJsonLdScript(generatePropertyJsonLd(data, undefined, websiteUrl)));
+      scripts.push(injectJsonLdScript(generatePropertyJsonLd(data as PropertyAPI, undefined, websiteUrl)));
       scripts.push(injectJsonLdScript(generateBreadcrumbJsonLd([
         { name: 'Home', url: '/' },
         { name: 'Properties', url: '/properties' },
-        { name: data.address.shortFormat }
+        { name: (data as PropertyAPI).address.shortFormat || 'Property' }
       ], websiteUrl)));
       break;
 
     case 'listing':
       // Property listing/search results
-      scripts.push(injectJsonLdScript(generatePropertyListJsonLd(data, undefined, websiteUrl)));
+      scripts.push(injectJsonLdScript(generatePropertyListJsonLd(data as PaginatedPropertyResponse, undefined, websiteUrl)));
       scripts.push(injectJsonLdScript(generateBreadcrumbJsonLd([
         { name: 'Home', url: '/' },
         { name: 'Search Results' }
@@ -494,7 +494,7 @@ export function generatePageJsonLd(
  * Validate JSON-LD structure
  * Returns validation errors if any
  */
-export function validateJsonLd(jsonLd: any): string[] {
+export function validateJsonLd(jsonLd: Record<string, unknown>): string[] {
   const errors: string[] = [];
 
   // Check for required @context
@@ -519,12 +519,15 @@ export function validateJsonLd(jsonLd: any): string[] {
   }
 
   // Validate PostalAddress
-  if (jsonLd.address && jsonLd.address['@type'] === 'PostalAddress') {
-    if (!jsonLd.address.streetAddress) {
-      errors.push('PostalAddress requires streetAddress');
-    }
-    if (!jsonLd.address.addressLocality && !jsonLd.address.addressRegion) {
-      errors.push('PostalAddress requires addressLocality or addressRegion');
+  if (jsonLd.address && typeof jsonLd.address === 'object' && jsonLd.address !== null) {
+    const address = jsonLd.address as Record<string, unknown>;
+    if (address['@type'] === 'PostalAddress') {
+      if (!address.streetAddress) {
+        errors.push('PostalAddress requires streetAddress');
+      }
+      if (!address.addressLocality && !address.addressRegion) {
+        errors.push('PostalAddress requires addressLocality or addressRegion');
+      }
     }
   }
 
