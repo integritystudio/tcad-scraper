@@ -136,7 +136,7 @@ async function check401Errors() {
     lastCheck = new Date();
 
   } catch (error) {
-    logger.error('❌ Error checking for 401 errors:', error);
+    logger.error(error as Error, '❌ Error checking for 401 errors');
     consecutiveErrorCount++;
 
     // If we've had too many consecutive errors, try refreshing token anyway
