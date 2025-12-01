@@ -6,8 +6,17 @@ import { BUILD_CONSTANTS } from '../../../constants/build';
 import styles from './PropertySearchContainer.module.css';
 
 export const PropertySearchContainer = () => {
-  const { results, loading, error, totalResults, explanation, search } =
-    usePropertySearch();
+  const {
+    results,
+    loading,
+    error,
+    totalResults,
+    explanation,
+    answer,
+    answerState,
+    statistics,
+    search,
+  } = usePropertySearch();
   const { logSearch, logSearchResults, logError } = useAnalytics();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -64,6 +73,9 @@ export const PropertySearchContainer = () => {
         error={error}
         loading={loading}
         searchQuery={searchQuery}
+        answer={answer}
+        answerState={answerState}
+        statistics={statistics}
       />
     </div>
   );

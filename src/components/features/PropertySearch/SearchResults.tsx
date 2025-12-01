@@ -1,5 +1,6 @@
-import { Property } from '../../../types';
+import { Property, AnswerStatistics, AnswerBoxState } from '../../../types';
 import { PropertyCard } from './PropertyCard';
+import { AnswerBox } from './AnswerBox';
 import { Icon } from '../../ui/Icon';
 import { Button } from '../../ui/Button';
 import styles from './SearchResults.module.css';
@@ -12,6 +13,9 @@ interface SearchResultsProps {
   loading?: boolean;
   searchQuery?: string;
   onLoadMore?: () => void;
+  answer?: string;
+  answerState?: AnswerBoxState;
+  statistics?: AnswerStatistics;
 }
 
 export const SearchResults = ({
@@ -22,6 +26,9 @@ export const SearchResults = ({
   loading,
   searchQuery,
   onLoadMore,
+  answer,
+  answerState = 'idle',
+  statistics,
 }: SearchResultsProps) => {
   if (error) {
     return (
@@ -50,7 +57,20 @@ export const SearchResults = ({
 
   return (
     <div className={styles.container}>
-      {explanation && (
+      {/* Answer Box for quantitative queries */}
+      {(answer || answerState === 'loading') && (
+        <AnswerBox
+          answer={answer || ''}
+          totalResults={totalResults}
+          statistics={statistics}
+          searchQuery={searchQuery || ''}
+          state={answerState}
+          error={error}
+        />
+      )}
+
+      {/* Explanation for non-quantitative queries (only show if no answer) */}
+      {explanation && !answer && answerState !== 'loading' && (
         <div className={styles.explanation}>
           <div className={styles.explanationIcon}>
             <Icon name="chevronRight" size={16} />
