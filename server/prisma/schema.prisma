@@ -9,7 +9,7 @@ datasource db {
 
 model Property {
   id              String   @id @default(uuid())
-  propertyId      String   @map("property_id") @unique
+  propertyId      String   @map("property_id")
   name            String
   propType        String   @map("prop_type")
   city            String?
@@ -22,12 +22,15 @@ model Property {
   scrapedAt       DateTime @default(now()) @map("scraped_at")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
+  year            Int
 
+  @@unique([propertyId, year])
   @@index([searchTerm, scrapedAt])
   @@index([propertyId])
   @@index([city])
   @@index([propType])
   @@index([appraisedValue])
+  @@index([year])
   @@map("properties")
 }
 
