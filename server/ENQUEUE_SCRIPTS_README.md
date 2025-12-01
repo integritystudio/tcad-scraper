@@ -69,17 +69,17 @@ Each script queues **10 search terms**, for a total of **~100 jobs** across all 
 cd /home/aledlie/tcad-scraper/server
 
 # Run a single script
-./run-enqueue-script.sh enqueue-trust-batch
+./scripts/run-enqueue-script.sh enqueue-trust-batch
 
 # Run another script
-./run-enqueue-script.sh enqueue-investment-batch
+./scripts/run-enqueue-script.sh enqueue-investment-batch
 ```
 
 #### Option 2: Run All Scripts Sequentially
 
 ```bash
 # Runs all 10 scripts one after another (safer, more controlled)
-./run-all-enqueue-scripts.sh
+./scripts/run-all-enqueue-scripts.sh
 ```
 
 This will:
@@ -92,7 +92,7 @@ This will:
 
 ```bash
 # Runs all 10 scripts simultaneously (faster but more intense)
-./run-all-enqueue-scripts.sh parallel
+./scripts/run-all-enqueue-scripts.sh parallel
 ```
 
 This will:
@@ -288,8 +288,8 @@ Check:
 ### Permission Denied
 
 ```bash
-chmod +x run-enqueue-script.sh
-chmod +x run-all-enqueue-scripts.sh
+chmod +x scripts/run-enqueue-script.sh
+chmod +x scripts/run-all-enqueue-scripts.sh
 ```
 
 ## 📝 Creating New Scripts
@@ -313,7 +313,7 @@ To create a new enqueue script:
 
 4. Test it:
    ```bash
-   ./run-enqueue-script.sh enqueue-mynew-batch
+   ./scripts/run-enqueue-script.sh enqueue-mynew-batch
    ```
 
 ## 🎯 Best Practices

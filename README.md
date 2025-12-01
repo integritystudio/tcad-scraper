@@ -693,13 +693,13 @@ The TCAD API requires token refresh every ~5 minutes. An automated cron job hand
 crontab -l
 
 # The cron job (already configured):
-# */4 * * * * /home/aledlie/tcad-scraper/refresh-tcad-token.sh >> /home/aledlie/tcad-scraper/logs/token-refresh-cron.log 2>&1
+# */4 * * * * /home/aledlie/tcad-scraper/scripts/refresh-tcad-token.sh >> /home/aledlie/tcad-scraper/logs/token-refresh-cron.log 2>&1
 
 # Monitor token refresh logs
 tail -f /home/aledlie/tcad-scraper/logs/token-refresh-cron.log
 
 # Manually refresh token if needed
-/home/aledlie/tcad-scraper/refresh-tcad-token.sh
+/home/aledlie/tcad-scraper/scripts/refresh-tcad-token.sh
 ```
 
 **Token refresh runs every 4 minutes automatically**, preventing HTTP 401 errors during continuous scraping.

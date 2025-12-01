@@ -145,7 +145,7 @@ async function clearAndQueueSearches() {
       logger.info(`   - Processing time: ~${Math.ceil(queuedCount / 2 * 15 / 60)} hours (2 concurrent workers)\n`);
 
       logger.info('⚠️  Note: Token expires in 5 minutes!');
-      logger.info('   Run refresh-tcad-token.sh every 4 minutes to keep scraping active\n');
+      logger.info('   Run scripts/refresh-tcad-token.sh every 4 minutes to keep scraping active\n');
     }
 
     logger.info('✨ Entity term searches queued successfully!\n');

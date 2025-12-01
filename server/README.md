@@ -28,7 +28,7 @@ PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d tcad_scraper -c "SE
 ### Token Expiration
 The TCAD API token expires every 5 minutes. The scraper needs the token refreshed regularly:
 ```bash
-/home/aledlie/tcad-scraper/refresh-tcad-token.sh
+/home/aledlie/tcad-scraper/scripts/refresh-tcad-token.sh
 ```
 When the token expires, jobs fail with HTTP 401 errors and the processing rate drops to near 0.
 

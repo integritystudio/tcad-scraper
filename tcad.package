@@ -6,7 +6,7 @@
   "scripts": {
     "start": "doppler run --command 'node tcad-scraper.js'",
     "cli": "doppler run --command 'node tcad-cli.js'",
-    "monitor": "doppler run './start.sh'",
+    "monitor": "doppler run './scripts/start.sh'",
     "test": "dopppler run --command 'node test-scraper.js'"
   },
   "keywords": [

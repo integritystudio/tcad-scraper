@@ -10,6 +10,9 @@
 
 set -e
 
+# Change to server directory (parent of scripts/)
+cd "$(dirname "$0")/.."
+
 # Color codes for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
