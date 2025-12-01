@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'tcad-api',
-      script: './start.sh',
+      script: './scripts/start.sh',
       cwd: '/home/aledlie/tcad-scraper/server',
       instances: 1,
       autorestart: true,
@@ -43,7 +43,7 @@ module.exports = {
   scraper: [
     {
       name: 'tcad-scraper',
-      script: './start.sh',
+      script: './scripts/start.sh',
       cwd: '/home/aledlie/tcad-scraper/server',
       instances: 1,
       autorestart: true,
@@ -65,7 +65,7 @@ module.exports = {
   test : [
     {
       name: 'tcad-scraper',
-      script: './start.sh',
+      script: './scripts/start.sh',
       cwd: '/home/aledlie/tcad-scraper/server',
       instances: 1,
       autorestart: true,

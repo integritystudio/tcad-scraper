@@ -6,7 +6,7 @@
 - **High-Priority Enqueuing**: Created `enqueue-priority-terms.ts` script for adding priority searches to front of queue
 - **Performance Milestone**: Achieved ~3,000 properties/minute scraping rate (180K/hour)
 - **Database Growth**: Surpassed 105,000 properties with continuous batch scraping
-- **Token Management**: Configured automatic token refresh via `/home/aledlie/tcad-scraper/refresh-tcad-token.sh`
+- **Token Management**: Configured automatic token refresh via `/home/aledlie/tcad-scraper/scripts/refresh-tcad-token.sh`
 - **Monitoring Improvements**: Enhanced database statistics and per-minute tracking
 - **Production Stability**: Fixed syntax errors in continuous-batch-scraper.ts
 - **Process Reliability**: PM2 auto-restart and memory limits (2GB for continuous-enqueue)

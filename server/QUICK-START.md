@@ -6,17 +6,17 @@
 cd /home/aledlie/tcad-scraper/server
 
 # Run a single high-yield script
-./run-enqueue-script.sh enqueue-trust-batch
+./scripts/run-enqueue-script.sh enqueue-trust-batch
 ```
 
 ## 🎯 Run All Scripts
 
 ```bash
 # Sequential (safer, 5-10 minutes)
-./run-all-enqueue-scripts.sh
+./scripts/run-all-enqueue-scripts.sh
 
 # Parallel (faster, 30-60 seconds)
-./run-all-enqueue-scripts.sh parallel
+./scripts/run-all-enqueue-scripts.sh parallel
 ```
 
 ## 📊 Monitor Jobs
@@ -28,7 +28,7 @@ Open in browser:
 ## ✅ Verify Setup
 
 ```bash
-./verify-setup.sh
+./scripts/verify-setup.sh
 ```
 
 ## 🔑 Key Features

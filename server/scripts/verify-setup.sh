@@ -6,6 +6,9 @@
 
 set -e
 
+# Change to server directory (parent of scripts/)
+cd "$(dirname "$0")/.."
+
 # Color codes
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -154,11 +157,11 @@ fi
 
 # Check 10: Runner Scripts
 echo -n "Checking runner scripts... "
-if [ -x "./run-enqueue-script.sh" ] && [ -x "./run-all-enqueue-scripts.sh" ]; then
+if [ -x "./scripts/run-enqueue-script.sh" ] && [ -x "./scripts/run-all-enqueue-scripts.sh" ]; then
   echo -e "${GREEN}✓ Available and executable${NC}"
 else
   echo -e "${YELLOW}⚠ Not executable${NC}"
-  echo -e "${YELLOW}  Run: chmod +x run-*.sh${NC}"
+  echo -e "${YELLOW}  Run: chmod +x scripts/run-*.sh${NC}"
   WARNINGS=$((WARNINGS + 1))
 fi
 
@@ -183,8 +186,8 @@ if [ $ERRORS -eq 0 ] && [ $WARNINGS -eq 0 ]; then
   echo -e "${GREEN}✅ All checks passed! You're ready to run enqueue scripts.${NC}"
   echo ""
   echo -e "${BLUE}Quick Start:${NC}"
-  echo -e "  ./run-enqueue-script.sh enqueue-trust-batch"
-  echo -e "  ./run-all-enqueue-scripts.sh"
+  echo -e "  ./scripts/run-enqueue-script.sh enqueue-trust-batch"
+  echo -e "  ./scripts/run-all-enqueue-scripts.sh"
   echo ""
 elif [ $ERRORS -eq 0 ]; then
   echo -e "${YELLOW}⚠️  Setup is functional with ${WARNINGS} warning(s)${NC}"

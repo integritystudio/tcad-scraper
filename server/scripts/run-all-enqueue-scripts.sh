@@ -11,6 +11,9 @@
 
 set -e
 
+# Change to server directory (parent of scripts/)
+cd "$(dirname "$0")/.."
+
 # Color codes
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -42,7 +45,7 @@ echo ""
 
 # Check if doppler is configured
 if ! doppler setup --silent 2>/dev/null; then
-  echo -e "${RED}❌ Doppler not configured. Please run ./run-enqueue-script.sh first${NC}"
+  echo -e "${RED}❌ Doppler not configured. Please run ./scripts/run-enqueue-script.sh first${NC}"
   exit 1
 fi
 

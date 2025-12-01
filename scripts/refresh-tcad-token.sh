@@ -49,4 +49,4 @@ fi
 
 echo ""
 echo "💡 Tip: Run this script every 4 minutes to keep token fresh"
-echo "   Example cron: */4 * * * * /home/aledlie/tcad-scraper/refresh-tcad-token.sh"
+echo "   Example cron: */4 * * * * /home/aledlie/tcad-scraper/scripts/refresh-tcad-token.sh"
