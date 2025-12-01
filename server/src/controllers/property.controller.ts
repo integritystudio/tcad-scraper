@@ -10,7 +10,9 @@ import type {
   PropertyFilters,
   NaturalLanguageSearchBody,
   HistoryQueryParams,
-  MonitorRequestBody
+  MonitorRequestBody,
+  AnswerStatistics,
+  AnswerType
 } from '../types/property.types';
 
 export class PropertyController {
@@ -163,7 +165,7 @@ export class PropertyController {
     }
 
     // Use Claude to parse the natural language query
-    const { whereClause, orderBy, explanation } = await claudeSearchService.parseNaturalLanguageQuery(query);
+    const { whereClause, orderBy, explanation, answer, answerType } = await claudeSearchService.parseNaturalLanguageQuery(query);
 
     // Query the database with the generated filters
     const [properties, total] = await Promise.all([
@@ -175,6 +177,56 @@ export class PropertyController {
       }),
       prismaReadOnly.property.count({ where: whereClause }),
     ]);
+
+    // Calculate statistics if an answer is requested
+    let statistics: AnswerStatistics | undefined;
+    let formattedAnswer: string | undefined;
+
+    if (answer) {
+      // Calculate aggregate statistics
+      const [aggregates, cityStats, typeStats] = await Promise.all([
+        prismaReadOnly.property.aggregate({
+          where: whereClause,
+          _avg: { appraisedValue: true },
+          _sum: { appraisedValue: true },
+          _min: { appraisedValue: true },
+          _max: { appraisedValue: true },
+        }),
+        prismaReadOnly.property.groupBy({
+          by: ['city'],
+          where: { ...whereClause, city: { not: null } },
+          _count: true,
+          orderBy: { _count: { city: 'desc' } },
+          take: 1,
+        }),
+        prismaReadOnly.property.groupBy({
+          by: ['propType'],
+          where: whereClause,
+          _count: true,
+          orderBy: { _count: { propType: 'desc' } },
+          take: 5,
+        }),
+      ]);
+
+      statistics = {
+        avgValue: aggregates._avg.appraisedValue ?? undefined,
+        totalValue: aggregates._sum.appraisedValue ?? undefined,
+        priceRange: aggregates._min.appraisedValue !== null && aggregates._max.appraisedValue !== null
+          ? { min: aggregates._min.appraisedValue, max: aggregates._max.appraisedValue }
+          : undefined,
+        topCity: cityStats.length > 0 && cityStats[0].city
+          ? { name: cityStats[0].city, count: cityStats[0]._count }
+          : undefined,
+        propertyTypes: typeStats.map(t => ({ type: t.propType, count: t._count })),
+      };
+
+      // Format the answer by replacing placeholders
+      formattedAnswer = answer
+        .replace('{count}', total.toLocaleString())
+        .replace('{totalValue}', statistics.totalValue
+          ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(statistics.totalValue)
+          : '$0');
+    }
 
     // Transform properties from camelCase (Prisma) to snake_case (frontend expectation)
     const transformedProperties = properties.map(prop => ({
@@ -205,6 +257,9 @@ export class PropertyController {
       query: {
         original: query,
         explanation,
+        answer: formattedAnswer,
+        answerType: answerType as AnswerType | undefined,
+        statistics,
       },
     });
   }
