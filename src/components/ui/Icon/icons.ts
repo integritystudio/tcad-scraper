@@ -24,6 +24,7 @@ export const iconPaths: Record<string, string> = {
   hash: 'M4 9h16M4 15h16M10 3L8 21M16 3l-2 18',
   'file-text': 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 2v6h6M16 13H8M16 17H8M10 9H8',
   clock: 'M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0 -20 0M12 6v6l4 2',
+  sparkles: 'M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3zM5 19l0.5 1.5L7 21l-1.5 0.5L5 23l-0.5-1.5L3 21l1.5-0.5L5 19zM19 13l0.5 1.5L21 15l-1.5 0.5L19 17l-0.5-1.5L17 15l1.5-0.5L19 13',
 };
 
 export type IconName = keyof typeof iconPaths;
