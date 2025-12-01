@@ -21,14 +21,6 @@ export const VALUE_RANGES = [
   { label: 'Over $1M', min: 1000000, max: Infinity },
 ] as const;
 
-export const EXAMPLE_QUERIES = [
-  'properties in Austin worth over $500k',
-  'commercial properties owned by Smith',
-  'show me the most expensive residential properties',
-  'properties on Congress Ave',
-  'find properties appraised between $300k and $600k',
-] as const;
-
 export const STATUS_COLORS = {
   active: '#10b981',
   completed: '#3b82f6',

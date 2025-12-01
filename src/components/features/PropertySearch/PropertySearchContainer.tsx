@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePropertySearch, useAnalytics } from '../../../hooks';
 import { SearchBox } from './SearchBox';
-import { ExampleQueries } from './ExampleQueries';
 import { SearchResults } from './SearchResults';
 import { BUILD_CONSTANTS } from '../../../constants/build';
 import styles from './PropertySearchContainer.module.css';
@@ -55,10 +54,6 @@ export const PropertySearchContainer = () => {
 
         <div className={styles.searchContainer}>
           <SearchBox onSearch={handleSearch} loading={loading} />
-          <ExampleQueries
-            onSelectQuery={handleSearch}
-            disabled={loading}
-          />
         </div>
       </div>
 

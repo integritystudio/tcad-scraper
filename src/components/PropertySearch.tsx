@@ -28,13 +28,6 @@ export default function PropertySearch() {
   const [error, setError] = useState('');
   const [totalResults, setTotalResults] = useState(0);
 
-  const exampleQueries = [
-    'properties in Austin worth over $500k',
-    'commercial properties owned by Smith',
-    'show me the most expensive residential properties',
-    'properties on Congress Ave',
-    'find properties appraised between $300k and $600k',
-  ];
 
   const handleSearch = async (query?: string) => {
     const searchText = query || searchQuery;
@@ -123,22 +116,6 @@ export default function PropertySearch() {
             </button>
           </div>
 
-          <div className="example-queries">
-            <span className="example-label">Try:</span>
-            {exampleQueries.map((example, idx) => (
-              <button
-                key={idx}
-                onClick={() => {
-                  setSearchQuery(example);
-                  handleSearch(example);
-                }}
-                className="example-chip"
-                disabled={loading}
-              >
-                {example}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -207,7 +184,7 @@ export default function PropertySearch() {
             <path d="m21 21-4.35-4.35" />
           </svg>
           <h3>No properties found</h3>
-          <p>Try adjusting your search query or using one of the examples above</p>
+          <p>Try adjusting your search query</p>
         </div>
       )}
     </div>
