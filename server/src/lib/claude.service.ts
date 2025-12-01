@@ -30,7 +30,7 @@ export class ClaudeSearchService {
   ): Promise<void> {
     try {
       const queryCost = calculateClaudeCost(model, inputTokens, outputTokens);
-      const environment = config.env.nodeEnv || 'development';
+      const environment = config?.env?.nodeEnv || 'development';
 
       await prisma.apiUsageLog.create({
         data: {
