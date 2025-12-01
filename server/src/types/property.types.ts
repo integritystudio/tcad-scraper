@@ -315,6 +315,47 @@ export interface JobStatusResponse {
   completedAt: Date | null;
 }
 
+// ============================================================================
+// Natural Language Answer Types
+// ============================================================================
+
+/**
+ * Type of answer generated for quantitative queries
+ */
+export type AnswerType = 'count' | 'statistical' | 'descriptive';
+
+/**
+ * Statistics for property search results
+ * Used when answering quantitative questions
+ */
+export interface AnswerStatistics {
+  avgValue?: number;
+  totalValue?: number;
+  priceRange?: {
+    min: number;
+    max: number;
+  };
+  topCity?: {
+    name: string;
+    count: number;
+  };
+  propertyTypes?: Array<{
+    type: string;
+    count: number;
+  }>;
+}
+
+/**
+ * Enhanced query response with natural language answer
+ */
+export interface NaturalLanguageQueryResponse {
+  original: string;
+  explanation: string;
+  answer?: string;
+  answerType?: AnswerType;
+  statistics?: AnswerStatistics;
+}
+
 export interface StatsResponse {
   totalProperties: number;
   totalJobs: number;

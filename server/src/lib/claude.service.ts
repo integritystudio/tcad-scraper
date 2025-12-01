@@ -9,10 +9,14 @@ const anthropic = new Anthropic({
   apiKey: config.claude.apiKey,
 });
 
+import type { AnswerType } from '../types/property.types';
+
 interface SearchFilters {
   whereClause: Prisma.PropertyWhereInput;
   orderBy?: Prisma.PropertyOrderByWithRelationInput;
   explanation: string;
+  answer?: string;
+  answerType?: AnswerType;
 }
 
 export class ClaudeSearchService {
@@ -94,8 +98,35 @@ Generate a JSON response with these fields:
 1. "whereClause": Prisma where clause as JSON (use "contains" for text searches with "mode": "insensitive" for case-insensitive, "gte"/"lte" for number ranges, "gt"/"lt" for comparisons)
 2. "orderBy": Prisma orderBy clause (optional, use "asc" or "desc")
 3. "explanation": Brief explanation of what you're searching for
+4. "answer": (REQUIRED for quantitative questions) A natural language answer template. Use {count} as placeholder for the number of results and {totalValue} for sum of appraised values. For example: "{count} properties found with appraisal value over $5,000,000" or "Found {count} commercial properties with total value of {totalValue}"
+5. "answerType": (REQUIRED if answer is provided) One of: "count" (for how many questions), "statistical" (for averages, totals, comparisons), or "descriptive" (for general searches)
 
 Examples:
+
+Query: "how many properties are worth over 5 million in Austin?"
+Response:
+{
+  "whereClause": {
+    "city": "Austin",
+    "appraisedValue": { "gte": 5000000 }
+  },
+  "orderBy": { "appraisedValue": "desc" },
+  "explanation": "Searching for properties in Austin with appraised value over $5,000,000",
+  "answer": "{count} properties found in Austin with appraisal value over $5,000,000",
+  "answerType": "count"
+}
+
+Query: "what is the total value of commercial properties?"
+Response:
+{
+  "whereClause": {
+    "propType": { "contains": "Commercial", "mode": "insensitive" }
+  },
+  "orderBy": { "appraisedValue": "desc" },
+  "explanation": "Searching for commercial properties",
+  "answer": "Found {count} commercial properties with total appraised value of {totalValue}",
+  "answerType": "statistical"
+}
 
 Query: "properties in Austin worth over 500k"
 Response:
@@ -154,6 +185,9 @@ IMPORTANT:
 - For text searches, use "contains" with "mode": "insensitive"
 - Only include orderBy if the query implies sorting
 - Keep explanations brief and user-friendly
+- For questions starting with "how many", "what is the total", "count", "average", etc., ALWAYS include answer and answerType fields
+- Use {count} placeholder in answer for the number of matching properties
+- Use {totalValue} placeholder in answer when discussing total values
 
 Now generate the JSON for the user's query above.`,
           },
@@ -214,6 +248,8 @@ Now generate the JSON for the user's query above.`,
         whereClause: parsed.whereClause || {},
         orderBy: parsed.orderBy,
         explanation: parsed.explanation || 'Searching properties based on your query',
+        answer: parsed.answer,
+        answerType: parsed.answerType,
       };
     } catch (error) {
       const responseTime = Date.now() - startTime;
