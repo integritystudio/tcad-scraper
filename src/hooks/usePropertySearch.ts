@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Property } from '../types';
+import { Property, AnswerStatistics, AnswerType, AnswerBoxState } from '../types';
 import { getApiBaseUrl } from '../lib/api-config';
 
 interface SearchResult {
@@ -13,6 +13,9 @@ interface SearchResult {
   query?: {
     original: string;
     explanation: string;
+    answer?: string;
+    answerType?: AnswerType;
+    statistics?: AnswerStatistics;
   };
 }
 
@@ -22,6 +25,10 @@ interface UsePropertySearchReturn {
   error: string;
   totalResults: number;
   explanation: string;
+  answer: string;
+  answerType: AnswerType | null;
+  answerState: AnswerBoxState;
+  statistics: AnswerStatistics | undefined;
   search: (query: string, limit?: number) => Promise<void>;
   clearResults: () => void;
   initialLoad: boolean;
@@ -38,12 +45,17 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
   const [totalResults, setTotalResults] = useState(0);
   const [explanation, setExplanation] = useState('');
   const [initialLoad, setInitialLoad] = useState(true);
+  const [answer, setAnswer] = useState('');
+  const [answerType, setAnswerType] = useState<AnswerType | null>(null);
+  const [answerState, setAnswerState] = useState<AnswerBoxState>('idle');
+  const [statistics, setStatistics] = useState<AnswerStatistics | undefined>(undefined);
 
   const search = useCallback(async (query: string, limit = 50) => {
     if (!query.trim()) return;
 
     setLoading(true);
     setError('');
+    setAnswerState('loading');
 
     try {
       const apiBaseUrl = getApiBaseUrl();
@@ -71,11 +83,28 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
       setResults(data.data);
       setTotalResults(data.pagination.total);
       setExplanation(data.query?.explanation || '');
+
+      // Set answer-related state
+      setAnswer(data.query?.answer || '');
+      setAnswerType(data.query?.answerType || null);
+      setStatistics(data.query?.statistics);
+
+      // Determine answer state
+      if (data.query?.answer) {
+        if (data.pagination.total === 0) {
+          setAnswerState('no-results');
+        } else {
+          setAnswerState('success');
+        }
+      } else {
+        setAnswerState('idle');
+      }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'An error occurred';
       setError(errorMessage);
       setResults([]);
+      setAnswerState('error');
     } finally {
       setLoading(false);
     }
@@ -86,6 +115,10 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
     setError('');
     setExplanation('');
     setTotalResults(0);
+    setAnswer('');
+    setAnswerType(null);
+    setAnswerState('idle');
+    setStatistics(undefined);
   }, []);
 
   // Load initial properties on mount
@@ -126,6 +159,10 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
     error,
     totalResults,
     explanation,
+    answer,
+    answerType,
+    answerState,
+    statistics,
     search,
     clearResults,
     initialLoad,
