@@ -118,6 +118,7 @@ describe('Database Connection Tests', () => {
           propertyAddress: '123 Test St',
           appraisedValue: 100000,
           scrapedAt: new Date(),
+          year: 2025,
         },
       });
 
@@ -142,6 +143,7 @@ describe('Database Connection Tests', () => {
           propertyAddress: '456 Test Ave',
           appraisedValue: 100000,
           scrapedAt: new Date(),
+          year: 2025,
         },
       });
 
@@ -189,6 +191,7 @@ describe('Database Connection Tests', () => {
             propertyAddress: '789 Transaction Blvd',
             appraisedValue: 250000,
             scrapedAt: new Date(),
+            year: 2025,
           },
         });
 
@@ -218,6 +221,7 @@ describe('Database Connection Tests', () => {
               propertyAddress: '999 Rollback Rd',
               appraisedValue: 75000,
               scrapedAt: new Date(),
+              year: 2025,
             },
           });
 
@@ -281,6 +285,7 @@ describe('Database Connection Tests', () => {
           propertyAddress: '321 Date St',
           appraisedValue: 150000,
           scrapedAt: testDate,
+          year: 2025,
         },
       });
 
@@ -306,6 +311,7 @@ describe('Database Connection Tests', () => {
           scrapedAt: new Date(),
           appraisedValue: 500000,
           assessedValue: 525000,
+          year: 2025,
         },
       });
 
@@ -332,6 +338,7 @@ describe('Database Connection Tests', () => {
           propertyAddress: '987 Special St',
           appraisedValue: 200000,
           scrapedAt: new Date(),
+          year: 2025,
         },
       });
 

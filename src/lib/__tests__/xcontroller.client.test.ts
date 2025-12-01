@@ -42,7 +42,8 @@ describe('DataController', () => {
 
     test('should return null for wrong type attribute', () => {
       scriptElement = document.createElement('script');
-      scriptElement.type = 'text/javascript';
+      // Use a non-executable type to avoid JSDOM trying to run JSON as JavaScript
+      scriptElement.type = 'text/plain';
       scriptElement.id = 'test-wrong-type';
       scriptElement.textContent = JSON.stringify({ test: 'value' });
       document.body.appendChild(scriptElement);
