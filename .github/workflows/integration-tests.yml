@@ -97,12 +97,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
-
       - name: Install dependencies
         working-directory: ./server
         run: npm install
+
+      - name: Install Playwright Browsers
+        working-directory: ./server
+        run: npx playwright install --with-deps chromium
 
       - name: Generate Prisma Client
         working-directory: ./server
