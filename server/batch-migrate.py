@@ -6,8 +6,15 @@ import os
 import re
 import sys
 
-def migrate_file(filepath):
-    """Migrate a single file to use logger instead of console"""
+def migrate_file(filepath: str) -> bool:
+    """Migrate a single file to use Pino logger instead of console.
+
+    Args:
+        filepath: Path to the TypeScript/JavaScript file to migrate.
+
+    Returns:
+        True if the file was modified, False if no changes were needed.
+    """
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
 
@@ -70,7 +77,15 @@ def migrate_file(filepath):
     print(f"✅ Migrated: {filepath}")
     return True
 
-def main():
+def main() -> None:
+    """Entry point for batch migration of console statements to Pino logger.
+
+    Processes files passed as command line arguments and migrates
+    console.log/error/warn/info/debug calls to use the Pino logger utility.
+
+    Usage:
+        python3 batch-migrate.py <file1> <file2> ...
+    """
     if len(sys.argv) < 2:
         print("Usage: python3 batch-migrate.py <file1> <file2> ...")
         sys.exit(1)
