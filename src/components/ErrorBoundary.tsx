@@ -1,5 +1,7 @@
 import { Component, ReactNode, ErrorInfo } from 'react';
 import { trackError } from '../lib/analytics';
+import { captureException, addBreadcrumb } from '../lib/sentry';
+import mixpanel from '../lib/mixpanel';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -9,6 +11,7 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  eventId: string | null;
 }
 
 export class ErrorBoundary extends Component<
@@ -20,10 +23,11 @@ export class ErrorBoundary extends Component<
     this.state = {
       hasError: false,
       error: null,
+      eventId: null,
     };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return {
       hasError: true,
       error,
@@ -31,10 +35,38 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Track error to analytics
+    // Add breadcrumb for context
+    addBreadcrumb({
+      message: 'Error boundary triggered',
+      category: 'error',
+      level: 'error',
+      data: {
+        errorName: error.name,
+        errorMessage: error.message,
+      },
+    });
+
+    // Capture error to Sentry with component stack
+    const eventId = captureException(error, {
+      componentStack: errorInfo.componentStack,
+      errorName: error.name,
+      errorBoundary: true,
+    });
+
+    this.setState({ eventId });
+
+    // Track error to analytics (legacy)
     trackError(error.message, 'error_boundary', {
       componentStack: errorInfo.componentStack,
       errorName: error.name,
+    });
+
+    // Track error to Mixpanel
+    mixpanel.track('Error', {
+      error_type: 'error_boundary',
+      error_message: error.message,
+      error_code: error.name,
+      page_url: window.location.href,
     });
 
     // Log to console in development
