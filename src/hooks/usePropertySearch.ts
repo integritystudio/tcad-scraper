@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Property, AnswerStatistics, AnswerType, AnswerBoxState } from '../types';
 import { getApiBaseUrl } from '../lib/api-config';
+import mixpanel from '../lib/mixpanel';
 
 interface SearchResult {
   data: Property[];
@@ -83,6 +84,12 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
       setResults(data.data);
       setTotalResults(data.pagination.total);
       setExplanation(data.query?.explanation || '');
+
+      // Track search event
+      mixpanel.track('Search', {
+        search_query: query,
+        results_count: data.pagination.total,
+      });
 
       // Set answer-related state
       setAnswer(data.query?.answer || '');

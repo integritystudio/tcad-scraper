@@ -28,12 +28,14 @@
     "@bull-board/api": "^6.14.0",
     "@bull-board/express": "^6.14.0",
     "@playwright/test": "^1.56.1",
+    "@sentry/react": "^10.27.0",
     "@types/node": "^24.9.2",
     "@vitejs/plugin-react": "^5.0.4",
     "axios": "^1.13.2",
     "bullmq": "^5.62.0",
     "cheerio": "^1.1.2",
     "ioredis": "5.4.1",
+    "mixpanel-browser": "^2.72.0",
     "pg": "^8.16.3",
     "puppeteer": "^24.27.0",
     "react": "^19.2.0",
@@ -41,6 +43,7 @@
     "vite": "^7.1.11"
   },
   "devDependencies": {
+    "@types/mixpanel-browser": "^2.60.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitest/ui": "^4.0.8",
