@@ -1,12 +1,18 @@
 import mixpanel from 'mixpanel-browser';
 
-// Initialize Mixpanel
-mixpanel.init('125ec36aa2e3ca596fab8f7d8bf9e902', {
-  debug: import.meta.env.DEV,
-  track_pageview: true,
-  persistence: 'localStorage',
-  autocapture: true,
-  record_sessions_percent: 100,
-});
+const MIXPANEL_TOKEN = import.meta.env.VITE_MIXPANEL_TOKEN;
+
+// Initialize Mixpanel if token is configured
+if (MIXPANEL_TOKEN) {
+  mixpanel.init(MIXPANEL_TOKEN, {
+    debug: import.meta.env.DEV,
+    track_pageview: true,
+    persistence: 'localStorage',
+    autocapture: true,
+    record_sessions_percent: 100,
+  });
+} else if (import.meta.env.DEV) {
+  console.warn('Mixpanel token not configured - skipping initialization');
+}
 
 export default mixpanel;
