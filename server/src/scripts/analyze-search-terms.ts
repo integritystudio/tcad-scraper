@@ -14,17 +14,6 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-interface SearchTermStats {
-  term: string;
-  jobCount: number;
-  successCount: number;
-  failCount: number;
-  totalResults: number;
-  avgResults: number;
-  successRate: number;
-  lastUsed: Date | null;
-}
-
 async function analyzeSearchTerms(): Promise<void> {
   console.log('\n=== Search Term Analysis ===\n');
 

@@ -75,7 +75,13 @@ export class TCADTokenRefreshService {
   }
 
   /**
+   * Maximum time allowed for a single token refresh operation (60 seconds)
+   */
+  private static readonly REFRESH_TIMEOUT_MS = 60000;
+
+  /**
    * Refresh the token by capturing from browser
+   * Includes timeout protection to prevent hanging operations
    */
   async refreshToken(): Promise<string | null> {
     if (this.isRefreshing) {
@@ -85,6 +91,40 @@ export class TCADTokenRefreshService {
 
     this.isRefreshing = true;
     const startTime = Date.now();
+
+    // Timeout wrapper to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Token refresh timed out after ${TCADTokenRefreshService.REFRESH_TIMEOUT_MS}ms`));
+      }, TCADTokenRefreshService.REFRESH_TIMEOUT_MS);
+    });
+
+    try {
+      return await Promise.race([
+        this._performTokenRefresh(startTime),
+        timeoutPromise
+      ]);
+    } catch (error: unknown) {
+      this.failureCount++;
+      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`Token refresh failed after ${duration}ms (failure #${this.failureCount}): ${errorMessage}`);
+
+      // If we have a current token, keep using it
+      if (this.currentToken) {
+        logger.warn('Keeping existing token after refresh failure');
+      }
+
+      return this.currentToken;
+    } finally {
+      this.isRefreshing = false;
+    }
+  }
+
+  /**
+   * Internal method that performs the actual token refresh
+   */
+  private async _performTokenRefresh(startTime: number): Promise<string | null> {
 
     try {
       logger.info('Starting token refresh...');
@@ -273,19 +313,8 @@ export class TCADTokenRefreshService {
       }
 
     } catch (error) {
-      this.failureCount++;
-      const duration = Date.now() - startTime;
-      logger.error(`Token refresh failed after ${duration}ms (failure #${this.failureCount}):`, error);
-
-      // If we have a current token, keep using it
-      if (this.currentToken) {
-        logger.warn('Keeping existing token after refresh failure');
-      }
-
-      return this.currentToken;
-
-    } finally {
-      this.isRefreshing = false;
+      // Re-throw to let the wrapper handle it
+      throw error;
     }
   }
 
@@ -410,6 +439,9 @@ export class TCADTokenRefreshService {
 
 // Export singleton instance
 export const tokenRefreshService = new TCADTokenRefreshService();
+
+// Alias for backwards compatibility
+export const tcadTokenRefreshService = tokenRefreshService;
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
