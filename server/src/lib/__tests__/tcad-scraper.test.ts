@@ -70,7 +70,7 @@ vi.mock('../fallback/dom-scraper', () => ({
 import { TCADScraper } from '../tcad-scraper';
 import { chromium } from 'playwright';
 
-describe.skip('TCADScraper - SKIPPED (complex Playwright mocking)', () => {
+describe('TCADScraper', () => {
   let scraper: TCADScraper;
 
   beforeEach(() => {
@@ -224,8 +224,8 @@ describe.skip('TCADScraper - SKIPPED (complex Playwright mocking)', () => {
 
         const delayPromise = scraperAny.humanDelay(100, 200);
 
-        // Fast-forward time
-        vi.advanceTimersByTime(150);
+        // Run all pending timers
+        await vi.runAllTimersAsync();
 
         await delayPromise;
 
@@ -237,8 +237,8 @@ describe.skip('TCADScraper - SKIPPED (complex Playwright mocking)', () => {
 
         const delayPromise = scraperAny.humanDelay();
 
-        // Should use config values (500-2000ms)
-        vi.advanceTimersByTime(1000);
+        // Run all pending timers (config uses 500-2000ms)
+        await vi.runAllTimersAsync();
 
         await delayPromise;
 
@@ -273,11 +273,11 @@ describe.skip('TCADScraper - SKIPPED (complex Playwright mocking)', () => {
       ).rejects.toThrow('Browser not initialized');
     });
 
-    it('should throw error if scrapeProperties called without initialization', async () => {
+    it('should throw error if scrapePropertiesWithFallback called without initialization', async () => {
       const uninitializedScraper = new TCADScraper();
 
       await expect(
-        uninitializedScraper.scrapeProperties('test')
+        uninitializedScraper.scrapePropertiesWithFallback('test')
       ).rejects.toThrow('Browser not initialized');
     });
   });
