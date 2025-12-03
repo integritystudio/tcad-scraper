@@ -40,7 +40,7 @@ vi.mock('../../config', () => ({
   },
 }));
 
-describe.skip('RedisCacheService - SKIPPED (complex Redis mocking issue)', () => {
+describe('RedisCacheService', () => {
   let service: RedisCacheService;
   let mockRedisClient: any;
 
