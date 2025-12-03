@@ -274,17 +274,24 @@ describe('Security Tests', () => {
       // But won't execute as it's just data
     });
 
-    test.skip('should prevent CRLF injection', () => {
-      // NOTE: This test conflicts with "should handle special characters in strings"
-      // JSON.stringify already properly escapes \r and \n for security
-      // Double-escaping breaks round-trip data preservation
+    test('should prevent CRLF injection', () => {
+      // JSON.stringify escapes \r and \n as \\r and \\n in the string representation
+      // When parsed back, they become \r\n again (round-trip preserved)
+      // The security is that raw CRLF bytes aren't in the HTML output
       const crlfInjection = {
         header: 'value\r\nX-Injected: malicious',
       };
 
       const encoded = encodeJsonForHtml(crlfInjection);
+
+      // The encoded string should NOT contain raw CRLF bytes
+      expect(encoded).not.toContain('\r\n');
+      // It should contain escaped versions
+      expect(encoded).toContain('\\r\\n');
+
+      // But parsing should restore the original value
       const decoded = JSON.parse(encoded);
-      expect(decoded.header).toContain('\\r\\n');
+      expect(decoded.header).toBe('value\r\nX-Injected: malicious');
     });
   });
 
