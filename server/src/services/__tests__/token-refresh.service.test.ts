@@ -285,7 +285,7 @@ describe('TCADTokenRefreshService', () => {
       );
     });
 
-    it.skip('should not start if already running - SKIPPED (async timing issue)', () => {
+    it('should not start if already running (cron)', () => {
       service.startAutoRefresh();
 
       const stats1 = service.getStats();
@@ -351,7 +351,7 @@ describe('TCADTokenRefreshService', () => {
   });
 
   describe('stopAutoRefresh', () => {
-    it.skip('should stop cron job if running - SKIPPED (async timing issue)', () => {
+    it('should stop cron job if running', () => {
       service.startAutoRefresh();
 
       // Verify it's running
@@ -386,7 +386,7 @@ describe('TCADTokenRefreshService', () => {
   });
 
   describe('cleanup', () => {
-    it.skip('should stop auto-refresh - SKIPPED (async timing issue)', async () => {
+    it('should stop auto-refresh during cleanup', async () => {
       // Start auto-refresh
       service.startAutoRefresh();
 
