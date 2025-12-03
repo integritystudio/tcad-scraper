@@ -145,7 +145,7 @@ describe('Scraper Queue', () => {
       vi.useRealTimers();
     });
 
-    it.skip('should allow scheduling a new job for a search term - SKIPPED (covered by other tests)', async () => {
+    it('should allow scheduling a new job for a search term', async () => {
       const result = await canScheduleJob('Smith');
       expect(result).toBe(true);
     });
