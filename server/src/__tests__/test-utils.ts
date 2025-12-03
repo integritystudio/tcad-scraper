@@ -86,6 +86,30 @@ export function testWithRedis(name: string, fn: () => void | Promise<void>, _tes
 }
 
 /**
+ * Check if frontend build files are available
+ * Required for tests that verify SPA routing behavior
+ */
+export function isFrontendBuilt(): boolean {
+  const fs = require('fs');
+  const path = require('path');
+
+  // Check for common frontend build locations
+  const possiblePaths = [
+    path.join(__dirname, '../../public/index.html'),
+    path.join(__dirname, '../../dist/index.html'),
+    path.join(__dirname, '../../../dist/index.html'),
+  ];
+
+  return possiblePaths.some(p => {
+    try {
+      return fs.existsSync(p);
+    } catch {
+      return false;
+    }
+  });
+}
+
+/**
  * Check if Tailscale VPN is connected
  * Required for remote database and Redis on hobbes
  */

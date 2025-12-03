@@ -5,7 +5,9 @@
 import { describe, test, expect } from 'vitest';
 import request from 'supertest';
 import app from '../index';
-import { isRedisAvailable } from './test-utils';
+import { isRedisAvailable, isFrontendBuilt } from './test-utils';
+
+const hasFrontend = isFrontendBuilt();
 
 describe('Integration Tests', () => {
   describe('Server Health', () => {
@@ -101,9 +103,8 @@ describe('Integration Tests', () => {
       expect(response.headers['content-type']).not.toContain('text/html');
     });
 
-    // SKIPPED: Frontend build files not available in test environment
-    // This test requires a built frontend (npm run build) in the dist folder
-    test.skip('should serve frontend for unmatched routes', async () => {
+    // Conditionally skip if frontend not built - requires npm run build in frontend
+    test.skipIf(!hasFrontend)('should serve frontend for unmatched routes', async () => {
       const response = await request(app).get('/some-spa-route');
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toContain('text/html');
@@ -201,9 +202,8 @@ describe('Integration Tests', () => {
       expect(response.status).toBe(404);
     });
 
-    // SKIPPED: Frontend build files not available in test environment
-    // This test requires a built frontend (npm run build) in the dist folder
-    test.skip('should serve frontend for non-existent SPA routes', async () => {
+    // Conditionally skip if frontend not built - requires npm run build in frontend
+    test.skipIf(!hasFrontend)('should serve frontend for non-existent SPA routes', async () => {
       const response = await request(app).get('/dashboard/analytics/report');
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toContain('text/html');
