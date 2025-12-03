@@ -269,7 +269,11 @@ export class TCADScraper {
                       })
                     })
                     .then(function(r) {
-                      if (!r.ok) throw new Error('HTTP ' + r.status);
+                      if (!r.ok) {
+                        if (r.status === 401) throw new Error('HTTP 401 TOKEN_EXPIRED');
+                        if (r.status === 504) throw new Error('HTTP 504 GATEWAY_TIMEOUT');
+                        throw new Error('HTTP ' + r.status);
+                      }
                       return r.text();
                     })
                     .then(function(text) {
@@ -311,7 +315,11 @@ export class TCADScraper {
                           })
                         })
                         .then(function(r) {
-                          if (!r.ok) throw new Error('HTTP ' + r.status);
+                          if (!r.ok) {
+                        if (r.status === 401) throw new Error('HTTP 401 TOKEN_EXPIRED');
+                        if (r.status === 504) throw new Error('HTTP 504 GATEWAY_TIMEOUT');
+                        throw new Error('HTTP ' + r.status);
+                      }
                           return r.text();
                         })
                         .then(function(text) {
@@ -335,11 +343,19 @@ export class TCADScraper {
                             currentSizeIndex++;
                             lastErr = err.message;
                             tryNextPageSize();
+                          } else if (err.message.indexOf('TOKEN_EXPIRED') >= 0) {
+                            // Auth token expired - reject with special error for queue to handle
+                            reject(new Error('TOKEN_EXPIRED: Authorization token expired, needs refresh'));
                           } else if (err.message.indexOf('HTTP 409') >= 0) {
                             // Rate limit hit - wait longer before retrying
                             setTimeout(function() {
                               fetchNextPage();
                             }, RATE_LIMIT_DELAY * 2); // Wait 2 seconds before retry
+                          } else if (err.message.indexOf('GATEWAY_TIMEOUT') >= 0) {
+                            // Gateway timeout - wait and retry with backoff
+                            setTimeout(function() {
+                              fetchNextPage();
+                            }, RATE_LIMIT_DELAY * 5); // Wait 5 seconds before retry
                           } else {
                             reject(err);
                           }
@@ -354,6 +370,9 @@ export class TCADScraper {
                         currentSizeIndex++;
                         lastErr = err.message;
                         tryNextPageSize();
+                      } else if (err.message.indexOf('TOKEN_EXPIRED') >= 0) {
+                        // Auth token expired - reject with special error for queue to handle
+                        reject(new Error('TOKEN_EXPIRED: Authorization token expired, needs refresh'));
                       } else if (err.message.indexOf('HTTP 409') >= 0) {
                         // Rate limit hit on first page - wait longer before retrying with different page size
                         setTimeout(function() {
@@ -361,6 +380,13 @@ export class TCADScraper {
                           lastErr = err.message;
                           tryNextPageSize();
                         }, RATE_LIMIT_DELAY * 3); // Wait 3 seconds before trying different page size
+                      } else if (err.message.indexOf('GATEWAY_TIMEOUT') >= 0) {
+                        // Gateway timeout on first page - wait and try with smaller page size
+                        setTimeout(function() {
+                          currentSizeIndex++;
+                          lastErr = err.message;
+                          tryNextPageSize();
+                        }, RATE_LIMIT_DELAY * 5); // Wait 5 seconds before trying smaller page size
                       } else {
                         reject(err);
                       }

@@ -6,6 +6,7 @@ import { prisma } from '../lib/prisma';
 import { config } from '../config';
 import { cacheService } from '../lib/redis-cache.service';
 import { searchTermOptimizer } from '../services/search-term-optimizer';
+import { tcadTokenRefreshService } from '../services/token-refresh.service';
 
 const logger = winston.createLogger({
   level: config.logging.level,
@@ -204,14 +205,26 @@ scraperQueue.process(config.queue.jobName, config.queue.concurrency, async (job)
     return result;
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error(`Job ${job.id} failed:`, error);
+
+    // Check if this is a token expiration error - trigger refresh before retry
+    if (errorMessage.includes('TOKEN_EXPIRED') || errorMessage.includes('HTTP 401')) {
+      logger.warn(`Job ${job.id}: Token expired, triggering refresh before retry...`);
+      try {
+        await tcadTokenRefreshService.refreshToken();
+        logger.info(`Job ${job.id}: Token refreshed successfully, job will retry`);
+      } catch (refreshError) {
+        logger.error(`Job ${job.id}: Token refresh failed:`, refreshError);
+      }
+    }
 
     // Update job record with error
     await prisma.scrapeJob.update({
       where: { id: scrapeJob.id },
       data: {
         status: 'failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
         completedAt: new Date(),
       },
     });
@@ -221,7 +234,7 @@ scraperQueue.process(config.queue.jobName, config.queue.concurrency, async (job)
       searchTerm,
       0, // resultCount
       false, // wasSuccessful
-      error instanceof Error ? error.message : 'Unknown error'
+      errorMessage
     );
 
     throw error;
