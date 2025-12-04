@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import { apiUsageController } from '../controllers/api-usage.controller';
-import { asyncHandler } from '../middleware/error.middleware';
+import { Router } from "express";
+import { apiUsageController } from "../controllers/api-usage.controller";
+import { asyncHandler } from "../middleware/error.middleware";
 
 const router = Router();
 
@@ -68,8 +68,8 @@ const router = Router();
  *                     type: object
  */
 router.get(
-  '/stats',
-  asyncHandler(apiUsageController.getUsageStats.bind(apiUsageController))
+	"/stats",
+	asyncHandler(apiUsageController.getUsageStats.bind(apiUsageController)),
 );
 
 /**
@@ -125,8 +125,8 @@ router.get(
  *                   type: object
  */
 router.get(
-  '/logs',
-  asyncHandler(apiUsageController.getUsageLogs.bind(apiUsageController))
+	"/logs",
+	asyncHandler(apiUsageController.getUsageLogs.bind(apiUsageController)),
 );
 
 /**
@@ -170,8 +170,8 @@ router.get(
  *                   type: object
  */
 router.get(
-  '/alerts',
-  asyncHandler(apiUsageController.getUsageAlerts.bind(apiUsageController))
+	"/alerts",
+	asyncHandler(apiUsageController.getUsageAlerts.bind(apiUsageController)),
 );
 
 export { router as apiUsageRouter };

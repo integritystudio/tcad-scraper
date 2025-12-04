@@ -13,25 +13,23 @@
  * and are not fixable from our side. They don't affect scraping functionality.
  */
 
-import { Page } from 'playwright';
-import winston from 'winston';
+import type { Page } from "playwright";
+import type winston from "winston";
 
 /**
  * Patterns to suppress in browser console messages
  */
 const SUPPRESSED_PATTERNS = [
-  'Deprecated feature',
-  'Unload event listeners',
-  'message channel closed',
+	"Deprecated feature",
+	"Unload event listeners",
+	"message channel closed",
 ];
 
 /**
  * Check if a message should be suppressed
  */
 function shouldSuppressMessage(text: string): boolean {
-  return SUPPRESSED_PATTERNS.some(pattern =>
-    text.includes(pattern)
-  );
+	return SUPPRESSED_PATTERNS.some((pattern) => text.includes(pattern));
 }
 
 /**
@@ -52,38 +50,38 @@ function shouldSuppressMessage(text: string): boolean {
  * ```
  */
 export function suppressBrowserConsoleWarnings(
-  page: Page,
-  logger?: winston.Logger
+	page: Page,
+	logger?: winston.Logger,
 ): void {
-  // Suppress browser console messages
-  page.on('console', (msg) => {
-    const text = msg.text();
+	// Suppress browser console messages
+	page.on("console", (msg) => {
+		const text = msg.text();
 
-    // Filter out known harmless warnings
-    if (shouldSuppressMessage(text)) {
-      return;
-    }
+		// Filter out known harmless warnings
+		if (shouldSuppressMessage(text)) {
+			return;
+		}
 
-    // Log other console messages for debugging (if logger provided)
-    if (logger && msg.type() === 'error') {
-      logger.debug(`Browser console error: ${text}`);
-    }
-  });
+		// Log other console messages for debugging (if logger provided)
+		if (logger && msg.type() === "error") {
+			logger.debug(`Browser console error: ${text}`);
+		}
+	});
 
-  // Suppress page errors that aren't critical
-  page.on('pageerror', (error) => {
-    const errorMsg = error.message;
+	// Suppress page errors that aren't critical
+	page.on("pageerror", (error) => {
+		const errorMsg = error.message;
 
-    // Filter out known harmless errors
-    if (shouldSuppressMessage(errorMsg)) {
-      return;
-    }
+		// Filter out known harmless errors
+		if (shouldSuppressMessage(errorMsg)) {
+			return;
+		}
 
-    // Log other page errors for debugging (if logger provided)
-    if (logger) {
-      logger.debug(`Browser page error: ${errorMsg}`);
-    }
-  });
+		// Log other page errors for debugging (if logger provided)
+		if (logger) {
+			logger.debug(`Browser page error: ${errorMsg}`);
+		}
+	});
 }
 
 /**
@@ -99,14 +97,14 @@ export function suppressBrowserConsoleWarnings(
  * ```
  */
 export function addSuppressionPattern(pattern: string): void {
-  if (!SUPPRESSED_PATTERNS.includes(pattern)) {
-    SUPPRESSED_PATTERNS.push(pattern);
-  }
+	if (!SUPPRESSED_PATTERNS.includes(pattern)) {
+		SUPPRESSED_PATTERNS.push(pattern);
+	}
 }
 
 /**
  * Get current suppression patterns (for debugging)
  */
 export function getSuppressionPatterns(): readonly string[] {
-  return Object.freeze([...SUPPRESSED_PATTERNS]);
+	return Object.freeze([...SUPPRESSED_PATTERNS]);
 }

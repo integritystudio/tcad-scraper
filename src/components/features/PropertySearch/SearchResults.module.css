@@ -1,85 +1,85 @@
 .container {
-  margin-top: 3rem;
+	margin-top: 3rem;
 }
 
 .explanation {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  background: var(--neutral-50, #f9fafb);
-  border-left: 4px solid var(--primary, #2563eb);
-  border-radius: 8px;
-  margin-bottom: 2rem;
-  font-size: 0.875rem;
-  color: var(--neutral-700, #374151);
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 1rem 1.5rem;
+	background: var(--neutral-50, #f9fafb);
+	border-left: 4px solid var(--primary, #2563eb);
+	border-radius: 8px;
+	margin-bottom: 2rem;
+	font-size: 0.875rem;
+	color: var(--neutral-700, #374151);
 }
 
 .explanationIcon {
-  display: flex;
-  align-items: center;
-  color: var(--primary, #2563eb);
+	display: flex;
+	align-items: center;
+	color: var(--primary, #2563eb);
 }
 
 .resultCount {
-  margin-left: auto;
-  font-weight: 600;
-  color: var(--primary, #2563eb);
+	margin-left: auto;
+	font-weight: 600;
+	color: var(--primary, #2563eb);
 }
 
 .resultsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 1.5rem;
 }
 
 .loadMore {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 3rem;
-  padding: 2rem;
-  text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1rem;
+	margin-top: 3rem;
+	padding: 2rem;
+	text-align: center;
 }
 
 .loadMore p {
-  margin: 0;
-  color: var(--neutral-600, #4b5563);
+	margin: 0;
+	color: var(--neutral-600, #4b5563);
 }
 
 .errorMessage {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  background: #fee2e2;
-  color: #991b1b;
-  border-radius: 8px;
-  margin-top: 2rem;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 1rem 1.5rem;
+	background: #fee2e2;
+	color: #991b1b;
+	border-radius: 8px;
+	margin-top: 2rem;
 }
 
 .noResults {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
-  color: var(--neutral-500, #6b7280);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 4rem 2rem;
+	text-align: center;
+	color: var(--neutral-500, #6b7280);
 }
 
 .noResults h3 {
-  margin: 1rem 0 0.5rem;
-  color: var(--neutral-700, #374151);
+	margin: 1rem 0 0.5rem;
+	color: var(--neutral-700, #374151);
 }
 
 .noResults p {
-  margin: 0;
+	margin: 0;
 }
 
 @media (max-width: 640px) {
-  .resultsGrid {
-    grid-template-columns: 1fr;
-  }
+	.resultsGrid {
+		grid-template-columns: 1fr;
+	}
 }

@@ -1,238 +1,238 @@
 .property-table-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
+	max-width: 1200px;
+	margin: 0 auto;
+	background: white;
+	padding: 24px;
+	border-radius: 12px;
+	box-shadow: var(--shadow);
 }
 
 .table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 24px;
+	flex-wrap: wrap;
+	gap: 16px;
 }
 
 .table-header h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--neutral-800);
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: var(--neutral-800);
 }
 
 .table-controls {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex-wrap: wrap;
+	display: flex;
+	align-items: center;
+	gap: 24px;
+	flex-wrap: wrap;
 }
 
 .page-size-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .page-size-control label {
-  font-size: 0.875rem;
-  color: var(--neutral-600);
-  font-weight: 500;
+	font-size: 0.875rem;
+	color: var(--neutral-600);
+	font-weight: 500;
 }
 
 .page-size-control select {
-  padding: 6px 32px 6px 10px;
-  border: 1px solid var(--neutral-300);
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: var(--neutral-900);
-  background-color: white;
-  cursor: pointer;
-  transition: border-color 0.2s;
+	padding: 6px 32px 6px 10px;
+	border: 1px solid var(--neutral-300);
+	border-radius: 6px;
+	font-size: 0.875rem;
+	color: var(--neutral-900);
+	background-color: white;
+	cursor: pointer;
+	transition: border-color 0.2s;
 }
 
 .page-size-control select:focus {
-  outline: none;
-  border-color: var(--primary);
+	outline: none;
+	border-color: var(--primary);
 }
 
 .results-info {
-  font-size: 0.875rem;
-  color: var(--neutral-600);
+	font-size: 0.875rem;
+	color: var(--neutral-600);
 }
 
 .table-wrapper {
-  overflow-x: auto;
-  margin-bottom: 24px;
-  border: 1px solid var(--neutral-200);
-  border-radius: 8px;
+	overflow-x: auto;
+	margin-bottom: 24px;
+	border: 1px solid var(--neutral-200);
+	border-radius: 8px;
 }
 
 .property-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.875rem;
 }
 
 .property-table thead {
-  background-color: var(--neutral-50);
-  border-bottom: 2px solid var(--neutral-200);
+	background-color: var(--neutral-50);
+	border-bottom: 2px solid var(--neutral-200);
 }
 
 .property-table th {
-  padding: 12px 16px;
-  text-align: left;
-  font-weight: 600;
-  color: var(--neutral-700);
-  white-space: nowrap;
-  user-select: none;
+	padding: 12px 16px;
+	text-align: left;
+	font-weight: 600;
+	color: var(--neutral-700);
+	white-space: nowrap;
+	user-select: none;
 }
 
 .property-table th.sortable {
-  cursor: pointer;
-  transition: background-color 0.2s;
+	cursor: pointer;
+	transition: background-color 0.2s;
 }
 
 .property-table th.sortable:hover {
-  background-color: var(--neutral-100);
+	background-color: var(--neutral-100);
 }
 
 .property-table th.numeric {
-  text-align: right;
+	text-align: right;
 }
 
 .sort-icon {
-  margin-left: 4px;
-  color: var(--neutral-400);
-  font-size: 0.75rem;
+	margin-left: 4px;
+	color: var(--neutral-400);
+	font-size: 0.75rem;
 }
 
 .sort-icon.active {
-  color: var(--primary);
+	color: var(--primary);
 }
 
 .property-table tbody tr {
-  border-bottom: 1px solid var(--neutral-100);
-  transition: background-color 0.2s;
+	border-bottom: 1px solid var(--neutral-100);
+	transition: background-color 0.2s;
 }
 
 .property-table tbody tr:hover {
-  background-color: var(--neutral-50);
+	background-color: var(--neutral-50);
 }
 
 .property-table td {
-  padding: 16px;
-  color: var(--neutral-800);
+	padding: 16px;
+	color: var(--neutral-800);
 }
 
 .property-table td.numeric {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
 }
 
 .property-table td.no-data {
-  text-align: center;
-  padding: 48px 16px;
-  color: var(--neutral-500);
-  font-style: italic;
+	text-align: center;
+	padding: 48px 16px;
+	color: var(--neutral-500);
+	font-style: italic;
 }
 
 .owner-name {
-  font-weight: 500;
+	font-weight: 500;
 }
 
 .property-type-badge {
-  display: inline-block;
-  padding: 4px 8px;
-  background-color: var(--neutral-100);
-  color: var(--neutral-700);
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+	display: inline-block;
+	padding: 4px 8px;
+	background-color: var(--neutral-100);
+	color: var(--neutral-700);
+	border-radius: 4px;
+	font-size: 0.75rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
 }
 
 .property-id {
-  font-family: 'Courier New', monospace;
-  font-size: 0.8125rem;
-  color: var(--neutral-600);
+	font-family: "Courier New", monospace;
+	font-size: 0.8125rem;
+	color: var(--neutral-600);
 }
 
 .pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
 }
 
 .page-numbers {
-  display: flex;
-  gap: 4px;
+	display: flex;
+	gap: 4px;
 }
 
 .page-btn {
-  padding: 8px 12px;
-  border: 1px solid var(--neutral-300);
-  background-color: white;
-  color: var(--neutral-700);
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 40px;
+	padding: 8px 12px;
+	border: 1px solid var(--neutral-300);
+	background-color: white;
+	color: var(--neutral-700);
+	border-radius: 6px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s;
+	min-width: 40px;
 }
 
 .page-btn:hover:not(:disabled) {
-  background-color: var(--neutral-50);
-  border-color: var(--neutral-400);
+	background-color: var(--neutral-50);
+	border-color: var(--neutral-400);
 }
 
 .page-btn.active {
-  background-color: var(--primary);
-  color: white;
-  border-color: var(--primary);
+	background-color: var(--primary);
+	color: white;
+	border-color: var(--primary);
 }
 
 .page-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+	opacity: 0.4;
+	cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
-  .property-table-container {
-    padding: 16px;
-  }
+	.property-table-container {
+		padding: 16px;
+	}
 
-  .table-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+	.table-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
 
-  .table-controls {
-    width: 100%;
-    justify-content: space-between;
-  }
+	.table-controls {
+		width: 100%;
+		justify-content: space-between;
+	}
 
-  .property-table {
-    font-size: 0.8125rem;
-  }
+	.property-table {
+		font-size: 0.8125rem;
+	}
 
-  .property-table th,
-  .property-table td {
-    padding: 10px 12px;
-  }
+	.property-table th,
+	.property-table td {
+		padding: 10px 12px;
+	}
 
-  .pagination {
-    gap: 4px;
-  }
+	.pagination {
+		gap: 4px;
+	}
 
-  .page-btn {
-    padding: 6px 10px;
-    font-size: 0.8125rem;
-    min-width: 36px;
-  }
+	.page-btn {
+		padding: 6px 10px;
+		font-size: 0.8125rem;
+		min-width: 36px;
+	}
 }

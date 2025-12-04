@@ -1,79 +1,72 @@
 {
-  "categories": [
-    {
-      "title": "## 🚀 Features",
-      "labels": ["feat", "feature", "enhancement"]
-    },
-    {
-      "title": "## 🐛 Bug Fixes",
-      "labels": ["fix", "bugfix", "bug"]
-    },
-    {
-      "title": "## 📚 Documentation",
-      "labels": ["docs", "documentation"]
-    },
-    {
-      "title": "## 🔧 Maintenance",
-      "labels": ["chore", "refactor", "style"]
-    },
-    {
-      "title": "## ⚡ Performance",
-      "labels": ["perf", "performance"]
-    },
-    {
-      "title": "## 🧪 Tests",
-      "labels": ["test", "tests"]
-    },
-    {
-      "title": "## 🔒 Security",
-      "labels": ["security"]
-    },
-    {
-      "title": "## 📦 Dependencies",
-      "labels": ["dependencies", "deps"]
-    },
-    {
-      "title": "## 🔄 CI/CD",
-      "labels": ["ci", "build"]
-    }
-  ],
-  "ignore_labels": [
-    "ignore",
-    "wontfix",
-    "duplicate",
-    "invalid"
-  ],
-  "sort": "ASC",
-  "template": "${{CHANGELOG}}",
-  "pr_template": "- ${{TITLE}} (#${{NUMBER}})",
-  "empty_template": "- No changes",
-  "label_extractor": [
-    {
-      "pattern": "(feat|feature):",
-      "target": "$1",
-      "on_property": "title"
-    },
-    {
-      "pattern": "(fix|bugfix):",
-      "target": "$1",
-      "on_property": "title"
-    },
-    {
-      "pattern": "(docs):",
-      "target": "$1",
-      "on_property": "title"
-    }
-  ],
-  "transformers": [
-    {
-      "pattern": "[\\-\\*] (\\[(...|TEST|CI|SKIP)\\])( )?(.+?)($|\\n)",
-      "target": "- $4"
-    }
-  ],
-  "max_tags_to_fetch": 200,
-  "max_pull_requests": 200,
-  "max_back_track_time_days": 365,
-  "exclude_merge_branches": [
-    "dependabot/**"
-  ]
+	"categories": [
+		{
+			"title": "## 🚀 Features",
+			"labels": ["feat", "feature", "enhancement"]
+		},
+		{
+			"title": "## 🐛 Bug Fixes",
+			"labels": ["fix", "bugfix", "bug"]
+		},
+		{
+			"title": "## 📚 Documentation",
+			"labels": ["docs", "documentation"]
+		},
+		{
+			"title": "## 🔧 Maintenance",
+			"labels": ["chore", "refactor", "style"]
+		},
+		{
+			"title": "## ⚡ Performance",
+			"labels": ["perf", "performance"]
+		},
+		{
+			"title": "## 🧪 Tests",
+			"labels": ["test", "tests"]
+		},
+		{
+			"title": "## 🔒 Security",
+			"labels": ["security"]
+		},
+		{
+			"title": "## 📦 Dependencies",
+			"labels": ["dependencies", "deps"]
+		},
+		{
+			"title": "## 🔄 CI/CD",
+			"labels": ["ci", "build"]
+		}
+	],
+	"ignore_labels": ["ignore", "wontfix", "duplicate", "invalid"],
+	"sort": "ASC",
+	"template": "${{CHANGELOG}}",
+	"pr_template": "- ${{TITLE}} (#${{NUMBER}})",
+	"empty_template": "- No changes",
+	"label_extractor": [
+		{
+			"pattern": "(feat|feature):",
+			"target": "$1",
+			"on_property": "title"
+		},
+		{
+			"pattern": "(fix|bugfix):",
+			"target": "$1",
+			"on_property": "title"
+		},
+		{
+			"pattern": "(docs):",
+			"target": "$1",
+			"on_property": "title"
+		}
+	],
+	"transformers": [
+		{
+			"pattern": "[\\-\\*] (\\[(...|TEST|CI|SKIP)\\])( )?(.+?)($|\\n)",
+			"target": "- $4"
+		}
+	],
+	"max_tags_to_fetch": 200,
+	"max_pull_requests": 200,
+	"max_back_track_time_days": 365,
+	"exclude_merge_branches": ["dependabot/**"]
 }

@@ -1,14 +1,17 @@
-import { Router } from 'express';
-import { propertyController } from '../controllers/property.controller';
-import { validateBody, validateQuery } from '../middleware/validation.middleware';
-import { asyncHandler } from '../middleware/error.middleware';
+import { Router } from "express";
+import { propertyController } from "../controllers/property.controller";
+import { asyncHandler } from "../middleware/error.middleware";
 import {
-  scrapeRequestSchema,
-  propertyFilterSchema,
-  naturalLanguageSearchSchema,
-  historyQuerySchema,
-  monitorRequestSchema,
-} from '../types/property.types';
+	validateBody,
+	validateQuery,
+} from "../middleware/validation.middleware";
+import {
+	historyQuerySchema,
+	monitorRequestSchema,
+	naturalLanguageSearchSchema,
+	propertyFilterSchema,
+	scrapeRequestSchema,
+} from "../types/property.types";
 
 /**
  * Property Routes
@@ -90,9 +93,9 @@ const router = Router();
  *               $ref: '#/components/schemas/Error'
  */
 router.post(
-  '/scrape',
-  validateBody(scrapeRequestSchema),
-  asyncHandler(propertyController.scrapeProperties.bind(propertyController))
+	"/scrape",
+	validateBody(scrapeRequestSchema),
+	asyncHandler(propertyController.scrapeProperties.bind(propertyController)),
 );
 
 /**
@@ -128,10 +131,10 @@ router.post(
  *               $ref: '#/components/schemas/Error'
  */
 router.get(
-  '/jobs/:jobId',
-  // DOCUMENTED: Function.bind() requires 'any' for this context in TypeScript
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  asyncHandler(propertyController.getJobStatus.bind(propertyController) as any)
+	"/jobs/:jobId",
+	// DOCUMENTED: Function.bind() requires 'any' for this context in TypeScript
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	asyncHandler(propertyController.getJobStatus.bind(propertyController) as any),
 );
 
 /**
@@ -191,11 +194,13 @@ router.get(
  *                       type: boolean
  */
 router.get(
-  '/history',
-  validateQuery(historyQuerySchema),
-  // DOCUMENTED: Function.bind() requires 'any' for this context in TypeScript
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  asyncHandler(propertyController.getScrapeHistory.bind(propertyController) as any)
+	"/history",
+	validateQuery(historyQuerySchema),
+	// DOCUMENTED: Function.bind() requires 'any' for this context in TypeScript
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	asyncHandler(
+		propertyController.getScrapeHistory.bind(propertyController) as any,
+	),
 );
 
 // ============================================================================
@@ -282,11 +287,13 @@ router.get(
  *                       type: boolean
  */
 router.get(
-  '/',
-  validateQuery(propertyFilterSchema),
-  // DOCUMENTED: Function.bind() requires 'any' for this context in TypeScript
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  asyncHandler(propertyController.getProperties.bind(propertyController) as any)
+	"/",
+	validateQuery(propertyFilterSchema),
+	// DOCUMENTED: Function.bind() requires 'any' for this context in TypeScript
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	asyncHandler(
+		propertyController.getProperties.bind(propertyController) as any,
+	),
 );
 
 /**
@@ -344,9 +351,11 @@ router.get(
  *               $ref: '#/components/schemas/Error'
  */
 router.post(
-  '/search',
-  validateBody(naturalLanguageSearchSchema),
-  asyncHandler(propertyController.naturalLanguageSearch.bind(propertyController))
+	"/search",
+	validateBody(naturalLanguageSearchSchema),
+	asyncHandler(
+		propertyController.naturalLanguageSearch.bind(propertyController),
+	),
 );
 
 /**
@@ -381,8 +390,10 @@ router.post(
  *               $ref: '#/components/schemas/Error'
  */
 router.get(
-  '/search/test',
-  asyncHandler(propertyController.testClaudeConnection.bind(propertyController))
+	"/search/test",
+	asyncHandler(
+		propertyController.testClaudeConnection.bind(propertyController),
+	),
 );
 
 // ============================================================================
@@ -442,8 +453,8 @@ router.get(
  *                   example: 275000
  */
 router.get(
-  '/stats',
-  asyncHandler(propertyController.getStats.bind(propertyController))
+	"/stats",
+	asyncHandler(propertyController.getStats.bind(propertyController)),
 );
 
 // ============================================================================
@@ -506,9 +517,9 @@ router.get(
  *               $ref: '#/components/schemas/Error'
  */
 router.post(
-  '/monitor',
-  validateBody(monitorRequestSchema),
-  asyncHandler(propertyController.addMonitoredSearch.bind(propertyController))
+	"/monitor",
+	validateBody(monitorRequestSchema),
+	asyncHandler(propertyController.addMonitoredSearch.bind(propertyController)),
 );
 
 /**
@@ -551,8 +562,10 @@ router.post(
  *                         format: date-time
  */
 router.get(
-  '/monitor',
-  asyncHandler(propertyController.getMonitoredSearches.bind(propertyController))
+	"/monitor",
+	asyncHandler(
+		propertyController.getMonitoredSearches.bind(propertyController),
+	),
 );
 
 export { router as propertyRouter };

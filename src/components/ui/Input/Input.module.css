@@ -1,66 +1,66 @@
 .inputWrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
 }
 
 .label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--neutral-700, #374151);
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--neutral-700, #374151);
 }
 
 .inputContainer {
-  position: relative;
-  display: flex;
-  align-items: center;
+	position: relative;
+	display: flex;
+	align-items: center;
 }
 
 .input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--neutral-300, #d1d5db);
-  border-radius: 8px;
-  font-size: 1rem;
-  line-height: 1.5rem;
-  transition: all 0.2s ease;
-  font-family: inherit;
+	width: 100%;
+	padding: 0.75rem 1rem;
+	border: 1px solid var(--neutral-300, #d1d5db);
+	border-radius: 8px;
+	font-size: 1rem;
+	line-height: 1.5rem;
+	transition: all 0.2s ease;
+	font-family: inherit;
 }
 
 .input:focus {
-  outline: none;
-  border-color: var(--primary, #2563eb);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+	outline: none;
+	border-color: var(--primary, #2563eb);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .input.withIcon {
-  padding-left: 3rem;
+	padding-left: 3rem;
 }
 
 .input.error {
-  border-color: #ef4444;
+	border-color: #ef4444;
 }
 
 .input.error:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+	box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
 .icon {
-  position: absolute;
-  left: 1rem;
-  display: flex;
-  align-items: center;
-  color: var(--neutral-500, #6b7280);
-  pointer-events: none;
+	position: absolute;
+	left: 1rem;
+	display: flex;
+	align-items: center;
+	color: var(--neutral-500, #6b7280);
+	pointer-events: none;
 }
 
 .errorText {
-  font-size: 0.875rem;
-  color: #ef4444;
+	font-size: 0.875rem;
+	color: #ef4444;
 }
 
 .input:disabled {
-  background: var(--neutral-100, #f3f4f6);
-  cursor: not-allowed;
-  opacity: 0.6;
+	background: var(--neutral-100, #f3f4f6);
+	cursor: not-allowed;
+	opacity: 0.6;
 }

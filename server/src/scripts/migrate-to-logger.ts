@@ -6,89 +6,95 @@
  * Usage: tsx migrate-to-logger.ts <file-path>
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 function migrateFile(filePath: string): void {
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n');
+	const content = fs.readFileSync(filePath, "utf-8");
+	const lines = content.split("\n");
 
-  let hasImport = false;
-  let lastImportIndex = -1;
+	let hasImport = false;
+	let lastImportIndex = -1;
 
-  // Check if logger is already imported
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.includes("import") && line.includes("logger") && line.includes("../lib/logger")) {
-      hasImport = true;
-      break;
-    }
-    if (line.startsWith('import ') && !line.includes('type')) {
-      lastImportIndex = i;
-    }
-  }
+	// Check if logger is already imported
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+		if (
+			line.includes("import") &&
+			line.includes("logger") &&
+			line.includes("../lib/logger")
+		) {
+			hasImport = true;
+			break;
+		}
+		if (line.startsWith("import ") && !line.includes("type")) {
+			lastImportIndex = i;
+		}
+	}
 
-  // Replace console.log patterns with logger equivalents
-  let modified = content;
+	// Replace console.log patterns with logger equivalents
+	let modified = content;
 
-  // Track different console methods and their logger equivalents
-  const replacements: { pattern: RegExp; replacement: string }[] = [
-    { pattern: /console\.error\(/g, replacement: 'logger.error(' },
-    { pattern: /console\.warn\(/g, replacement: 'logger.warn(' },
-    { pattern: /console\.info\(/g, replacement: 'logger.info(' },
-    { pattern: /console\.debug\(/g, replacement: 'logger.debug(' },
-    { pattern: /console\.log\(/g, replacement: 'logger.info(' },
-  ];
+	// Track different console methods and their logger equivalents
+	const replacements: { pattern: RegExp; replacement: string }[] = [
+		{ pattern: /console\.error\(/g, replacement: "logger.error(" },
+		{ pattern: /console\.warn\(/g, replacement: "logger.warn(" },
+		{ pattern: /console\.info\(/g, replacement: "logger.info(" },
+		{ pattern: /console\.debug\(/g, replacement: "logger.debug(" },
+		{ pattern: /console\.log\(/g, replacement: "logger.info(" },
+	];
 
-  replacements.forEach(({ pattern, replacement }) => {
-    modified = modified.replace(pattern, replacement);
-  });
+	replacements.forEach(({ pattern, replacement }) => {
+		modified = modified.replace(pattern, replacement);
+	});
 
-  // Add import if not present
-  if (!hasImport && modified !== content) {
-    const lines = modified.split('\n');
-    const insertIndex = lastImportIndex >= 0 ? lastImportIndex + 1 : 0;
+	// Add import if not present
+	if (!hasImport && modified !== content) {
+		const lines = modified.split("\n");
+		const insertIndex = lastImportIndex >= 0 ? lastImportIndex + 1 : 0;
 
-    // Calculate relative path
-    const fileDir = path.dirname(filePath);
-    const loggerPath = path.join(__dirname, '../lib/logger');
-    const relativePath = path.relative(fileDir, loggerPath).replace(/\\/g, '/');
-    const importPath = relativePath.startsWith('.') ? relativePath : `./${relativePath}`;
+		// Calculate relative path
+		const fileDir = path.dirname(filePath);
+		const loggerPath = path.join(__dirname, "../lib/logger");
+		const relativePath = path.relative(fileDir, loggerPath).replace(/\\/g, "/");
+		const importPath = relativePath.startsWith(".")
+			? relativePath
+			: `./${relativePath}`;
 
-    lines.splice(insertIndex, 0, `import logger from '${importPath}';`);
-    modified = lines.join('\n');
-  }
+		lines.splice(insertIndex, 0, `import logger from '${importPath}';`);
+		modified = lines.join("\n");
+	}
 
-  // Write back if changed
-  if (modified !== content) {
-    fs.writeFileSync(filePath, modified, 'utf-8');
-    // eslint-disable-next-line no-console
-    console.log(`✅ Migrated: ${filePath}`);
-  } else {
-    // eslint-disable-next-line no-console
-    console.log(`⏭️  No changes: ${filePath}`);
-  }
+	// Write back if changed
+	if (modified !== content) {
+		fs.writeFileSync(filePath, modified, "utf-8");
+		// eslint-disable-next-line no-console
+		console.log(`✅ Migrated: ${filePath}`);
+	} else {
+		// eslint-disable-next-line no-console
+		console.log(`⏭️  No changes: ${filePath}`);
+	}
 }
 
 // Get file path from command line
 const filePath = process.argv[2];
 
 if (!filePath) {
-  // eslint-disable-next-line no-console
-  console.error('Usage: tsx migrate-to-logger.ts <file-path>');
-  process.exit(1);
+	// eslint-disable-next-line no-console
+	console.error("Usage: tsx migrate-to-logger.ts <file-path>");
+	process.exit(1);
 }
 
 if (!fs.existsSync(filePath)) {
-  // eslint-disable-next-line no-console
-  console.error(`File not found: ${filePath}`);
-  process.exit(1);
+	// eslint-disable-next-line no-console
+	console.error(`File not found: ${filePath}`);
+	process.exit(1);
 }
 
 try {
-  migrateFile(filePath);
+	migrateFile(filePath);
 } catch (error) {
-  // eslint-disable-next-line no-console
-  console.error('Migration failed:', error);
-  process.exit(1);
+	// eslint-disable-next-line no-console
+	console.error("Migration failed:", error);
+	process.exit(1);
 }

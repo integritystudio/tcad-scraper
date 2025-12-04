@@ -1,21 +1,18 @@
-import { Pool } from 'pg';
-import { stdin, stdout } from 'process';
-import * as readline from 'readline';
-import logger from './lib/logger';
-
+import { Pool } from "pg";
+import logger from "./lib/logger";
 
 if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is not set');
+	throw new Error("DATABASE_URL environment variable is not set");
 }
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+	connectionString: process.env.DATABASE_URL,
 });
 
 async function displayStats() {
-  logger.info('\n📊 Database Statistics\n' + '='.repeat(50));
+	logger.info(`\n📊 Database Statistics\n${"=".repeat(50)}`);
 
-  const stats = await pool.query(`
+	const stats = await pool.query(`
     SELECT
       COUNT(*) as total_properties,
       COUNT(DISTINCT city) as unique_cities,
@@ -23,15 +20,15 @@ async function displayStats() {
     FROM properties
   `);
 
-  logger.info(`Total Properties: ${stats.rows[0].total_properties}`);
-  logger.info(`Unique Cities: ${stats.rows[0].unique_cities}`);
-  logger.info(`Last Scraped: ${stats.rows[0].last_scraped || 'Never'}`);
+	logger.info(`Total Properties: ${stats.rows[0].total_properties}`);
+	logger.info(`Unique Cities: ${stats.rows[0].unique_cities}`);
+	logger.info(`Last Scraped: ${stats.rows[0].last_scraped || "Never"}`);
 }
 
 async function displayCitySummary() {
-  logger.info('\n🏙️  Properties by City\n' + '='.repeat(50));
+	logger.info(`\n🏙️  Properties by City\n${"=".repeat(50)}`);
 
-  const cities = await pool.query(`
+	const cities = await pool.query(`
     SELECT
       city,
       COUNT(*) as property_count,
@@ -43,16 +40,21 @@ async function displayCitySummary() {
     LIMIT 10
   `);
 
-  cities.rows.forEach(row => {
-    const avgValue = row.avg_value ? `$${Math.round(row.avg_value).toLocaleString()}` : 'N/A';
-    logger.info(`${row.city.padEnd(20)} | ${String(row.property_count).padStart(5)} properties | Avg: ${avgValue}`);
-  });
+	cities.rows.forEach((row) => {
+		const avgValue = row.avg_value
+			? `$${Math.round(row.avg_value).toLocaleString()}`
+			: "N/A";
+		logger.info(
+			`${row.city.padEnd(20)} | ${String(row.property_count).padStart(5)} properties | Avg: ${avgValue}`,
+		);
+	});
 }
 
 async function displayRecentProperties(limit: number = 10) {
-  logger.info(`\n🏠 Recent Properties (Last ${limit})\n` + '='.repeat(50));
+	logger.info(`\n🏠 Recent Properties (Last ${limit})\n${"=".repeat(50)}`);
 
-  const properties = await pool.query(`
+	const properties = await pool.query(
+		`
     SELECT
       property_id,
       owner_name,
@@ -63,21 +65,24 @@ async function displayRecentProperties(limit: number = 10) {
     FROM properties
     ORDER BY scraped_at DESC
     LIMIT $1
-  `, [limit]);
+  `,
+		[limit],
+	);
 
-  properties.rows.forEach((prop, idx) => {
-    logger.info(`\n${idx + 1}. Property ID: ${prop.property_id}`);
-    logger.info(`   Owner: ${prop.owner_name}`);
-    logger.info(`   Address: ${prop.property_address}, ${prop.city || 'N/A'}`);
-    logger.info(`   Value: ${prop.appraised_value || 'N/A'}`);
-    logger.info(`   Scraped: ${prop.scraped_at}`);
-  });
+	properties.rows.forEach((prop, idx) => {
+		logger.info(`\n${idx + 1}. Property ID: ${prop.property_id}`);
+		logger.info(`   Owner: ${prop.owner_name}`);
+		logger.info(`   Address: ${prop.property_address}, ${prop.city || "N/A"}`);
+		logger.info(`   Value: ${prop.appraised_value || "N/A"}`);
+		logger.info(`   Scraped: ${prop.scraped_at}`);
+	});
 }
 
 async function searchProperties(searchTerm: string) {
-  logger.info(`\n🔍 Search Results for: "${searchTerm}"\n` + '='.repeat(50));
+	logger.info(`\n🔍 Search Results for: "${searchTerm}"\n${"=".repeat(50)}`);
 
-  const results = await pool.query(`
+	const results = await pool.query(
+		`
     SELECT
       property_id,
       owner_name,
@@ -90,62 +95,71 @@ async function searchProperties(searchTerm: string) {
       property_address ILIKE $1 OR
       city ILIKE $1
     LIMIT 20
-  `, [`%${searchTerm}%`]);
+  `,
+		[`%${searchTerm}%`],
+	);
 
-  if (results.rows.length === 0) {
-    logger.info('No results found.');
-  } else {
-    results.rows.forEach((prop, idx) => {
-      logger.info(`\n${idx + 1}. ${prop.owner_name}`);
-      logger.info(`   ${prop.property_address}, ${prop.city || 'N/A'}`);
-      logger.info(`   Value: ${prop.appraised_value || 'N/A'} | ID: ${prop.property_id}`);
-    });
-  }
+	if (results.rows.length === 0) {
+		logger.info("No results found.");
+	} else {
+		results.rows.forEach((prop, idx) => {
+			logger.info(`\n${idx + 1}. ${prop.owner_name}`);
+			logger.info(`   ${prop.property_address}, ${prop.city || "N/A"}`);
+			logger.info(
+				`   Value: ${prop.appraised_value || "N/A"} | ID: ${prop.property_id}`,
+			);
+		});
+	}
 }
 
 async function runCustomQuery(query: string) {
-  try {
-    const result = await pool.query(query);
-    logger.info('\n✓ Query executed successfully\n');
-    console.table(result.rows);
-    logger.info(`\nRows returned: ${result.rowCount}`);
-  } catch (error) {
-    logger.error('❌ Query error:', error);
-  }
+	try {
+		const result = await pool.query(query);
+		logger.info("\n✓ Query executed successfully\n");
+		console.table(result.rows);
+		logger.info(`\nRows returned: ${result.rowCount}`);
+	} catch (error) {
+		logger.error("❌ Query error:", error);
+	}
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  const command = args[0];
+	const args = process.argv.slice(2);
+	const command = args[0];
 
-  try {
-    switch (command) {
-      case 'stats':
-        await displayStats();
-        break;
-      case 'cities':
-        await displayCitySummary();
-        break;
-      case 'recent':
-        const limit = parseInt(args[1]) || 10;
-        await displayRecentProperties(limit);
-        break;
-      case 'search':
-        if (!args[1]) {
-          logger.error('Please provide a search term: npm run db:query search "term"');
-          process.exit(1);
-        }
-        await searchProperties(args[1]);
-        break;
-      case 'query':
-        if (!args[1]) {
-          logger.error('Please provide a SQL query: npm run db:query query "SELECT * FROM properties LIMIT 5"');
-          process.exit(1);
-        }
-        await runCustomQuery(args[1]);
-        break;
-      default:
-        logger.info(`
+	try {
+		switch (command) {
+			case "stats":
+				await displayStats();
+				break;
+			case "cities":
+				await displayCitySummary();
+				break;
+			case "recent": {
+				const limit = parseInt(args[1], 10) || 10;
+				await displayRecentProperties(limit);
+				break;
+			}
+			case "search":
+				if (!args[1]) {
+					logger.error(
+						'Please provide a search term: npm run db:query search "term"',
+					);
+					process.exit(1);
+				}
+				await searchProperties(args[1]);
+				break;
+			case "query":
+				if (!args[1]) {
+					logger.error(
+						'Please provide a SQL query: npm run db:query query "SELECT * FROM properties LIMIT 5"',
+					);
+					process.exit(1);
+				}
+				await runCustomQuery(args[1]);
+				break;
+			default:
+				logger.info(`
 🗃️  TCAD Property Database Query Tool
 
 Usage: npm run db:query <command> [args]
@@ -166,12 +180,12 @@ Examples:
 
 Or use: npm run db:stats for quick statistics
         `);
-    }
-  } catch (error) {
-    logger.error('Error:', error);
-  } finally {
-    await pool.end();
-  }
+		}
+	} catch (error) {
+		logger.error("Error:", error);
+	} finally {
+		await pool.end();
+	}
 }
 
 main();

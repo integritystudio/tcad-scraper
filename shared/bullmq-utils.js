@@ -3,7 +3,7 @@
  * Used by both the main server and the Prometheus exporter
  */
 
-const { Queue } = require('bullmq');
+const { Queue } = require("bullmq");
 
 /**
  * Get or create a queue instance
@@ -13,11 +13,11 @@ const { Queue } = require('bullmq');
  * @returns {Queue} BullMQ Queue instance
  */
 function getQueue(queueName, connection, queues) {
-  if (!queues.has(queueName)) {
-    const queue = new Queue(queueName, { connection });
-    queues.set(queueName, queue);
-  }
-  return queues.get(queueName);
+	if (!queues.has(queueName)) {
+		const queue = new Queue(queueName, { connection });
+		queues.set(queueName, queue);
+	}
+	return queues.get(queueName);
 }
 
 /**
@@ -26,30 +26,30 @@ function getQueue(queueName, connection, queues) {
  * @returns {Promise<string[]>} Array of queue names
  */
 async function discoverQueues(connection) {
-  try {
-    const Redis = require('ioredis');
-    const redis = new Redis(connection);
+	try {
+		const Redis = require("ioredis");
+		const redis = new Redis(connection);
 
-    // Find all BullMQ queues
-    const keys = await redis.keys('bull:*:meta');
-    const queueNames = new Set();
+		// Find all BullMQ queues
+		const keys = await redis.keys("bull:*:meta");
+		const queueNames = new Set();
 
-    keys.forEach(key => {
-      const match = key.match(/^bull:([^:]+):meta$/);
-      if (match) {
-        queueNames.add(match[1]);
-      }
-    });
+		keys.forEach((key) => {
+			const match = key.match(/^bull:([^:]+):meta$/);
+			if (match) {
+				queueNames.add(match[1]);
+			}
+		});
 
-    await redis.quit();
-    return Array.from(queueNames);
-  } catch (error) {
-    console.error('Error discovering queues:', error);
-    return [];
-  }
+		await redis.quit();
+		return Array.from(queueNames);
+	} catch (error) {
+		console.error("Error discovering queues:", error);
+		return [];
+	}
 }
 
 module.exports = {
-  getQueue,
-  discoverQueues,
+	getQueue,
+	discoverQueues,
 };

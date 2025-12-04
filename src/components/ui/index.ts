@@ -1,6 +1,7 @@
 // UI Component Library Barrel Export
-export { Icon, iconPaths, type IconName } from './Icon';
-export { Button } from './Button';
-export { Card, CardHeader, CardBody, CardFooter } from './Card';
-export { Badge } from './Badge';
-export { Input } from './Input';
+
+export { Badge } from "./Badge";
+export { Button } from "./Button";
+export { Card, CardBody, CardFooter, CardHeader } from "./Card";
+export { Icon, type IconName, iconPaths } from "./Icon";
+export { Input } from "./Input";

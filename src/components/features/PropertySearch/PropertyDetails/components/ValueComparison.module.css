@@ -1,113 +1,113 @@
 .container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
 }
 
 .valueRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.5rem 0;
 }
 
 .label {
-  font-size: 0.875rem;
-  color: var(--neutral-600, #4b5563);
+	font-size: 0.875rem;
+	color: var(--neutral-600, #4b5563);
 }
 
 .value {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--neutral-900, #111827);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--neutral-900, #111827);
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
 }
 
 .divider {
-  height: 1px;
-  background: var(--neutral-200, #e5e7eb);
-  margin: 0.25rem 0;
+	height: 1px;
+	background: var(--neutral-200, #e5e7eb);
+	margin: 0.25rem 0;
 }
 
 .differenceRow {
-  margin-top: 0.25rem;
+	margin-top: 0.25rem;
 }
 
 /* Color variants for difference */
 .positive {
-  color: var(--financial-positive, #10b981);
+	color: var(--financial-positive, #10b981);
 }
 
 .negative {
-  color: var(--financial-negative, #ef4444);
+	color: var(--financial-negative, #ef4444);
 }
 
 .neutral {
-  color: var(--neutral-600, #6b7280);
+	color: var(--neutral-600, #6b7280);
 }
 
 .percentage {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  margin-left: 0.25rem;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	margin-left: 0.25rem;
 }
 
 .icon {
-  font-size: 1rem;
+	font-size: 1rem;
 }
 
 .noData {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
+	display: flex;
+	justify-content: space-between;
+	padding: 0.5rem 0;
 }
 
 .noDataText {
-  font-size: 0.875rem;
-  color: var(--neutral-400, #9ca3af);
-  font-style: italic;
+	font-size: 0.875rem;
+	color: var(--neutral-400, #9ca3af);
+	font-style: italic;
 }
 
 /* Chart styles */
 .chartContainer {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--neutral-200, #e5e7eb);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+	margin-top: 1rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--neutral-200, #e5e7eb);
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
 }
 
 .chartBar {
-  display: grid;
-  grid-template-columns: 5rem 1fr 3rem;
-  align-items: center;
-  gap: 0.75rem;
+	display: grid;
+	grid-template-columns: 5rem 1fr 3rem;
+	align-items: center;
+	gap: 0.75rem;
 }
 
 .chartLabel {
-  font-size: 0.75rem;
-  color: var(--neutral-600, #4b5563);
-  text-align: right;
+	font-size: 0.75rem;
+	color: var(--neutral-600, #4b5563);
+	text-align: right;
 }
 
 .barBackground {
-  height: 1.5rem;
-  background: var(--neutral-200, #e5e7eb);
-  border-radius: 0.25rem;
-  overflow: hidden;
+	height: 1.5rem;
+	background: var(--neutral-200, #e5e7eb);
+	border-radius: 0.25rem;
+	overflow: hidden;
 }
 
 .barFill {
-  height: 100%;
-  background: var(--primary-500, #3b82f6);
-  transition: width 0.5s ease;
+	height: 100%;
+	background: var(--primary-500, #3b82f6);
+	transition: width 0.5s ease;
 }
 
 .chartValue {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--neutral-700, #374151);
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--neutral-700, #374151);
 }

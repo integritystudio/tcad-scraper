@@ -22,123 +22,146 @@
  * - Emergency data retrieval
  */
 
-import { Browser, Page } from 'playwright';
-import winston from 'winston';
-import { PropertyData, ScraperConfig } from '../../types';
-import { config as appConfig } from '../../config';
-import { suppressBrowserConsoleWarnings } from '../../utils/browser-console-suppression';
+import type { Browser, Page } from "playwright";
+import winston from "winston";
+import { config as appConfig } from "../../config";
+import type { PropertyData, ScraperConfig } from "../../types";
+import { suppressBrowserConsoleWarnings } from "../../utils/browser-console-suppression";
 
 const logger = winston.createLogger({
-  level: appConfig.logging.level,
-  format: winston.format.json(),
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    }),
-  ],
+	level: appConfig.logging.level,
+	format: winston.format.json(),
+	transports: [
+		new winston.transports.Console({
+			format: winston.format.simple(),
+		}),
+	],
 });
 
 /**
  * Human-like delay between actions
  */
 async function humanDelay(
-  min: number = appConfig.scraper.humanDelay.min,
-  max: number = appConfig.scraper.humanDelay.max
+	min: number = appConfig.scraper.humanDelay.min,
+	max: number = appConfig.scraper.humanDelay.max,
 ): Promise<void> {
-  const delay = Math.floor(Math.random() * (max - min) + min);
-  await new Promise(resolve => setTimeout(resolve, delay));
+	const delay = Math.floor(Math.random() * (max - min) + min);
+	await new Promise((resolve) => setTimeout(resolve, delay));
 }
 
 /**
  * Scrape property details from individual property page
  */
-async function scrapePropertyDetail(page: Page, propertyId: string): Promise<PropertyData | null> {
-  try {
-    const detailUrl = `https://travis.prodigycad.com/property-detail?pid=${propertyId}`;
-    await page.goto(detailUrl, {
-      waitUntil: 'networkidle',
-      timeout: 15000,
-    });
+async function scrapePropertyDetail(
+	page: Page,
+	propertyId: string,
+): Promise<PropertyData | null> {
+	try {
+		const detailUrl = `https://travis.prodigycad.com/property-detail?pid=${propertyId}`;
+		await page.goto(detailUrl, {
+			waitUntil: "networkidle",
+			timeout: 15000,
+		});
 
-    await humanDelay(1000, 2000);
+		await humanDelay(1000, 2000);
 
-    const propertyData = await page.evaluate(() => {
-      const getValueByLabel = (labelText: string): string | null => {
-        const labels = document.querySelectorAll('label, dt, th, .label, [class*="label"]');
+		const propertyData = await page.evaluate(() => {
+			const getValueByLabel = (labelText: string): string | null => {
+				const labels = document.querySelectorAll(
+					'label, dt, th, .label, [class*="label"]',
+				);
 
-        let labelIdx = 0;
-        while (labelIdx < labels.length) {
-          const label = labels[labelIdx];
-          const text = label.textContent?.trim().toLowerCase() || '';
+				let labelIdx = 0;
+				while (labelIdx < labels.length) {
+					const label = labels[labelIdx];
+					const text = label.textContent?.trim().toLowerCase() || "";
 
-          if (text.includes(labelText.toLowerCase())) {
-            let valueElem = label.nextElementSibling;
-            if (valueElem && valueElem.textContent) {
-              return valueElem.textContent.trim();
-            }
+					if (text.includes(labelText.toLowerCase())) {
+						let valueElem = label.nextElementSibling;
+						if (valueElem?.textContent) {
+							return valueElem.textContent.trim();
+						}
 
-            if (label.parentElement) {
-              valueElem = label.parentElement.nextElementSibling;
-              if (valueElem && valueElem.textContent) {
-                return valueElem.textContent.trim();
-              }
-            }
+						if (label.parentElement) {
+							valueElem = label.parentElement.nextElementSibling;
+							if (valueElem?.textContent) {
+								return valueElem.textContent.trim();
+							}
+						}
 
-            if (label.tagName === 'TH') {
-              const row = label.closest('tr');
-              if (row) {
-                const cells = row.querySelectorAll('td');
-                if (cells.length > 0) {
-                  return cells[0].textContent?.trim() || null;
-                }
-              }
-            }
-          }
+						if (label.tagName === "TH") {
+							const row = label.closest("tr");
+							if (row) {
+								const cells = row.querySelectorAll("td");
+								if (cells.length > 0) {
+									return cells[0].textContent?.trim() || null;
+								}
+							}
+						}
+					}
 
-          labelIdx++;
-        }
+					labelIdx++;
+				}
 
-        return null;
-      };
+				return null;
+			};
 
-      const name = getValueByLabel('owner') || getValueByLabel('name') || '';
-      const propType = getValueByLabel('property type') || getValueByLabel('type') || '';
-      const city = getValueByLabel('city') || getValueByLabel('situs city') || null;
-      const propertyAddress = getValueByLabel('address') || getValueByLabel('situs address') || getValueByLabel('street') || '';
+			const name = getValueByLabel("owner") || getValueByLabel("name") || "";
+			const propType =
+				getValueByLabel("property type") || getValueByLabel("type") || "";
+			const city =
+				getValueByLabel("city") || getValueByLabel("situs city") || null;
+			const propertyAddress =
+				getValueByLabel("address") ||
+				getValueByLabel("situs address") ||
+				getValueByLabel("street") ||
+				"";
 
-      const appraisedValueText = getValueByLabel('appraised value') ||
-                                 getValueByLabel('market value') ||
-                                 getValueByLabel('total value') || '0';
-      const appraisedValue = parseFloat(appraisedValueText.replace(/[$,]/g, '')) || 0;
+			const appraisedValueText =
+				getValueByLabel("appraised value") ||
+				getValueByLabel("market value") ||
+				getValueByLabel("total value") ||
+				"0";
+			const appraisedValue =
+				parseFloat(appraisedValueText.replace(/[$,]/g, "")) || 0;
 
-      const assessedValueText = getValueByLabel('assessed value') ||
-                                getValueByLabel('taxable value') || '0';
-      const assessedValue = parseFloat(assessedValueText.replace(/[$,]/g, '')) || 0;
+			const assessedValueText =
+				getValueByLabel("assessed value") ||
+				getValueByLabel("taxable value") ||
+				"0";
+			const assessedValue =
+				parseFloat(assessedValueText.replace(/[$,]/g, "")) || 0;
 
-      const geoId = getValueByLabel('geo id') || getValueByLabel('geographic id') || null;
-      const description = getValueByLabel('legal description') || getValueByLabel('description') || null;
+			const geoId =
+				getValueByLabel("geo id") || getValueByLabel("geographic id") || null;
+			const description =
+				getValueByLabel("legal description") ||
+				getValueByLabel("description") ||
+				null;
 
-      return {
-        name,
-        propType,
-        city,
-        propertyAddress,
-        appraisedValue,
-        assessedValue,
-        geoId,
-        description,
-      };
-    });
+			return {
+				name,
+				propType,
+				city,
+				propertyAddress,
+				appraisedValue,
+				assessedValue,
+				geoId,
+				description,
+			};
+		});
 
-    return {
-      propertyId,
-      ...propertyData,
-    };
-
-  } catch (error) {
-    logger.error(`Error scraping detail page for property ${propertyId}:`, error);
-    return null;
-  }
+		return {
+			propertyId,
+			...propertyData,
+		};
+	} catch (error) {
+		logger.error(
+			`Error scraping detail page for property ${propertyId}:`,
+			error,
+		);
+		return null;
+	}
 }
 
 /**
@@ -154,157 +177,177 @@ async function scrapePropertyDetail(page: Page, propertyId: string): Promise<Pro
  * @returns Array of PropertyData (max 20 results)
  */
 export async function scrapeDOMFallback(
-  browser: Browser,
-  config: ScraperConfig,
-  searchTerm: string,
-  maxRetries: number = 3
+	browser: Browser,
+	config: ScraperConfig,
+	searchTerm: string,
+	maxRetries: number = 3,
 ): Promise<PropertyData[]> {
-  logger.warn('🔄 FALLBACK: Using DOM-based scraping (limited to 20 results)');
+	logger.warn("🔄 FALLBACK: Using DOM-based scraping (limited to 20 results)");
 
-  let lastError: Error | null = null;
+	let lastError: Error | null = null;
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      logger.info(`DOM fallback attempt ${attempt} for search term: ${searchTerm}`);
+	for (let attempt = 1; attempt <= maxRetries; attempt++) {
+		try {
+			logger.info(
+				`DOM fallback attempt ${attempt} for search term: ${searchTerm}`,
+			);
 
-      const context = await browser.newContext({
-        userAgent: config.userAgents[Math.floor(Math.random() * config.userAgents.length)],
-        viewport: config.viewports[Math.floor(Math.random() * config.viewports.length)],
-        locale: 'en-US',
-        timezoneId: 'America/Chicago',
-      });
+			const context = await browser.newContext({
+				userAgent:
+					config.userAgents[
+						Math.floor(Math.random() * config.userAgents.length)
+					],
+				viewport:
+					config.viewports[Math.floor(Math.random() * config.viewports.length)],
+				locale: "en-US",
+				timezoneId: "America/Chicago",
+			});
 
-      const page = await context.newPage();
+			const page = await context.newPage();
 
-      // Suppress browser console warnings from TCAD website
-      suppressBrowserConsoleWarnings(page, logger);
+			// Suppress browser console warnings from TCAD website
+			suppressBrowserConsoleWarnings(page, logger);
 
-      await page.setExtraHTTPHeaders({
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-      });
+			await page.setExtraHTTPHeaders({
+				"Accept-Language": "en-US,en;q=0.9",
+				"Accept-Encoding": "gzip, deflate, br",
+				"Cache-Control": "no-cache",
+				Pragma: "no-cache",
+			});
 
-      try {
-        await page.goto('https://travis.prodigycad.com/property-search', {
-          waitUntil: 'networkidle',
-          timeout: config.timeout,
-        });
+			try {
+				await page.goto("https://travis.prodigycad.com/property-search", {
+					waitUntil: "networkidle",
+					timeout: config.timeout,
+				});
 
-        logger.info('Page loaded, waiting for React app...');
+				logger.info("Page loaded, waiting for React app...");
 
-        await page.waitForFunction(() => {
-          const root = document.getElementById('root');
-          return root && root.children.length > 0;
-        }, { timeout: 15000 });
+				await page.waitForFunction(
+					() => {
+						const root = document.getElementById("root");
+						return root && root.children.length > 0;
+					},
+					{ timeout: 15000 },
+				);
 
-        logger.info('React app loaded, performing search...');
-        await humanDelay(1000, 1500);
+				logger.info("React app loaded, performing search...");
+				await humanDelay(1000, 1500);
 
-        await page.waitForSelector('#searchInput', { timeout: 10000 });
-        await humanDelay(500, 1000);
-        await page.type('#searchInput', searchTerm, { delay: 50 + Math.random() * 100 });
-        await humanDelay(300, 700);
-        await page.press('#searchInput', 'Enter');
-        await humanDelay(2000, 3000);
+				await page.waitForSelector("#searchInput", { timeout: 10000 });
+				await humanDelay(500, 1000);
+				await page.type("#searchInput", searchTerm, {
+					delay: 50 + Math.random() * 100,
+				});
+				await humanDelay(300, 700);
+				await page.press("#searchInput", "Enter");
+				await humanDelay(2000, 3000);
 
-        await page.waitForFunction(
-          () => {
-            const hasGridCells = document.querySelector('[role="gridcell"]') !== null;
-            const hasNoResults = document.querySelector('.ag-overlay-no-rows-center') !== null ||
-                                document.body.textContent?.includes('No Rows To Show');
-            return hasGridCells || hasNoResults;
-          },
-          { timeout: 15000 }
-        );
+				await page.waitForFunction(
+					() => {
+						const hasGridCells =
+							document.querySelector('[role="gridcell"]') !== null;
+						const hasNoResults =
+							document.querySelector(".ag-overlay-no-rows-center") !== null ||
+							document.body.textContent?.includes("No Rows To Show");
+						return hasGridCells || hasNoResults;
+					},
+					{ timeout: 15000 },
+				);
 
-        await humanDelay(1000, 1500);
+				await humanDelay(1000, 1500);
 
-        const hasNoResults = await page.evaluate(() => {
-          const noResultsOverlay = document.querySelector('.ag-overlay-no-rows-center') !== null;
-          const hasGridCells = document.querySelector('[role="gridcell"]') !== null;
-          return noResultsOverlay && !hasGridCells;
-        });
+				const hasNoResults = await page.evaluate(() => {
+					const noResultsOverlay =
+						document.querySelector(".ag-overlay-no-rows-center") !== null;
+					const hasGridCells =
+						document.querySelector('[role="gridcell"]') !== null;
+					return noResultsOverlay && !hasGridCells;
+				});
 
-        if (hasNoResults) {
-          logger.info('No results found for search term:', searchTerm);
-          await context.close();
-          return [];
-        }
+				if (hasNoResults) {
+					logger.info("No results found for search term:", searchTerm);
+					await context.close();
+					return [];
+				}
 
-        logger.info('Results loaded, extracting property IDs...');
+				logger.info("Results loaded, extracting property IDs...");
 
-        const propertyIds = await page.evaluate(() => {
-          const rows = document.querySelectorAll('[role="row"][row-index]');
-          const ids = [];
+				const propertyIds = await page.evaluate(() => {
+					const rows = document.querySelectorAll('[role="row"][row-index]');
+					const ids = [];
 
-          let rowIndex = 0;
-          while (rowIndex < rows.length) {
-            const row = rows[rowIndex];
-            const pidElem = row.querySelector('[col-id="pid"]');
-            const propertyId = pidElem ? pidElem.textContent.trim() : '';
+					let rowIndex = 0;
+					while (rowIndex < rows.length) {
+						const row = rows[rowIndex];
+						const pidElem = row.querySelector('[col-id="pid"]');
+						const propertyId = pidElem ? pidElem.textContent.trim() : "";
 
-            if (propertyId) {
-              ids.push(propertyId);
-            }
+						if (propertyId) {
+							ids.push(propertyId);
+						}
 
-            rowIndex++;
-          }
+						rowIndex++;
+					}
 
-          return ids;
-        });
+					return ids;
+				});
 
-        logger.warn(`⚠️ DOM scraping found ${propertyIds.length} property IDs (max 20 due to pagination limit)`);
+				logger.warn(
+					`⚠️ DOM scraping found ${propertyIds.length} property IDs (max 20 due to pagination limit)`,
+				);
 
-        const properties = [];
-        let successCount = 0;
-        let failCount = 0;
+				const properties = [];
+				let successCount = 0;
+				let failCount = 0;
 
-        for (let i = 0; i < propertyIds.length; i++) {
-          const propertyId = propertyIds[i];
+				for (let i = 0; i < propertyIds.length; i++) {
+					const propertyId = propertyIds[i];
 
-          try {
-            logger.info(`Scraping property ${i + 1}/${propertyIds.length}: ${propertyId}`);
+					try {
+						logger.info(
+							`Scraping property ${i + 1}/${propertyIds.length}: ${propertyId}`,
+						);
 
-            const propertyData = await scrapePropertyDetail(page, propertyId);
+						const propertyData = await scrapePropertyDetail(page, propertyId);
 
-            if (propertyData) {
-              properties.push(propertyData);
-              successCount++;
-            } else {
-              failCount++;
-            }
+						if (propertyData) {
+							properties.push(propertyData);
+							successCount++;
+						} else {
+							failCount++;
+						}
 
-            await humanDelay(500, 1000);
+						await humanDelay(500, 1000);
+					} catch (error) {
+						logger.error(`Failed to scrape property ${propertyId}:`, error);
+						failCount++;
+					}
+				}
 
-          } catch (error) {
-            logger.error(`Failed to scrape property ${propertyId}:`, error);
-            failCount++;
-          }
-        }
+				logger.info(
+					`DOM fallback complete: ${successCount} succeeded, ${failCount} failed`,
+				);
+				logger.warn(
+					`⚠️ Results limited to ${properties.length} properties (20 max due to AG Grid pagination)`,
+				);
 
-        logger.info(`DOM fallback complete: ${successCount} succeeded, ${failCount} failed`);
-        logger.warn(`⚠️ Results limited to ${properties.length} properties (20 max due to AG Grid pagination)`);
+				await context.close();
+				return properties;
+			} finally {
+				await context.close();
+			}
+		} catch (error) {
+			lastError = error as Error;
+			logger.error(`DOM fallback attempt ${attempt} failed:`, error);
 
-        await context.close();
-        return properties;
+			if (attempt < maxRetries) {
+				const delay = config.retryDelay * 2 ** (attempt - 1);
+				logger.info(`Retrying in ${delay}ms...`);
+				await new Promise((resolve) => setTimeout(resolve, delay));
+			}
+		}
+	}
 
-      } finally {
-        await context.close();
-      }
-
-    } catch (error) {
-      lastError = error as Error;
-      logger.error(`DOM fallback attempt ${attempt} failed:`, error);
-
-      if (attempt < maxRetries) {
-        const delay = config.retryDelay * Math.pow(2, attempt - 1);
-        logger.info(`Retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-
-  throw lastError || new Error('All DOM fallback scraping attempts failed');
+	throw lastError || new Error("All DOM fallback scraping attempts failed");
 }

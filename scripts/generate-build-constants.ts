@@ -10,37 +10,46 @@
  * Note: This script imports Prisma from the server directory
  */
 
-import { writeFileSync, mkdirSync } from 'fs';
-import { resolve, join, dirname } from 'path';
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 
 // Import Prisma client from server directory
 async function importPrismaClient() {
-  const serverPrismaPath = resolve(process.cwd(), 'server/node_modules/@prisma/client');
-  try {
-    const { PrismaClient } = await import(serverPrismaPath);
-    return new PrismaClient();
-  } catch (error) {
-    console.error('Failed to import Prisma client from server directory');
-    throw error;
-  }
+	const serverPrismaPath = resolve(
+		process.cwd(),
+		"server/node_modules/@prisma/client",
+	);
+	try {
+		const { PrismaClient } = await import(serverPrismaPath);
+		return new PrismaClient();
+	} catch (error) {
+		console.error("Failed to import Prisma client from server directory");
+		throw error;
+	}
+}
+
+// Minimal interface for the Prisma client methods we use
+interface PrismaClientLike {
+	property: { count: () => Promise<number> };
+	$disconnect: () => Promise<void>;
 }
 
 async function generateBuildConstants() {
-  let prisma;
+	let prisma: PrismaClientLike | undefined;
 
-  try {
-    console.log('📊 Initializing Prisma client...');
-    prisma = await importPrismaClient();
+	try {
+		console.log("📊 Initializing Prisma client...");
+		prisma = await importPrismaClient();
 
-    console.log('📊 Fetching property count from database...');
+		console.log("📊 Fetching property count from database...");
 
-    // Fetch total property count
-    const totalProperties = await prisma.property.count();
+		// Fetch total property count
+		const totalProperties = await prisma.property.count();
 
-    console.log(`✓ Found ${totalProperties.toLocaleString()} properties`);
+		console.log(`✓ Found ${totalProperties.toLocaleString()} properties`);
 
-    // Generate TypeScript constants file
-    const constantsFileContent = `/**
+		// Generate TypeScript constants file
+		const constantsFileContent = `/**
  * Build-time constants
  *
  * This file is auto-generated during the build process.
@@ -67,26 +76,27 @@ export const BUILD_CONSTANTS = {
 } as const;
 `;
 
-    // Write to src/constants/build.ts
-    const outputPath = resolve(process.cwd(), 'src/constants/build.ts');
-    mkdirSync(dirname(outputPath), { recursive: true });
-    writeFileSync(outputPath, constantsFileContent, 'utf-8');
+		// Write to src/constants/build.ts
+		const outputPath = resolve(process.cwd(), "src/constants/build.ts");
+		mkdirSync(dirname(outputPath), { recursive: true });
+		writeFileSync(outputPath, constantsFileContent, "utf-8");
 
-    console.log(`✓ Generated constants file: ${outputPath}`);
-    console.log(`✓ Total properties: ${totalProperties.toLocaleString()}`);
+		console.log(`✓ Generated constants file: ${outputPath}`);
+		console.log(`✓ Total properties: ${totalProperties.toLocaleString()}`);
+	} catch (error) {
+		console.error("✗ Failed to generate build constants:", error);
 
-  } catch (error) {
-    console.error('✗ Failed to generate build constants:', error);
+		// Use environment variable or hardcoded fallback for production builds
+		const fallbackCount = process.env.FALLBACK_PROPERTY_COUNT
+			? parseInt(process.env.FALLBACK_PROPERTY_COUNT, 10)
+			: 418823; // Last known count as of Nov 26, 2025
 
-    // Use environment variable or hardcoded fallback for production builds
-    const fallbackCount = process.env.FALLBACK_PROPERTY_COUNT
-      ? parseInt(process.env.FALLBACK_PROPERTY_COUNT, 10)
-      : 418823; // Last known count as of Nov 26, 2025
+		console.log(
+			`⚠️  Using fallback property count: ${fallbackCount.toLocaleString()}`,
+		);
 
-    console.log(`⚠️  Using fallback property count: ${fallbackCount.toLocaleString()}`);
-
-    // Generate fallback constants file with approximate count
-    const fallbackContent = `/**
+		// Generate fallback constants file with approximate count
+		const fallbackContent = `/**
  * Build-time constants (FALLBACK)
  *
  * This file was generated with fallback values due to database connection failure.
@@ -102,17 +112,19 @@ export const BUILD_CONSTANTS = {
 } as const;
 `;
 
-    const outputPath = resolve(process.cwd(), 'src/constants/build.ts');
-    mkdirSync(dirname(outputPath), { recursive: true });
-    writeFileSync(outputPath, fallbackContent, 'utf-8');
+		const outputPath = resolve(process.cwd(), "src/constants/build.ts");
+		mkdirSync(dirname(outputPath), { recursive: true });
+		writeFileSync(outputPath, fallbackContent, "utf-8");
 
-    console.log('⚠️  Generated fallback constants file (database unavailable)');
-    console.log(`⚠️  Using approximate count: ${fallbackCount.toLocaleString()} properties`);
-  } finally {
-    if (prisma) {
-      await prisma.$disconnect();
-    }
-  }
+		console.log("⚠️  Generated fallback constants file (database unavailable)");
+		console.log(
+			`⚠️  Using approximate count: ${fallbackCount.toLocaleString()} properties`,
+		);
+	} finally {
+		if (prisma) {
+			await prisma.$disconnect();
+		}
+	}
 }
 
 generateBuildConstants();

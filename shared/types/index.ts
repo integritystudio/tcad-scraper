@@ -8,11 +8,13 @@
  *   import { PropertyAPI, PropertyDatabase } from '@shared/types';
  */
 
-// Re-export all property types (includes Schema.org aligned types)
-export * from './property.types';
-
 // Re-export JSON-LD utilities
-export * from './json-ld.utils';
+export * from "./json-ld.utils";
+// Re-export all property types (includes Schema.org aligned types)
+export * from "./property.types";
 
 // Type guards and utilities
-export { transformPropertyToAPI, transformPropertyToDatabase } from './property.types';
+export {
+	transformPropertyToAPI,
+	transformPropertyToDatabase,
+} from "./property.types";

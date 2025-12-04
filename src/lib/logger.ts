@@ -8,33 +8,33 @@
 const isDevelopment = import.meta.env.DEV;
 
 const logger = {
-  info: (...args: any[]) => {
-    if (isDevelopment) {
-      console.log('[INFO]', ...args);
-    }
-  },
+	info: (...args: unknown[]) => {
+		if (isDevelopment) {
+			console.log("[INFO]", ...args);
+		}
+	},
 
-  error: (...args: any[]) => {
-    console.error('[ERROR]', ...args);
-  },
+	error: (...args: unknown[]) => {
+		console.error("[ERROR]", ...args);
+	},
 
-  warn: (...args: any[]) => {
-    if (isDevelopment) {
-      console.warn('[WARN]', ...args);
-    }
-  },
+	warn: (...args: unknown[]) => {
+		if (isDevelopment) {
+			console.warn("[WARN]", ...args);
+		}
+	},
 
-  debug: (...args: any[]) => {
-    if (isDevelopment) {
-      console.debug('[DEBUG]', ...args);
-    }
-  },
+	debug: (...args: unknown[]) => {
+		if (isDevelopment) {
+			console.debug("[DEBUG]", ...args);
+		}
+	},
 
-  log: (...args: any[]) => {
-    if (isDevelopment) {
-      console.log(...args);
-    }
-  }
+	log: (...args: unknown[]) => {
+		if (isDevelopment) {
+			console.log(...args);
+		}
+	},
 };
 
 export default logger;

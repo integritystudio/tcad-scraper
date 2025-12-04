@@ -1,156 +1,171 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { Prisma } from '@prisma/client';
-import logger from './logger';
-import { config } from '../config';
-import { prisma } from './prisma';
-import { calculateClaudeCost } from './claude-pricing';
+import Anthropic from "@anthropic-ai/sdk";
+import type { Prisma } from "@prisma/client";
+import { config } from "../config";
+import { calculateClaudeCost } from "./claude-pricing";
+import logger from "./logger";
+import { prisma } from "./prisma";
 
 const anthropic = new Anthropic({
-  apiKey: config.claude.apiKey,
+	apiKey: config.claude.apiKey,
 });
 
-import type { AnswerType } from '../types/property.types';
+import type { AnswerType } from "../types/property.types";
 
 interface SearchFilters {
-  whereClause: Prisma.PropertyWhereInput;
-  orderBy?: Prisma.PropertyOrderByWithRelationInput;
-  explanation: string;
-  answer?: string;
-  answerType?: AnswerType;
+	whereClause: Prisma.PropertyWhereInput;
+	orderBy?: Prisma.PropertyOrderByWithRelationInput;
+	explanation: string;
+	answer?: string;
+	answerType?: AnswerType;
 }
 
 /**
  * Error categorization for actionable error messages (ERROR #5 fix)
  */
 interface ClaudeErrorDetails {
-  type: 'authentication' | 'model' | 'timeout' | 'rate_limit' | 'invalid_request' | 'api_error';
-  message: string;
-  actionable: string;
-  retryable: boolean;
+	type:
+		| "authentication"
+		| "model"
+		| "timeout"
+		| "rate_limit"
+		| "invalid_request"
+		| "api_error";
+	message: string;
+	actionable: string;
+	retryable: boolean;
 }
 
 function categorizeClaudeError(error: unknown): ClaudeErrorDetails {
-  const errorMsg = error instanceof Error ? error.message : String(error);
+	const errorMsg = error instanceof Error ? error.message : String(error);
 
-  // Authentication errors
-  if (
-    errorMsg.includes('401') ||
-    errorMsg.includes('authentication_error') ||
-    errorMsg.includes('invalid x-api-key')
-  ) {
-    return {
-      type: 'authentication',
-      message: 'Claude API authentication failed',
-      actionable: 'Check ANTHROPIC_API_KEY environment variable is set correctly',
-      retryable: false,
-    };
-  }
+	// Authentication errors
+	if (
+		errorMsg.includes("401") ||
+		errorMsg.includes("authentication_error") ||
+		errorMsg.includes("invalid x-api-key")
+	) {
+		return {
+			type: "authentication",
+			message: "Claude API authentication failed",
+			actionable:
+				"Check ANTHROPIC_API_KEY environment variable is set correctly",
+			retryable: false,
+		};
+	}
 
-  // Model errors
-  if (errorMsg.includes('404') || errorMsg.includes('not_found_error') || errorMsg.includes('model:')) {
-    return {
-      type: 'model',
-      message: 'Claude model not found or unavailable',
-      actionable: `Check model name in config (current: ${config.claude.model})`,
-      retryable: false,
-    };
-  }
+	// Model errors
+	if (
+		errorMsg.includes("404") ||
+		errorMsg.includes("not_found_error") ||
+		errorMsg.includes("model:")
+	) {
+		return {
+			type: "model",
+			message: "Claude model not found or unavailable",
+			actionable: `Check model name in config (current: ${config.claude.model})`,
+			retryable: false,
+		};
+	}
 
-  // Timeout errors
-  if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT') || errorMsg.includes('ECONNABORTED')) {
-    return {
-      type: 'timeout',
-      message: 'Claude API request timed out',
-      actionable: 'Retry request or check network connectivity',
-      retryable: true,
-    };
-  }
+	// Timeout errors
+	if (
+		errorMsg.includes("timeout") ||
+		errorMsg.includes("ETIMEDOUT") ||
+		errorMsg.includes("ECONNABORTED")
+	) {
+		return {
+			type: "timeout",
+			message: "Claude API request timed out",
+			actionable: "Retry request or check network connectivity",
+			retryable: true,
+		};
+	}
 
-  // Rate limiting
-  if (errorMsg.includes('429') || errorMsg.includes('rate_limit')) {
-    return {
-      type: 'rate_limit',
-      message: 'Claude API rate limit exceeded',
-      actionable: 'Wait before retrying or upgrade API plan',
-      retryable: true,
-    };
-  }
+	// Rate limiting
+	if (errorMsg.includes("429") || errorMsg.includes("rate_limit")) {
+		return {
+			type: "rate_limit",
+			message: "Claude API rate limit exceeded",
+			actionable: "Wait before retrying or upgrade API plan",
+			retryable: true,
+		};
+	}
 
-  // Invalid request
-  if (errorMsg.includes('400') || errorMsg.includes('invalid_request')) {
-    return {
-      type: 'invalid_request',
-      message: 'Invalid request to Claude API',
-      actionable: 'Check request parameters and format',
-      retryable: false,
-    };
-  }
+	// Invalid request
+	if (errorMsg.includes("400") || errorMsg.includes("invalid_request")) {
+		return {
+			type: "invalid_request",
+			message: "Invalid request to Claude API",
+			actionable: "Check request parameters and format",
+			retryable: false,
+		};
+	}
 
-  // Generic API error
-  return {
-    type: 'api_error',
-    message: 'Claude API error',
-    actionable: 'Check API status and logs for details',
-    retryable: true,
-  };
+	// Generic API error
+	return {
+		type: "api_error",
+		message: "Claude API error",
+		actionable: "Check API status and logs for details",
+		retryable: true,
+	};
 }
 
 export class ClaudeSearchService {
-  /**
-   * Log API usage to the database for monitoring and cost tracking
-   */
-  private async logApiUsage(
-    queryText: string,
-    inputTokens: number,
-    outputTokens: number,
-    model: string,
-    success: boolean,
-    responseTime: number,
-    errorMessage?: string
-  ): Promise<void> {
-    try {
-      const queryCost = calculateClaudeCost(model, inputTokens, outputTokens);
-      const environment = config?.env?.nodeEnv || 'development';
+	/**
+	 * Log API usage to the database for monitoring and cost tracking
+	 */
+	private async logApiUsage(
+		queryText: string,
+		inputTokens: number,
+		outputTokens: number,
+		model: string,
+		success: boolean,
+		responseTime: number,
+		errorMessage?: string,
+	): Promise<void> {
+		try {
+			const queryCost = calculateClaudeCost(model, inputTokens, outputTokens);
+			const environment = config?.env?.nodeEnv || "development";
 
-      await prisma.apiUsageLog.create({
-        data: {
-          queryText,
-          queryCost,
-          inputTokens,
-          outputTokens,
-          model,
-          environment,
-          success,
-          errorMessage,
-          responseTime,
-        },
-      });
+			await prisma.apiUsageLog.create({
+				data: {
+					queryText,
+					queryCost,
+					inputTokens,
+					outputTokens,
+					model,
+					environment,
+					success,
+					errorMessage,
+					responseTime,
+				},
+			});
 
-      logger.info(
-        `Claude API usage logged: ${inputTokens} input + ${outputTokens} output tokens, cost: $${queryCost.toFixed(6)}, success: ${success}`
-      );
-    } catch (error) {
-      // Don't fail the main request if logging fails
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      logger.error(`Failed to log API usage: ${errorMsg}`);
-    }
-  }
+			logger.info(
+				`Claude API usage logged: ${inputTokens} input + ${outputTokens} output tokens, cost: $${queryCost.toFixed(6)}, success: ${success}`,
+			);
+		} catch (error) {
+			// Don't fail the main request if logging fails
+			const errorMsg = error instanceof Error ? error.message : String(error);
+			logger.error(`Failed to log API usage: ${errorMsg}`);
+		}
+	}
 
-  async parseNaturalLanguageQuery(query: string): Promise<SearchFilters> {
-    const startTime = Date.now();
-    let inputTokens = 0;
-    let outputTokens = 0;
-    let success = false;
-    let errorMessage: string | undefined;
+	async parseNaturalLanguageQuery(query: string): Promise<SearchFilters> {
+		const startTime = Date.now();
+		let inputTokens = 0;
+		let outputTokens = 0;
+		let success = false;
+		let errorMessage: string | undefined;
 
-    try {
-      const message = await anthropic.messages.create({
-        model: config.claude.model,
-        max_tokens: config.claude.maxTokens,
-        messages: [
-          {
-            role: 'user',
-            content: `You are a database query generator for a property search system. Convert the user's natural language query into Prisma query filters.
+		try {
+			const message = await anthropic.messages.create({
+				model: config.claude.model,
+				max_tokens: config.claude.maxTokens,
+				messages: [
+					{
+						role: "user",
+						content: `You are a database query generator for a property search system. Convert the user's natural language query into Prisma query filters.
 
 Available fields in the properties table:
 - id (text): unique identifier
@@ -266,157 +281,169 @@ IMPORTANT:
 - Use {totalValue} placeholder in answer when discussing total values
 
 Now generate the JSON for the user's query above.`,
-          },
-        ],
-      });
+					},
+				],
+			});
 
-      const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
-      logger.info(`Claude response: ${responseText.substring(0, 200)}...`);
+			const responseText =
+				message.content[0].type === "text" ? message.content[0].text : "";
+			logger.info(`Claude response: ${responseText.substring(0, 200)}...`);
 
-      // Extract token usage from the response with null-safe access (ERROR #2 fix)
-      inputTokens = message.usage?.input_tokens ?? 0;
-      outputTokens = message.usage?.output_tokens ?? 0;
+			// Extract token usage from the response with null-safe access (ERROR #2 fix)
+			inputTokens = message.usage?.input_tokens ?? 0;
+			outputTokens = message.usage?.output_tokens ?? 0;
 
-      if (!message.usage) {
-        logger.warn('Claude API response missing usage metadata, defaulting to 0 tokens');
-      }
+			if (!message.usage) {
+				logger.warn(
+					"Claude API response missing usage metadata, defaulting to 0 tokens",
+				);
+			}
 
-      // Validate and parse the JSON response with multi-stage extraction (ERROR #3, #4 fix)
-      let cleanedResponse = responseText.trim();
+			// Validate and parse the JSON response with multi-stage extraction (ERROR #3, #4 fix)
+			let cleanedResponse = responseText.trim();
 
-      // Stage 1: Strip markdown code blocks if present (Claude sometimes wraps JSON in ```json...```)
-      if (cleanedResponse.startsWith('```')) {
-        const match = cleanedResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        if (match) {
-          cleanedResponse = match[1].trim();
-          logger.debug('Extracted JSON from markdown code block');
-        }
-      }
+			// Stage 1: Strip markdown code blocks if present (Claude sometimes wraps JSON in ```json...```)
+			if (cleanedResponse.startsWith("```")) {
+				const match = cleanedResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+				if (match) {
+					cleanedResponse = match[1].trim();
+					logger.debug("Extracted JSON from markdown code block");
+				}
+			}
 
-      // Stage 2: If response doesn't start with { or [, try to extract JSON from text
-      if (!cleanedResponse.startsWith('{') && !cleanedResponse.startsWith('[')) {
-        logger.info('Response has text prefix, attempting JSON extraction');
+			// Stage 2: If response doesn't start with { or [, try to extract JSON from text
+			if (
+				!cleanedResponse.startsWith("{") &&
+				!cleanedResponse.startsWith("[")
+			) {
+				logger.info("Response has text prefix, attempting JSON extraction");
 
-        // Try to extract JSON object from text (e.g., "Here is the result:\n{...}")
-        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          cleanedResponse = jsonMatch[0];
-          logger.info('Successfully extracted JSON from text response');
-        } else {
-          logger.warn(
-            `Could not extract JSON from response starting with: "${cleanedResponse.substring(0, 100)}..."`
-          );
-          // Don't throw - fall through to parse attempt which will fail and trigger fallback
-        }
-      }
+				// Try to extract JSON object from text (e.g., "Here is the result:\n{...}")
+				const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+				if (jsonMatch) {
+					cleanedResponse = jsonMatch[0];
+					logger.info("Successfully extracted JSON from text response");
+				} else {
+					logger.warn(
+						`Could not extract JSON from response starting with: "${cleanedResponse.substring(0, 100)}..."`,
+					);
+					// Don't throw - fall through to parse attempt which will fail and trigger fallback
+				}
+			}
 
-      // Stage 3: Parse with error handling and fallback
-      let parsed: Partial<SearchFilters>;
-      try {
-        parsed = JSON.parse(cleanedResponse) as Partial<SearchFilters>;
+			// Stage 3: Parse with error handling and fallback
+			let parsed: Partial<SearchFilters>;
+			try {
+				parsed = JSON.parse(cleanedResponse) as Partial<SearchFilters>;
 
-        // Validate critical fields exist
-        if (!parsed.whereClause || typeof parsed.whereClause !== 'object') {
-          logger.warn('Parsed JSON missing or invalid whereClause, using empty clause');
-          parsed.whereClause = {};
-        }
+				// Validate critical fields exist
+				if (!parsed.whereClause || typeof parsed.whereClause !== "object") {
+					logger.warn(
+						"Parsed JSON missing or invalid whereClause, using empty clause",
+					);
+					parsed.whereClause = {};
+				}
 
-        logger.info('Successfully parsed and validated Claude response');
-      } catch (parseError) {
-        const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
-        logger.warn(`JSON parse failed: ${errorMsg}, falling back to generic search`);
-        logger.debug(`Failed to parse: ${cleanedResponse.substring(0, 200)}`);
+				logger.info("Successfully parsed and validated Claude response");
+			} catch (parseError) {
+				const errorMsg =
+					parseError instanceof Error ? parseError.message : String(parseError);
+				logger.warn(
+					`JSON parse failed: ${errorMsg}, falling back to generic search`,
+				);
+				logger.debug(`Failed to parse: ${cleanedResponse.substring(0, 200)}`);
 
-        // Return fallback immediately instead of throwing (ERROR #4 fix)
-        const responseTime = Date.now() - startTime;
-        await this.logApiUsage(
-          query,
-          inputTokens,
-          outputTokens,
-          config.claude.model,
-          false, // Parsing failed, but API call worked
-          responseTime,
-          `JSON parse failed: ${errorMsg}`
-        );
+				// Return fallback immediately instead of throwing (ERROR #4 fix)
+				const responseTime = Date.now() - startTime;
+				await this.logApiUsage(
+					query,
+					inputTokens,
+					outputTokens,
+					config.claude.model,
+					false, // Parsing failed, but API call worked
+					responseTime,
+					`JSON parse failed: ${errorMsg}`,
+				);
 
-        return {
-          whereClause: {
-            OR: [
-              { name: { contains: query, mode: 'insensitive' } },
-              { propertyAddress: { contains: query, mode: 'insensitive' } },
-              { city: { contains: query, mode: 'insensitive' } },
-              { description: { contains: query, mode: 'insensitive' } },
-            ],
-          },
-          explanation: `Searching for "${query}" (Claude response parsing failed, using text search)`,
-        };
-      }
+				return {
+					whereClause: {
+						OR: [
+							{ name: { contains: query, mode: "insensitive" } },
+							{ propertyAddress: { contains: query, mode: "insensitive" } },
+							{ city: { contains: query, mode: "insensitive" } },
+							{ description: { contains: query, mode: "insensitive" } },
+						],
+					},
+					explanation: `Searching for "${query}" (Claude response parsing failed, using text search)`,
+				};
+			}
 
-      success = true;
-      const responseTime = Date.now() - startTime;
+			success = true;
+			const responseTime = Date.now() - startTime;
 
-      // Log successful API usage
-      await this.logApiUsage(
-        query,
-        inputTokens,
-        outputTokens,
-        config.claude.model,
-        success,
-        responseTime
-      );
+			// Log successful API usage
+			await this.logApiUsage(
+				query,
+				inputTokens,
+				outputTokens,
+				config.claude.model,
+				success,
+				responseTime,
+			);
 
-      return {
-        whereClause: parsed.whereClause || {},
-        orderBy: parsed.orderBy,
-        explanation: parsed.explanation || 'Searching properties based on your query',
-        answer: parsed.answer,
-        answerType: parsed.answerType,
-      };
-    } catch (error) {
-      const responseTime = Date.now() - startTime;
+			return {
+				whereClause: parsed.whereClause || {},
+				orderBy: parsed.orderBy,
+				explanation:
+					parsed.explanation || "Searching properties based on your query",
+				answer: parsed.answer,
+				answerType: parsed.answerType,
+			};
+		} catch (error) {
+			const responseTime = Date.now() - startTime;
 
-      // Categorize the error for actionable messages (ERROR #5 fix)
-      const errorDetails = categorizeClaudeError(error);
+			// Categorize the error for actionable messages (ERROR #5 fix)
+			const errorDetails = categorizeClaudeError(error);
 
-      // Log with categorized error details (Pino expects object first, then message)
-      logger.error(
-        {
-          query,
-          errorType: errorDetails.type,
-          actionable: errorDetails.actionable,
-          retryable: errorDetails.retryable,
-          originalError: error instanceof Error ? error.message : String(error),
-        },
-        `Claude API error [${errorDetails.type}]: ${errorDetails.message}`
-      );
+			// Log with categorized error details (Pino expects object first, then message)
+			logger.error(
+				{
+					query,
+					errorType: errorDetails.type,
+					actionable: errorDetails.actionable,
+					retryable: errorDetails.retryable,
+					originalError: error instanceof Error ? error.message : String(error),
+				},
+				`Claude API error [${errorDetails.type}]: ${errorDetails.message}`,
+			);
 
-      errorMessage = `${errorDetails.message} - ${errorDetails.actionable}`;
+			errorMessage = `${errorDetails.message} - ${errorDetails.actionable}`;
 
-      // Log failed API usage (even if we don't have token counts)
-      await this.logApiUsage(
-        query,
-        inputTokens,
-        outputTokens,
-        config.claude.model,
-        false, // success = false
-        responseTime,
-        errorMessage
-      );
+			// Log failed API usage (even if we don't have token counts)
+			await this.logApiUsage(
+				query,
+				inputTokens,
+				outputTokens,
+				config.claude.model,
+				false, // success = false
+				responseTime,
+				errorMessage,
+			);
 
-      // Fallback: simple text search across multiple fields
-      return {
-        whereClause: {
-          OR: [
-            { name: { contains: query, mode: 'insensitive' } },
-            { propertyAddress: { contains: query, mode: 'insensitive' } },
-            { city: { contains: query, mode: 'insensitive' } },
-            { description: { contains: query, mode: 'insensitive' } },
-          ],
-        },
-        explanation: `Searching for "${query}" (${errorDetails.message}, using text search fallback)`,
-      };
-    }
-  }
+			// Fallback: simple text search across multiple fields
+			return {
+				whereClause: {
+					OR: [
+						{ name: { contains: query, mode: "insensitive" } },
+						{ propertyAddress: { contains: query, mode: "insensitive" } },
+						{ city: { contains: query, mode: "insensitive" } },
+						{ description: { contains: query, mode: "insensitive" } },
+					],
+				},
+				explanation: `Searching for "${query}" (${errorDetails.message}, using text search fallback)`,
+			};
+		}
+	}
 }
 
 export const claudeSearchService = new ClaudeSearchService();

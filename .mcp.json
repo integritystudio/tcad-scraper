@@ -1,11 +1,11 @@
 {
-  "mcpServers": {
-    "postgres": {
-      "command": "node",
-      "args": [
-        "/home/aledlie/.mcp-servers/postgres/node_modules/@modelcontextprotocol/server-postgres/dist/index.js",
-        "postgresql://postgres:postgres@localhost:5432/tcad_scraper"
-      ]
-    }
-  }
+	"mcpServers": {
+		"postgres": {
+			"command": "node",
+			"args": [
+				"/home/aledlie/.mcp-servers/postgres/node_modules/@modelcontextprotocol/server-postgres/dist/index.js",
+				"postgresql://postgres:postgres@localhost:5432/tcad_scraper"
+			]
+		}
+	}
 }

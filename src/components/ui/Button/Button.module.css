@@ -1,87 +1,87 @@
 .button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-  white-space: nowrap;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	border: none;
+	border-radius: 8px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: inherit;
+	white-space: nowrap;
 }
 
 .button:focus-visible {
-  outline: 2px solid var(--primary, #2563eb);
-  outline-offset: 2px;
+	outline: 2px solid var(--primary, #2563eb);
+	outline-offset: 2px;
 }
 
 .button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+	opacity: 0.5;
+	cursor: not-allowed;
 }
 
 /* Sizes */
 .sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+	padding: 0.5rem 1rem;
+	font-size: 0.875rem;
+	line-height: 1.25rem;
 }
 
 .md {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  line-height: 1.5rem;
+	padding: 0.75rem 1.5rem;
+	font-size: 1rem;
+	line-height: 1.5rem;
 }
 
 .lg {
-  padding: 1rem 2rem;
-  font-size: 1.125rem;
-  line-height: 1.75rem;
+	padding: 1rem 2rem;
+	font-size: 1.125rem;
+	line-height: 1.75rem;
 }
 
 /* Variants */
 .primary {
-  background: var(--primary, #2563eb);
-  color: white;
+	background: var(--primary, #2563eb);
+	color: white;
 }
 
 .primary:hover:not(:disabled) {
-  background: var(--primary-dark, #1d4ed8);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+	background: var(--primary-dark, #1d4ed8);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .secondary {
-  background: var(--neutral-200, #e5e7eb);
-  color: var(--neutral-900, #111827);
+	background: var(--neutral-200, #e5e7eb);
+	color: var(--neutral-900, #111827);
 }
 
 .secondary:hover:not(:disabled) {
-  background: var(--neutral-300, #d1d5db);
+	background: var(--neutral-300, #d1d5db);
 }
 
 .outline {
-  background: transparent;
-  border: 2px solid var(--primary, #2563eb);
-  color: var(--primary, #2563eb);
+	background: transparent;
+	border: 2px solid var(--primary, #2563eb);
+	color: var(--primary, #2563eb);
 }
 
 .outline:hover:not(:disabled) {
-  background: var(--primary, #2563eb);
-  color: white;
+	background: var(--primary, #2563eb);
+	color: white;
 }
 
 .ghost {
-  background: transparent;
-  color: var(--neutral-700, #374151);
+	background: transparent;
+	color: var(--neutral-700, #374151);
 }
 
 .ghost:hover:not(:disabled) {
-  background: var(--neutral-100, #f3f4f6);
+	background: var(--neutral-100, #f3f4f6);
 }
 
 .fullWidth {
-  width: 100%;
+	width: 100%;
 }

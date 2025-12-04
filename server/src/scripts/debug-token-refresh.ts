@@ -1,68 +1,70 @@
 #!/usr/bin/env node
+
 /**
  * Debug Token Refresh
  * Tests the token refresh service and prints detailed diagnostics
  */
 
-import { tokenRefreshService } from '../services/token-refresh.service';
-import logger from '../lib/logger';
+import logger from "../lib/logger";
+import { tokenRefreshService } from "../services/token-refresh.service";
 
 async function debugTokenRefresh() {
-  logger.info('='.repeat(60));
-  logger.info('DEBUG: Token Refresh Service');
-  logger.info('='.repeat(60));
+	logger.info("=".repeat(60));
+	logger.info("DEBUG: Token Refresh Service");
+	logger.info("=".repeat(60));
 
-  // Check initial state
-  logger.info('\n1. Initial State:');
-  logger.info(`   currentToken: ${tokenRefreshService.getCurrentToken()}`);
+	// Check initial state
+	logger.info("\n1. Initial State:");
+	logger.info(`   currentToken: ${tokenRefreshService.getCurrentToken()}`);
 
-  const initialStats = tokenRefreshService.getStats();
-  logger.info(`   Stats: ${JSON.stringify(initialStats, null, 2)}`);
+	const initialStats = tokenRefreshService.getStats();
+	logger.info(`   Stats: ${JSON.stringify(initialStats, null, 2)}`);
 
-  // Try to refresh token
-  logger.info('\n2. Calling refreshToken()...');
-  const startTime = Date.now();
+	// Try to refresh token
+	logger.info("\n2. Calling refreshToken()...");
+	const startTime = Date.now();
 
-  try {
-    const token = await tokenRefreshService.refreshToken();
-    const duration = Date.now() - startTime;
+	try {
+		const token = await tokenRefreshService.refreshToken();
+		const duration = Date.now() - startTime;
 
-    logger.info(`\n3. refreshToken() returned after ${duration}ms:`);
-    logger.info(`   Type: ${typeof token}`);
-    logger.info(`   Value: ${token}`);
-    logger.info(`   Length: ${token ? token.length : 'N/A'}`);
-    logger.info(`   First 50 chars: ${token ? token.substring(0, 50) : 'N/A'}`);
+		logger.info(`\n3. refreshToken() returned after ${duration}ms:`);
+		logger.info(`   Type: ${typeof token}`);
+		logger.info(`   Value: ${token}`);
+		logger.info(`   Length: ${token ? token.length : "N/A"}`);
+		logger.info(`   First 50 chars: ${token ? token.substring(0, 50) : "N/A"}`);
+	} catch (error) {
+		logger.error(
+			`\n3. refreshToken() threw error: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
 
-  } catch (error) {
-    logger.error(`\n3. refreshToken() threw error: ${error instanceof Error ? error.message : String(error)}`);
-  }
+	// Check state after refresh
+	logger.info("\n4. State After Refresh:");
+	logger.info(`   currentToken: ${tokenRefreshService.getCurrentToken()}`);
 
-  // Check state after refresh
-  logger.info('\n4. State After Refresh:');
-  logger.info(`   currentToken: ${tokenRefreshService.getCurrentToken()}`);
+	const afterStats = tokenRefreshService.getStats();
+	logger.info(`   Stats: ${JSON.stringify(afterStats, null, 2)}`);
 
-  const afterStats = tokenRefreshService.getStats();
-  logger.info(`   Stats: ${JSON.stringify(afterStats, null, 2)}`);
+	// Test getCurrentToken multiple times
+	logger.info("\n5. Multiple getCurrentToken() calls:");
+	for (let i = 0; i < 3; i++) {
+		const token = tokenRefreshService.getCurrentToken();
+		logger.info(`   Call ${i + 1}: ${token ? token.substring(0, 50) : "null"}`);
+	}
 
-  // Test getCurrentToken multiple times
-  logger.info('\n5. Multiple getCurrentToken() calls:');
-  for (let i = 0; i < 3; i++) {
-    const token = tokenRefreshService.getCurrentToken();
-    logger.info(`   Call ${i + 1}: ${token ? token.substring(0, 50) : 'null'}`);
-  }
+	// Cleanup
+	logger.info("\n6. Cleaning up...");
+	await tokenRefreshService.cleanup();
 
-  // Cleanup
-  logger.info('\n6. Cleaning up...');
-  await tokenRefreshService.cleanup();
-
-  logger.info('\n' + '='.repeat(60));
-  logger.info('DEBUG: Complete');
-  logger.info('='.repeat(60));
+	logger.info(`\n${"=".repeat(60)}`);
+	logger.info("DEBUG: Complete");
+	logger.info("=".repeat(60));
 }
 
 debugTokenRefresh()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    logger.error('Script failed:', error);
-    process.exit(1);
-  });
+	.then(() => process.exit(0))
+	.catch((error) => {
+		logger.error("Script failed:", error);
+		process.exit(1);
+	});

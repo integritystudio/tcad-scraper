@@ -1,5 +1,5 @@
-const express = require('express');
-const { getQueue: _getQueue, discoverQueues } = require('./shared/bullmq-utils');
+const express = require("express");
+const { discoverQueues } = require("./shared/bullmq-utils");
 
 const app = express();
 const PORT = process.env.PORT;
@@ -8,43 +8,38 @@ const REDIS_PORT = process.env.REDIS_PORT;
 
 // Connection configuration
 const connection = {
-  host: REDIS_HOST,
-  port: REDIS_PORT,
+	host: REDIS_HOST,
+	port: REDIS_PORT,
 };
 
 // Store queue instances
 const queues = new Map();
 
-// Wrapper function to maintain backward compatibility
-function getQueue(queueName) {
-  return _getQueue(queueName, connection, queues);
-}
-
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+app.get("/health", (_req, res) => {
+	res.json({ status: "ok" });
 });
 
 // List discovered queues
-app.get('/queues', async (req, res) => {
-  try {
-    const queueNames = await discoverQueues(connection);
-    res.json({ queues: queueNames });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+app.get("/queues", async (_req, res) => {
+	try {
+		const queueNames = await discoverQueues(connection);
+		res.json({ queues: queueNames });
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
 });
 
 app.listen(PORT, () => {
-  console.log(`Health check at http://localhost:${PORT}/health`);
-  console.log(`Queue list at http://localhost:${PORT}/queues`);
+	console.log(`Health check at http://localhost:${PORT}/health`);
+	console.log(`Queue list at http://localhost:${PORT}/queues`);
 });
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  for (const queue of queues.values()) {
-    await queue.close();
-  }
-  process.exit(0);
+process.on("SIGTERM", async () => {
+	console.log("SIGTERM signal received: closing HTTP server");
+	for (const queue of queues.values()) {
+		await queue.close();
+	}
+	process.exit(0);
 });

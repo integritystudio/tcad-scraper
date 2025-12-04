@@ -1,43 +1,43 @@
 .container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
 }
 
 .text {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: var(--neutral-700, #374151);
-  white-space: pre-wrap;
+	margin: 0;
+	font-size: 0.875rem;
+	line-height: 1.6;
+	color: var(--neutral-700, #374151);
+	white-space: pre-wrap;
 }
 
 .toggleButton {
-  align-self: flex-start;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--primary-600, #2563eb);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
+	align-self: flex-start;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--primary-600, #2563eb);
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	transition: all 0.2s ease;
 }
 
 .toggleButton:hover {
-  color: var(--primary-700, #1d4ed8);
-  text-decoration: underline;
+	color: var(--primary-700, #1d4ed8);
+	text-decoration: underline;
 }
 
 .toggleButton:focus-visible {
-  outline: 2px solid var(--primary-500, #3b82f6);
-  outline-offset: 2px;
-  border-radius: 0.25rem;
+	outline: 2px solid var(--primary-500, #3b82f6);
+	outline-offset: 2px;
+	border-radius: 0.25rem;
 }
 
 .noData {
-  margin: 0;
-  font-size: 0.875rem;
-  color: var(--neutral-400, #9ca3af);
-  font-style: italic;
+	margin: 0;
+	font-size: 0.875rem;
+	color: var(--neutral-400, #9ca3af);
+	font-style: italic;
 }
