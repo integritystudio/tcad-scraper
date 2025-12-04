@@ -24,13 +24,6 @@ interface TCADPropertyResult {
 	legalDescription?: string;
 }
 
-interface NetworkRequest {
-	url: string;
-	method: string;
-	postData?: string;
-	response?: unknown;
-}
-
 const logger = winston.createLogger({
 	level: appConfig.logging.level,
 	format: winston.format.json(),
@@ -541,6 +534,9 @@ export class TCADScraper {
 		try {
 			await this.initialize();
 			const context = await this.browser?.newContext();
+			if (!context) {
+				throw new Error("Failed to create browser context");
+			}
 			const page = await context.newPage();
 
 			// Suppress browser console warnings from TCAD website

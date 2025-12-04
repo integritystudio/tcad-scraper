@@ -208,8 +208,9 @@ async function main() {
 		console.log(
 			`Other Errors: ${categoryCounts.other} (${((categoryCounts.other / analysis.failedJobs) * 100).toFixed(2)}%)\n`,
 		);
-	} catch (error) {
-		logger.error("Failed to analyze jobs:", error);
+	} catch (error: unknown) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error(`Failed to analyze jobs: ${errorMessage}`);
 		throw error;
 	} finally {
 		await prisma.$disconnect();
