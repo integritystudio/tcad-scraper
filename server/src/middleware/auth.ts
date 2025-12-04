@@ -72,6 +72,7 @@ export const generateToken = (userId: string, email?: string): string => {
     config.auth.jwt.secret,
     // Type assertion needed: jwt library's SignOptions type is overly strict
     // expiresIn accepts string values like '7d' but TypeScript infers our config value too narrowly
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { expiresIn: config.auth.jwt.expiresIn as any }
   );
 };

@@ -64,6 +64,9 @@ app.use((req, res, next) => {
   }
 
   helmet({
+    // DOCUMENTED: Helmet's CrossOriginResourcePolicyOptions type requires specific literals
+    // but config returns string. Values are validated at config level, safe to cast.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     crossOriginResourcePolicy: { policy: config.security.helmet.crossOriginResourcePolicy as any },
     hsts: config.security.helmet.enableHsts,
     crossOriginOpenerPolicy: config.security.helmet.enableCoop,

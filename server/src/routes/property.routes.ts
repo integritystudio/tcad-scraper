@@ -129,6 +129,8 @@ router.post(
  */
 router.get(
   '/jobs/:jobId',
+  // DOCUMENTED: Function.bind() requires 'any' for this context in TypeScript
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   asyncHandler(propertyController.getJobStatus.bind(propertyController) as any)
 );
 
@@ -191,6 +193,8 @@ router.get(
 router.get(
   '/history',
   validateQuery(historyQuerySchema),
+  // DOCUMENTED: Function.bind() requires 'any' for this context in TypeScript
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   asyncHandler(propertyController.getScrapeHistory.bind(propertyController) as any)
 );
 
@@ -280,6 +284,8 @@ router.get(
 router.get(
   '/',
   validateQuery(propertyFilterSchema),
+  // DOCUMENTED: Function.bind() requires 'any' for this context in TypeScript
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   asyncHandler(propertyController.getProperties.bind(propertyController) as any)
 );
 
