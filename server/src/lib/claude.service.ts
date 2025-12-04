@@ -19,6 +19,82 @@ interface SearchFilters {
   answerType?: AnswerType;
 }
 
+/**
+ * Error categorization for actionable error messages (ERROR #5 fix)
+ */
+interface ClaudeErrorDetails {
+  type: 'authentication' | 'model' | 'timeout' | 'rate_limit' | 'invalid_request' | 'api_error';
+  message: string;
+  actionable: string;
+  retryable: boolean;
+}
+
+function categorizeClaudeError(error: unknown): ClaudeErrorDetails {
+  const errorMsg = error instanceof Error ? error.message : String(error);
+
+  // Authentication errors
+  if (
+    errorMsg.includes('401') ||
+    errorMsg.includes('authentication_error') ||
+    errorMsg.includes('invalid x-api-key')
+  ) {
+    return {
+      type: 'authentication',
+      message: 'Claude API authentication failed',
+      actionable: 'Check ANTHROPIC_API_KEY environment variable is set correctly',
+      retryable: false,
+    };
+  }
+
+  // Model errors
+  if (errorMsg.includes('404') || errorMsg.includes('not_found_error') || errorMsg.includes('model:')) {
+    return {
+      type: 'model',
+      message: 'Claude model not found or unavailable',
+      actionable: `Check model name in config (current: ${config.claude.model})`,
+      retryable: false,
+    };
+  }
+
+  // Timeout errors
+  if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT') || errorMsg.includes('ECONNABORTED')) {
+    return {
+      type: 'timeout',
+      message: 'Claude API request timed out',
+      actionable: 'Retry request or check network connectivity',
+      retryable: true,
+    };
+  }
+
+  // Rate limiting
+  if (errorMsg.includes('429') || errorMsg.includes('rate_limit')) {
+    return {
+      type: 'rate_limit',
+      message: 'Claude API rate limit exceeded',
+      actionable: 'Wait before retrying or upgrade API plan',
+      retryable: true,
+    };
+  }
+
+  // Invalid request
+  if (errorMsg.includes('400') || errorMsg.includes('invalid_request')) {
+    return {
+      type: 'invalid_request',
+      message: 'Invalid request to Claude API',
+      actionable: 'Check request parameters and format',
+      retryable: false,
+    };
+  }
+
+  // Generic API error
+  return {
+    type: 'api_error',
+    message: 'Claude API error',
+    actionable: 'Check API status and logs for details',
+    retryable: true,
+  };
+}
+
 export class ClaudeSearchService {
   /**
    * Log API usage to the database for monitoring and cost tracking
@@ -197,38 +273,83 @@ Now generate the JSON for the user's query above.`,
       const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
       logger.info(`Claude response: ${responseText.substring(0, 200)}...`);
 
-      // Extract token usage from the response
-      inputTokens = message.usage.input_tokens;
-      outputTokens = message.usage.output_tokens;
+      // Extract token usage from the response with null-safe access (ERROR #2 fix)
+      inputTokens = message.usage?.input_tokens ?? 0;
+      outputTokens = message.usage?.output_tokens ?? 0;
 
-      // Validate and parse the JSON response
+      if (!message.usage) {
+        logger.warn('Claude API response missing usage metadata, defaulting to 0 tokens');
+      }
+
+      // Validate and parse the JSON response with multi-stage extraction (ERROR #3, #4 fix)
       let cleanedResponse = responseText.trim();
 
-      // Strip markdown code blocks if present (Claude sometimes wraps JSON in ```json...```)
+      // Stage 1: Strip markdown code blocks if present (Claude sometimes wraps JSON in ```json...```)
       if (cleanedResponse.startsWith('```')) {
         const match = cleanedResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
         if (match) {
           cleanedResponse = match[1].trim();
-          logger.info('Stripped markdown code block from response');
+          logger.debug('Extracted JSON from markdown code block');
         }
       }
 
-      // Validate response starts with { or [ (valid JSON)
+      // Stage 2: If response doesn't start with { or [, try to extract JSON from text
       if (!cleanedResponse.startsWith('{') && !cleanedResponse.startsWith('[')) {
-        throw new Error(
-          `Invalid JSON response from Claude: Response starts with "${cleanedResponse.substring(0, 50)}..."`
-        );
+        logger.info('Response has text prefix, attempting JSON extraction');
+
+        // Try to extract JSON object from text (e.g., "Here is the result:\n{...}")
+        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanedResponse = jsonMatch[0];
+          logger.info('Successfully extracted JSON from text response');
+        } else {
+          logger.warn(
+            `Could not extract JSON from response starting with: "${cleanedResponse.substring(0, 100)}..."`
+          );
+          // Don't throw - fall through to parse attempt which will fail and trigger fallback
+        }
       }
 
-      // Parse with error handling
+      // Stage 3: Parse with error handling and fallback
       let parsed: Partial<SearchFilters>;
       try {
         parsed = JSON.parse(cleanedResponse) as Partial<SearchFilters>;
+
+        // Validate critical fields exist
+        if (!parsed.whereClause || typeof parsed.whereClause !== 'object') {
+          logger.warn('Parsed JSON missing or invalid whereClause, using empty clause');
+          parsed.whereClause = {};
+        }
+
+        logger.info('Successfully parsed and validated Claude response');
       } catch (parseError) {
         const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
-        logger.error(`JSON parse failed: ${errorMsg}`);
-        logger.error(`Failed to parse response: ${cleanedResponse.substring(0, 500)}`);
-        throw new Error(`Failed to parse Claude response as JSON: ${errorMsg}`);
+        logger.warn(`JSON parse failed: ${errorMsg}, falling back to generic search`);
+        logger.debug(`Failed to parse: ${cleanedResponse.substring(0, 200)}`);
+
+        // Return fallback immediately instead of throwing (ERROR #4 fix)
+        const responseTime = Date.now() - startTime;
+        await this.logApiUsage(
+          query,
+          inputTokens,
+          outputTokens,
+          config.claude.model,
+          false, // Parsing failed, but API call worked
+          responseTime,
+          `JSON parse failed: ${errorMsg}`
+        );
+
+        return {
+          whereClause: {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { propertyAddress: { contains: query, mode: 'insensitive' } },
+              { city: { contains: query, mode: 'insensitive' } },
+              { description: { contains: query, mode: 'insensitive' } },
+            ],
+          },
+          explanation: `Searching for "${query}" (Claude response parsing failed, using text search)`,
+        };
       }
 
       success = true;
@@ -253,15 +374,23 @@ Now generate the JSON for the user's query above.`,
       };
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      errorMessage = error instanceof Error ? error.message : String(error);
-      // Safely log the error without risking serialization issues
-      const errorDetails = {
-        message: error instanceof Error ? error.message : String(error),
-        name: error instanceof Error ? error.name : 'Unknown',
-        stack: error instanceof Error ? error.stack : undefined,
-      };
-      logger.error(`Error parsing natural language query with Claude: ${JSON.stringify(errorDetails)}`);
-      logger.error(`Claude API Error Details: ${JSON.stringify(errorDetails, null, 2)}`);
+
+      // Categorize the error for actionable messages (ERROR #5 fix)
+      const errorDetails = categorizeClaudeError(error);
+
+      // Log with categorized error details (Pino expects object first, then message)
+      logger.error(
+        {
+          query,
+          errorType: errorDetails.type,
+          actionable: errorDetails.actionable,
+          retryable: errorDetails.retryable,
+          originalError: error instanceof Error ? error.message : String(error),
+        },
+        `Claude API error [${errorDetails.type}]: ${errorDetails.message}`
+      );
+
+      errorMessage = `${errorDetails.message} - ${errorDetails.actionable}`;
 
       // Log failed API usage (even if we don't have token counts)
       await this.logApiUsage(
@@ -284,7 +413,7 @@ Now generate the JSON for the user's query above.`,
             { description: { contains: query, mode: 'insensitive' } },
           ],
         },
-        explanation: `Searching for "${query}" across property names, addresses, cities, and descriptions`,
+        explanation: `Searching for "${query}" (${errorDetails.message}, using text search fallback)`,
       };
     }
   }
