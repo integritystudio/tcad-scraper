@@ -132,20 +132,22 @@ describe('Claude JSON Parsing - Regression Tests', () => {
   });
 
   describe('JSON Validation (FIX)', () => {
-    it('should reject response not starting with { or [', async () => {
+    it('should extract JSON from response with text prefix', async () => {
+      // Updated: Our new multi-stage JSON extraction NOW successfully extracts
+      // JSON from responses with text prefixes like "Here is the result:\n{...}"
       mockCreate.mockResolvedValue({
         content: [{
           type: 'text',
-          text: 'Here is the search result:\n{"whereClause": {}}'
+          text: 'Here is the search result:\n{"whereClause": {"city": "Austin"}, "explanation": "Test"}'
         }],
         usage: { input_tokens: 100, output_tokens: 50 }
       });
 
       const result = await service.parseNaturalLanguageQuery('test query');
 
-      // Should fallback to simple text search
-      expect(result.whereClause.OR).toBeDefined();
-      expect(result.whereClause.OR).toHaveLength(4);
+      // Should successfully extract and parse the JSON
+      expect(result.whereClause).toEqual({ city: 'Austin' });
+      expect(result.explanation).toBe('Test');
     });
 
     it('should accept response starting with {', async () => {
@@ -277,9 +279,9 @@ describe('Claude JSON Parsing - Regression Tests', () => {
 
       const result = await service.parseNaturalLanguageQuery('expensive downtown properties');
 
-      expect(result.explanation).toBe(
-        'Searching for "expensive downtown properties" across property names, addresses, cities, and descriptions'
-      );
+      // Updated: New error message format includes categorized error type and fallback indicator
+      expect(result.explanation).toContain('expensive downtown properties');
+      expect(result.explanation).toContain('text search fallback');
     });
   });
 

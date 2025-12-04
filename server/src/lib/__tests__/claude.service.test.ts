@@ -226,7 +226,9 @@ describe('ClaudeSearchService', () => {
             { description: { contains: 'test query', mode: 'insensitive' } },
           ]
         });
-        expect(result.explanation).toBe('Searching for "test query" across property names, addresses, cities, and descriptions');
+        // Updated to match new error message format with categorized errors
+        expect(result.explanation).toContain('test query');
+        expect(result.explanation).toContain('text search fallback');
       });
 
       test('should fallback on authentication error', async () => {
