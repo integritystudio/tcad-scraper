@@ -88,25 +88,35 @@ export function testWithRedis(name: string, fn: () => void | Promise<void>, _tes
 /**
  * Check if frontend build files are available
  * Required for tests that verify SPA routing behavior
+ *
+ * The frontend build must be in one of these locations:
+ * - server/public/index.html (Express static serving)
+ * - frontend/dist/index.html (Vite build output, needs copying)
  */
 export function isFrontendBuilt(): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const fs = require('fs');
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const path = require('path');
 
-  // Check for common frontend build locations
+  // Check for frontend build in Express's public directory (what Express actually serves)
+  // The test should only pass if the frontend is properly configured for Express to serve
   const possiblePaths = [
+    // Primary: Express public directory (server needs frontend copied here)
     path.join(__dirname, '../../public/index.html'),
-    path.join(__dirname, '../../dist/index.html'),
-    path.join(__dirname, '../../../dist/index.html'),
+    // Alternative: frontend build output (may need to be linked/copied)
+    path.join(__dirname, '../../../frontend/dist/index.html'),
   ];
 
-  return possiblePaths.some(p => {
+  const found = possiblePaths.some(p => {
     try {
       return fs.existsSync(p);
     } catch {
       return false;
     }
   });
+
+  return found;
 }
 
 /**

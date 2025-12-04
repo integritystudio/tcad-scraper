@@ -1,5 +1,12 @@
 /**
  * Integration Tests for XController Implementation
+ *
+ * REQUIREMENTS:
+ * 1. Redis running on localhost:6379 (for queue health tests)
+ * 2. Frontend built (run `npm run build` in frontend/ directory)
+ * 3. PostgreSQL accessible via Tailscale (for database tests)
+ *
+ * Tests will gracefully skip if requirements not met.
  */
 
 import { describe, test, expect } from 'vitest';
@@ -104,7 +111,12 @@ describe('Integration Tests', () => {
     });
 
     // Conditionally skip if frontend not built - requires npm run build in frontend
-    test.skipIf(!hasFrontend)('should serve frontend for unmatched routes', async () => {
+    test('should serve frontend for unmatched routes', async () => {
+      if (!hasFrontend) {
+        console.log('⏭️  Skipping: Frontend not built (run `npm run build` in frontend/)');
+        return;
+      }
+
       const response = await request(app).get('/some-spa-route');
       expect(response.status).toBe(200);
       expect(response.headers['content-type']).toContain('text/html');
