@@ -45,7 +45,7 @@ jobs:
         uses: dopplerhq/cli-action@v3
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --omit=optional
 
       - name: Build with Vite
         env:
@@ -71,7 +71,8 @@ jobs:
           echo "Frontend Port: $FRONTEND_PORT"
 
           # Install server dependencies for Prisma client (needed for build-time script)
-          cd server && npm install && npx prisma generate && cd ..
+          # Use --omit=optional to skip platform-specific binaries (darwin on linux)
+          cd server && npm ci --omit=optional && npx prisma generate && cd ..
 
           # Run build (prebuild script will generate constants from database)
           npm run build
