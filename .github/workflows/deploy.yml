@@ -45,7 +45,9 @@ jobs:
         uses: dopplerhq/cli-action@v3
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci --ignore-scripts
+        env:
+          npm_config_optional: false
 
       - name: Build with Vite
         env:
