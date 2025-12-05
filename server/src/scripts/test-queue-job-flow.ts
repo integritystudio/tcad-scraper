@@ -57,7 +57,7 @@ async function simulateQueueJobProcessing() {
 		if (config.scraper.tcadApiKey) {
 			logger.info("  ✅ authToken = appConfig.scraper.tcadApiKey");
 			logger.info(
-				`  ✅ Token value: ${config.scraper.tcadApiKey.substring(0, 20)}...`,
+				`  ✅ Token value: ...${config.scraper.tcadApiKey.slice(-4)}`,
 			);
 			logger.info("  ✅ Condition: if (authToken) → TRUE");
 			logger.info("");

@@ -44,12 +44,13 @@ export class TCADScraper {
 
 		if (
 			appConfig.scraper.brightData.enabled &&
-			appConfig.scraper.brightData.apiToken
+			appConfig.scraper.brightData.apiToken &&
+			appConfig.scraper.brightData.customerId
 		) {
 			// Bright Data proxy configuration
 			proxyConfig = {
 				proxyServer: `http://${appConfig.scraper.brightData.proxyHost}:${appConfig.scraper.brightData.proxyPort}`,
-				proxyUsername: `brd-customer-${appConfig.scraper.brightData.apiToken.substring(0, 8)}-zone-residential`,
+				proxyUsername: `brd-customer-${appConfig.scraper.brightData.customerId}-zone-residential`,
 				proxyPassword: appConfig.scraper.brightData.apiToken,
 			};
 			logger.info("Bright Data proxy configured");

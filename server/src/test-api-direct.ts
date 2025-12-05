@@ -24,7 +24,7 @@ async function testApi() {
 
 	const authData = await authResponse.json();
 	const token = authData.user.token;
-	logger.info(`✓ Got token: ${token.substring(0, 50)}...\n`);
+	logger.info(`✓ Got token: ...${token.slice(-4)}\n`);
 
 	// Step 3: Search for properties (exact format from API discovery with browser headers)
 	logger.info("3. Searching for properties...");

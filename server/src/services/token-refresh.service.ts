@@ -70,7 +70,7 @@ export class TCADTokenRefreshService {
 	getStats() {
 		return {
 			currentToken: this.currentToken
-				? `${this.currentToken.substring(0, 20)}...`
+				? `...${this.currentToken.slice(-4)}`
 				: null,
 			lastRefreshTime: this.lastRefreshTime,
 			refreshCount: this.refreshCount,
@@ -360,11 +360,11 @@ export class TCADTokenRefreshService {
 			this.refreshCount++;
 
 			const duration = Date.now() - startTime;
-			const tokenPreview2 = token.substring(0, 30);
+			const tokenSuffix = token.slice(-4);
 			logger.info(
 				`Token refreshed successfully in ${duration}ms (refresh #${this.refreshCount}, source: ${tokenSource})`,
 			);
-			logger.info(`New token: ${tokenPreview2}...`);
+			logger.debug(`New token: ...${tokenSuffix}`);
 
 			return token;
 		} finally {

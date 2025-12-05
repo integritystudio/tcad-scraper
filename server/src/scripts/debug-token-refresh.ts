@@ -15,7 +15,8 @@ async function debugTokenRefresh() {
 
 	// Check initial state
 	logger.info("\n1. Initial State:");
-	logger.info(`   currentToken: ${tokenRefreshService.getCurrentToken()}`);
+	const initialToken = tokenRefreshService.getCurrentToken();
+	logger.info(`   currentToken: ${initialToken ? `...${initialToken.slice(-4)}` : "null"}`);
 
 	const initialStats = tokenRefreshService.getStats();
 	logger.info(`   Stats: ${JSON.stringify(initialStats, null, 2)}`);
@@ -30,9 +31,8 @@ async function debugTokenRefresh() {
 
 		logger.info(`\n3. refreshToken() returned after ${duration}ms:`);
 		logger.info(`   Type: ${typeof token}`);
-		logger.info(`   Value: ${token}`);
+		logger.info(`   Value: [REDACTED]...${token ? token.slice(-4) : "N/A"}`);
 		logger.info(`   Length: ${token ? token.length : "N/A"}`);
-		logger.info(`   First 50 chars: ${token ? token.substring(0, 50) : "N/A"}`);
 	} catch (error) {
 		logger.error(
 			`\n3. refreshToken() threw error: ${error instanceof Error ? error.message : String(error)}`,
@@ -41,7 +41,8 @@ async function debugTokenRefresh() {
 
 	// Check state after refresh
 	logger.info("\n4. State After Refresh:");
-	logger.info(`   currentToken: ${tokenRefreshService.getCurrentToken()}`);
+	const refreshedToken = tokenRefreshService.getCurrentToken();
+	logger.info(`   currentToken: ${refreshedToken ? `...${refreshedToken.slice(-4)}` : "null"}`);
 
 	const afterStats = tokenRefreshService.getStats();
 	logger.info(`   Stats: ${JSON.stringify(afterStats, null, 2)}`);
@@ -50,7 +51,7 @@ async function debugTokenRefresh() {
 	logger.info("\n5. Multiple getCurrentToken() calls:");
 	for (let i = 0; i < 3; i++) {
 		const token = tokenRefreshService.getCurrentToken();
-		logger.info(`   Call ${i + 1}: ${token ? token.substring(0, 50) : "null"}`);
+		logger.info(`   Call ${i + 1}: ${token ? `...${token.slice(-4)}` : "null"}`);
 	}
 
 	// Cleanup

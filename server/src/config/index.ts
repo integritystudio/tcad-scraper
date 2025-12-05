@@ -216,6 +216,7 @@ export const config = {
 		},
 		brightData: {
 			enabled: parseBoolEnv("BRIGHT_DATA_ENABLED", false),
+			customerId: process.env.BRIGHT_DATA_CUSTOMER_ID,
 			apiToken: process.env.BRIGHT_DATA_API_TOKEN,
 			proxyHost: process.env.BRIGHT_DATA_PROXY_HOST || "brd.superproxy.io",
 			proxyPort: parseIntEnv("BRIGHT_DATA_PROXY_PORT", 22225),

@@ -52,7 +52,7 @@ async function testTokenRefresh() {
 	logger.info("");
 	if (token) {
 		logger.info(`✅ Token refreshed successfully in ${duration}ms`);
-		logger.info(`Token preview: ${token.substring(0, 50)}...`);
+		logger.info(`Token preview: ...${token.slice(-4)}`);
 	} else {
 		logger.info(`❌ Token refresh failed`);
 	}

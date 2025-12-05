@@ -85,7 +85,7 @@ async function enqueueHighValueBatch() {
 
 		if (token) {
 			logger.info(`✅ Token refreshed successfully in ${refreshDuration}ms`);
-			logger.info(`   Token preview: ${token.substring(0, 30)}...`);
+			logger.info(`   Token preview: ...${token.slice(-4)}`);
 		} else {
 			logger.warn(
 				"⚠️  Token refresh returned null - continuing with existing token",

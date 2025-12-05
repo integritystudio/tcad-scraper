@@ -21,7 +21,7 @@ logger.info("----------------------");
 if (config.scraper.tcadApiKey) {
 	logger.info("✅ TCAD_API_KEY is configured");
 	logger.info(
-		`   Token preview: ${config.scraper.tcadApiKey.substring(0, 20)}...`,
+		`   Token preview: ...${config.scraper.tcadApiKey.slice(-4)}`,
 	);
 } else {
 	logger.info("❌ TCAD_API_KEY is NOT configured");
