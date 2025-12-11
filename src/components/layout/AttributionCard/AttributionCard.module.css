@@ -1,0 +1,138 @@
+/* AttributionCard - Context-rich inline attribution */
+
+.card {
+	display: flex;
+	gap: 1rem;
+	max-width: 900px;
+	margin: 2rem auto;
+	padding: 1.5rem;
+	background: var(--neutral-50, #f9fafb);
+	border-left: 4px solid var(--primary, #2563eb);
+	border-radius: 0.5rem;
+	box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+}
+
+.iconWrapper {
+	flex-shrink: 0;
+	display: flex;
+	align-items: flex-start;
+	padding-top: 0.125rem;
+}
+
+.icon {
+	width: 1.5rem;
+	height: 1.5rem;
+	color: var(--primary, #2563eb);
+}
+
+.content {
+	flex: 1;
+	min-width: 0;
+}
+
+.heading {
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--neutral-500, #6b7280);
+	margin: 0 0 0.5rem;
+}
+
+.description {
+	font-size: 1rem;
+	line-height: 1.6;
+	color: var(--neutral-700, #374151);
+	margin: 0 0 1rem;
+}
+
+.description strong {
+	color: var(--neutral-900, #111827);
+	font-weight: 600;
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	align-items: center;
+}
+
+.primaryLink,
+.secondaryLink {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	text-decoration: none;
+	transition: all 0.15s ease;
+}
+
+.primaryLink {
+	color: var(--primary, #2563eb);
+}
+
+.primaryLink:hover {
+	color: var(--primary-dark, #1e40af);
+	text-decoration: underline;
+}
+
+.secondaryLink {
+	color: var(--neutral-600, #4b5563);
+}
+
+.secondaryLink:hover {
+	color: var(--neutral-800, #1f2937);
+	text-decoration: underline;
+}
+
+.primaryLink:focus-visible,
+.secondaryLink:focus-visible {
+	outline: 2px solid var(--primary, #2563eb);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+.arrow {
+	font-size: 0.875rem;
+	transition: transform 0.15s ease;
+}
+
+.primaryLink:hover .arrow {
+	transform: translateX(3px);
+}
+
+.externalIcon {
+	font-size: 0.75rem;
+	opacity: 0.7;
+}
+
+/* Mobile styles */
+@media (max-width: 640px) {
+	.card {
+		flex-direction: column;
+		gap: 0.75rem;
+		margin: 1.5rem 1rem;
+		padding: 1rem;
+	}
+
+	.iconWrapper {
+		padding-top: 0;
+	}
+
+	.description {
+		font-size: 0.9375rem;
+	}
+
+	.actions {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.75rem;
+	}
+
+	.primaryLink,
+	.secondaryLink {
+		font-size: 0.875rem;
+	}
+}

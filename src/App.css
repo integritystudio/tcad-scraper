@@ -52,7 +52,8 @@ body {
 /* Main app container */
 .app {
 	min-height: 100vh; /* Ensure full viewport height */
-	padding: 32px 16px; /* 32px top/bottom, 16px left/right */
+	display: flex;
+	flex-direction: column;
 }
 
 /* App header - centered with max width */

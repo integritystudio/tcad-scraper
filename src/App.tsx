@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { PropertySearchContainer } from "./components/features/PropertySearch";
+import { Footer } from "./components/layout";
 import { useAnalytics } from "./hooks";
 import "./App.css";
 
@@ -16,6 +17,7 @@ function App() {
 		<ErrorBoundary>
 			<div className="app">
 				<PropertySearchContainer />
+				<Footer />
 			</div>
 		</ErrorBoundary>
 	);

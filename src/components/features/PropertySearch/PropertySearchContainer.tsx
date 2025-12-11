@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BUILD_CONSTANTS } from "../../../constants/build";
 import { useAnalytics, usePropertySearch } from "../../../hooks";
+import { AttributionCard, HeaderBadge } from "../../layout";
 import styles from "./PropertySearchContainer.module.css";
 import { SearchBox } from "./SearchBox";
 import { SearchResults } from "./SearchResults";
@@ -47,9 +48,15 @@ export const PropertySearchContainer = () => {
 	const propertyCount = BUILD_CONSTANTS.TOTAL_PROPERTIES;
 	const formattedCount = BUILD_CONSTANTS.TOTAL_PROPERTIES_FORMATTED;
 
+	// Show attribution card after user has searched
+	const showAttributionCard = results.length > 0 || error;
+
 	return (
 		<div className={styles.container}>
 			<div className={styles.hero}>
+				<div className={styles.headerRow}>
+					<HeaderBadge />
+				</div>
 				<div className={styles.header}>
 					<h1>TCAD Property Explorer</h1>
 					<p className={styles.subtitle}>
@@ -68,6 +75,8 @@ export const PropertySearchContainer = () => {
 					<SearchBox onSearch={handleSearch} loading={loading} />
 				</div>
 			</div>
+
+			{showAttributionCard && <AttributionCard />}
 
 			<SearchResults
 				results={results}
