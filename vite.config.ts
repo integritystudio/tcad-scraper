@@ -19,5 +19,24 @@ export default defineConfig({
 		globals: true,
 		environment: "jsdom",
 		setupFiles: ["./src/setupTests.ts"],
+		// Include frontend tests and server tests
+		include: [
+			"src/**/__tests__/**/*.test.{ts,tsx}",
+			"src/**/*.test.{ts,tsx}",
+			"server/src/**/__tests__/**/*.test.ts",
+			"server/src/**/*.test.ts",
+		],
+		// Exclude integration tests (require external services)
+		exclude: [
+			"**/node_modules/**",
+			"**/*.integration.test.ts",
+			"server/src/__tests__/integration.test.ts",
+			"server/src/__tests__/enqueue.test.ts",
+			"server/src/__tests__/api.test.ts",
+			"server/src/__tests__/auth-database.connection.test.ts",
+			"server/src/__tests__/auth-database.integration.test.ts",
+			"server/src/__tests__/security.test.ts",
+			"server/src/routes/__tests__/property.routes.claude.test.ts",
+		],
 	},
 });
