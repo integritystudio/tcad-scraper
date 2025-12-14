@@ -60,6 +60,40 @@ export async function skipIfRedisUnavailable(): Promise<void> {
 }
 
 /**
+ * Check if database is available and responsive
+ * Returns true if database can be connected to, false otherwise
+ * Requires Tailscale VPN for remote database access
+ */
+export async function isDatabaseAvailable(
+	timeoutMs: number = 5000,
+): Promise<boolean> {
+	if (!process.env.DATABASE_URL) {
+		return false;
+	}
+
+	try {
+		// Dynamic import to avoid loading prisma in tests that don't need it
+		const { prisma } = await import("../lib/prisma");
+
+		// Race between connection attempt and timeout
+		await Promise.race([
+			prisma.$connect(),
+			new Promise((_, reject) =>
+				setTimeout(
+					() => reject(new Error("Database connection timeout")),
+					timeoutMs,
+				),
+			),
+		]);
+
+		await prisma.$disconnect();
+		return true;
+	} catch (_error) {
+		return false;
+	}
+}
+
+/**
  * Skip test if database is not available
  * This checks if the DATABASE_URL is set and accessible
  */
@@ -67,6 +101,14 @@ export async function skipIfDatabaseUnavailable(): Promise<void> {
 	if (!process.env.DATABASE_URL) {
 		console.log("⏭️  Skipping test: DATABASE_URL not configured");
 		throw new Error("SKIP_TEST_DATABASE_UNAVAILABLE");
+	}
+
+	const available = await isDatabaseAvailable();
+	if (!available) {
+		console.log(
+			"⏭️  Skipping test: Database not reachable (Tailscale VPN may be required)",
+		);
+		throw new Error("SKIP_TEST_DATABASE_UNREACHABLE");
 	}
 }
 
