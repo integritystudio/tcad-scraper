@@ -25,12 +25,20 @@ model Property {
   year            Int
 
   @@unique([propertyId, year])
+  // Single-column indexes for basic filtering
   @@index([searchTerm, scrapedAt])
   @@index([propertyId])
   @@index([city])
   @@index([propType])
   @@index([appraisedValue])
   @@index([year])
+  // Composite indexes for common query patterns (natural language search)
+  @@index([city, propType])                    // Filter by city + property type
+  @@index([city, appraisedValue])              // Filter by city + value range
+  @@index([propType, appraisedValue])          // Filter by type + value range
+  @@index([city, propType, appraisedValue])    // Combined filters (most common)
+  @@index([scrapedAt(sort: Desc)])             // Recent properties query
+  @@index([year, city])                        // Year + city filtering
   @@map("properties")
 }
 
