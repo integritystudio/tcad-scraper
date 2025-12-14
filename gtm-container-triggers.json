@@ -1,0 +1,523 @@
+{
+  "exportFormatVersion": 2,
+  "exportTime": "2025-12-10",
+  "containerVersion": {
+    "tag": [
+      {
+        "name": "Conversion Linker",
+        "type": "gclidw",
+        "parameter": [
+          {
+            "type": "BOOLEAN",
+            "key": "enableCrossDomain",
+            "value": "false"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "enableUrlPassthrough",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": ["2147479553"],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "monitoringMetadata": {
+          "type": "MAP"
+        }
+      }
+    ],
+    "trigger": [
+      {
+        "name": "All Pages",
+        "type": "PAGEVIEW",
+        "triggerId": "2147479553"
+      },
+      {
+        "name": "Form Submission - All Forms",
+        "type": "FORM_SUBMISSION",
+        "filter": [
+          {
+            "type": "CONTAINS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{Page URL}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "."
+              }
+            ]
+          }
+        ],
+        "waitForTags": {
+          "type": "BOOLEAN",
+          "value": "true"
+        },
+        "checkValidation": {
+          "type": "BOOLEAN",
+          "value": "true"
+        },
+        "waitForTagsTimeout": {
+          "type": "TEMPLATE",
+          "value": "2000"
+        }
+      },
+      {
+        "name": "Click - Phone Links",
+        "type": "LINK_CLICK",
+        "filter": [
+          {
+            "type": "STARTS_WITH",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{Click URL}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "tel:"
+              }
+            ]
+          }
+        ],
+        "waitForTags": {
+          "type": "BOOLEAN",
+          "value": "true"
+        },
+        "checkValidation": {
+          "type": "BOOLEAN",
+          "value": "true"
+        },
+        "waitForTagsTimeout": {
+          "type": "TEMPLATE",
+          "value": "2000"
+        }
+      },
+      {
+        "name": "Click - Email Links",
+        "type": "LINK_CLICK",
+        "filter": [
+          {
+            "type": "STARTS_WITH",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{Click URL}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "mailto:"
+              }
+            ]
+          }
+        ],
+        "waitForTags": {
+          "type": "BOOLEAN",
+          "value": "true"
+        },
+        "checkValidation": {
+          "type": "BOOLEAN",
+          "value": "true"
+        },
+        "waitForTagsTimeout": {
+          "type": "TEMPLATE",
+          "value": "2000"
+        }
+      },
+      {
+        "name": "Click - CTA Buttons",
+        "type": "CLICK",
+        "filter": [
+          {
+            "type": "MATCH_REGEX",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{Click Text}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "(?i)(get started|contact|learn more|sign up|try|demo|schedule|book|request|submit|download)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Click - External Links to IntegrityStudio",
+        "type": "LINK_CLICK",
+        "filter": [
+          {
+            "type": "CONTAINS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{Click URL}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "integritystudio"
+              }
+            ]
+          }
+        ],
+        "waitForTags": {
+          "type": "BOOLEAN",
+          "value": "true"
+        },
+        "checkValidation": {
+          "type": "BOOLEAN",
+          "value": "true"
+        },
+        "waitForTagsTimeout": {
+          "type": "TEMPLATE",
+          "value": "2000"
+        }
+      },
+      {
+        "name": "Page View - Thank You Page",
+        "type": "PAGEVIEW",
+        "filter": [
+          {
+            "type": "MATCH_REGEX",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{Page Path}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "(?i)(thank|success|confirmation|submitted)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Page View - Key Pages",
+        "type": "PAGEVIEW",
+        "filter": [
+          {
+            "type": "MATCH_REGEX",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{Page Path}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "(?i)(pricing|contact|demo|about|services|features)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Scroll Depth - 50%",
+        "type": "SCROLL_DEPTH",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{_event}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "gtm.scrollDepth"
+              }
+            ]
+          }
+        ],
+        "filter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{Scroll Depth Threshold}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "50"
+              }
+            ]
+          }
+        ],
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "verticalThresholdUnits",
+            "value": "PERCENT"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "verticalThresholdsPercent",
+            "value": "50"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "verticalThresholdOn",
+            "value": "true"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "horizontalThresholdOn",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "triggerStartOption",
+            "value": "WINDOW_LOAD"
+          }
+        ]
+      },
+      {
+        "name": "Scroll Depth - 90%",
+        "type": "SCROLL_DEPTH",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{_event}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "gtm.scrollDepth"
+              }
+            ]
+          }
+        ],
+        "filter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{Scroll Depth Threshold}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "90"
+              }
+            ]
+          }
+        ],
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "verticalThresholdUnits",
+            "value": "PERCENT"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "verticalThresholdsPercent",
+            "value": "90"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "verticalThresholdOn",
+            "value": "true"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "horizontalThresholdOn",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "triggerStartOption",
+            "value": "WINDOW_LOAD"
+          }
+        ]
+      }
+    ],
+    "variable": [
+      {
+        "name": "Click URL",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "gtm.elementUrl"
+          }
+        ]
+      },
+      {
+        "name": "Click Text",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "gtm.element.innerText"
+          }
+        ]
+      },
+      {
+        "name": "Click Classes",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "gtm.elementClasses"
+          }
+        ]
+      },
+      {
+        "name": "Form ID",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "gtm.elementId"
+          }
+        ]
+      },
+      {
+        "name": "Page Path",
+        "type": "u",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "component",
+            "value": "PATH"
+          }
+        ]
+      },
+      {
+        "name": "Page URL",
+        "type": "u",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "component",
+            "value": "URL"
+          }
+        ]
+      },
+      {
+        "name": "Scroll Depth Threshold",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "gtm.scrollThreshold"
+          }
+        ]
+      }
+    ],
+    "builtInVariable": [
+      {
+        "type": "PAGE_URL",
+        "name": "Page URL"
+      },
+      {
+        "type": "PAGE_HOSTNAME",
+        "name": "Page Hostname"
+      },
+      {
+        "type": "PAGE_PATH",
+        "name": "Page Path"
+      },
+      {
+        "type": "REFERRER",
+        "name": "Referrer"
+      },
+      {
+        "type": "EVENT",
+        "name": "Event"
+      },
+      {
+        "type": "CLICK_ELEMENT",
+        "name": "Click Element"
+      },
+      {
+        "type": "CLICK_CLASSES",
+        "name": "Click Classes"
+      },
+      {
+        "type": "CLICK_ID",
+        "name": "Click ID"
+      },
+      {
+        "type": "CLICK_TARGET",
+        "name": "Click Target"
+      },
+      {
+        "type": "CLICK_URL",
+        "name": "Click URL"
+      },
+      {
+        "type": "CLICK_TEXT",
+        "name": "Click Text"
+      },
+      {
+        "type": "FORM_ELEMENT",
+        "name": "Form Element"
+      },
+      {
+        "type": "FORM_CLASSES",
+        "name": "Form Classes"
+      },
+      {
+        "type": "FORM_ID",
+        "name": "Form ID"
+      },
+      {
+        "type": "FORM_TARGET",
+        "name": "Form Target"
+      },
+      {
+        "type": "FORM_URL",
+        "name": "Form URL"
+      },
+      {
+        "type": "FORM_TEXT",
+        "name": "Form Text"
+      },
+      {
+        "type": "SCROLL_DEPTH_THRESHOLD",
+        "name": "Scroll Depth Threshold"
+      },
+      {
+        "type": "SCROLL_DEPTH_UNITS",
+        "name": "Scroll Depth Units"
+      },
+      {
+        "type": "SCROLL_DEPTH_DIRECTION",
+        "name": "Scroll Depth Direction"
+      }
+    ],
+    "fingerprint": "0"
+  }
+}
