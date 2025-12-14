@@ -5,7 +5,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareSourceCode",
   "name": "services",
-  "description": "Directory containing 3 code files with 6 classes and 0 functions",
+  "description": "Directory containing 3 code files with 8 classes and 0 functions",
   "programmingLanguage": [
     {
       "@type": "ComputerLanguage",
@@ -13,7 +13,7 @@
     }
   ],
   "featureList": [
-    "6 class definitions"
+    "8 class definitions"
   ]
 }
 </script>
@@ -22,24 +22,22 @@
 
 This directory contains 3 code file(s) with extracted schemas.
 
-## Subdirectories
-
-- `__tests__/`
-
 ## Files and Schemas
 
 ### `code-complexity.service.ts` (typescript)
 
 **Classes:**
-- `AnalyzerConfig` - Line 28
-- `FileMetrics` - Line 57
+- `AnalyzerConfig` - Line 31
+- `FileMetrics` - Line 60
 
 ### `search-term-optimizer.ts` (typescript)
 
 **Classes:**
-- `SearchTermOptimizer` - Line 67
-- `SearchTermPerformance` - Line 43
-- `OptimizerConfig` - Line 58
+- `SearchTermOptimizer` - Line 125
+- `SearchTermPerformance` - Line 101
+- `OptimizerConfig` - Line 116
+- `LengthAccumulator` - Line 336
+- `LengthAggregation` - Line 343
 
 ### `token-refresh.service.ts` (typescript)
 

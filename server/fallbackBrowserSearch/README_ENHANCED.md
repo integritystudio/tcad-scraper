@@ -27,7 +27,7 @@ This directory contains 3 code file(s) with extracted schemas.
 ### `scraper-with-db.ts` (typescript)
 
 **Functions:**
-- `async scrapePropertyTaxInformation()` - Line 7
+- `async scrapePropertyTaxInformation()` - Line 12
 
 ### `test-manual-search.ts` (typescript)
 

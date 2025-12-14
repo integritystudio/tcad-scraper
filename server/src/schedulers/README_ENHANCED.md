@@ -22,10 +22,6 @@
 
 This directory contains 1 code file(s) with extracted schemas.
 
-## Subdirectories
-
-- `__tests__/`
-
 ## Files and Schemas
 
 ### `scrape-scheduler.ts` (typescript)

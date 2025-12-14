@@ -22,29 +22,12 @@
 
 This directory contains 3 code file(s) with extracted schemas.
 
-## Subdirectories
-
-- `__tests__/`
-- `cli/`
-- `config/`
-- `controllers/`
-- `examples/`
-- `lib/`
-- `middleware/`
-- `queues/`
-- `routes/`
-- `schedulers/`
-- `scripts/`
-- `services/`
-- `types/`
-- `utils/`
-
 ## Files and Schemas
 
 ### `test-api-direct.ts` (typescript)
 
 **Functions:**
-- `async testApi()` - Line 1
+- `async testApi()` - Line 2
 
 ### `test-api-discovery.ts` (typescript)
 

@@ -22,10 +22,6 @@
 
 This directory contains 1 code file(s) with extracted schemas.
 
-## Subdirectories
-
-- `types/`
-
 ## Files and Schemas
 
 ### `bullmq-utils.js` (typescript)

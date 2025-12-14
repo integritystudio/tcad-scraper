@@ -5,7 +5,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareSourceCode",
   "name": "scripts",
-  "description": "Directory containing 31 code files with 6 classes and 30 functions",
+  "description": "Directory containing 37 code files with 9 classes and 42 functions",
   "programmingLanguage": [
     {
       "@type": "ComputerLanguage",
@@ -13,38 +13,51 @@
     }
   ],
   "featureList": [
-    "6 class definitions",
-    "30 function definitions"
+    "9 class definitions",
+    "42 function definitions"
   ]
 }
 </script>
 
 ## Overview
 
-This directory contains 31 code file(s) with extracted schemas.
-
-## Subdirectories
-
-- `utils/`
+This directory contains 37 code file(s) with extracted schemas.
 
 ## Files and Schemas
+
+### `analyze-failed-jobs.ts` (typescript)
+
+**Classes:**
+- `ErrorStats` - Line 15
+- `FailureAnalysis` - Line 22
+
+**Functions:**
+- `async main()` - Line 107
+
+### `auto-requeue-on-401.ts` (typescript)
+
+**Functions:**
+- `async check401Errors()` - Line 25
+- `async showStatus()` - Line 169
+- `async main()` - Line 193
+- `async cleanup()` - Line 255
 
 ### `batch-scrape-100.ts` (typescript)
 
 **Functions:**
-- `async queueBatch()` - Line 49
+- `async queueBatch()` - Line 125
 
 ### `batch-scrape-comprehensive.ts` (typescript)
 
 **Classes:**
-- `ComprehensiveBatchScraper` - Line 86
-- `ComprehensiveBatchConfig` - Line 75
+- `ComprehensiveBatchScraper` - Line 208
+- `ComprehensiveBatchConfig` - Line 197
 
 ### `batch-scrape.ts` (typescript)
 
 **Classes:**
-- `BatchScraper` - Line 92
-- `BatchConfig` - Line 84
+- `BatchScraper` - Line 162
+- `BatchConfig` - Line 154
 
 ### `check-column-ids.ts` (typescript)
 
@@ -54,23 +67,28 @@ This directory contains 31 code file(s) with extracted schemas.
 ### `check-grove-job.ts` (typescript)
 
 **Functions:**
-- `async checkGroveJob()` - Line 2
+- `async checkGroveJob()` - Line 4
 
 ### `check-queue-status.ts` (typescript)
 
 **Functions:**
-- `async checkQueueStatus()` - Line 9
+- `async checkQueueStatus()` - Line 15
+
+### `clear-all-jobs.ts` (typescript)
+
+**Functions:**
+- `async clearAllJobs()` - Line 9
 
 ### `continuous-batch-scraper.ts` (typescript)
 
 **Classes:**
-- `SearchPatternGenerator` - Line 26
-- `ContinuousBatchScraper` - Line 522
+- `SearchPatternGenerator` - Line 29
+- `ContinuousBatchScraper` - Line 1494
 
 ### `debug-token-refresh.ts` (typescript)
 
 **Functions:**
-- `async debugTokenRefresh()` - Line 9
+- `async debugTokenRefresh()` - Line 10
 
 ### `enqueue-commercial-batch.ts` (typescript)
 
@@ -95,17 +113,17 @@ This directory contains 31 code file(s) with extracted schemas.
 ### `enqueue-grove.ts` (typescript)
 
 **Functions:**
-- `async enqueueGrove()` - Line 2
+- `async enqueueGrove()` - Line 3
 
 ### `enqueue-high-priority.ts` (typescript)
 
 **Functions:**
-- `async enqueueHighPriority()` - Line 12
+- `async enqueueHighPriority()` - Line 13
 
 ### `enqueue-high-value-batch.ts` (typescript)
 
 **Functions:**
-- `async enqueueHighValueBatch()` - Line 72
+- `async enqueueHighValueBatch()` - Line 73
 
 ### `enqueue-investment-batch.ts` (typescript)
 
@@ -125,7 +143,7 @@ This directory contains 31 code file(s) with extracted schemas.
 ### `enqueue-priority-terms.ts` (typescript)
 
 **Functions:**
-- `async enqueuePriorityTerms()` - Line 4
+- `async enqueuePriorityTerms()` - Line 13
 
 ### `enqueue-property-type-batch.ts` (typescript)
 
@@ -135,12 +153,12 @@ This directory contains 31 code file(s) with extracted schemas.
 ### `enqueue-residential-batch.ts` (typescript)
 
 **Functions:**
-- `async enqueueResidentialBatch()` - Line 23
+- `async enqueueResidentialBatch()` - Line 24
 
 ### `enqueue-test-batch-20.ts` (typescript)
 
 **Functions:**
-- `async enqueueTestBatch()` - Line 41
+- `async enqueueTestBatch()` - Line 42
 
 ### `enqueue-trust-batch.ts` (typescript)
 
@@ -150,7 +168,7 @@ This directory contains 31 code file(s) with extracted schemas.
 ### `enqueue-ultra-high-priority.ts` (typescript)
 
 **Functions:**
-- `async enqueueUltraHighPriority()` - Line 22
+- `async enqueueUltraHighPriority()` - Line 23
 
 ### `get-fresh-token.ts` (typescript)
 
@@ -167,22 +185,43 @@ This directory contains 31 code file(s) with extracted schemas.
 **Functions:**
 - `async queueEntitySearches()` - Line 73
 
+### `requeue-all-failed-with-error-tracking.ts` (typescript)
+
+**Classes:**
+- `ErrorStats` - Line 22
+
+**Functions:**
+- `async main()` - Line 124
+- `async cleanup()` - Line 299
+
+### `requeue-analytics-failed-jobs.ts` (typescript)
+
+**Functions:**
+- `async main()` - Line 18
+- `async cleanup()` - Line 150
+
+### `requeue-with-fresh-tokens.ts` (typescript)
+
+**Functions:**
+- `async main()` - Line 20
+- `async cleanup()` - Line 237
+
 ### `test-api-token-config.ts` (typescript)
 
 **Functions:**
-- `async testTokenUsage()` - Line 47
-- `simulateQueueJob()` - Line 85
-- `async runAllTests()` - Line 110
+- `async testTokenUsage()` - Line 51
+- `simulateQueueJob()` - Line 90
+- `async runAllTests()` - Line 121
 
 ### `test-queue-job-flow.ts` (typescript)
 
 **Functions:**
-- `async simulateQueueJobProcessing()` - Line 15
+- `async simulateQueueJobProcessing()` - Line 17
 
 ### `test-single-job.ts` (typescript)
 
 **Functions:**
-- `async testSingleJob()` - Line 9
+- `async testSingleJob()` - Line 10
 
 ### `test-token-refresh.ts` (typescript)
 
