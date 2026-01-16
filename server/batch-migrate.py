@@ -6,6 +6,75 @@ import os
 import re
 import sys
 
+# ---------------------------------------------------------------------------
+# Data-Driven Configuration
+# ---------------------------------------------------------------------------
+
+# Mapping of console methods to logger methods
+CONSOLE_TO_LOGGER_MAP: dict[str, str] = {
+    'console.log': 'logger.info',
+    'console.error': 'logger.error',
+    'console.warn': 'logger.warn',
+    'console.info': 'logger.info',
+    'console.debug': 'logger.debug',
+}
+
+# Path patterns to logger import paths (checked in order, first match wins)
+IMPORT_PATH_RULES: list[tuple[str, str]] = [
+    ('/lib/', "import logger from './logger';"),
+    ('/scripts/', "import logger from '../lib/logger';"),
+    ('/cli/', "import logger from '../lib/logger';"),
+    ('/services/', "import logger from '../lib/logger';"),
+    ('/middleware/', "import logger from '../lib/logger';"),
+    ('/routes/', "import logger from '../lib/logger';"),
+    ('/utils/', "import logger from '../lib/logger';"),
+]
+
+DEFAULT_LOGGER_IMPORT = "import logger from '../lib/logger';"
+
+
+# ---------------------------------------------------------------------------
+# Helper Functions
+# ---------------------------------------------------------------------------
+
+def _apply_console_replacements(content: str) -> str:
+    """Replace all console.* calls with logger.* equivalents."""
+    for console_method, logger_method in CONSOLE_TO_LOGGER_MAP.items():
+        pattern = rf'\b{re.escape(console_method)}\b'
+        content = re.sub(pattern, logger_method, content)
+    return content
+
+
+def _get_logger_import_for_path(filepath: str) -> str:
+    """Determine the appropriate logger import based on file path."""
+    for path_pattern, import_statement in IMPORT_PATH_RULES:
+        if path_pattern in filepath:
+            return import_statement
+    return DEFAULT_LOGGER_IMPORT
+
+
+def _find_last_import_index(lines: list[str]) -> int:
+    """Find the index of the last import statement (excluding type imports)."""
+    last_import_idx = -1
+    for i, line in enumerate(lines):
+        if line.strip().startswith('import ') and not line.strip().startswith('import type'):
+            last_import_idx = i
+    return last_import_idx
+
+
+def _insert_import(lines: list[str], logger_import: str, last_import_idx: int) -> list[str]:
+    """Insert logger import at the appropriate position."""
+    if last_import_idx >= 0:
+        lines.insert(last_import_idx + 1, logger_import)
+    elif lines[0].startswith('#!'):
+        # Insert after shebang (and blank line if present)
+        insert_pos = 2 if len(lines) > 1 and lines[1].strip() == '' else 1
+        lines.insert(insert_pos, logger_import)
+    else:
+        lines.insert(0, logger_import)
+    return lines
+
+
 def migrate_file(filepath: str) -> bool:
     """Migrate a single file to use Pino logger instead of console.
 
@@ -19,18 +88,11 @@ def migrate_file(filepath: str) -> bool:
         content = f.read()
 
     original_content = content
+    has_logger_import = 'import logger from' in content
 
-    # Check if logger is already imported
-    has_logger_import = 'import logger from' in content or "import logger from" in content
+    # Apply all console -> logger replacements
+    content = _apply_console_replacements(content)
 
-    # Replace console statements
-    content = re.sub(r'\bconsole\.log\b', 'logger.info', content)
-    content = re.sub(r'\bconsole\.error\b', 'logger.error', content)
-    content = re.sub(r'\bconsole\.warn\b', 'logger.warn', content)
-    content = re.sub(r'\bconsole\.info\b', 'logger.info', content)
-    content = re.sub(r'\bconsole\.debug\b', 'logger.debug', content)
-
-    # Only proceed if we made changes
     if content == original_content:
         print(f"⏭️  No changes: {filepath}")
         return False
@@ -38,39 +100,11 @@ def migrate_file(filepath: str) -> bool:
     # Add logger import if not present
     if not has_logger_import:
         lines = content.split('\n')
-
-        # Find last import statement
-        last_import_idx = -1
-        for i, line in enumerate(lines):
-            if line.strip().startswith('import ') and not line.strip().startswith('import type'):
-                last_import_idx = i
-
-        # Determine relative path to logger
-        file_dir = os.path.dirname(filepath)
-        if '/scripts/' in filepath:
-            logger_import = "import logger from '../lib/logger';"
-        elif '/cli/' in filepath:
-            logger_import = "import logger from '../lib/logger';"
-        elif '/services/' in filepath or '/middleware/' in filepath or '/routes/' in filepath or '/utils/' in filepath:
-            logger_import = "import logger from '../lib/logger';"
-        elif '/lib/' in filepath:
-            logger_import = "import logger from './logger';"
-        else:
-            logger_import = "import logger from '../lib/logger';"
-
-        # Insert import after last import or at beginning
-        if last_import_idx >= 0:
-            lines.insert(last_import_idx + 1, logger_import)
-        else:
-            # Insert after shebang if present
-            if lines[0].startswith('#!'):
-                lines.insert(2 if len(lines) > 1 and lines[1].strip() == '' else 1, logger_import)
-            else:
-                lines.insert(0, logger_import)
-
+        logger_import = _get_logger_import_for_path(filepath)
+        last_import_idx = _find_last_import_index(lines)
+        lines = _insert_import(lines, logger_import, last_import_idx)
         content = '\n'.join(lines)
 
-    # Write back
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(content)
 
