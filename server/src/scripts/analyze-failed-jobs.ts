@@ -109,45 +109,44 @@ async function main() {
 	try {
 		const analysis = await analyzeFailedJobs();
 
-		console.log("\n========================================");
-		console.log("FAILED JOBS ANALYSIS");
-		console.log("========================================\n");
+		logger.info("========================================");
+		logger.info("FAILED JOBS ANALYSIS");
+		logger.info("========================================");
 
-		console.log(`Total Jobs: ${analysis.totalJobs}`);
-		console.log(
+		logger.info(`Total Jobs: ${analysis.totalJobs}`);
+		logger.info(
 			`Failed: ${analysis.failedJobs} (${analysis.failureRate.toFixed(2)}%)`,
 		);
-		console.log(`Completed: ${analysis.completedJobs}\n`);
+		logger.info(`Completed: ${analysis.completedJobs}`);
 
-		console.log("========================================");
-		console.log("ERROR BREAKDOWN (by frequency)");
-		console.log("========================================\n");
+		logger.info("========================================");
+		logger.info("ERROR BREAKDOWN (by frequency)");
+		logger.info("========================================");
 
 		for (const [index, error] of analysis.errorBreakdown.entries()) {
-			console.log(`${index + 1}. ${error.errorMessage}`);
-			console.log(
+			logger.info(`${index + 1}. ${error.errorMessage}`);
+			logger.info(
 				`   Count: ${error.count} (${error.percentage.toFixed(2)}% of failures)`,
 			);
-			console.log(`   Sample search terms: ${error.searchTerms.join(", ")}`);
-			console.log("");
+			logger.info(`   Sample search terms: ${error.searchTerms.join(", ")}`);
 		}
 
-		console.log("========================================");
-		console.log("RECENT FAILURES (last 20)");
-		console.log("========================================\n");
+		logger.info("========================================");
+		logger.info("RECENT FAILURES (last 20)");
+		logger.info("========================================");
 
 		for (const failure of analysis.recentFailures) {
 			const timestamp = failure.completedAt
 				? failure.completedAt.toISOString()
 				: "N/A";
-			console.log(`[${timestamp}] "${failure.searchTerm}"`);
-			console.log(`  Error: ${failure.error || "Unknown"}\n`);
+			logger.info(`[${timestamp}] "${failure.searchTerm}"`);
+			logger.info(`  Error: ${failure.error || "Unknown"}`);
 		}
 
 		// Categorize errors by type
-		console.log("========================================");
-		console.log("ERROR CATEGORIES");
-		console.log("========================================\n");
+		logger.info("========================================");
+		logger.info("ERROR CATEGORIES");
+		logger.info("========================================");
 
 		const categories = {
 			tokenExpired: analysis.errorBreakdown.filter(
@@ -193,28 +192,31 @@ async function main() {
 			other: categories.other.reduce((sum, e) => sum + e.count, 0),
 		};
 
-		console.log(
+		logger.info(
 			`Token Expired (HTTP 401): ${categoryCounts.tokenExpired} (${((categoryCounts.tokenExpired / analysis.failedJobs) * 100).toFixed(2)}%)`,
 		);
-		console.log(
+		logger.info(
 			`Timeout Errors (HTTP 504): ${categoryCounts.timeout} (${((categoryCounts.timeout / analysis.failedJobs) * 100).toFixed(2)}%)`,
 		);
-		console.log(
+		logger.info(
 			`Truncated Responses: ${categoryCounts.truncated} (${((categoryCounts.truncated / analysis.failedJobs) * 100).toFixed(2)}%)`,
 		);
-		console.log(
+		logger.info(
 			`Token Capture Failures: ${categoryCounts.captureFailure} (${((categoryCounts.captureFailure / analysis.failedJobs) * 100).toFixed(2)}%)`,
 		);
-		console.log(
-			`Other Errors: ${categoryCounts.other} (${((categoryCounts.other / analysis.failedJobs) * 100).toFixed(2)}%)\n`,
+		logger.info(
+			`Other Errors: ${categoryCounts.other} (${((categoryCounts.other / analysis.failedJobs) * 100).toFixed(2)}%)`,
 		);
-	} catch (error: unknown) {
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		logger.error(`Failed to analyze jobs: ${errorMessage}`);
-		throw error;
 	} finally {
 		await prisma.$disconnect();
 	}
 }
 
-main().catch(console.error);
+main().catch((error: unknown) => {
+	const errorMessage = error instanceof Error ? error.message : String(error);
+	logger.error(`Script failed: ${errorMessage}`);
+	if (error instanceof Error && error.stack) {
+		logger.debug(error.stack);
+	}
+	process.exit(1);
+});

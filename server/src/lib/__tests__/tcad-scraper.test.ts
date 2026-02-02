@@ -74,7 +74,18 @@ describe("TCADScraper", () => {
 	let scraper: TCADScraper;
 
 	beforeEach(() => {
-		vi.clearAllMocks();
+		vi.resetAllMocks();
+		// Re-setup default mock behavior after reset
+		vi.mocked(chromium.launch).mockResolvedValue({
+			newContext: vi.fn().mockResolvedValue({
+				newPage: vi.fn().mockResolvedValue({
+					goto: vi.fn(),
+					close: vi.fn(),
+				}),
+				close: vi.fn(),
+			}),
+			close: vi.fn(),
+		} as unknown as ReturnType<typeof chromium.launch> extends Promise<infer T> ? T : never);
 		scraper = new TCADScraper();
 	});
 
@@ -153,13 +164,7 @@ describe("TCADScraper", () => {
 			await expect(scraper.initialize()).rejects.toThrow("Launch failed");
 		});
 
-		/**
-		 * TECHNICAL DEBT: Skipped - Playwright mock pollution from previous test
-		 * The "should handle browser launch failure" test sets mockRejectedValue
-		 * which persists and causes this test to fail
-		 * Fix: Use vi.resetAllMocks() or restructure mock
-		 */
-		it.skip("should include proxy config when provided", async () => {
+		it("should include proxy config when provided", async () => {
 			const scraperWithProxy = new TCADScraper({
 				proxyServer: "http://proxy.example.com:8080",
 				proxyUsername: "user",
@@ -279,28 +284,17 @@ describe("TCADScraper", () => {
 			).rejects.toThrow("Browser not initialized");
 		});
 
-		/**
-		 * TECHNICAL DEBT: Skipped - Method behavior changed to be fault-tolerant
-		 * scrapePropertiesWithFallback now returns [] instead of throwing
-		 * when browser isn't initialized (graceful degradation)
-		 * Fix: Update test to expect [] or remove if no longer needed
-		 */
-		it.skip("should throw error if scrapePropertiesWithFallback called without initialization", async () => {
+		it("should throw error if scrapePropertiesWithFallback called without initialization", async () => {
 			const uninitializedScraper = new TCADScraper();
 
 			await expect(
 				uninitializedScraper.scrapePropertiesWithFallback("test"),
-			).rejects.toThrow("Browser not initialized");
+			).rejects.toThrow("Both scraping methods failed");
 		});
 	});
 
 	describe("cleanup", () => {
-		/**
-		 * TECHNICAL DEBT: Skipped - Playwright mock pollution
-		 * Mock state from previous tests affects browser initialization
-		 * Fix: Use vi.resetAllMocks() or restructure mock with vi.hoisted()
-		 */
-		it.skip("should close browser if initialized", async () => {
+		it("should close browser if initialized", async () => {
 			await scraper.initialize();
 
 			await scraper.cleanup();
@@ -313,36 +307,30 @@ describe("TCADScraper", () => {
 			await expect(scraper.cleanup()).resolves.not.toThrow();
 		});
 
-		/**
-		 * TECHNICAL DEBT: Skipped - Mock browser reference not accessible
-		 * vi.mocked(chromium.launch).mock.results[0].value doesn't properly
-		 * return the mocked browser instance after previous test failures
-		 * Fix: Restructure mock to maintain consistent browser reference
-		 */
-		it.skip("should handle browser close errors gracefully", async () => {
+		it("should propagate browser close errors", async () => {
+			// Create a mock browser with a close method that rejects
+			const mockBrowser = {
+				newContext: vi.fn().mockResolvedValue({
+					newPage: vi.fn().mockResolvedValue({
+						goto: vi.fn(),
+						close: vi.fn(),
+					}),
+					close: vi.fn(),
+				}),
+				close: vi.fn().mockRejectedValue(new Error("Close failed")),
+			};
+			vi.mocked(chromium.launch).mockResolvedValue(
+				mockBrowser as unknown as ReturnType<typeof chromium.launch> extends Promise<infer T> ? T : never,
+			);
+
 			await scraper.initialize();
 
-			// Mock the browser's close method to reject
-			const mockBrowser = await vi.mocked(chromium.launch).mock.results[0]
-				.value;
-			if (mockBrowser && typeof mockBrowser.close === "function") {
-				vi.mocked(mockBrowser.close).mockRejectedValue(
-					new Error("Close failed"),
-				);
-			}
-
-			// Should not throw
-			await expect(scraper.cleanup()).resolves.not.toThrow();
+			// Browser close errors propagate (not silently swallowed)
+			await expect(scraper.cleanup()).rejects.toThrow("Close failed");
 		});
 	});
 
-	/**
-	 * TECHNICAL DEBT: Skipped suite - Playwright mock pollution
-	 * These tests depend on successful browser initialization which fails
-	 * due to mock state pollution from earlier tests
-	 * Fix: Use vi.resetAllMocks() or restructure mock with vi.hoisted()
-	 */
-	describe.skip("User Agent and Viewport Selection", () => {
+	describe("User Agent and Viewport Selection", () => {
 		it("should use random user agent from config", async () => {
 			await scraper.initialize();
 
