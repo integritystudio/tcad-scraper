@@ -16,8 +16,11 @@ import { DataController } from "../xcontroller.client";
 describe("DataController", () => {
 	let controller: DataController;
 	let scriptElement: HTMLScriptElement;
+	let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
 	beforeEach(() => {
+		// Suppress console.error for intentional failure tests (debug mode logs errors)
+		consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		controller = new DataController(true); // debug mode
 		// Clean up any existing test elements
 		document.querySelectorAll('[id^="test-"]').forEach((el) => el.remove());
@@ -25,6 +28,7 @@ describe("DataController", () => {
 
 	afterEach(() => {
 		// Clean up after each test
+		consoleErrorSpy.mockRestore();
 		document.querySelectorAll('[id^="test-"]').forEach((el) => el.remove());
 	});
 
@@ -345,8 +349,7 @@ describe("DataController", () => {
 
 	describe("Error Handling", () => {
 		test("should log errors in debug mode", () => {
-			const consoleError = vi.spyOn(console, "error").mockImplementation();
-
+			// consoleErrorSpy is already set up in beforeEach
 			scriptElement = document.createElement("script");
 			scriptElement.type = "application/json";
 			scriptElement.id = "test-error";
@@ -355,8 +358,7 @@ describe("DataController", () => {
 
 			controller.loadData("test-error");
 
-			expect(consoleError).toHaveBeenCalled();
-			consoleError.mockRestore();
+			expect(consoleErrorSpy).toHaveBeenCalled();
 		});
 
 		test("should handle missing textContent", () => {

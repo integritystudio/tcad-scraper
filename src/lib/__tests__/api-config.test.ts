@@ -9,7 +9,16 @@
  * 3. Local development fallback (/api)
  */
 
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+
+// Suppress console.error from DataController debug mode (expected behavior)
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+beforeEach(() => {
+	consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+});
+afterEach(() => {
+	consoleErrorSpy.mockRestore();
+});
 
 describe("API Configuration", () => {
 	describe("getApiBaseUrl behavior", () => {

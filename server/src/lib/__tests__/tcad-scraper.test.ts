@@ -62,6 +62,26 @@ vi.mock("../../services/token-refresh.service", () => ({
 	},
 }));
 
+// Mock winston to suppress error output during intentional failure tests
+vi.mock("winston", () => {
+	const noopLogger = {
+		info: () => {},
+		warn: () => {},
+		error: () => {},
+		debug: () => {},
+	};
+	return {
+		default: {
+			createLogger: () => noopLogger,
+			format: { json: () => {}, simple: () => {} },
+			transports: { Console: class {} },
+		},
+		createLogger: () => noopLogger,
+		format: { json: () => {}, simple: () => {} },
+		transports: { Console: class {} },
+	};
+});
+
 // Mock DOM scraper fallback
 vi.mock("../fallback/dom-scraper", () => ({
 	scrapeDOMFallback: vi.fn().mockResolvedValue([]),

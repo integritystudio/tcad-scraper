@@ -40,6 +40,38 @@ vi.mock("../../config", () => ({
 	},
 }));
 
+// Mock winston to suppress error output during intentional failure tests
+vi.mock("winston", () => {
+	const noopLogger = {
+		info: () => {},
+		warn: () => {},
+		error: () => {},
+		debug: () => {},
+	};
+	return {
+		default: {
+			createLogger: () => noopLogger,
+			format: {
+				json: () => {},
+				simple: () => {},
+				timestamp: () => {},
+				combine: () => {},
+				colorize: () => {},
+			},
+			transports: { Console: class {} },
+		},
+		createLogger: () => noopLogger,
+		format: {
+			json: () => {},
+			simple: () => {},
+			timestamp: () => {},
+			combine: () => {},
+			colorize: () => {},
+		},
+		transports: { Console: class {} },
+	};
+});
+
 import cron from "node-cron";
 import { chromium } from "playwright";
 import { TCADTokenRefreshService } from "../token-refresh.service";

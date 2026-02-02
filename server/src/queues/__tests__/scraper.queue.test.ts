@@ -118,6 +118,33 @@ vi.mock("../../config", () => ({
 	},
 }));
 
+// Mock winston to suppress error output during intentional failure tests
+vi.mock("winston", () => {
+	const noopLogger = {
+		info: () => {},
+		warn: () => {},
+		error: () => {},
+		debug: () => {},
+	};
+	const formatMock = {
+		json: () => {},
+		simple: () => {},
+		timestamp: () => {},
+		combine: () => {},
+		colorize: () => {},
+	};
+	return {
+		default: {
+			createLogger: () => noopLogger,
+			format: formatMock,
+			transports: { Console: class {} },
+		},
+		createLogger: () => noopLogger,
+		format: formatMock,
+		transports: { Console: class {} },
+	};
+});
+
 // Mock setInterval at module level to prevent cleanup interval from running
 vi.spyOn(global, "setInterval").mockReturnValue({} as any);
 
