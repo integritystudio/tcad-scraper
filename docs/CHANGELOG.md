@@ -1,5 +1,30 @@
 ## Recent Updates
 
+### February 2, 2026 - Test Infrastructure & Technical Debt
+
+**Test Fixes**:
+- Fixed mock pollution in `tcad-scraper.test.ts` by switching from `vi.clearAllMocks()` to `vi.resetAllMocks()`
+- Enabled 5 previously-skipped tests (now 21/21 passing)
+- Updated test expectations to match actual implementation behavior
+- Migrated `analyze-failed-jobs.ts` from console.log to structured logger
+
+**Test Status**:
+| Metric | Before | After |
+|--------|--------|-------|
+| Tests Passed | 515 | 520 |
+| Tests Skipped | 45 | 40 |
+| tcad-scraper.test.ts | 16 pass, 5 skip | 21 pass, 0 skip |
+
+**Technical Debt Resolved**:
+- [x] TCAD Scraper Playwright mock pollution - FIXED
+- [x] Test expectations mismatched with implementation - FIXED
+
+**Technical Debt Remaining** (see `TECHNICAL_DEBT.md`):
+- [ ] Redis cache service tests (40 tests skipped) - needs mock infrastructure refactor
+- [ ] Integration tests require external services (run with `npm run test:integration`)
+
+---
+
 ### November 7, 2025 - Production Optimization
 - **Automated Token Refresh**: Implemented cron job (every 4 minutes) to prevent TCAD API token expiration
 - **PM2 Process Management**: Added `ecosystem.config.js` for managing continuous-enqueue and tcad-api processes
@@ -59,7 +84,3 @@
 - Set up PostgreSQL with Prisma ORM
 - Created React frontend application
 - Established basic Docker infrastructure
-<<<<<<< HEAD
-=======
-
->>>>>>> ce7634e76893f3521aa8fd1aa006213217a54126
