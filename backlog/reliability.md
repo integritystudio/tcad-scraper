@@ -26,27 +26,25 @@ Also fixed:
 
 **Systemic gap closed**: AbortController now used in `pollJobStatus`, `usePropertySearch` (search + initial load), `ScrapeManager` (polling), and `PropertySearch` (search). ~95% coverage of user-facing async operations.
 
----
+### Sprint 2 (2026-02-06)
 
-## Remaining: P1-RELIABILITY
+Issues resolved in commits `2a1d226..c05e18b` on `main`:
 
-### 7. Analytics tracking fires on every PropertyCard render
-- **File**: `src/components/features/PropertySearch/PropertyCard.tsx:24-27`
-- **Issue**: `useEffect` fires `logPropertyView` on mount. Every card in search results logs a "view" on render, not on user interaction. 50 results = 50 analytics events per search.
-- **Impact**: Inflated analytics metrics, potential rate limiting from analytics providers
-- **Fix**: Track on user expand/click instead of render
+| # | Issue | Commit | Status |
+|---|-------|--------|--------|
+| 7 | Analytics fires on every PropertyCard render | `1872220` | Fixed: track on expand click, not mount |
+| 8 | 401 redirect to non-existent /login | `923e94d` | Fixed: removed redirect, logs error instead |
+| 9 | debounce NodeJS.Timeout type | `6693bb2` | Fixed: ReturnType<typeof setTimeout> |
+| 11 | JSON parse swallows server errors | `175d46e` | Fixed: preserve server error message, status-based fallback |
+| 13 | No invalid date handling in formatDate | `2a1d226` | Fixed: isNaN(date.getTime()) guard, returns "-" |
+| 14 | formatNumber missing null guard | `2a1d226` | Fixed: null/undefined/NaN/Infinity guards |
+| 15 | Division by zero in usePagination | `6b90def` | Fixed: Math.max(1, itemsPerPage) |
+| 21 | Duplicate formatCurrency in AnswerBox | `8879cf4` | Fixed: import from utils/formatters |
 
-### 8. 401 interceptor redirects to non-existent /login
-- **File**: `src/services/api.service.ts:40-44`
-- **Issue**: 401 response interceptor does `window.location.href = "/login"` but the app has no login route or authentication page.
-- **Impact**: Hard navigation to 404/blank page, total loss of app state
-- **Fix**: Remove redirect or show inline error message
+Also fixed (review-surfaced):
+- Division by zero in `PropertyTable.tsx` totalPages calculation (`c05e18b`)
 
-### 9. debounce uses NodeJS.Timeout instead of browser number
-- **File**: `src/utils/helpers.ts:12`
-- **Issue**: `timeoutId: NodeJS.Timeout` is incorrect for browser environment. Browser `setTimeout` returns `number`, not `NodeJS.Timeout`.
-- **Impact**: Type mismatch in strict TypeScript environments
-- **Fix**: Use `ReturnType<typeof setTimeout>` or `number`
+**Systemic gaps closed**: All formatters now handle invalid inputs. Division-by-zero guarded in all pagination paths. Analytics tracking moved to user intent (expand) from render.
 
 ---
 
@@ -58,35 +56,11 @@ Also fixed:
 - **Impact**: Inconsistent error messages, timeout behavior, and auth handling between search and other API calls
 - **Fix**: Standardize on one client; refactor usePropertySearch to use api.service.ts
 
-### 11. JSON parse catch swallows server error details
-- **File**: `src/hooks/usePropertySearch.ts:79-82`
-- **Issue**: `response.json().catch(() => ({ message: "Search failed" }))` replaces actual server error messages with generic text.
-- **Impact**: User sees "Search failed" instead of actionable error (rate limit, validation, etc.)
-- **Fix**: Parse error body separately, preserve original error message
-
 ### 12. Empty query returns silently with no user feedback
 - **File**: `src/hooks/usePropertySearch.ts:62`
 - **Issue**: `if (!query.trim()) return;` exits without setting error state or any visual feedback.
 - **Impact**: User clicks search, nothing happens, no indication why
 - **Fix**: Set error state with message, or ensure button is always disabled when query is empty
-
-### 13. No invalid date handling in formatters
-- **File**: `src/utils/formatters.ts:34-42`
-- **Issue**: `new Date(dateString)` can return Invalid Date if server sends malformed timestamp. Renders as "Invalid Date" string in UI.
-- **Impact**: Broken date display for corrupted data
-- **Fix**: Check `isNaN(date.getTime())` and return fallback
-
-### 14. formatNumber missing null/undefined guard
-- **File**: `src/utils/formatters.ts:27-29`
-- **Issue**: Unlike `formatCurrency`, `formatNumber` doesn't handle null/undefined values. Will throw on null input.
-- **Impact**: Runtime error if called with null property value
-- **Fix**: Add null check like formatCurrency
-
-### 15. Division by zero in usePagination
-- **File**: `src/hooks/usePagination.ts:36`
-- **Issue**: `Math.ceil(totalItems / itemsPerPage)` returns Infinity when itemsPerPage is 0.
-- **Impact**: Broken pagination UI, potential infinite loops
-- **Fix**: Guard `itemsPerPage <= 0` with fallback
 
 ### 16. logPageView dependency array may cause repeated fires
 - **File**: `src/App.tsx:21-23`
@@ -186,21 +160,20 @@ Also fixed:
 | Priority | Original | Resolved | Remaining |
 |----------|----------|----------|-----------|
 | P0 | 3 | 3 | 0 |
-| P1 | 6 | 3 | 3 |
-| P2 | 7 | 0 | 7 (+1 review-surfaced) |
+| P1 | 6 | 6 | 0 |
+| P2 | 7 | 5 | 2 (+1 review-surfaced) |
 | P3 | 3 | 0 | 3 |
-| P4 | 8 | 0 | 8 |
-| **Total** | **27** | **6** | **21 (+1)** |
+| P4 | 8 | 1 | 7 |
+| **Total** | **27 (+1)** | **15 (+1)** | **12** |
 
 ### Next Recommended Sprint
 
 | # | Issue | Priority | Effort |
 |---|-------|----------|--------|
-| 8 | 401 redirect to /login | P1 | Small - remove or replace redirect |
-| 14 | formatNumber null guard | P2 | Trivial - add null check |
-| 15 | Division by zero in usePagination | P2 | Trivial - add guard |
-| 7 | Analytics fire on every card render | P1 | Medium - restructure tracking |
+| 10 | Dual HTTP client architecture | P2 | Medium - standardize on one client |
+| 12 | Empty query silent return | P2 | Trivial - add error state or disable button |
 | 18 | Search cancellation UI | P3 | Small - AbortController infra now in place |
+| 17 | "No results" flash during transitions | P3 | Small - transition delay or state tracking |
 
 ### Strengths Noted
 
