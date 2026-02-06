@@ -23,16 +23,24 @@ export const formatCurrency = (value: number | null | undefined): string => {
 
 /**
  * Format a number with thousands separators
+ * Handles null, undefined, and NaN values gracefully
  */
-export const formatNumber = (value: number): string => {
+export const formatNumber = (value: number | null | undefined): string => {
+	if (value === null || value === undefined || !Number.isFinite(value)) {
+		return "-";
+	}
 	return new Intl.NumberFormat("en-US").format(value);
 };
 
 /**
  * Format a date string to readable format
+ * Returns fallback for invalid/malformed dates
  */
 export const formatDate = (dateString: string): string => {
 	const date = new Date(dateString);
+	if (isNaN(date.getTime())) {
+		return "-";
+	}
 	return new Intl.DateTimeFormat("en-US", {
 		year: "numeric",
 		month: "short",

@@ -116,6 +116,22 @@ describe("formatNumber", () => {
 	it("should preserve decimals", () => {
 		expect(formatNumber(1234.56)).toBe("1,234.56");
 	});
+
+	it("should handle null values gracefully", () => {
+		expect(formatNumber(null)).toBe("-");
+	});
+
+	it("should handle undefined values gracefully", () => {
+		expect(formatNumber(undefined)).toBe("-");
+	});
+
+	it("should handle NaN values gracefully", () => {
+		expect(formatNumber(NaN)).toBe("-");
+	});
+
+	it("should handle Infinity gracefully", () => {
+		expect(formatNumber(Infinity)).toBe("-");
+	});
 });
 
 describe("formatDate", () => {
@@ -127,6 +143,14 @@ describe("formatDate", () => {
 	it("should include time in formatted output", () => {
 		const result = formatDate("2024-01-15T10:30:00Z");
 		expect(result).toMatch(/\d{2}:\d{2}/); // Should contain time like "10:30"
+	});
+
+	it("should handle invalid date strings gracefully", () => {
+		expect(formatDate("not-a-date")).toBe("-");
+	});
+
+	it("should handle empty string gracefully", () => {
+		expect(formatDate("")).toBe("-");
 	});
 });
 
