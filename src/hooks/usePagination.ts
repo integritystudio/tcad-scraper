@@ -32,7 +32,7 @@ export const usePagination = ({
 }: UsePaginationProps): UsePaginationReturn => {
 	const [currentPage, setCurrentPage] = useState(initialPage);
 
-	const safeItemsPerPage = itemsPerPage > 0 ? itemsPerPage : 1;
+	const safeItemsPerPage = Math.max(1, itemsPerPage);
 
 	const totalPages = useMemo(
 		() => Math.ceil(totalItems / safeItemsPerPage),

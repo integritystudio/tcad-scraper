@@ -41,7 +41,7 @@ function PropertyTable({ properties }: PropertyTableProps) {
 		return sortedProperties.slice(startIndex, startIndex + pageSize);
 	}, [sortedProperties, currentPage, pageSize]);
 
-	const totalPages = Math.ceil(sortedProperties.length / pageSize);
+	const totalPages = Math.ceil(sortedProperties.length / (pageSize || 1));
 
 	const handleSort = (field: SortField) => {
 		if (sortField === field) {
