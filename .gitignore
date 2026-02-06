@@ -41,3 +41,7 @@ Thumbs.db
 coverage/
 # Auto-generated build constants
 src/constants/build.ts
+
+# Claude Code local artifacts
+.claude/tsc-cache/
+server/.claude/
