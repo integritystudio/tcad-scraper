@@ -32,19 +32,21 @@ export const usePagination = ({
 }: UsePaginationProps): UsePaginationReturn => {
 	const [currentPage, setCurrentPage] = useState(initialPage);
 
+	const safeItemsPerPage = itemsPerPage > 0 ? itemsPerPage : 1;
+
 	const totalPages = useMemo(
-		() => Math.ceil(totalItems / itemsPerPage),
-		[totalItems, itemsPerPage],
+		() => Math.ceil(totalItems / safeItemsPerPage),
+		[totalItems, safeItemsPerPage],
 	);
 
 	const startIndex = useMemo(
-		() => (currentPage - 1) * itemsPerPage,
-		[currentPage, itemsPerPage],
+		() => (currentPage - 1) * safeItemsPerPage,
+		[currentPage, safeItemsPerPage],
 	);
 
 	const endIndex = useMemo(
-		() => Math.min(startIndex + itemsPerPage, totalItems),
-		[startIndex, itemsPerPage, totalItems],
+		() => Math.min(startIndex + safeItemsPerPage, totalItems),
+		[startIndex, safeItemsPerPage, totalItems],
 	);
 
 	const canGoNext = useMemo(
@@ -85,7 +87,7 @@ export const usePagination = ({
 	return {
 		currentPage,
 		totalPages,
-		itemsPerPage,
+		itemsPerPage: safeItemsPerPage,
 		startIndex,
 		endIndex,
 		canGoNext,
