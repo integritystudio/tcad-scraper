@@ -15,27 +15,6 @@ const { mockCreate, MockAnthropic } = vi.hoisted(() => {
 	return { mockCreate, MockAnthropic };
 });
 
-// Mock the config module before importing claude.service
-vi.mock("../../config", () => ({
-	config: {
-		claude: {
-			apiKey: "test-api-key",
-			model: "claude-3-haiku-20240307",
-			maxTokens: 1024,
-		},
-		database: {
-			url: "postgresql://localhost:5432/test",
-			poolSize: 10,
-			connectionTimeout: 10000,
-		},
-		env: {
-			isDevelopment: true,
-			isProduction: false,
-			isTest: true,
-		},
-	},
-}));
-
 // Mock prisma to prevent database connection attempts
 vi.mock("../prisma", () => ({
 	prisma: {

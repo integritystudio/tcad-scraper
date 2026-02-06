@@ -6,6 +6,11 @@
 
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 
+interface CronTask {
+	start: ReturnType<typeof vi.fn>;
+	stop: ReturnType<typeof vi.fn>;
+}
+
 // Mock dependencies before imports
 vi.mock("node-cron", () => ({
 	default: {
@@ -35,35 +40,15 @@ vi.mock("../../lib/prisma", () => ({
 	},
 }));
 
-// Mock winston to suppress logs during tests
-vi.mock("winston", () => {
-	const mockLogger = {
+// Mock logger to suppress output during tests
+vi.mock("../../lib/logger", () => ({
+	default: {
 		info: vi.fn(),
 		error: vi.fn(),
 		warn: vi.fn(),
-	};
-
-	return {
-		default: {
-			createLogger: vi.fn(() => mockLogger),
-			format: {
-				json: vi.fn(),
-				simple: vi.fn(),
-			},
-			transports: {
-				Console: vi.fn(),
-			},
-		},
-		createLogger: vi.fn(() => mockLogger),
-		format: {
-			json: vi.fn(),
-			simple: vi.fn(),
-		},
-		transports: {
-			Console: vi.fn(),
-		},
-	};
-});
+		debug: vi.fn(),
+	},
+}));
 
 import cron from "node-cron";
 import { prisma } from "../../lib/prisma";
@@ -164,7 +149,7 @@ describe("ScheduledJobs", () => {
 			expect(scheduleMock).toHaveBeenCalledTimes(4);
 
 			// Get all returned task mocks and verify start was called
-			scheduleMock.mock.results.forEach((result: any) => {
+			scheduleMock.mock.results.forEach((result: { value: CronTask }) => {
 				expect(result.value.start).toHaveBeenCalled();
 			});
 		});
@@ -250,7 +235,7 @@ describe("ScheduledJobs", () => {
 			await dailyTaskCallback();
 
 			const addCalls = mockScraperQueue.add.mock.calls;
-			addCalls.forEach((call: any) => {
+			addCalls.forEach((call: [string, unknown, { delay: number }]) => {
 				const delay = call[2].delay;
 				expect(delay).toBeGreaterThanOrEqual(0);
 				expect(delay).toBeLessThan(60000);
@@ -438,18 +423,18 @@ describe("ScheduledJobs", () => {
 
 			const scheduleMock = cron.schedule as Mock;
 			const tasks = scheduleMock.mock.results.map(
-				(result: any) => result.value,
+				(result: { value: CronTask }) => result.value,
 			);
 
 			// Clear mocks after init
-			tasks.forEach((task: any) => {
+			tasks.forEach((task: CronTask) => {
 				task.stop.mockClear();
 			});
 
 			scheduledJobs.stop();
 
 			// Should stop all 4 tasks
-			tasks.forEach((task: any) => {
+			tasks.forEach((task: CronTask) => {
 				expect(task.stop).toHaveBeenCalled();
 			});
 		});
@@ -466,13 +451,13 @@ describe("ScheduledJobs", () => {
 
 			const scheduleMock = cron.schedule as Mock;
 			const tasks = scheduleMock.mock.results.map(
-				(result: any) => result.value,
+				(result: { value: CronTask }) => result.value,
 			);
 
 			scheduledJobs.stop();
 
 			// Clear first stop calls
-			tasks.forEach((task: any) => {
+			tasks.forEach((task: CronTask) => {
 				task.stop.mockClear();
 			});
 
@@ -480,7 +465,7 @@ describe("ScheduledJobs", () => {
 			scheduledJobs.stop();
 
 			// Should still attempt to stop tasks
-			tasks.forEach((task: any) => {
+			tasks.forEach((task: CronTask) => {
 				expect(task.stop).toHaveBeenCalled();
 			});
 		});

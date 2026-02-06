@@ -13,14 +13,21 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 // Set test environment variables
 process.env.NODE_ENV = "test";
-process.env.LOG_LEVEL = "error"; // Reduce log noise during tests
+process.env.LOG_LEVEL = "silent"; // Suppress all log output during tests
 
 // Disable Sentry in tests
 process.env.SENTRY_DSN = "";
 process.env.SENTRY_ENABLED = "false";
 
+// Auth config - real config will read these
+process.env.JWT_SECRET = "test-jwt-secret";
+process.env.JWT_EXPIRES_IN = "1h";
+process.env.API_KEY = "test-api-key";
+process.env.AUTH_SKIP_IN_DEVELOPMENT = "false";
+
 // Mock API keys
 process.env.CLAUDE_API_KEY = "test-claude-key";
+process.env.ANTHROPIC_API_KEY = "test-anthropic-api-key";
 process.env.TCAD_API_KEY = "test-tcad-key";
 
 // Mock environment variables if needed

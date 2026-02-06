@@ -8,26 +8,20 @@ This document tracks known technical debt items that need to be addressed.
 
 ## Test Infrastructure Issues
 
-### 1. Redis Cache Service Tests (37 tests skipped)
+### 1. Redis Cache Service Tests - ✅ RESOLVED (2026-02-06)
 
 **File**: `server/src/lib/__tests__/redis-cache.service.test.ts`
 
-**Status**: Entire test suite skipped with `describe.skip()`
+**Status**: All 40 tests now pass (was entire suite skipped with `describe.skip()`)
 
-**Root Causes**:
-1. **Module-level auto-connection**: The `redis-cache.service.ts` singleton auto-connects on import (lines 345-346), causing mock conflicts across test isolation boundaries
-2. **Mock pollution**: The "should handle connection errors" test sets `mockRejectedValue` which persists across all subsequent tests due to improper mock cleanup
-3. **Incorrect mock reset**: `vi.clearAllMocks()` only clears call history, not mock implementations
+**Resolution**:
+- Used `vi.hoisted()` for stable mock client state across test lifecycle
+- Replaced `vi.clearAllMocks()` with `vi.resetAllMocks()` in `beforeEach`
+- Re-apply default resolved values after reset to prevent mock pollution
+- Removed config mock (real config from env vars)
+- Migrated source file from Winston to Pino logger, mocked `../logger` instead
 
-**Impact**: 37 Redis cache unit tests not running
-
-**Fix Required**:
-- Replace `vi.clearAllMocks()` with `vi.resetAllMocks()` in `beforeEach`
-- Mock the singleton export separately from the class
-- Use `vi.hoisted()` for stable mock state across test lifecycle
-- Suppress module-level auto-connection during tests
-
-**Priority**: Medium (tests exist but need infrastructure refactoring)
+**Commit Reference**: Mock cleanup session 2026-02-06
 
 ---
 
@@ -67,19 +61,21 @@ These are properly excluded in both:
 
 ## Current Test Status
 
-After bugfix session 2026-02-02:
+After mock cleanup session 2026-02-06:
 
 | Metric | Value |
 |--------|-------|
-| Test Files Passed | 24 |
-| Test Files Skipped | 1 (redis-cache) |
-| Tests Passed | 520 |
-| Tests Skipped | 40 |
+| Test Files Passed | 25 |
+| Test Files Skipped | 0 |
+| Tests Passed | 560 |
+| Tests Skipped | 0 |
 | Tests Failed | 0 |
 
-**Changes since 2025-12-13**:
-- tcad-scraper.test.ts: +5 tests enabled (all passing)
-- Redis cache tests remain skipped (infrastructure refactor needed)
+**Changes since 2026-02-02**:
+- redis-cache.service.test.ts: +40 tests re-enabled (all passing)
+- Removed config mocks from 5 test files
+- Removed winston mocks from 3 test files
+- Migrated 4 source files from Winston to Pino logger
 
 ---
 
@@ -91,9 +87,10 @@ After bugfix session 2026-02-02:
 - [x] Update vitest configs to exclude integration tests
 
 ### Medium-term
-- [ ] Refactor redis-cache.service.test.ts mock infrastructure
+- [x] ~~Refactor redis-cache.service.test.ts mock infrastructure~~ (RESOLVED 2026-02-06)
 - [x] ~~Refactor tcad-scraper.test.ts Playwright mocks~~ (RESOLVED 2026-02-02)
 - [x] ~~Add test for new `scrapePropertiesWithFallback` behavior~~ (test updated 2026-02-02)
+- [ ] See `docs/BACKLOG.md` for remaining items
 
 ### Long-term
 - [ ] Consider using testcontainers for Redis integration tests

@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import { config } from "../../config";
 import {
 	type AuthRequest,
 	apiKeyAuth,
@@ -9,22 +10,13 @@ import {
 	optionalAuth,
 } from "../auth";
 
-// Mock the config module
-vi.mock("../../config", () => ({
-	config: {
-		env: {
-			isDevelopment: false,
-		},
-		auth: {
-			apiKey: "test-api-key",
-			skipInDevelopment: false,
-			jwt: {
-				secret: "test-jwt-secret",
-				expiresIn: "1h",
-			},
-		},
-	},
-}));
+// Save original config values for restore
+const originalEnv = { ...config.env };
+const originalAuth = {
+	apiKey: config.auth.apiKey,
+	skipInDevelopment: config.auth.skipInDevelopment,
+	jwt: { ...config.auth.jwt },
+};
 
 describe("Auth Middleware", () => {
 	let mockReq: Partial<AuthRequest>;
@@ -33,7 +25,7 @@ describe("Auth Middleware", () => {
 	let jsonMock: Mock;
 	let statusMock: Mock;
 
-	beforeEach(async () => {
+	beforeEach(() => {
 		jsonMock = vi.fn();
 		statusMock = vi.fn().mockReturnValue({ json: jsonMock });
 
@@ -49,11 +41,17 @@ describe("Auth Middleware", () => {
 		mockNext = vi.fn();
 
 		// Reset config to default test values
-		const { config } = await import("../../config");
-		config.env.isDevelopment = false;
-		config.auth.skipInDevelopment = false;
-		config.auth.apiKey = "test-api-key";
-		config.auth.jwt.secret = "test-jwt-secret";
+		(config.env as Record<string, unknown>).isDevelopment = false;
+		(config.auth as Record<string, unknown>).skipInDevelopment = false;
+		(config.auth as Record<string, unknown>).apiKey = "test-api-key";
+		(config.auth.jwt as Record<string, unknown>).secret = "test-jwt-secret";
+		(config.auth.jwt as Record<string, unknown>).expiresIn = "1h";
+	});
+
+	afterEach(() => {
+		// Restore original config values
+		Object.assign(config.env, originalEnv);
+		Object.assign(config.auth, { ...originalAuth, jwt: { ...originalAuth.jwt } });
 	});
 
 	describe("apiKeyAuth", () => {
@@ -90,11 +88,10 @@ describe("Auth Middleware", () => {
 			});
 		});
 
-		it("should skip auth in development when skipInDevelopment is true and no API key configured", async () => {
-			const { config } = await import("../../config");
-			config.env.isDevelopment = true;
-			config.auth.skipInDevelopment = true;
-			config.auth.apiKey = undefined;
+		it("should skip auth in development when skipInDevelopment is true and no API key configured", () => {
+			(config.env as Record<string, unknown>).isDevelopment = true;
+			(config.auth as Record<string, unknown>).skipInDevelopment = true;
+			(config.auth as Record<string, unknown>).apiKey = undefined;
 
 			mockReq.headers = {};
 
@@ -104,10 +101,9 @@ describe("Auth Middleware", () => {
 			expect(statusMock).not.toHaveBeenCalled();
 		});
 
-		it("should still validate API key in development if skipInDevelopment is false", async () => {
-			const { config } = await import("../../config");
-			config.env.isDevelopment = true;
-			config.auth.skipInDevelopment = false;
+		it("should still validate API key in development if skipInDevelopment is false", () => {
+			(config.env as Record<string, unknown>).isDevelopment = true;
+			(config.auth as Record<string, unknown>).skipInDevelopment = false;
 
 			mockReq.headers = {};
 
@@ -196,11 +192,10 @@ describe("Auth Middleware", () => {
 			});
 		});
 
-		it("should skip auth in development when skipInDevelopment is true and no JWT secret configured", async () => {
-			const { config } = await import("../../config");
-			config.env.isDevelopment = true;
-			config.auth.skipInDevelopment = true;
-			config.auth.jwt.secret = undefined;
+		it("should skip auth in development when skipInDevelopment is true and no JWT secret configured", () => {
+			(config.env as Record<string, unknown>).isDevelopment = true;
+			(config.auth as Record<string, unknown>).skipInDevelopment = true;
+			(config.auth.jwt as Record<string, unknown>).secret = undefined;
 
 			mockReq.headers = {};
 
@@ -246,9 +241,8 @@ describe("Auth Middleware", () => {
 			expect(mockReq.user).toBeUndefined();
 		});
 
-		it("should continue without user when token secret is not configured", async () => {
-			const { config } = await import("../../config");
-			config.auth.jwt.secret = undefined;
+		it("should continue without user when token secret is not configured", () => {
+			(config.auth.jwt as Record<string, unknown>).secret = undefined;
 
 			const token = jwt.sign({ id: "user123" }, "some-secret");
 			mockReq.headers = { authorization: `Bearer ${token}` };
@@ -283,9 +277,8 @@ describe("Auth Middleware", () => {
 			expect(decoded.email).toBeUndefined();
 		});
 
-		it("should generate token that expires according to config", async () => {
-			const { config } = await import("../../config");
-			config.auth.jwt.expiresIn = "2h";
+		it("should generate token that expires according to config", () => {
+			(config.auth.jwt as Record<string, unknown>).expiresIn = "2h";
 
 			const token = generateToken("user123");
 			const decoded = jwt.verify(token, "test-jwt-secret") as any;

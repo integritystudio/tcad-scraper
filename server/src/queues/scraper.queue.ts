@@ -1,22 +1,12 @@
 import Bull from "bull";
-import winston from "winston";
 import { config } from "../config";
+import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { cacheService } from "../lib/redis-cache.service";
 import { TCADScraper } from "../lib/tcad-scraper";
 import { searchTermOptimizer } from "../services/search-term-optimizer";
 import { tcadTokenRefreshService } from "../services/token-refresh.service";
 import type { ScrapeJobData, ScrapeJobResult } from "../types";
-
-const logger = winston.createLogger({
-	level: config.logging.level,
-	format: winston.format.json(),
-	transports: [
-		new winston.transports.Console({
-			format: winston.format.simple(),
-		}),
-	],
-});
 
 // Create the Bull queue
 export const scraperQueue = new Bull<ScrapeJobData>(config.queue.name, {
@@ -214,7 +204,7 @@ scraperQueue.process(
 		} catch (error) {
 			const errorMessage =
 				error instanceof Error ? error.message : "Unknown error";
-			logger.error(`Job ${job.id} failed:`, error);
+			logger.error(`Job ${job.id} failed: %s`, error instanceof Error ? error.message : String(error));
 
 			// Check if this is a token expiration error - trigger refresh before retry
 			if (
@@ -230,7 +220,7 @@ scraperQueue.process(
 						`Job ${job.id}: Token refreshed successfully, job will retry`,
 					);
 				} catch (refreshError) {
-					logger.error(`Job ${job.id}: Token refresh failed:`, refreshError);
+					logger.error(`Job ${job.id}: Token refresh failed: %s`, refreshError instanceof Error ? refreshError.message : String(refreshError));
 				}
 			}
 
@@ -267,7 +257,7 @@ scraperQueue.on("completed", (job, result: ScrapeJobResult) => {
 });
 
 scraperQueue.on("failed", (job, err) => {
-	logger.error(`Job ${job.id} failed after ${job.attemptsMade} attempts:`, err);
+	logger.error(`Job ${job.id} failed after ${job.attemptsMade} attempts: %s`, err instanceof Error ? err.message : String(err));
 });
 
 scraperQueue.on("stalled", (job) => {
@@ -281,7 +271,7 @@ setInterval(async () => {
 		await scraperQueue.clean(config.queue.cleanupGracePeriod, "failed");
 		logger.info("Cleaned old jobs from queue");
 	} catch (error) {
-		logger.error("Failed to clean queue:", error);
+		logger.error("Failed to clean queue: %s", error instanceof Error ? error.message : String(error));
 	}
 }, config.queue.cleanupInterval);
 

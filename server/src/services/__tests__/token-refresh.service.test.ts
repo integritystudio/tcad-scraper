@@ -5,13 +5,39 @@
  * See: server/MOCKING_BEST_PRACTICES.md
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+
+interface MockPage {
+	goto: Mock;
+	waitForFunction: Mock;
+	waitForSelector: Mock;
+	waitForRequest: Mock;
+	type: Mock;
+	press: Mock;
+	on: Mock;
+	evaluate: Mock;
+	close: Mock;
+}
+
+interface MockContext {
+	newPage: Mock;
+	close: Mock;
+}
+
+interface MockBrowser {
+	newContext: Mock;
+	close: Mock;
+}
+
+interface MockCronJob {
+	stop: Mock;
+}
 
 // Declare mock variables (will be populated in beforeEach)
-let mockBrowser: any;
-let mockContext: any;
-let mockPage: any;
-let mockCronJob: any;
+let mockBrowser: MockBrowser;
+let mockContext: MockContext;
+let mockPage: MockPage;
+let mockCronJob: MockCronJob;
 
 // Mock Playwright using factory function that accesses current mock values
 vi.mock("playwright", () => ({
@@ -27,50 +53,15 @@ vi.mock("node-cron", () => ({
 	},
 }));
 
-// Mock config
-vi.mock("../../config", () => ({
-	config: {
-		logging: {
-			level: "error",
-		},
-		scraper: {
-			headless: true,
-			tcadApiKey: "test-token-from-env",
-		},
-	},
-}));
-
-// Mock winston to suppress error output during intentional failure tests
-vi.mock("winston", () => {
-	const noopLogger = {
+// Mock logger to suppress output during tests
+vi.mock("../../lib/logger", () => ({
+	default: {
 		info: () => {},
 		warn: () => {},
 		error: () => {},
 		debug: () => {},
-	};
-	return {
-		default: {
-			createLogger: () => noopLogger,
-			format: {
-				json: () => {},
-				simple: () => {},
-				timestamp: () => {},
-				combine: () => {},
-				colorize: () => {},
-			},
-			transports: { Console: class {} },
-		},
-		createLogger: () => noopLogger,
-		format: {
-			json: () => {},
-			simple: () => {},
-			timestamp: () => {},
-			combine: () => {},
-			colorize: () => {},
-		},
-		transports: { Console: class {} },
-	};
-});
+	},
+}));
 
 import cron from "node-cron";
 import { chromium } from "playwright";
@@ -120,7 +111,7 @@ describe("TCADTokenRefreshService", () => {
 	describe("constructor", () => {
 		it("should initialize with token from environment if available", () => {
 			const token = service.getCurrentToken();
-			expect(token).toBe("test-token-from-env");
+			expect(token).toBe("test-tcad-key");
 		});
 
 		it("should initialize stats correctly", () => {
@@ -135,7 +126,7 @@ describe("TCADTokenRefreshService", () => {
 	describe("getCurrentToken", () => {
 		it("should return the current token", () => {
 			const token = service.getCurrentToken();
-			expect(token).toBe("test-token-from-env");
+			expect(token).toBe("test-tcad-key");
 		});
 
 		it("should return null if no token is set", () => {
@@ -161,7 +152,7 @@ describe("TCADTokenRefreshService", () => {
 		it("should mask token in stats", () => {
 			const stats = service.getStats();
 			expect(stats.currentToken).toContain("...");
-			expect(stats.currentToken).not.toBe("test-token-from-env");
+			expect(stats.currentToken).not.toBe("test-tcad-key");
 		});
 
 		it("should show isRunning as false initially", () => {
@@ -221,7 +212,7 @@ describe("TCADTokenRefreshService", () => {
 			const result = await promise2;
 
 			// Should return current token without launching browser again
-			expect(result).toBe("test-token-from-env");
+			expect(result).toBe("test-tcad-key");
 
 			// Wait for first to complete
 			await promise1;
@@ -229,7 +220,7 @@ describe("TCADTokenRefreshService", () => {
 
 		it("should initialize browser on first refresh", async () => {
 			// Mock successful token capture
-			mockPage.on.mockImplementation((event: string, handler: any) => {
+			mockPage.on.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
 				if (event === "request") {
 					// Simulate a request with auth header
 					setTimeout(() => {
@@ -279,7 +270,7 @@ describe("TCADTokenRefreshService", () => {
 			const result = await service.refreshToken();
 
 			// Should return existing token on failure
-			expect(result).toBe("test-token-from-env");
+			expect(result).toBe("test-tcad-key");
 
 			const stats = service.getStats();
 			expect(stats.failureCount).toBeGreaterThan(0);

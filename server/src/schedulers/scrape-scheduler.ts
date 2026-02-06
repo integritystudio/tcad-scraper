@@ -1,17 +1,7 @@
 import cron from "node-cron";
-import winston from "winston";
+import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
-
-const logger = winston.createLogger({
-	level: "info",
-	format: winston.format.json(),
-	transports: [
-		new winston.transports.Console({
-			format: winston.format.simple(),
-		}),
-	],
-});
 
 class ScheduledJobs {
 	private tasks: cron.ScheduledTask[] = [];
@@ -120,7 +110,7 @@ class ScheduledJobs {
 				);
 			}
 		} catch (error) {
-			logger.error(`Failed to run ${frequency} scheduled scrapes:`, error);
+			logger.error(`Failed to run ${frequency} scheduled scrapes: %s`, error instanceof Error ? error.message : String(error));
 		}
 	}
 
@@ -147,7 +137,7 @@ class ScheduledJobs {
 
 			logger.info(`Cleaned up ${deletedJobs.count} old database jobs`);
 		} catch (error) {
-			logger.error("Failed to clean up old jobs:", error);
+			logger.error("Failed to clean up old jobs: %s", error instanceof Error ? error.message : String(error));
 		}
 	}
 

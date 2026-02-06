@@ -13,24 +13,8 @@
 
 import cron from "node-cron";
 import { type Browser, chromium } from "playwright";
-import winston from "winston";
 import { config } from "../config";
-
-const logger = winston.createLogger({
-	level: config.logging.level || "info",
-	format: winston.format.combine(
-		winston.format.timestamp(),
-		winston.format.json(),
-	),
-	transports: [
-		new winston.transports.Console({
-			format: winston.format.combine(
-				winston.format.colorize(),
-				winston.format.simple(),
-			),
-		}),
-	],
-});
+import logger from "../lib/logger";
 
 export class TCADTokenRefreshService {
 	private currentToken: string | null = null;
@@ -390,8 +374,8 @@ export class TCADTokenRefreshService {
 		logger.info(`Starting automatic token refresh (schedule: ${schedule})`);
 
 		// Perform initial refresh
-		this.refreshToken().catch((error) => {
-			logger.error("Initial token refresh failed:", error);
+		this.refreshToken().catch((error: unknown) => {
+			logger.error("Initial token refresh failed: %s", error instanceof Error ? error.message : String(error));
 		});
 
 		// Schedule recurring refreshes
@@ -418,8 +402,8 @@ export class TCADTokenRefreshService {
 		);
 
 		// Perform initial refresh
-		this.refreshToken().catch((error) => {
-			logger.error("Initial token refresh failed:", error);
+		this.refreshToken().catch((error: unknown) => {
+			logger.error("Initial token refresh failed: %s", error instanceof Error ? error.message : String(error));
 		});
 
 		// Schedule recurring refreshes with slight randomization

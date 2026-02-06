@@ -61,92 +61,18 @@ vi.mock("../../services/search-term-optimizer", () => ({
 	},
 }));
 
-vi.mock("../../config", () => ({
-	config: {
-		logging: {
-			level: "error",
-		},
-		queue: {
-			name: "tcad-scraper",
-			jobName: "scrape",
-			concurrency: 2,
-			defaultJobOptions: {
-				attempts: 3,
-				backoffDelay: 5000,
-				removeOnComplete: 100,
-				removeOnFail: 50,
-			},
-			cleanupGracePeriod: 86400000,
-			cleanupInterval: 3600000,
-		},
-		redis: {
-			host: "localhost",
-			port: 6379,
-			password: "",
-			db: 0,
-		},
-		rateLimit: {
-			scraper: {
-				jobDelay: 60000, // 1 minute
-				cacheCleanupInterval: 300000, // 5 minutes
-			},
-		},
-		env: {
-			isProduction: false,
-		},
-		scraper: {
-			headless: true,
-			brightData: {
-				enabled: false,
-				apiToken: null,
-				proxyHost: "brd.superproxy.io",
-				proxyPort: 22225,
-			},
-			proxy: {
-				enabled: false,
-				server: null,
-				username: null,
-				password: null,
-			},
-			timeout: 30000,
-			retryAttempts: 3,
-			retryDelay: 1000,
-			userAgents: ["Mozilla/5.0"],
-			viewports: [{ width: 1920, height: 1080 }],
-			humanDelay: { min: 500, max: 2000 },
-		},
-	},
-}));
-
-// Mock winston to suppress error output during intentional failure tests
-vi.mock("winston", () => {
-	const noopLogger = {
+// Mock logger to suppress output during tests
+vi.mock("../../lib/logger", () => ({
+	default: {
 		info: () => {},
 		warn: () => {},
 		error: () => {},
 		debug: () => {},
-	};
-	const formatMock = {
-		json: () => {},
-		simple: () => {},
-		timestamp: () => {},
-		combine: () => {},
-		colorize: () => {},
-	};
-	return {
-		default: {
-			createLogger: () => noopLogger,
-			format: formatMock,
-			transports: { Console: class {} },
-		},
-		createLogger: () => noopLogger,
-		format: formatMock,
-		transports: { Console: class {} },
-	};
-});
+	},
+}));
 
 // Mock setInterval at module level to prevent cleanup interval from running
-vi.spyOn(global, "setInterval").mockReturnValue({} as any);
+vi.spyOn(global, "setInterval").mockReturnValue({} as unknown as NodeJS.Timeout);
 
 describe("Scraper Queue", () => {
 	beforeEach(() => {
@@ -291,7 +217,7 @@ describe("Scraper Queue", () => {
 
 			// Verify that process was called with the correct job name and concurrency
 			expect(mockBullQueue.process).toHaveBeenCalledWith(
-				"scrape",
+				"scrape-properties",
 				2,
 				expect.any(Function),
 			);
@@ -350,7 +276,7 @@ describe("Scraper Queue", () => {
 			await import("../scraper.queue");
 
 			const completedHandler = mockBullQueue.on.mock.calls.find(
-				(call: any[]) => call[0] === "completed",
+				(call: [string, (...args: unknown[]) => void]) => call[0] === "completed",
 			)?.[1];
 
 			expect(completedHandler).toBeDefined();
@@ -377,7 +303,7 @@ describe("Scraper Queue", () => {
 			await import("../scraper.queue");
 
 			const failedHandler = mockBullQueue.on.mock.calls.find(
-				(call: any[]) => call[0] === "failed",
+				(call: [string, (...args: unknown[]) => void]) => call[0] === "failed",
 			)?.[1];
 
 			expect(failedHandler).toBeDefined();
@@ -399,7 +325,7 @@ describe("Scraper Queue", () => {
 			await import("../scraper.queue");
 
 			const stalledHandler = mockBullQueue.on.mock.calls.find(
-				(call: any[]) => call[0] === "stalled",
+				(call: [string, (...args: unknown[]) => void]) => call[0] === "stalled",
 			)?.[1];
 
 			expect(stalledHandler).toBeDefined();

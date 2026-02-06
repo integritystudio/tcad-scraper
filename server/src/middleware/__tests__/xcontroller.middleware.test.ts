@@ -3,55 +3,16 @@
  */
 
 import type { NextFunction, Request, Response } from "express";
-import { beforeEach, describe, expect, test, vi } from "vitest";
-
-// Mock the config module before importing middleware
-vi.mock("../../config", () => {
-	const mockConfig = {
-		env: {
-			nodeEnv: "development",
-			isDevelopment: true,
-			isProduction: false,
-			isTest: false,
-		},
-		security: {
-			csp: {
-				enabled: true,
-				nonceLength: 16,
-				directives: {
-					defaultSrc: ["'self'"],
-					scriptSrc: ["'self'"],
-					styleSrc: ["'self'", "'unsafe-inline'"],
-					imgSrc: ["'self'", "data:", "https:"],
-					fontSrc: ["'self'", "data:"],
-					connectSrc: ["'self'"],
-					frameAncestors: ["'none'"],
-					baseUri: ["'self'"],
-					formAction: ["'self'"],
-				},
-			},
-			hsts: {
-				maxAge: 31536000,
-				includeSubDomains: true,
-			},
-		},
-		frontend: {
-			apiUrl: "/api",
-			appVersion: "1.0.0",
-			features: {
-				search: true,
-				analytics: false,
-				monitoring: false,
-			},
-		},
-	};
-
-	return {
-		config: mockConfig,
-	};
-});
-
+import { afterEach, beforeEach, describe, expect, type Mock, test, vi } from "vitest";
 import { config } from "../../config";
+
+// Save original config values for restore
+const originalEnv = { ...config.env };
+const originalFrontend = {
+	apiUrl: config.frontend.apiUrl,
+	appVersion: config.frontend.appVersion,
+	features: { ...config.frontend.features },
+};
 import {
 	cspMiddleware,
 	encodeJsonForHtml,
@@ -62,6 +23,13 @@ import {
 } from "../xcontroller.middleware";
 
 describe("XController Middleware", () => {
+	afterEach(() => {
+		Object.assign(config.env, originalEnv);
+		(config.frontend as Record<string, unknown>).apiUrl = originalFrontend.apiUrl;
+		(config.frontend as Record<string, unknown>).appVersion = originalFrontend.appVersion;
+		Object.assign(config.frontend.features, originalFrontend.features);
+	});
+
 	describe("generateNonce", () => {
 		test("should generate a base64 string", () => {
 			const nonce = generateNonce();
