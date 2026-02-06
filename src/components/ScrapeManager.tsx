@@ -1,3 +1,4 @@
+import axios from "axios";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -80,9 +81,11 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 				setError(finalStatus.error || "Scraping failed");
 			}
 		} catch (err: unknown) {
-			setError(
-				err.response?.data?.error || err.message || "Failed to start scraping",
-			);
+			if (axios.isAxiosError(err)) {
+				setError(err.response?.data?.error || err.message || "Failed to start scraping");
+			} else {
+				setError(err instanceof Error ? err.message : "Failed to start scraping");
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -100,7 +103,11 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 			setSearchTerm("");
 			setError(null);
 		} catch (err: unknown) {
-			setError(err.response?.data?.error || "Failed to add monitored search");
+			if (axios.isAxiosError(err)) {
+				setError(err.response?.data?.error || "Failed to add monitored search");
+			} else {
+				setError(err instanceof Error ? err.message : "Failed to add monitored search");
+			}
 		}
 	};
 
