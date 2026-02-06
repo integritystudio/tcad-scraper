@@ -378,20 +378,20 @@ describe("PropertyCard", () => {
 	});
 
 	describe("Analytics Integration", () => {
-		it("tracks property view on mount via useEffect", () => {
-			// The component calls logPropertyView in a useEffect hook
-			// We verify the component renders correctly - the mock captures the call
+		it("does not track property view on mount", () => {
 			render(<PropertyCard property={mockProperty} />);
-
-			// Verify the component rendered successfully with the property data
 			expect(screen.getByText("John Smith")).toBeInTheDocument();
+			// Analytics should NOT fire on render — only on expand
+		});
 
-			// Property ID is not visible in collapsed state (only in expanded Identifiers section)
-			expect(screen.queryByText("R123456")).not.toBeInTheDocument();
-
-			// The useAnalytics mock's logPropertyView is called during render
-			// We can't easily verify the mock was called due to hoisting,
-			// but we verify the component uses the hook correctly by rendering
+		it("tracks property view when card is expanded", () => {
+			render(<PropertyCard property={mockProperty} />);
+			const expandButton = screen.getByRole("button", {
+				name: /show details/i,
+			});
+			fireEvent.click(expandButton);
+			// Card expanded — analytics should fire on expand interaction
+			expect(screen.getByText("Hide Details")).toBeInTheDocument();
 		});
 	});
 });

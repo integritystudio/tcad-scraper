@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAnalytics, useFormatting } from "../../../hooks";
 import type { Property } from "../../../types";
 import { Badge } from "../../ui/Badge";
@@ -21,12 +21,10 @@ export const PropertyCard = ({
 	const { logPropertyView } = useAnalytics();
 	const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
-	// Track property view when card is rendered
-	useEffect(() => {
-		logPropertyView(property.property_id, property.property_address);
-	}, [property.property_id, property.property_address, logPropertyView]);
-
 	const handleToggleExpand = () => {
+		if (!isExpanded) {
+			logPropertyView(property.property_id, property.property_address);
+		}
 		setIsExpanded(!isExpanded);
 	};
 
