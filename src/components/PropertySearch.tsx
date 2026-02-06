@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useRef, useMemo, useState } from "react";
 import { getApiBaseUrl } from "../lib/api-config";
 import type { Property } from "../types";
 import "./PropertySearch.css";
@@ -27,10 +27,15 @@ export default function PropertySearch() {
 	const [explanation, setExplanation] = useState("");
 	const [error, setError] = useState("");
 	const [totalResults, setTotalResults] = useState(0);
+	const searchAbortRef = useRef<AbortController | null>(null);
 
 	const handleSearch = async (query?: string) => {
 		const searchText = query || searchQuery;
 		if (!searchText.trim()) return;
+
+		searchAbortRef.current?.abort();
+		const abortController = new AbortController();
+		searchAbortRef.current = abortController;
 
 		setLoading(true);
 		setError("");
@@ -42,6 +47,7 @@ export default function PropertySearch() {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({ query: searchText, limit: 50 }),
+				signal: abortController.signal,
 			});
 
 			if (!response.ok) {
@@ -60,7 +66,8 @@ export default function PropertySearch() {
 			setResults(data.data);
 			setTotalResults(data.pagination.total);
 			setExplanation(data.query?.explanation || "");
-		} catch (err) {
+		} catch (err: unknown) {
+			if (err instanceof DOMException && err.name === "AbortError") return;
 			setError(err instanceof Error ? err.message : "An error occurred");
 			setResults([]);
 		} finally {
