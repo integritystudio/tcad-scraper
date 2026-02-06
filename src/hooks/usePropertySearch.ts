@@ -58,11 +58,13 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 		undefined,
 	);
 	const searchAbortRef = useRef<AbortController | null>(null);
+	const initialLoadAbortRef = useRef<AbortController | null>(null);
 
 	const search = useCallback(async (query: string, limit = 50) => {
 		if (!query.trim()) return;
 
-		// Cancel any in-flight search
+		// Cancel initial load and any in-flight search
+		initialLoadAbortRef.current?.abort();
 		searchAbortRef.current?.abort();
 		const abortController = new AbortController();
 		searchAbortRef.current = abortController;
@@ -146,6 +148,7 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 	// Load initial properties on mount
 	useEffect(() => {
 		const abortController = new AbortController();
+		initialLoadAbortRef.current = abortController;
 
 		const loadInitialProperties = async () => {
 			setLoading(true);
