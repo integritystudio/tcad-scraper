@@ -155,9 +155,35 @@ export const propertyAPI = {
 		jobId: string,
 		onProgress?: (status: JobStatus) => void,
 		pollInterval: number = 2000,
+		signal?: AbortSignal,
 	): Promise<JobStatus> {
+		const MAX_POLLS = 900; // 30 min at 2s interval
+		let pollCount = 0;
+
 		return new Promise((resolve, reject) => {
+			let timeoutId: ReturnType<typeof setTimeout>;
+
+			const onAbort = () => {
+				clearTimeout(timeoutId);
+				reject(new DOMException("Polling aborted", "AbortError"));
+			};
+
+			if (signal?.aborted) {
+				reject(new DOMException("Polling aborted", "AbortError"));
+				return;
+			}
+
+			signal?.addEventListener("abort", onAbort, { once: true });
+
 			const checkStatus = async () => {
+				if (signal?.aborted) return;
+
+				if (++pollCount > MAX_POLLS) {
+					signal?.removeEventListener("abort", onAbort);
+					reject(new Error(`Polling exceeded max attempts (${MAX_POLLS})`));
+					return;
+				}
+
 				try {
 					const status = await this.getJobStatus(jobId);
 
@@ -166,11 +192,13 @@ export const propertyAPI = {
 					}
 
 					if (status.status === "completed" || status.status === "failed") {
+						signal?.removeEventListener("abort", onAbort);
 						resolve(status);
 					} else {
-						setTimeout(checkStatus, pollInterval);
+						timeoutId = setTimeout(checkStatus, pollInterval);
 					}
 				} catch (error) {
+					signal?.removeEventListener("abort", onAbort);
 					reject(error);
 				}
 			};

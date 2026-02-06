@@ -1,6 +1,6 @@
 import axios from "axios";
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	type JobStatus,
 	type MonitoredSearch,
@@ -27,6 +27,7 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 	);
 	const [showHistory, setShowHistory] = useState(false);
 	const [showMonitored, setShowMonitored] = useState(false);
+	const pollAbortRef = useRef<AbortController | null>(null);
 
 	const loadScrapeHistory = useCallback(async () => {
 		try {
@@ -49,6 +50,7 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 	useEffect(() => {
 		loadScrapeHistory();
 		loadMonitoredSearches();
+		return () => { pollAbortRef.current?.abort(); };
 	}, [loadMonitoredSearches, loadScrapeHistory]);
 
 	const handleScrape = async () => {
@@ -56,6 +58,11 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 			setError("Please enter a search term");
 			return;
 		}
+
+		// Cancel any in-flight polling
+		pollAbortRef.current?.abort();
+		const abortController = new AbortController();
+		pollAbortRef.current = abortController;
 
 		setLoading(true);
 		setError(null);
@@ -66,9 +73,12 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 			const { jobId } = await propertyAPI.triggerScrape(searchTerm);
 
 			// Poll for job status
-			const finalStatus = await propertyAPI.pollJobStatus(jobId, (status) => {
-				setCurrentJob(status);
-			});
+			const finalStatus = await propertyAPI.pollJobStatus(
+				jobId,
+				(status) => { setCurrentJob(status); },
+				2000,
+				abortController.signal,
+			);
 
 			if (finalStatus.status === "completed") {
 				setError(null);
@@ -81,6 +91,7 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 				setError(finalStatus.error || "Scraping failed");
 			}
 		} catch (err: unknown) {
+			if (err instanceof DOMException && err.name === "AbortError") return;
 			if (axios.isAxiosError(err)) {
 				setError(err.response?.data?.error || err.message || "Failed to start scraping");
 			} else {
