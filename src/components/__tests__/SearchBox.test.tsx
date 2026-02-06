@@ -107,8 +107,7 @@ describe("SearchBox", () => {
 
 			const input = screen.getByRole("searchbox");
 			fireEvent.change(input, { target: { value: "test query" } });
-			// Use keyDown with charCode for deprecated onKeyPress handler
-			fireEvent.keyPress(input, { key: "Enter", charCode: 13 });
+			fireEvent.keyDown(input, { key: "Enter" });
 
 			expect(onSearch).toHaveBeenCalledWith("test query");
 		});

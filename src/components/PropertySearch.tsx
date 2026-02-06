@@ -68,7 +68,7 @@ export default function PropertySearch() {
 		}
 	};
 
-	const handleKeyPress = (e: React.KeyboardEvent) => {
+	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter") {
 			handleSearch();
 		}
@@ -112,7 +112,7 @@ export default function PropertySearch() {
 							type="text"
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
-							onKeyPress={handleKeyPress}
+							onKeyDown={handleKeyDown}
 							placeholder="Ask anything... e.g., 'properties in Austin worth over $500k'"
 							className="search-input"
 							disabled={loading}

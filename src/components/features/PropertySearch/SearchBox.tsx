@@ -24,7 +24,7 @@ export const SearchBox = ({
 		}
 	};
 
-	const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
+	const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === "Enter") {
 			handleSearch();
 		}
@@ -44,7 +44,7 @@ export const SearchBox = ({
 				type="search"
 				value={query}
 				onChange={(e) => setQuery(e.target.value)}
-				onKeyPress={handleKeyPress}
+				onKeyDown={handleKeyDown}
 				placeholder={placeholder}
 				className={styles.searchInput}
 				disabled={loading}

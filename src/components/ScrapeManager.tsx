@@ -149,7 +149,7 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 						type="text"
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}
-						onKeyPress={(e) => e.key === "Enter" && handleScrape()}
+						onKeyDown={(e) => e.key === "Enter" && handleScrape()}
 						placeholder="Enter search term (e.g., owner name, address)"
 						className="search-input"
 						disabled={loading}
