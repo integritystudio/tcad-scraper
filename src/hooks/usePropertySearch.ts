@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getApiBaseUrl } from "../lib/api-config";
 import mixpanel from "../lib/mixpanel";
 import type {
@@ -57,9 +57,15 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 	const [statistics, setStatistics] = useState<AnswerStatistics | undefined>(
 		undefined,
 	);
+	const searchAbortRef = useRef<AbortController | null>(null);
 
 	const search = useCallback(async (query: string, limit = 50) => {
 		if (!query.trim()) return;
+
+		// Cancel any in-flight search
+		searchAbortRef.current?.abort();
+		const abortController = new AbortController();
+		searchAbortRef.current = abortController;
 
 		setLoading(true);
 		setError("");
@@ -73,6 +79,7 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({ query, limit }),
+				signal: abortController.signal,
 			});
 
 			if (!response.ok) {
@@ -113,7 +120,8 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 			} else {
 				setAnswerState("idle");
 			}
-		} catch (err) {
+		} catch (err: unknown) {
+			if (err instanceof DOMException && err.name === "AbortError") return;
 			const errorMessage =
 				err instanceof Error ? err.message : "An error occurred";
 			setError(errorMessage);
@@ -137,11 +145,15 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 
 	// Load initial properties on mount
 	useEffect(() => {
+		const abortController = new AbortController();
+
 		const loadInitialProperties = async () => {
 			setLoading(true);
 			try {
 				const apiBaseUrl = getApiBaseUrl();
-				const response = await fetch(`${apiBaseUrl}/properties?limit=50`);
+				const response = await fetch(`${apiBaseUrl}/properties?limit=50`, {
+					signal: abortController.signal,
+				});
 
 				if (!response.ok) {
 					throw new Error("Failed to load properties");
@@ -154,7 +166,8 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 					setTotalResults(data.pagination.total);
 					setExplanation("Showing all properties");
 				}
-			} catch (err) {
+			} catch (err: unknown) {
+				if (err instanceof DOMException && err.name === "AbortError") return;
 				const errorMessage =
 					err instanceof Error ? err.message : "Failed to load properties";
 				setError(errorMessage);
@@ -165,6 +178,11 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 		};
 
 		loadInitialProperties();
+
+		return () => {
+			abortController.abort();
+			searchAbortRef.current?.abort();
+		};
 	}, []);
 
 	return {
