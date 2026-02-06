@@ -163,6 +163,8 @@ export const propertyAPI = {
 		return new Promise((resolve, reject) => {
 			let timeoutId: ReturnType<typeof setTimeout>;
 
+			const cleanup = () => signal?.removeEventListener("abort", onAbort);
+
 			const onAbort = () => {
 				clearTimeout(timeoutId);
 				reject(new DOMException("Polling aborted", "AbortError"));
@@ -173,13 +175,17 @@ export const propertyAPI = {
 				return;
 			}
 
-			signal?.addEventListener("abort", onAbort, { once: true });
+			signal?.addEventListener("abort", onAbort);
 
 			const checkStatus = async () => {
-				if (signal?.aborted) return;
+				if (signal?.aborted) {
+					cleanup();
+					return;
+				}
 
-				if (++pollCount > MAX_POLLS) {
-					signal?.removeEventListener("abort", onAbort);
+				pollCount++;
+				if (pollCount > MAX_POLLS) {
+					cleanup();
 					reject(new Error(`Polling exceeded max attempts (${MAX_POLLS})`));
 					return;
 				}
@@ -192,13 +198,13 @@ export const propertyAPI = {
 					}
 
 					if (status.status === "completed" || status.status === "failed") {
-						signal?.removeEventListener("abort", onAbort);
+						cleanup();
 						resolve(status);
-					} else {
+					} else if (!signal?.aborted) {
 						timeoutId = setTimeout(checkStatus, pollInterval);
 					}
-				} catch (error) {
-					signal?.removeEventListener("abort", onAbort);
+				} catch (error: unknown) {
+					cleanup();
 					reject(error);
 				}
 			};
