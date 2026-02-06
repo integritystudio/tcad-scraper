@@ -85,10 +85,14 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 			});
 
 			if (!response.ok) {
-				const errorData = await response
-					.json()
-					.catch(() => ({ message: "Search failed" }));
-				throw new Error(errorData.message || "Search failed");
+				let errorMessage = `Search failed (${response.status})`;
+				try {
+					const errorData = await response.json();
+					if (errorData.message) errorMessage = errorData.message;
+				} catch {
+					// Response body wasn't JSON — use status-based message
+				}
+				throw new Error(errorMessage);
 			}
 
 			const data: SearchResult = await response.json();
