@@ -38,9 +38,8 @@ apiClient.interceptors.response.use(
 			// Handle specific error statuses
 			switch (error.response.status) {
 				case 401:
-					// Handle unauthorized
 					localStorage.removeItem("authToken");
-					window.location.href = "/login";
+					logger.error("Unauthorized request (401)", error.response.data);
 					break;
 				case 429:
 					// Handle rate limiting
