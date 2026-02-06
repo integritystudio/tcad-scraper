@@ -1,17 +1,7 @@
 import type { AnswerBoxProps, AnswerStatistics } from "../../../types";
+import { formatCurrency } from "../../../utils/formatters";
 import { Icon } from "../../ui/Icon";
 import styles from "./AnswerBox.module.css";
-
-/**
- * Format currency for display
- */
-const formatCurrency = (value: number): string => {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		maximumFractionDigits: 0,
-	}).format(value);
-};
 
 /**
  * Loading skeleton for the answer box
