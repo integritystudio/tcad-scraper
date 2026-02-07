@@ -1,14 +1,26 @@
 import type { NextFunction, Request, Response } from "express";
+import type qs from "qs";
 import logger from "../lib/logger";
 
 /**
  * Async handler wrapper to catch errors in async route handlers
  */
-export const asyncHandler = (
-	fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>,
+export const asyncHandler = <
+	P = Record<string, string>,
+	ResBody = unknown,
+	ReqBody = unknown,
+	ReqQuery = qs.ParsedQs,
+>(
+	fn: (
+		req: Request<P, ResBody, ReqBody, ReqQuery>,
+		res: Response,
+		next: NextFunction,
+	) => Promise<unknown>,
 ) => {
 	return (req: Request, res: Response, next: NextFunction): void => {
-		Promise.resolve(fn(req, res, next)).catch(next);
+		Promise.resolve(
+			fn(req as Request<P, ResBody, ReqBody, ReqQuery>, res, next),
+		).catch(next);
 	};
 };
 

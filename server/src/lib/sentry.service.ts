@@ -298,25 +298,18 @@ export function setTags(tags: Record<string, string>): void {
 }
 
 /**
- * Start a performance transaction (Sentry v8: use startSpan instead)
- * @deprecated Use Sentry.startSpan() directly for Sentry v8
+ * Start a performance span
  */
-export function startTransaction(
+export function startSpan<T>(
 	name: string,
 	op: string,
-): { setStatus: () => void; finish: () => void } | null {
+	callback: () => T,
+): T | null {
 	if (!config.monitoring.sentry.enabled) {
-		return null;
+		return callback();
 	}
 
-	// Sentry v8: startTransaction is deprecated, use startSpan instead
-	return Sentry.startSpan({ name, op }, () => {
-		// Return a mock transaction-like object for backwards compatibility
-		return {
-			setStatus: () => {},
-			finish: () => {},
-		};
-	});
+	return Sentry.startSpan({ name, op }, () => callback());
 }
 
 /**
