@@ -351,7 +351,7 @@ npm run analyze:overview
 - Bull Dashboard: http://localhost:3000/admin/queues
 
 **Production**:
-- Frontend: https://alephatx.github.io/tcad-scraper/
+- Frontend: https://www.aledlie.com/tcad-scraper/
 - API: https://api.alephatx.info/api
 - Health: https://api.alephatx.info/health
 
