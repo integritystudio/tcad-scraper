@@ -99,7 +99,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./server
-        run: npm install
+        run: npm ci --omit=optional
 
       - name: Install Playwright Browsers
         working-directory: ./server
@@ -231,7 +231,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.check-e2e.outputs.e2e_exists == 'true'
-        run: npm install
+        run: npm ci --omit=optional
 
       - name: Run E2E Tests
         if: steps.check-e2e.outputs.e2e_exists == 'true'
