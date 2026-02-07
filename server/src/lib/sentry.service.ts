@@ -298,22 +298,7 @@ export function setTags(tags: Record<string, string>): void {
 }
 
 /**
- * Start a performance span
- */
-export function startSpan<T>(
-	name: string,
-	op: string,
-	callback: () => T,
-): T | null {
-	if (!config.monitoring.sentry.enabled) {
-		return callback();
-	}
-
-	return Sentry.startSpan({ name, op }, () => callback());
-}
-
-/**
- * Wrap async function with error tracking (Sentry v8: use startSpan)
+ * Wrap async function with error tracking
  */
 export function wrapAsync<T extends (...args: unknown[]) => Promise<unknown>>(
 	fn: T,
