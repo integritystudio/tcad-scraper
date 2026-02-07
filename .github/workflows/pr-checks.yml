@@ -69,7 +69,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./server
-        run: npm ci --omit=optional
+        run: npm ci
 
       - name: Run ESLint with annotations
         working-directory: ./server
@@ -129,7 +129,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./server
-        run: npm ci --omit=optional
+        run: npm ci
 
       - name: Generate Prisma Client
         working-directory: ./server
@@ -310,7 +310,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --omit=optional
+        run: npm ci
 
       - name: Build frontend
         env:
