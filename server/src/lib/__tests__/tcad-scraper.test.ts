@@ -16,71 +16,12 @@ vi.mock("playwright", () => ({
 	},
 }));
 
-// Mock config
-vi.mock("../../config", () => ({
-	config: {
-		logging: {
-			level: "error",
-		},
-		scraper: {
-			headless: true,
-			timeout: 30000,
-			retryAttempts: 3,
-			retryDelay: 1000,
-			userAgents: [
-				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-				"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-			],
-			viewports: [
-				{ width: 1920, height: 1080 },
-				{ width: 1366, height: 768 },
-			],
-			humanDelay: {
-				min: 500,
-				max: 2000,
-			},
-			brightData: {
-				enabled: false,
-				apiToken: null,
-				proxyHost: "brd.superproxy.io",
-				proxyPort: 22225,
-			},
-			proxy: {
-				enabled: false,
-				server: null,
-				username: null,
-				password: null,
-			},
-		},
-	},
-}));
-
 // Mock token refresh service
 vi.mock("../../services/token-refresh.service", () => ({
 	tokenRefreshService: {
 		getCurrentToken: vi.fn().mockReturnValue(null),
 	},
 }));
-
-// Mock winston to suppress error output during intentional failure tests
-vi.mock("winston", () => {
-	const noopLogger = {
-		info: () => {},
-		warn: () => {},
-		error: () => {},
-		debug: () => {},
-	};
-	return {
-		default: {
-			createLogger: () => noopLogger,
-			format: { json: () => {}, simple: () => {} },
-			transports: { Console: class {} },
-		},
-		createLogger: () => noopLogger,
-		format: { json: () => {}, simple: () => {} },
-		transports: { Console: class {} },
-	};
-});
 
 // Mock DOM scraper fallback
 vi.mock("../fallback/dom-scraper", () => ({
@@ -129,36 +70,13 @@ describe("TCADScraper", () => {
 			expect(customScraper).toBeDefined();
 		});
 
-		it("should configure proxy if enabled in config", () => {
-			// Test with Bright Data proxy
-			vi.resetModules();
-			vi.doMock("../../config", () => ({
-				config: {
-					logging: { level: "error" },
-					scraper: {
-						headless: true,
-						timeout: 30000,
-						retryAttempts: 3,
-						retryDelay: 1000,
-						userAgents: ["test-agent"],
-						viewports: [{ width: 1920, height: 1080 }],
-						humanDelay: { min: 500, max: 2000 },
-						brightData: {
-							enabled: true,
-							apiToken: "test-token-12345678",
-							proxyHost: "brd.superproxy.io",
-							proxyPort: 22225,
-						},
-						proxy: {
-							enabled: false,
-							server: null,
-						},
-					},
-				},
-			}));
-
-			// Should not throw when creating scraper with proxy config
-			expect(() => new TCADScraper()).not.toThrow();
+		it("should accept proxy config via constructor", () => {
+			const scraperWithProxy = new TCADScraper({
+				proxyServer: "http://brd.superproxy.io:22225",
+				proxyUsername: "test-user",
+				proxyPassword: "test-pass",
+			});
+			expect(scraperWithProxy).toBeDefined();
 		});
 	});
 

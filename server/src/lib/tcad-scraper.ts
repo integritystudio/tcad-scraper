@@ -1,10 +1,10 @@
 import { type Browser, chromium, type LaunchOptions } from "playwright";
-import winston from "winston";
 import { config as appConfig } from "../config";
 import { tokenRefreshService } from "../services/token-refresh.service";
 import type { PropertyData, ScraperConfig } from "../types";
 import { suppressBrowserConsoleWarnings } from "../utils/browser-console-suppression";
 import { scrapeDOMFallback } from "./fallback/dom-scraper";
+import logger from "./logger";
 
 interface TCADApiResponse {
 	totalCount: number;
@@ -23,16 +23,6 @@ interface TCADPropertyResult {
 	geoID?: string;
 	legalDescription?: string;
 }
-
-const logger = winston.createLogger({
-	level: appConfig.logging.level,
-	format: winston.format.json(),
-	transports: [
-		new winston.transports.Console({
-			format: winston.format.simple(),
-		}),
-	],
-});
 
 export class TCADScraper {
 	private browser: Browser | null = null;
@@ -112,7 +102,7 @@ export class TCADScraper {
 			this.browser = await chromium.launch(launchOptions);
 			logger.info("Browser initialized successfully");
 		} catch (error) {
-			logger.error("Failed to initialize browser:", error);
+			logger.error("Failed to initialize browser: %s", error instanceof Error ? error.message : String(error));
 			throw error;
 		}
 	}
@@ -454,7 +444,7 @@ export class TCADScraper {
 				}
 			} catch (error) {
 				lastError = error as Error;
-				logger.error(`API scraping attempt ${attempt} failed:`, error);
+				logger.error(`API scraping attempt ${attempt} failed: %s`, error instanceof Error ? error.message : String(error));
 
 				if (attempt < maxRetries) {
 					const delay = this.config.retryDelay * 2 ** (attempt - 1);
@@ -485,19 +475,19 @@ export class TCADScraper {
 		logger.info(`Starting scrape for: ${searchTerm}`);
 
 		try {
-			logger.info("🚀 Attempting primary method: API-based scraping");
+			logger.info("Attempting primary method: API-based scraping");
 			const properties = await this.scrapePropertiesViaAPI(
 				searchTerm,
 				maxRetries,
 			);
 			logger.info(
-				`✅ Primary method succeeded: Retrieved ${properties.length} properties`,
+				`Primary method succeeded: Retrieved ${properties.length} properties`,
 			);
 			return properties;
 		} catch (apiError) {
-			logger.error("❌ Primary API method failed after all retries:", apiError);
+			logger.error("Primary API method failed after all retries: %s", apiError instanceof Error ? apiError.message : String(apiError));
 			logger.warn(
-				"🔄 Falling back to DOM-based scraping (limited to 20 results)",
+				"Falling back to DOM-based scraping (limited to 20 results)",
 			);
 
 			try {
@@ -508,11 +498,11 @@ export class TCADScraper {
 					maxRetries,
 				);
 				logger.info(
-					`✅ Fallback method succeeded: Retrieved ${properties.length} properties (max 20)`,
+					`Fallback method succeeded: Retrieved ${properties.length} properties (max 20)`,
 				);
 				return properties;
 			} catch (fallbackError) {
-				logger.error("❌ Fallback method also failed:", fallbackError);
+				logger.error("Fallback method also failed: %s", fallbackError instanceof Error ? fallbackError.message : String(fallbackError));
 				throw new Error(
 					`Both scraping methods failed. API error: ${(apiError as Error).message}. ` +
 						`Fallback error: ${(fallbackError as Error).message}`,
@@ -554,7 +544,7 @@ export class TCADScraper {
 			await context.close();
 			return response?.status() === 200;
 		} catch (error) {
-			logger.error("Connection test failed:", error);
+			logger.error("Connection test failed: %s", error instanceof Error ? error.message : String(error));
 			return false;
 		} finally {
 			await this.cleanup();

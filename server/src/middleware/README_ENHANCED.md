@@ -5,7 +5,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareSourceCode",
   "name": "middleware",
-  "description": "Directory containing 4 code files with 1 classes and 11 functions",
+  "description": "Directory containing 4 code files with 1 classes and 10 functions",
   "programmingLanguage": [
     {
       "@type": "ComputerLanguage",
@@ -14,7 +14,7 @@
   ],
   "featureList": [
     "1 class definitions",
-    "11 function definitions"
+    "10 function definitions"
   ]
 }
 </script>
@@ -35,8 +35,7 @@ This directory contains 4 code file(s) with extracted schemas.
 ### `error.middleware.ts` (typescript)
 
 **Functions:**
-- `asyncHandler()` - Line 6
-- `notFoundHandler()` - Line 58
+- `notFoundHandler()` - Line 70
 
 ### `validation.middleware.ts` (typescript)
 

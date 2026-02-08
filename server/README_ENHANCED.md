@@ -5,7 +5,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareSourceCode",
   "name": "server",
-  "description": "Directory containing 2 code files with 0 classes and 3 functions",
+  "description": "Directory containing 2 code files with 0 classes and 7 functions",
   "programmingLanguage": [
     {
       "@type": "ComputerLanguage",
@@ -17,7 +17,7 @@
     }
   ],
   "featureList": [
-    "3 function definitions"
+    "7 function definitions"
   ]
 }
 </script>
@@ -31,8 +31,12 @@ This directory contains 2 code file(s) with extracted schemas.
 ### `batch-migrate.py` (python)
 
 **Functions:**
-- `migrate_file(filepath) -> bool` - Line 9
-- `main() -> Constant(value=None, kind=None)` - Line 80
+- `_apply_console_replacements(content) -> str` - Line 40
+- `_get_logger_import_for_path(filepath) -> str` - Line 48
+- `_find_last_import_index(lines) -> int` - Line 56
+- `_insert_import(lines, logger_import, last_import_idx) -> list[...]` - Line 65
+- `migrate_file(filepath) -> bool` - Line 78
+- `main() -> <ast.Constant object at 0x109008610>` - Line 114
 
 **Key Imports:** `os`, `re`, `sys`
 

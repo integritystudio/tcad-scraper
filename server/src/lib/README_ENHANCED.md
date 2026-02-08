@@ -45,7 +45,7 @@ This directory contains 7 code file(s) with extracted schemas.
 ### `redis-cache.service.ts` (typescript)
 
 **Classes:**
-- `RedisCacheService` - Line 30
+- `RedisCacheService` - Line 14
 
 ### `search-term-deduplicator.ts` (typescript)
 

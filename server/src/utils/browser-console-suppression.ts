@@ -14,7 +14,14 @@
  */
 
 import type { Page } from "playwright";
-import type winston from "winston";
+
+/**
+ * Minimal logger interface for browser console suppression.
+ * Accepts any logger with a debug method (Pino, Winston, etc.)
+ */
+interface ConsoleLogger {
+	debug(message: string): void;
+}
 
 /**
  * Patterns to suppress in browser console messages
@@ -41,7 +48,7 @@ function shouldSuppressMessage(text: string): boolean {
  * 3. Prevent browser page errors from cluttering application logs
  *
  * @param page - Playwright Page instance
- * @param logger - Optional Winston logger instance for debug logging
+ * @param logger - Optional logger instance for debug logging
  *
  * @example
  * ```typescript
@@ -51,7 +58,7 @@ function shouldSuppressMessage(text: string): boolean {
  */
 export function suppressBrowserConsoleWarnings(
 	page: Page,
-	logger?: winston.Logger,
+	logger?: ConsoleLogger,
 ): void {
 	// Suppress browser console messages
 	page.on("console", (msg) => {
