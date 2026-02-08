@@ -24,13 +24,6 @@ Items remaining after the mock cleanup session (2026-02-06). See `TECHNICAL_DEBT
 **Fix**: Replace with Pino logger in scripts; remove from tests (LOG_LEVEL=silent suppresses Pino)
 
 ---
-
-## ~~TD-3: Deprecated Sentry `startTransaction` Wrapper~~ (Resolved 2026-02-06)
-
-Replaced deprecated `startTransaction()` with typed `startSpan<T>()` wrapper in `sentry.service.ts`.
-
----
-
 ## TD-5: 27 Skipped API Integration Tests
 
 **File**: `server/src/__tests__/api.test.ts`
@@ -40,18 +33,6 @@ Replaced deprecated `startTransaction()` with typed `startSpan<T>()` wrapper in 
 **Fix**: Move to integration test suite or add testcontainers setup
 
 **Priority**: Medium - these test real API endpoints but need infrastructure
-
----
-
-## ~~TD-6: No Lint Script~~ (Resolved 2026-02-06)
-
-Added `"lint": "biome check ."` to root `package.json`. Project uses Biome, not ESLint.
-
----
-
-## ~~TD-7: 3 `.bind() as any` in property.routes.ts~~ (Resolved 2026-02-06)
-
-Made `asyncHandler` generic in `error.middleware.ts` so `.bind()` infers controller types without `as any`. Removed all 3 casts and eslint-disable comments.
 
 ---
 
@@ -71,43 +52,16 @@ Made `asyncHandler` generic in `error.middleware.ts` so `.bind()` infers control
 
 **Priority**: Low - tests only, no production impact
 
----
-
-## TD-9: Remaining Config Mocks in 2 Test Files
-
-**Files**:
-- `src/lib/__tests__/tcad-scraper.test.ts` - mocks `../../config` + `winston`
-- `src/lib/__tests__/claude.service.json-parsing.test.ts` - mocks `../../config`
-
-**Problem**: These test files still use `vi.mock("../../config")` instead of relying on real config from setup.ts env vars. `tcad-scraper.test.ts` also still mocks Winston directly.
-
-**Fix**: Same pattern as other files - remove config mock, use real config from env vars set in setup.ts. Migrate source file if it still uses Winston.
-
-**Priority**: Low - tests pass, no functional impact
 
 ---
 
-## TD-10: Root `vite.config.ts` Was Running Server Tests with Wrong Setup
-
-**File**: `vite.config.ts` (project root)
-
-**Problem**: Root vitest config previously included `server/src/**/*.test.ts` but used the frontend setup file (`src/setupTests.ts`) and `jsdom` environment. Server tests need `server/src/__tests__/setup.ts` and `node` environment. This was masked when tests mocked the config module directly.
-
-**Status**: Fixed (2026-02-06) - Removed server test includes from root config. Server tests run via `cd server && npm test`.
-
-**Note**: Run server tests from the `server/` directory, not the project root:
-```bash
-cd server && npm test        # Server: 560 tests
-cd .. && npx vitest run      # Frontend: 128 tests
-```
-
----
-
-## Completed Items (2026-02-06)
+## Completed Items
 
 - **TD-3**: Replaced deprecated `startTransaction` with typed `startSpan<T>()` wrapper
 - **TD-6**: Added `npm run lint` script using Biome
 - **TD-7**: Made `asyncHandler` generic, eliminated 3 `as any` casts in property routes
+- **TD-9**: Remove config mock, use real values from setup.ts
+- **TD-10: Removed server tests includes from root config.
 - **Redis cache tests**: 40 tests re-enabled (was `describe.skip`)
 - **Config mocks**: Removed from 5 test files (auth, claude, scraper.queue, xcontroller, token-refresh)
 - **Winston mocks**: Removed from 3 test files (scheduler, scraper.queue, token-refresh)
