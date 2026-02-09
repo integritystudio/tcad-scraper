@@ -1,8 +1,11 @@
-import { type Browser, chromium, type LaunchOptions } from "playwright";
+import type { Browser } from "playwright";
 import { config as appConfig } from "../config";
 import { tokenRefreshService } from "../services/token-refresh.service";
 import type { PropertyData, ScraperConfig } from "../types";
 import { suppressBrowserConsoleWarnings } from "../utils/browser-console-suppression";
+import { getErrorMessage } from "../utils/error-helpers";
+import { humanDelay } from "../utils/timing";
+import { launchTCADBrowser } from "./browser-factory";
 import { scrapeDOMFallback } from "./fallback/dom-scraper";
 import logger from "./logger";
 
@@ -76,47 +79,25 @@ export class TCADScraper {
 				`Initializing browser${proxyEnabled ? " with Bright Data proxy" : ""}...`,
 			);
 
-			const launchOptions: LaunchOptions = {
-				headless: this.config.headless,
-				executablePath:
-					process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-				args: [
-					"--disable-blink-features=AutomationControlled",
-					"--disable-web-security",
-					"--disable-features=IsolateOrigins,site-per-process",
-					"--no-sandbox",
-					"--disable-setuid-sandbox",
-				],
-			};
+			const proxyOptions = this.config.proxyServer
+				? {
+						proxy: {
+							server: this.config.proxyServer,
+							username: this.config.proxyUsername,
+							password: this.config.proxyPassword,
+						},
+					}
+				: undefined;
 
-			// Add proxy configuration if available
-			if (this.config.proxyServer) {
-				launchOptions.proxy = {
-					server: this.config.proxyServer,
-					username: this.config.proxyUsername,
-					password: this.config.proxyPassword,
-				};
-				logger.info(`Using proxy: ${this.config.proxyServer}`);
-			}
-
-			this.browser = await chromium.launch(launchOptions);
-			logger.info("Browser initialized successfully");
+			this.browser = await launchTCADBrowser(proxyOptions);
 		} catch (error) {
-			logger.error("Failed to initialize browser: %s", error instanceof Error ? error.message : String(error));
+			logger.error("Failed to initialize browser: %s", getErrorMessage(error));
 			throw error;
 		}
 	}
 
 	private getRandomElement<T>(array: T[]): T {
 		return array[Math.floor(Math.random() * array.length)];
-	}
-
-	private async humanDelay(
-		min: number = appConfig.scraper.humanDelay.min,
-		max: number = appConfig.scraper.humanDelay.max,
-	): Promise<void> {
-		const delay = Math.floor(Math.random() * (max - min) + min);
-		await new Promise((resolve) => setTimeout(resolve, delay));
 	}
 
 	/**
@@ -227,10 +208,10 @@ export class TCADScraper {
 
 						// Trigger a search to activate auth token
 						await page.waitForSelector("#searchInput", { timeout: 10000 });
-						await this.humanDelay(500, 1000);
+						await humanDelay(500, 1000);
 						await page.type("#searchInput", "test", { delay: 50 });
 						await page.press("#searchInput", "Enter");
-						await this.humanDelay(3000, 4000); // Wait for API request to be made
+						await humanDelay(3000, 4000); // Wait for API request to be made
 
 						if (!authToken) {
 							throw new Error("Failed to capture authorization token");
@@ -444,7 +425,7 @@ export class TCADScraper {
 				}
 			} catch (error) {
 				lastError = error as Error;
-				logger.error(`API scraping attempt ${attempt} failed: %s`, error instanceof Error ? error.message : String(error));
+				logger.error(`API scraping attempt ${attempt} failed: %s`, getErrorMessage(error));
 
 				if (attempt < maxRetries) {
 					const delay = this.config.retryDelay * 2 ** (attempt - 1);
@@ -544,7 +525,7 @@ export class TCADScraper {
 			await context.close();
 			return response?.status() === 200;
 		} catch (error) {
-			logger.error("Connection test failed: %s", error instanceof Error ? error.message : String(error));
+			logger.error("Connection test failed: %s", getErrorMessage(error));
 			return false;
 		} finally {
 			await this.cleanup();

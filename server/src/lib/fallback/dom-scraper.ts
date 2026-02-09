@@ -23,31 +23,11 @@
  */
 
 import type { Browser, Page } from "playwright";
-import winston from "winston";
-import { config as appConfig } from "../../config";
 import type { PropertyData, ScraperConfig } from "../../types";
 import { suppressBrowserConsoleWarnings } from "../../utils/browser-console-suppression";
-
-const logger = winston.createLogger({
-	level: appConfig.logging.level,
-	format: winston.format.json(),
-	transports: [
-		new winston.transports.Console({
-			format: winston.format.simple(),
-		}),
-	],
-});
-
-/**
- * Human-like delay between actions
- */
-async function humanDelay(
-	min: number = appConfig.scraper.humanDelay.min,
-	max: number = appConfig.scraper.humanDelay.max,
-): Promise<void> {
-	const delay = Math.floor(Math.random() * (max - min) + min);
-	await new Promise((resolve) => setTimeout(resolve, delay));
-}
+import { getErrorMessage } from "../../utils/error-helpers";
+import { humanDelay } from "../../utils/timing";
+import logger from "../logger";
 
 /**
  * Scrape property details from individual property page
@@ -157,8 +137,8 @@ async function scrapePropertyDetail(
 		};
 	} catch (error) {
 		logger.error(
-			`Error scraping detail page for property ${propertyId}:`,
-			error,
+			`Error scraping detail page for property ${propertyId}: %s`,
+			getErrorMessage(error),
 		);
 		return null;
 	}
@@ -266,7 +246,7 @@ export async function scrapeDOMFallback(
 				});
 
 				if (hasNoResults) {
-					logger.info("No results found for search term:", searchTerm);
+					logger.info(`No results found for search term: ${searchTerm}`);
 					await context.close();
 					return [];
 				}
@@ -320,7 +300,7 @@ export async function scrapeDOMFallback(
 
 						await humanDelay(500, 1000);
 					} catch (error) {
-						logger.error(`Failed to scrape property ${propertyId}:`, error);
+						logger.error(`Failed to scrape property ${propertyId}: %s`, getErrorMessage(error));
 						failCount++;
 					}
 				}
@@ -339,7 +319,7 @@ export async function scrapeDOMFallback(
 			}
 		} catch (error) {
 			lastError = error as Error;
-			logger.error(`DOM fallback attempt ${attempt} failed:`, error);
+			logger.error(`DOM fallback attempt ${attempt} failed: %s`, getErrorMessage(error));
 
 			if (attempt < maxRetries) {
 				const delay = config.retryDelay * 2 ** (attempt - 1);

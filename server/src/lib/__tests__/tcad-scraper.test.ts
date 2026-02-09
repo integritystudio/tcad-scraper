@@ -159,7 +159,7 @@ describe("TCADScraper", () => {
 			});
 		});
 
-		describe("humanDelay", () => {
+		describe("humanDelay (standalone utility)", () => {
 			beforeEach(() => {
 				vi.useFakeTimers();
 			});
@@ -169,24 +169,22 @@ describe("TCADScraper", () => {
 			});
 
 			it("should delay within specified range", async () => {
-				const scraperPrivate = scraper as unknown as Record<string, (...args: unknown[]) => unknown>;
+				const { humanDelay } = await import("../../utils/timing");
 
-				const delayPromise = scraperPrivate.humanDelay(100, 200);
+				const delayPromise = humanDelay(100, 200);
 
-				// Run all pending timers
 				await vi.runAllTimersAsync();
 
 				await delayPromise;
 
-				expect(true).toBe(true); // If we got here, delay worked
+				expect(true).toBe(true);
 			});
 
 			it("should use default config values when not specified", async () => {
-				const scraperPrivate = scraper as unknown as Record<string, (...args: unknown[]) => unknown>;
+				const { humanDelay } = await import("../../utils/timing");
 
-				const delayPromise = scraperPrivate.humanDelay();
+				const delayPromise = humanDelay();
 
-				// Run all pending timers (config uses 500-2000ms)
 				await vi.runAllTimersAsync();
 
 				await delayPromise;

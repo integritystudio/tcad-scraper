@@ -12,9 +12,11 @@
  */
 
 import cron from "node-cron";
-import { type Browser, chromium } from "playwright";
+import type { Browser } from "playwright";
 import { config } from "../config";
+import { launchTCADBrowser } from "../lib/browser-factory";
 import logger from "../lib/logger";
+import { getErrorMessage } from "../utils/error-helpers";
 
 export class TCADTokenRefreshService {
 	private currentToken: string | null = null;
@@ -102,7 +104,7 @@ export class TCADTokenRefreshService {
 			this.failureCount++;
 			const duration = Date.now() - startTime;
 			const errorMessage =
-				error instanceof Error ? error.message : String(error);
+				getErrorMessage(error);
 			logger.error(
 				`Token refresh failed after ${duration}ms (failure #${this.failureCount}): ${errorMessage}`,
 			);
@@ -129,19 +131,7 @@ export class TCADTokenRefreshService {
 		// Initialize browser if needed
 		if (!this.browser) {
 			logger.info("Initializing browser for token refresh...");
-			this.browser = await chromium.launch({
-				headless: config.scraper.headless,
-				executablePath:
-					process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-				args: [
-					"--disable-blink-features=AutomationControlled",
-					"--disable-web-security",
-					"--disable-features=IsolateOrigins,site-per-process",
-					"--no-sandbox",
-					"--disable-setuid-sandbox",
-				],
-			});
-			logger.info("Browser initialized for token refresh");
+			this.browser = await launchTCADBrowser();
 		}
 
 		const context = await this.browser.newContext({
@@ -375,7 +365,7 @@ export class TCADTokenRefreshService {
 
 		// Perform initial refresh
 		this.refreshToken().catch((error: unknown) => {
-			logger.error("Initial token refresh failed: %s", error instanceof Error ? error.message : String(error));
+			logger.error("Initial token refresh failed: %s", getErrorMessage(error));
 		});
 
 		// Schedule recurring refreshes
@@ -403,7 +393,7 @@ export class TCADTokenRefreshService {
 
 		// Perform initial refresh
 		this.refreshToken().catch((error: unknown) => {
-			logger.error("Initial token refresh failed: %s", error instanceof Error ? error.message : String(error));
+			logger.error("Initial token refresh failed: %s", getErrorMessage(error));
 		});
 
 		// Schedule recurring refreshes with slight randomization
