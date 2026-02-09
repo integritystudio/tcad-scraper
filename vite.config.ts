@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-	base: process.env.GITHUB_ACTIONS ? "/tcad-scraper/" : "/",
+	base: "/",
 	plugins: [react()],
 	server: {
 		// Use FRONTEND_PORT environment variable with fallback to 3002

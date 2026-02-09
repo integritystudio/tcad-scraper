@@ -146,6 +146,6 @@ curl -s "https://api.alephatx.info/health" | jq
 | Frontend (local) | http://localhost:5174 |
 | Backend (local) | http://localhost:3000 |
 | Bull Dashboard | http://localhost:3000/admin/queues |
-| Frontend (prod) | https://www.aledlie.com/tcad-scraper/ |
+| Frontend (prod) | https://alephatx.info |
 | API (prod) | https://api.alephatx.info/api |
 | Health (prod) | https://api.alephatx.info/health |
