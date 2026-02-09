@@ -86,6 +86,15 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 
 ---
 
+## Git Commands
+
+**Always use absolute paths or run from repo root.** Tests run from `server/`, so `git add server/src/...` breaks (resolves to `server/server/src/...`). Use:
+```bash
+git -C /Users/alyshialedlie/code/ISPublicSites/tcad-scraper add server/src/file.ts
+```
+
+---
+
 ## Common Commands
 
 ### Development
