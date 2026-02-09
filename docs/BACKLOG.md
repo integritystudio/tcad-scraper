@@ -1,17 +1,13 @@
 # Backlog - Remaining Technical Debt
 
 **Last Updated**: 2026-02-09
-**Status**: 603 tests passing, 0 skipped, 0 failed | TypeScript clean | Lint clean
+**Status**: 607 tests passing, 0 skipped, 0 failed | TypeScript clean | Lint clean
 
 ---
 
 ## Open Items
 
-### TD-37: Add batch term uniqueness validation script
-- **Priority**: LOW
-- **Source**: Code review (Feb 9, 2026)
-- **Issue**: No automated check prevents duplicate search terms from being re-introduced across batch configs. A simple script that reads `BATCH_CONFIGS` and reports duplicates would catch regressions before they reach production.
-- **Files**: `server/src/scripts/utils/validate-batch-terms.ts` (new)
+(none)
 
 ---
 
@@ -54,3 +50,5 @@ All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026
 - TD-36: Expanded logger mocks in property-transformers and timing tests (trace → all levels)
 - Fixed QUICK-START.md stale "10 batch types" → 14
 - Updated ENQUEUE_SCRIPTS_README.md term counts after deduplication (124 → 120 jobs)
+- Replaced hardcoded pYear 2025 with configurable `TCAD_YEAR` (env var, default: current year)
+- TD-37: Added batch-configs unit tests (cross-batch duplicate detection, intra-batch duplicates, empty terms, getAvailableBatchTypes)
