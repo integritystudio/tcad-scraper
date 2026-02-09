@@ -17,6 +17,7 @@ export interface SnakeCaseProperty {
   geo_id: string | null;
   description: string | null;
   search_term: string | null;
+  year: number;
   scraped_at: string;
   created_at: string;
   updated_at: string;
@@ -35,6 +36,7 @@ export function transformPropertyToSnakeCase(prop: Property): SnakeCaseProperty 
     geo_id: prop.geoId,
     description: prop.description,
     search_term: prop.searchTerm,
+    year: prop.year,
     scraped_at: prop.scrapedAt.toISOString(),
     created_at: prop.createdAt.toISOString(),
     updated_at: prop.updatedAt.toISOString(),

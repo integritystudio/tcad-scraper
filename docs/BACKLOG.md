@@ -7,13 +7,6 @@
 
 ## Open Items
 
-### TD-18: Missing `year` field in property transformer (PRE-EXISTING BUG)
-- **Priority**: HIGH
-- **Source**: DRY-4 code review
-- **Issue**: `transformPropertyToSnakeCase()` and original inline mappings omit the `year` field from Prisma `Property` model. Frontend never receives `year` data.
-- **Files**: `server/src/utils/property-transformers.ts`, `server/src/controllers/property.controller.ts`
-- **Fix**: Add `year: number` to `SnakeCaseProperty` interface and `year: prop.year` to transform function
-
 ### TD-19: Consolidate remaining non-standard enqueue scripts
 - **Priority**: LOW
 - **Source**: DRY-1 review
@@ -50,3 +43,4 @@ All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026
 - DRY-3: Extracted `launchTCADBrowser()` browser factory
 - DRY-4: Extracted `transformPropertyToSnakeCase()` utility
 - DRY-5: Extracted `humanDelay()` to shared timing utility
+- TD-18: Fixed missing `year` field in property transformer

@@ -162,6 +162,7 @@ describe("Property Routes - Claude Search", () => {
 					geoId: "GEO001",
 					description: "Nice house",
 					searchTerm: "Austin",
+					year: 2025,
 					scrapedAt: new Date(),
 					createdAt: new Date(),
 					updatedAt: new Date(),
