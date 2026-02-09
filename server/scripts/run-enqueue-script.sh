@@ -1,11 +1,12 @@
 #!/bin/bash
 #
 # Docker + Doppler Enqueue Script Runner
-# Runs enqueue scripts using Docker with Doppler authentication
-# Ensures auto-refreshed API tokens are used
+# Runs a batch enqueue using the unified enqueue-batch.ts script
 #
-# Usage: ./run-enqueue-script.sh <script-name>
-# Example: ./run-enqueue-script.sh enqueue-trust-batch
+# Usage: ./run-enqueue-script.sh <batch-type>
+# Example: ./run-enqueue-script.sh trust
+#
+# For a list of available types: ./run-enqueue-script.sh --list
 #
 
 set -e
@@ -13,104 +14,35 @@ set -e
 # Change to server directory (parent of scripts/)
 cd "$(dirname "$0")/.."
 
-# Color codes for output
+# Color codes
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Script name (without .ts extension)
-SCRIPT_NAME=$1
+BATCH_TYPE=$1
 
-if [ -z "$SCRIPT_NAME" ]; then
-  echo -e "${RED}❌ Error: No script name provided${NC}"
+if [ -z "$BATCH_TYPE" ]; then
+  echo -e "${RED}Error: No batch type provided${NC}"
   echo ""
-  echo "Usage: ./run-enqueue-script.sh <script-name>"
+  echo "Usage: ./run-enqueue-script.sh <batch-type>"
   echo ""
-  echo "Available scripts:"
-  echo "  - enqueue-residential-batch"
-  echo "  - enqueue-commercial-batch"
-  echo "  - enqueue-trust-batch"
-  echo "  - enqueue-llc-batch"
-  echo "  - enqueue-corporation-batch"
-  echo "  - enqueue-partnership-batch"
-  echo "  - enqueue-property-type-batch"
-  echo "  - enqueue-investment-batch"
-  echo "  - enqueue-construction-batch"
-  echo "  - enqueue-foundation-batch"
+  doppler run -- npx tsx "./src/scripts/enqueue-batch.ts" --list
   exit 1
 fi
 
 echo -e "${BLUE}╔══════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║  Docker + Doppler Enqueue Script Runner                ║${NC}"
+echo -e "${BLUE}║  Enqueue Script Runner                                 ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Check if doppler is installed
-if ! command -v doppler &> /dev/null; then
-  echo -e "${RED}❌ Doppler CLI not found. Please install it first.${NC}"
-  echo "Visit: https://docs.doppler.com/docs/install-cli"
-  exit 1
-fi
-
 # Check if doppler is configured
 if ! doppler setup --silent 2>/dev/null; then
-  echo -e "${YELLOW}⚠️  Doppler not configured. Setting up...${NC}"
-  echo ""
-  echo -e "${BLUE}Please authenticate with Doppler:${NC}"
-  doppler login
-  echo ""
-  echo -e "${BLUE}Please select your project and config:${NC}"
-  doppler setup
-fi
-
-echo -e "${GREEN}✓ Doppler configured${NC}"
-echo ""
-
-# Check if script file exists
-SCRIPT_PATH="./src/scripts/${SCRIPT_NAME}.ts"
-if [ ! -f "$SCRIPT_PATH" ]; then
-  echo -e "${RED}❌ Script not found: ${SCRIPT_PATH}${NC}"
+  echo -e "${RED}Doppler not configured. Run 'doppler setup' first.${NC}"
   exit 1
 fi
 
-echo -e "${GREEN}✓ Script found: ${SCRIPT_NAME}${NC}"
-echo ""
-
-# Check if Docker containers are running
-if ! docker ps | grep -q "tcad-worker"; then
-  echo -e "${YELLOW}⚠️  TCAD worker container not running${NC}"
-  echo -e "${BLUE}Starting Docker Compose services...${NC}"
-  cd .. && docker compose up -d
-  cd server
-  echo ""
-  echo -e "${GREEN}✓ Services started${NC}"
-  echo -e "${YELLOW}⏳ Waiting 10 seconds for services to initialize...${NC}"
-  sleep 10
-fi
-
-echo -e "${GREEN}✓ Docker services running${NC}"
-echo ""
-
-# Run the script using doppler and tsx
-echo -e "${BLUE}📝 Running script: ${SCRIPT_NAME}${NC}"
-echo -e "${BLUE}─────────────────────────────────────────────────────────${NC}"
-echo ""
-
-# Execute with doppler run to inject secrets
-doppler run -- npx tsx "${SCRIPT_PATH}"
-
-EXIT_CODE=$?
+doppler run -- npx tsx "./src/scripts/enqueue-batch.ts" "$BATCH_TYPE"
 
 echo ""
-echo -e "${BLUE}─────────────────────────────────────────────────────────${NC}"
-
-if [ $EXIT_CODE -eq 0 ]; then
-  echo -e "${GREEN}✅ Script completed successfully!${NC}"
-  echo ""
-  echo -e "${BLUE}📊 Monitor jobs at: http://localhost:5050/admin/queues${NC}"
-else
-  echo -e "${RED}❌ Script failed with exit code: ${EXIT_CODE}${NC}"
-  exit $EXIT_CODE
-fi
+echo -e "${GREEN}Done!${NC}"

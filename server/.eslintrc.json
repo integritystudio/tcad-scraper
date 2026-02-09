@@ -36,7 +36,8 @@
 			"files": [
 				"src/scripts/analyze-search-terms.ts",
 				"src/scripts/migrate-to-logger.ts",
-				"src/scripts/get-fresh-token.ts"
+				"src/scripts/get-fresh-token.ts",
+				"src/scripts/enqueue-batch.ts"
 			],
 			"rules": {
 				"no-console": "off"
