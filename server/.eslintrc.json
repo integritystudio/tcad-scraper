@@ -29,7 +29,7 @@
 				"jest": true
 			},
 			"rules": {
-				"no-console": "off"
+				"no-console": "warn"
 			}
 		}
 	]
