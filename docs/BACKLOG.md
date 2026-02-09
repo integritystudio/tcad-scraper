@@ -24,21 +24,25 @@ Both are library-imposed limitations. No action needed unless library types impr
 
 Scripts intentionally use console for CLI/stdout output. No change needed.
 
-### TD-13: `api.test.ts` Types Use `unknown` for Dynamic Imports
-**Priority**: Low | **File**: `server/src/__tests__/api.test.ts`
+### TD-16: `require()` in `test-utils.ts`
+**Priority**: Low | **File**: `server/src/__tests__/test-utils.ts:149,151`
 
-`app` and `prisma` variables are typed as `unknown` since they're dynamically imported in `beforeAll`. Methods like `prisma.property.deleteMany()` rely on runtime types. Could use `typeof import(...)` patterns to type them properly.
+`isFrontendBuilt()` uses CommonJS `require("node:fs")` and `require("node:path")` instead of ES module imports. Should use top-level `import` statements to match project conventions.
 
-### TD-14: ESLint Rule to Prevent `console.*` in Test Files
-**Priority**: Low | **Scope**: Biome/ESLint config
+### TD-17: Stale Jest References in `TESTING.md`
+**Priority**: Low | **File**: `docs/TESTING.md`
 
-Add a lint rule scoped to `**/*.test.ts` that warns on `console.*` usage, preventing regressions after TD-2 cleanup.
-
-### TD-15: Document Test Type Patterns for Contributors
-**Priority**: Low | **Scope**: Developer docs
-
-Document the type replacement patterns used in TD-8 (`Record<string, unknown>`, `Pick<Type, "key">`, `unknown as TypeCast`, `Record<string, ReturnType<typeof vi.fn>>`) so future contributors follow the same conventions.
+Several sections still reference Jest instead of Vitest (project migrated to Vitest):
+- VS Code debug config references `jest` binary (line 240-241)
+- Import example uses `@jest/globals` (line 253)
+- Resources section links to Jest docs (line 424)
 
 ---
 
-*Completed items migrated to `docs/CHANGELOG.md` (February 8, 2026 entry).*
+## Completed (February 8, 2026)
+
+- **TD-13**: Typed `api.test.ts` dynamic imports with `Express` and `PrismaClient` (`36f4450`)
+- **TD-14**: ESLint `no-console` set to `"warn"` in test file overrides (`34783b6`)
+- **TD-15**: Type-safe test patterns documented in `docs/TESTING.md` (`b0c2f44`)
+
+*Earlier completed items in `docs/CHANGELOG.md` (February 8, 2026 entry).*
