@@ -68,7 +68,7 @@ The application supports two scraping methods:
 - **Playwright-based Automation**: Headless browser with anti-detection features
 - **Docker Compose**: Orchestration for Redis, Prometheus, and BullMQ metrics
 - **Doppler Integration**: Secure secrets management for environment variables
-- **Winston Logging**: Structured logging for debugging and monitoring
+- **Pino Logging**: Structured JSON logging for debugging and monitoring
 - **Prometheus Metrics**: Queue performance and system metrics collection
 
 ## Technology Stack
@@ -106,7 +106,7 @@ The application supports two scraping methods:
 
 ### Deployment Environment
 - **Ubuntu Linux** (remote server)
-- **Systemd** for process management
+- **PM2** for process management
 - **Tailscale** for secure remote access
 
 ## Architecture
@@ -203,14 +203,21 @@ tcad-scraper/
 │   │   │   └── scrape-scheduler.ts  # Cron job scheduler
 │   │   ├── scripts/
 │   │   │   ├── continuous-batch-scraper.ts  # Main production scraper
+│   │   │   ├── enqueue-batch.ts             # Config-driven batch enqueue runner
+│   │   │   ├── config/
+│   │   │   │   └── batch-configs.ts         # Batch type definitions (14 configs)
 │   │   │   ├── batch-scrape.ts              # Manual batch scraping
-│   │   │   ├── worker.ts                     # BullMQ worker process
-│   │   │   └── test-*.ts                     # Various test scripts
+│   │   │   ├── worker.ts                    # BullMQ worker process
+│   │   │   └── test-*.ts                    # Various test scripts
+│   │   ├── utils/
+│   │   │   ├── error-helpers.ts             # getErrorMessage() utility
+│   │   │   ├── property-transformers.ts     # transformPropertyToSnakeCase()
+│   │   │   ├── timing.ts                    # humanDelay() shared timing
+│   │   │   ├── browser-console-suppression.ts
+│   │   │   ├── deduplication.ts
+│   │   │   └── json-ld.utils.ts
 │   │   └── types/
 │   │       └── index.ts             # TypeScript type definitions
-│   ├── jest_test/                   # Jest test configuration
-│   │   ├── jest.config.js           # Unit test configuration
-│   │   └── jest.integration.config.js # Integration test configuration
 │   ├── prisma/
 │   │   └── schema.prisma            # Database schema
 │   ├── logs/                        # Application logs
@@ -222,10 +229,6 @@ tcad-scraper/
 │   ├── components/                  # React components
 │   ├── types/                       # Frontend type definitions
 │   └── main.tsx                     # React entry point
-├── jest_test/                       # Jest test configuration (root)
-│   ├── jest.setup.js                # Jest setup file
-│   ├── jest.config.cjs              # Jest config for server tests from root
-│   └── jest.client.config.js        # Jest config for client tests
 ├── docs/                            # Documentation
 │   ├── MODERNIZATION_REPORT.md      # Architecture modernization guide
 │   ├── DATABASE.md                  # Database documentation
@@ -312,13 +315,11 @@ model MonitoredSearch {
 }
 ```
 
-**Database Statistics** (on November 7, 2025):
-- Properties: 105,000+ unique records (growing at ~3,000/minute)
-- Scrape Jobs: 770+ operations logged
-- Success Rate: ~23% (175 completed / 773 total)
-- Average Results: 398 properties per successful scrape
+**Database Statistics** (as of February 2026):
+- Properties: 418,000+ unique records
+- Scraping Rate: ~42,000 properties/hour (API method)
+- Success Rate: ~80%
 - Peak Single Scrape: 6,174 properties ("Ridge")
-- Scraping Rate: ~180,000 properties/hour sustained
 
 ## Getting Started
 
@@ -768,7 +769,8 @@ npm run scrape:batch:comprehensive # Comprehensive scraping
 npm run prisma:generate            # Generate Prisma client
 npm run prisma:migrate             # Run database migrations
 npm run prisma:studio              # Open Prisma Studio
-npm test                           # Run tests
+npm test                           # Run unit tests (Vitest, 617 tests)
+npm run test:integration           # Run integration tests (Tailscale required)
 npm run lint                       # Run ESLint
 ```
 
@@ -1240,19 +1242,9 @@ Long-running scraper processes can accumulate memory. Recommended:
 
 ## Recent Updates
 
-### November 8, 2025 - PropertyCard UI Enhancement 🎉
-- ✨ **Major Frontend Update**: Implemented expandable PropertyCard component with progressive disclosure pattern
-- 🎨 **29 New Components**: Added ExpandButton, PropertyDetails container, and 4 detail sections with 5 reusable utilities
-  - **Components**: ExpandButton, PropertyDetails, SectionHeader, ValueComparison, TruncatedText, TimestampList, FreshnessIndicator
-  - **Sections**: FinancialSection, IdentifiersSection, DescriptionSection, MetadataSection
-- 💰 **Financial Analysis**: Visual value comparison with color-coded difference indicators (🔺🔻) and percentage calculations
-- 📱 **Mobile Optimized**: Fully responsive design with breakpoints at 640px and 1024px
-- ♿ **Accessibility**: WCAG AA compliant with full keyboard navigation, screen reader support, and proper ARIA attributes
-- 🎭 **Smooth Animations**: 300ms expand/collapse transitions with graceful null value handling
-- 🟢 **Data Freshness**: Color-coded indicators (Fresh: 0-7 days 🟢, Aging: 7-30 days 🟡, Stale: 30+ days 🔴)
-- 📖 **Documentation**: Complete implementation guides (COMPONENT_IMPLEMENTATION_GUIDE.md, VISUAL_DESIGN_PLAN.md, VISUAL_WIREFRAMES.md)
+See [docs/CHANGELOG.md](docs/CHANGELOG.md) for complete version history.
 
-See [CHANGELOG.md](./CHANGELOG.md) for complete version history and detailed changes.
+**Latest** (February 9, 2026): All technical debt cleared (TD-2 through TD-40). 617 tests passing. DRY refactoring consolidated 10 enqueue scripts, extracted shared utilities, added configurable `TCAD_YEAR` and `QUEUE_BATCH_CHUNK_SIZE` env vars.
 
 ## Documentation
 
@@ -1260,38 +1252,25 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ### Primary Documentation
 - **[SETUP.md](docs/SETUP.md)** - Installation and setup guide
-- **[TESTING.md](docs/TESTING.md)** - Testing strategy and test execution
-- **[CLAUDE.md](docs/CLAUDE.md)** - AI assistant context and development guidelines
-- **[CODEBASE_ANALYSIS.md](CODEBASE_ANALYSIS.md)** - Code quality analysis and recommendations (ast-grep)
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete system architecture with diagrams
-- **[ANALYSIS_SUMMARY.md](ANALYSIS_SUMMARY.md)** - Analysis summary and completed improvements
+- **[TESTING.md](docs/TESTING.md)** - Testing strategy and test execution (Vitest)
+- **[CHANGELOG.md](docs/CHANGELOG.md)** - Version history and detailed changes
+- **[BACKLOG.md](docs/BACKLOG.md)** - Technical debt tracking (currently cleared)
 
 ### Frontend Documentation
-- **[PropertySearch Component Guide](src/components/features/PropertySearch/README.md)** ⭐ **NEW!** - Complete guide to PropertyCard expansion UI
-- **[COMPONENT_IMPLEMENTATION_GUIDE.md](COMPONENT_IMPLEMENTATION_GUIDE.md)** ⭐ **NEW!** - Component templates and implementation patterns
-- **[VISUAL_DESIGN_PLAN.md](VISUAL_DESIGN_PLAN.md)** ⭐ **NEW!** - Visual design system and UI patterns
-- **[VISUAL_WIREFRAMES.md](VISUAL_WIREFRAMES.md)** ⭐ **NEW!** - ASCII wireframes and interaction diagrams
+- **[PropertySearch Component Guide](src/components/features/PropertySearch/README.md)** - PropertyCard expansion UI
+- **[VISUAL_DESIGN_PLAN.md](docs/VISUAL_DESIGN_PLAN.md)** - Visual design system and UI patterns
+- **[VISUAL_WIREFRAMES.md](docs/VISUAL_WIREFRAMES.md)** - ASCII wireframes and interaction diagrams
 
 ### API & Monitoring
-- **[Swagger API Docs](http://localhost:3002/api-docs)** ⭐ **NEW!** - Interactive API documentation (when server is running)
-- **[PROMETHEUS_SETUP.md](server/PROMETHEUS_SETUP.md)** ⭐ **NEW!** - Prometheus monitoring setup guide
-- **[Metrics Endpoint](http://localhost:3002/metrics)** ⭐ **NEW!** - Prometheus metrics (when server is running)
-- **[ANALYTICS.md](docs/ANALYTICS.md)** ⭐ **NEW!** - Comprehensive analytics implementation guide (GA4 + Meta Pixel)
+- **[ANALYTICS.md](docs/ANALYTICS.md)** - Analytics implementation guide (GA4 + Meta Pixel)
+- **[API.md](docs/API.md)** - API documentation
 
 ### Technical Documentation
 - **[API_TOKEN_IMPLEMENTATION.md](docs/API_TOKEN_IMPLEMENTATION.md)** - API token authentication implementation
-- **[API_TOKEN_VERIFICATION.md](docs/API_TOKEN_VERIFICATION.md)** - Token verification and validation
 - **[TOKEN_AUTO_REFRESH.md](docs/TOKEN_AUTO_REFRESH.md)** - Automatic token refresh system
-- **[TOKEN_AUTO_REFRESH_SUMMARY.md](docs/TOKEN_AUTO_REFRESH_SUMMARY.md)** - Token refresh summary
 - **[XCONTROLLER-MIGRATION.md](docs/XCONTROLLER-MIGRATION.md)** - DataController migration guide
-
-### Development & Debugging
-- **[SCRAPER_DEBUG_SESSION.md](docs/SCRAPER_DEBUG_SESSION.md)** - Debugging session notes
-- **[SESSION-CONTEXT.md](docs/SESSION-CONTEXT.md)** - Development session context
-- **[ENQUEUE_FIXES_SUMMARY.md](docs/ENQUEUE_FIXES_SUMMARY.md)** - Queue enqueue fixes
-- **[TEST_RESULTS_SUMMARY.md](docs/TEST_RESULTS_SUMMARY.md)** - Test results and coverage
-- **[REFACTORING-SUMMARY.md](REFACTORING-SUMMARY.md)** - Recent refactoring summary
 - **[doppler-setup.md](docs/doppler-setup.md)** - Doppler CLI installation and configuration
+- **[CI-CD.md](docs/CI-CD.md)** - CI/CD pipeline configuration
 
 ---
 

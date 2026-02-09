@@ -1,5 +1,16 @@
 ## Recent Updates
 
+### February 8-9, 2026 - DRY Refactoring & Technical Debt Cleared
+
+- **Consolidated enqueue scripts**: 10 separate scripts merged into a config-driven runner (`enqueue-batch.ts` + `batch-configs.ts` with 14 batch types)
+- **Extracted shared utilities**: `getErrorMessage()` (50+ call sites), `launchTCADBrowser()`, `transformPropertyToSnakeCase()`, `humanDelay()`
+- **Configurable TCAD year**: Replaced hardcoded `pYear=2025` with `TCAD_YEAR` env var (default: current year)
+- **Configurable chunk size**: `QUEUE_BATCH_CHUNK_SIZE` env var for SQL batch inserts
+- **All backlog cleared**: TD-2 through TD-40 resolved (type safety, logging, test coverage, code review findings)
+- **Test suite**: 617 tests passing, 0 skipped, 0 failed (up from 493 in Feb 8 session)
+
+---
+
 ### February 8, 2026 - Technical Debt Complete (TD-2 through TD-17)
 
 **All technical debt resolved.** Backlog is empty.
