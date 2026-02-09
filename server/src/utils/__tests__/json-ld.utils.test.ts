@@ -76,7 +76,7 @@ describe("JSON-LD Utils", () => {
 		});
 
 		it("should include address information", () => {
-			const result = generatePropertyJsonLd(mockProperty) as any;
+			const result = generatePropertyJsonLd(mockProperty);
 
 			expect(result.address).toEqual({
 				"@type": "PostalAddress",
@@ -89,7 +89,7 @@ describe("JSON-LD Utils", () => {
 		});
 
 		it("should include geographic coordinates when available", () => {
-			const result = generatePropertyJsonLd(mockProperty) as any;
+			const result = generatePropertyJsonLd(mockProperty);
 
 			expect(result.geo).toEqual({
 				"@type": "GeoCoordinates",
@@ -99,7 +99,7 @@ describe("JSON-LD Utils", () => {
 		});
 
 		it("should include owner/seller information", () => {
-			const result = generatePropertyJsonLd(mockProperty) as any;
+			const result = generatePropertyJsonLd(mockProperty);
 
 			expect(result.seller).toEqual({
 				"@type": "Person",
@@ -108,7 +108,7 @@ describe("JSON-LD Utils", () => {
 		});
 
 		it("should include pricing offers", () => {
-			const result = generatePropertyJsonLd(mockProperty) as any;
+			const result = generatePropertyJsonLd(mockProperty);
 
 			expect(result.offers).toMatchObject({
 				"@type": "Offer",
@@ -118,7 +118,7 @@ describe("JSON-LD Utils", () => {
 		});
 
 		it("should include both appraised and assessed values in price specifications", () => {
-			const result = generatePropertyJsonLd(mockProperty) as any;
+			const result = generatePropertyJsonLd(mockProperty);
 
 			expect(result.offers.priceSpecification).toHaveLength(2);
 			expect(result.offers.priceSpecification[0]).toMatchObject({
@@ -159,7 +159,7 @@ describe("JSON-LD Utils", () => {
 				},
 			};
 
-			const result = generatePropertyJsonLd(minimalProperty) as any;
+			const result = generatePropertyJsonLd(minimalProperty);
 
 			expect(result["@type"]).toBe("RealEstateListing");
 			expect(result.identifier).toBe("MIN-123");
@@ -193,19 +193,19 @@ describe("JSON-LD Utils", () => {
 			const result = generatePropertyListJsonLd(
 				mockResponse,
 				"Austin homes",
-			) as any;
+			) as Record<string, unknown>;
 
 			expect(result.name).toBe('Property Search Results for "Austin homes"');
 		});
 
 		it("should use default name when no search query", () => {
-			const result = generatePropertyListJsonLd(mockResponse) as any;
+			const result = generatePropertyListJsonLd(mockResponse) as Record<string, unknown>;
 
 			expect(result.name).toBe("Travis County Properties");
 		});
 
 		it("should include list items with correct positions", () => {
-			const result = generatePropertyListJsonLd(mockResponse) as any;
+			const result = generatePropertyListJsonLd(mockResponse) as Record<string, unknown>;
 
 			expect(result.itemListElement).toHaveLength(1);
 			expect(result.itemListElement[0]).toMatchObject({
@@ -215,7 +215,7 @@ describe("JSON-LD Utils", () => {
 		});
 
 		it("should include item details for each property", () => {
-			const result = generatePropertyListJsonLd(mockResponse) as any;
+			const result = generatePropertyListJsonLd(mockResponse) as Record<string, unknown>;
 
 			expect(result.itemListElement[0].item).toMatchObject({
 				"@type": "RealEstateListing",
@@ -234,20 +234,20 @@ describe("JSON-LD Utils", () => {
 				},
 			};
 
-			const result = generatePropertyListJsonLd(responseWithMore) as any;
+			const result = generatePropertyListJsonLd(responseWithMore) as Record<string, unknown>;
 
 			expect(result.nextItem).toBeDefined();
 			expect(result.nextItem).toContain("offset=20");
 		});
 
 		it("should not include nextItem when hasMore is false", () => {
-			const result = generatePropertyListJsonLd(mockResponse) as any;
+			const result = generatePropertyListJsonLd(mockResponse) as Record<string, unknown>;
 
 			expect(result.nextItem).toBeUndefined();
 		});
 
 		it("should include search action", () => {
-			const result = generatePropertyListJsonLd(mockResponse) as any;
+			const result = generatePropertyListJsonLd(mockResponse) as Record<string, unknown>;
 
 			expect(result.potentialAction).toMatchObject({
 				"@type": "SearchAction",
@@ -258,7 +258,7 @@ describe("JSON-LD Utils", () => {
 
 	describe("generateOrganizationJsonLd", () => {
 		it("should generate valid WebSite JSON-LD with defaults", () => {
-			const result = generateOrganizationJsonLd() as any;
+			const result = generateOrganizationJsonLd() as Record<string, unknown>;
 
 			expect(result["@context"]).toBe("https://schema.org");
 			expect(result["@type"]).toBe("WebSite");
@@ -267,7 +267,7 @@ describe("JSON-LD Utils", () => {
 		});
 
 		it("should use custom website URL", () => {
-			const result = generateOrganizationJsonLd("https://custom.com") as any;
+			const result = generateOrganizationJsonLd("https://custom.com") as Record<string, unknown>;
 
 			expect(result.url).toBe("https://custom.com");
 		});
@@ -276,13 +276,13 @@ describe("JSON-LD Utils", () => {
 			const result = generateOrganizationJsonLd(
 				"https://example.com",
 				"Custom TCAD",
-			) as any;
+			) as Record<string, unknown>;
 
 			expect(result.name).toBe("Custom TCAD");
 		});
 
 		it("should include description", () => {
-			const result = generateOrganizationJsonLd() as any;
+			const result = generateOrganizationJsonLd() as Record<string, unknown>;
 
 			expect(result.description).toBeDefined();
 			expect(typeof result.description).toBe("string");
@@ -297,7 +297,7 @@ describe("JSON-LD Utils", () => {
 				{ name: "Details" },
 			];
 
-			const result = generateBreadcrumbJsonLd(items) as any;
+			const result = generateBreadcrumbJsonLd(items) as Record<string, unknown>;
 
 			expect(result["@context"]).toBe("https://schema.org");
 			expect(result["@type"]).toBe("BreadcrumbList");
@@ -310,7 +310,7 @@ describe("JSON-LD Utils", () => {
 				{ name: "Properties", url: "/properties" },
 			];
 
-			const result = generateBreadcrumbJsonLd(items) as any;
+			const result = generateBreadcrumbJsonLd(items) as Record<string, unknown>;
 
 			expect(result.itemListElement[0].position).toBe(1);
 			expect(result.itemListElement[1].position).toBe(2);
@@ -325,7 +325,7 @@ describe("JSON-LD Utils", () => {
 			const result = generateBreadcrumbJsonLd(
 				items,
 				"https://example.com",
-			) as any;
+			) as Record<string, unknown>;
 
 			expect(result.itemListElement[0].item).toBe("https://example.com/");
 			expect(result.itemListElement[1].item).toBe(
@@ -336,14 +336,14 @@ describe("JSON-LD Utils", () => {
 		it("should omit item field when URL not provided", () => {
 			const items = [{ name: "Home", url: "/" }, { name: "Current Page" }];
 
-			const result = generateBreadcrumbJsonLd(items) as any;
+			const result = generateBreadcrumbJsonLd(items) as Record<string, unknown>;
 
 			expect(result.itemListElement[0].item).toBeDefined();
 			expect(result.itemListElement[1].item).toBeUndefined();
 		});
 
 		it("should handle empty items array", () => {
-			const result = generateBreadcrumbJsonLd([]) as any;
+			const result = generateBreadcrumbJsonLd([]) as Record<string, unknown>;
 
 			expect(result.itemListElement).toHaveLength(0);
 		});
@@ -370,7 +370,7 @@ describe("JSON-LD Utils", () => {
 				mockProperties,
 				"Austin Properties",
 				"city",
-			) as any;
+			) as Record<string, unknown>;
 
 			expect(result["@context"]).toBe("https://schema.org");
 			expect(result["@type"]).toBe("CollectionPage");
@@ -382,7 +382,7 @@ describe("JSON-LD Utils", () => {
 				mockProperties,
 				"Austin Properties",
 				"city",
-			) as any;
+			) as Record<string, unknown>;
 
 			expect(result.description).toBe("Collection of 2 properties");
 			expect(result.mainEntity.numberOfItems).toBe(2);
@@ -400,7 +400,7 @@ describe("JSON-LD Utils", () => {
 				manyProperties,
 				"Large Collection",
 				"custom",
-			) as any;
+			) as Record<string, unknown>;
 
 			expect(result.mainEntity.itemListElement).toHaveLength(10);
 		});
@@ -410,7 +410,7 @@ describe("JSON-LD Utils", () => {
 				mockProperties,
 				"Austin Properties",
 				"city",
-			) as any;
+			) as Record<string, unknown>;
 
 			expect(result.aggregateRating).toMatchObject({
 				"@type": "AggregateOffer",
@@ -427,7 +427,7 @@ describe("JSON-LD Utils", () => {
 				mockProperties,
 				"Austin",
 				"city",
-			) as any;
+			) as Record<string, unknown>;
 
 			expect(result.about).toEqual({
 				"@type": "City",
@@ -440,7 +440,7 @@ describe("JSON-LD Utils", () => {
 				mockProperties,
 				"Residential",
 				"type",
-			) as any;
+			) as Record<string, unknown>;
 
 			expect(result.about).toBeUndefined();
 		});
@@ -450,7 +450,7 @@ describe("JSON-LD Utils", () => {
 				mockProperties,
 				"Test Collection",
 				"custom",
-			) as any;
+			) as Record<string, unknown>;
 
 			expect(result.dateModified).toBeDefined();
 			expect(new Date(result.dateModified)).toBeInstanceOf(Date);
@@ -462,7 +462,7 @@ describe("JSON-LD Utils", () => {
 				"Austin Properties",
 				"city",
 				"https://example.com",
-			) as any;
+			) as Record<string, unknown>;
 
 			expect(result.mainEntity.itemListElement[0].item.url).toBe(
 				"https://example.com/properties/TEST-123",
