@@ -7,11 +7,7 @@
 
 ## Open Items
 
-### TD-20: DRY-6 controller method binding pattern
-- **Priority**: LOW
-- **Source**: DRY review (deferred)
-- **Issue**: Controllers use `.bind(this)` in 10 route registrations. Could standardize with arrow functions. Documented exception in CLAUDE.md (TypeScript limitation with `Function.bind()` requiring `any`).
-- **Files**: `server/src/routes/property.routes.ts`
+*No open items remaining.*
 
 ---
 
@@ -41,3 +37,4 @@ All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026
 - Added `assessedValue` NaN/Infinity validation (when non-null) per code review
 - Standardized last emoji log in `dom-scraper.ts` to structured format
 - TD-19: Migrated 4 scripts to batch-configs.ts (grove, high-priority, priority-terms, ultra-high-priority); kept 2 with custom logic (test-batch-20, high-value-batch)
+- TD-20: Removed unnecessary `.bind(propertyController)` from 9 routes (controller has zero `this` references); updated CLAUDE.md documented exceptions

@@ -80,7 +80,7 @@ const router = Router();
 router.post(
 	"/scrape",
 	validateBody(scrapeRequestSchema),
-	asyncHandler(propertyController.scrapeProperties.bind(propertyController)),
+	asyncHandler(propertyController.scrapeProperties),
 );
 
 /**
@@ -118,7 +118,7 @@ router.post(
 router.get(
 	"/jobs/:jobId",
 	asyncHandler(
-		propertyController.getJobStatus.bind(propertyController),
+		propertyController.getJobStatus,
 	),
 );
 
@@ -182,7 +182,7 @@ router.get(
 	"/history",
 	validateQuery(historyQuerySchema),
 	asyncHandler(
-		propertyController.getScrapeHistory.bind(propertyController),
+		propertyController.getScrapeHistory,
 	),
 );
 
@@ -273,7 +273,7 @@ router.get(
 	"/",
 	validateQuery(propertyFilterSchema),
 	asyncHandler(
-		propertyController.getProperties.bind(propertyController),
+		propertyController.getProperties,
 	),
 );
 
@@ -335,7 +335,7 @@ router.post(
 	"/search",
 	validateBody(naturalLanguageSearchSchema),
 	asyncHandler(
-		propertyController.naturalLanguageSearch.bind(propertyController),
+		propertyController.naturalLanguageSearch,
 	),
 );
 
@@ -373,7 +373,7 @@ router.post(
 router.get(
 	"/search/test",
 	asyncHandler(
-		propertyController.testClaudeConnection.bind(propertyController),
+		propertyController.testClaudeConnection,
 	),
 );
 
@@ -435,7 +435,7 @@ router.get(
  */
 router.get(
 	"/stats",
-	asyncHandler(propertyController.getStats.bind(propertyController)),
+	asyncHandler(propertyController.getStats),
 );
 
 // ============================================================================
@@ -500,7 +500,7 @@ router.get(
 router.post(
 	"/monitor",
 	validateBody(monitorRequestSchema),
-	asyncHandler(propertyController.addMonitoredSearch.bind(propertyController)),
+	asyncHandler(propertyController.addMonitoredSearch),
 );
 
 /**
@@ -545,7 +545,7 @@ router.post(
 router.get(
 	"/monitor",
 	asyncHandler(
-		propertyController.getMonitoredSearches.bind(propertyController),
+		propertyController.getMonitoredSearches,
 	),
 );
 

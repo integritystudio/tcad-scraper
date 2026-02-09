@@ -301,12 +301,11 @@ console.error('Failed:', error);
 
 ### Documented Exceptions
 
-**Legitimate 'any' usage** (4 occurrences):
+**Legitimate 'any' usage** (1 occurrence):
 
 1. **`auth.ts:75`** - `jwt.sign()` requires `any` for options (library limitation)
-2. **`property.routes.ts:132,194,283`** - `Function.bind()` requires `any` for this context (TypeScript limitation)
 
-These are documented with inline comments explaining why `any` is necessary.
+This is documented with an inline comment explaining why `any` is necessary.
 
 ### Verification Commands
 
