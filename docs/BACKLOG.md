@@ -7,19 +7,13 @@
 
 ## Open Items
 
-### TD-12: `console.*` in CLI Scripts (39 occurrences, intentional)
-**Priority**: None (by design) | **3 script files**
-
-- `analyze-search-terms.ts` (27) - CLI report formatting
-- `migrate-to-logger.ts` (8) - Developer migration tool
-- `get-fresh-token.ts` (4) - Token stdout utility with eslint-disable
-
-Scripts intentionally use console for CLI/stdout output. No change needed.
+None — all technical debt resolved.
 
 ---
 
 ## Completed (February 8, 2026)
 
+- **TD-12**: ESLint override for CLI scripts (`no-console: off`), removed 9 inline suppression comments
 - **TD-16**: Replaced `require()` with ES module imports in `test-utils.ts`
 - **TD-17**: Updated stale Jest references to Vitest in `TESTING.md`
 - **TD-11**: Replaced `as any` with narrowing casts in `auth.ts` and `index.ts` (`be99993`)

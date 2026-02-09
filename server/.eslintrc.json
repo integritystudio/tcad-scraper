@@ -31,6 +31,16 @@
 			"rules": {
 				"no-console": "warn"
 			}
+		},
+		{
+			"files": [
+				"src/scripts/analyze-search-terms.ts",
+				"src/scripts/migrate-to-logger.ts",
+				"src/scripts/get-fresh-token.ts"
+			],
+			"rules": {
+				"no-console": "off"
+			}
 		}
 	]
 }

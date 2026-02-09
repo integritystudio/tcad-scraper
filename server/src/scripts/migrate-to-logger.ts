@@ -68,10 +68,8 @@ function migrateFile(filePath: string): void {
 	// Write back if changed
 	if (modified !== content) {
 		fs.writeFileSync(filePath, modified, "utf-8");
-		// eslint-disable-next-line no-console
 		console.log(`✅ Migrated: ${filePath}`);
 	} else {
-		// eslint-disable-next-line no-console
 		console.log(`⏭️  No changes: ${filePath}`);
 	}
 }
@@ -80,13 +78,11 @@ function migrateFile(filePath: string): void {
 const filePath = process.argv[2];
 
 if (!filePath) {
-	// eslint-disable-next-line no-console
 	console.error("Usage: tsx migrate-to-logger.ts <file-path>");
 	process.exit(1);
 }
 
 if (!fs.existsSync(filePath)) {
-	// eslint-disable-next-line no-console
 	console.error(`File not found: ${filePath}`);
 	process.exit(1);
 }
@@ -94,7 +90,6 @@ if (!fs.existsSync(filePath)) {
 try {
 	migrateFile(filePath);
 } catch (error) {
-	// eslint-disable-next-line no-console
 	console.error("Migration failed:", error);
 	process.exit(1);
 }
