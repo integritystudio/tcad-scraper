@@ -145,8 +145,8 @@ describe("XController Middleware", () => {
 			};
 			next = vi.fn();
 			// Reset config to development mode
-			(config.env as any).isProduction = false;
-			(config.env as any).nodeEnv = "development";
+			(config.env as Record<string, unknown>).isProduction = false;
+			(config.env as Record<string, unknown>).nodeEnv = "development";
 		});
 
 		test("should set Content-Security-Policy header with nonce", () => {
@@ -205,8 +205,8 @@ describe("XController Middleware", () => {
 		});
 
 		test("should set HSTS in production with HTTPS", () => {
-			(config.env as any).isProduction = true;
-			(config.env as any).nodeEnv = "production";
+			(config.env as Record<string, unknown>).isProduction = true;
+			(config.env as Record<string, unknown>).nodeEnv = "production";
 			req.protocol = "https";
 			cspMiddleware(req as Request, res as Response, next);
 			expect(res.setHeader).toHaveBeenCalledWith(
@@ -216,8 +216,8 @@ describe("XController Middleware", () => {
 		});
 
 		test("should not set HSTS in development", () => {
-			(config.env as any).isProduction = false;
-			(config.env as any).nodeEnv = "development";
+			(config.env as Record<string, unknown>).isProduction = false;
+			(config.env as Record<string, unknown>).nodeEnv = "development";
 			cspMiddleware(req as Request, res as Response, next);
 			expect(res.setHeader).not.toHaveBeenCalledWith(
 				"Strict-Transport-Security",
@@ -226,8 +226,8 @@ describe("XController Middleware", () => {
 		});
 
 		test("should not set HSTS with HTTP in production", () => {
-			(config.env as any).isProduction = true;
-			(config.env as any).nodeEnv = "production";
+			(config.env as Record<string, unknown>).isProduction = true;
+			(config.env as Record<string, unknown>).nodeEnv = "production";
 			req.protocol = "http";
 			cspMiddleware(req as Request, res as Response, next);
 			expect(res.setHeader).not.toHaveBeenCalledWith(
@@ -315,11 +315,11 @@ describe("XController Middleware", () => {
 	describe("getInitialAppData", () => {
 		beforeEach(() => {
 			// Reset config to defaults
-			(config.frontend as any).apiUrl = "/api";
-			(config.env as any).nodeEnv = "development";
-			(config.env as any).isProduction = false;
-			(config.frontend as any).appVersion = "1.0.0";
-			(config.frontend.features as any).analytics = false;
+			(config.frontend as Record<string, unknown>).apiUrl = "/api";
+			(config.env as Record<string, unknown>).nodeEnv = "development";
+			(config.env as Record<string, unknown>).isProduction = false;
+			(config.frontend as Record<string, unknown>).appVersion = "1.0.0";
+			(config.frontend.features as Record<string, unknown>).analytics = false;
 		});
 
 		test("should return valid initial data structure", () => {
@@ -332,9 +332,9 @@ describe("XController Middleware", () => {
 		});
 
 		test("should use environment variables when available", () => {
-			(config.frontend as any).apiUrl = "https://api.example.com";
-			(config.env as any).nodeEnv = "production";
-			(config.frontend as any).appVersion = "2.0.0";
+			(config.frontend as Record<string, unknown>).apiUrl = "https://api.example.com";
+			(config.env as Record<string, unknown>).nodeEnv = "production";
+			(config.frontend as Record<string, unknown>).appVersion = "2.0.0";
 
 			const data = getInitialAppData();
 
@@ -344,9 +344,9 @@ describe("XController Middleware", () => {
 		});
 
 		test("should use defaults when environment variables are missing", () => {
-			(config.frontend as any).apiUrl = "/api";
-			(config.env as any).nodeEnv = "development";
-			(config.frontend as any).appVersion = "1.0.0";
+			(config.frontend as Record<string, unknown>).apiUrl = "/api";
+			(config.env as Record<string, unknown>).nodeEnv = "development";
+			(config.frontend as Record<string, unknown>).appVersion = "1.0.0";
 
 			const data = getInitialAppData();
 
@@ -356,18 +356,18 @@ describe("XController Middleware", () => {
 		});
 
 		test("should enable analytics in production", () => {
-			(config.env as any).nodeEnv = "production";
-			(config.env as any).isProduction = true;
-			(config.frontend.features as any).analytics = true;
+			(config.env as Record<string, unknown>).nodeEnv = "production";
+			(config.env as Record<string, unknown>).isProduction = true;
+			(config.frontend.features as Record<string, unknown>).analytics = true;
 
 			const data = getInitialAppData();
 			expect(data.features.analytics).toBe(true);
 		});
 
 		test("should disable analytics in development", () => {
-			(config.env as any).nodeEnv = "development";
-			(config.env as any).isProduction = false;
-			(config.frontend.features as any).analytics = false;
+			(config.env as Record<string, unknown>).nodeEnv = "development";
+			(config.env as Record<string, unknown>).isProduction = false;
+			(config.frontend.features as Record<string, unknown>).analytics = false;
 
 			const data = getInitialAppData();
 			expect(data.features.analytics).toBe(false);
