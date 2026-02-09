@@ -108,7 +108,10 @@ scraperQueue.process(
 						paramIndex += 13;
 					}
 
-					// Execute raw SQL with PostgreSQL's native UPSERT (ON CONFLICT)
+					// SECURITY: $queryRawUnsafe is safe here — all user-supplied data
+					// (property fields, searchTerm) is passed via the parameterized
+					// `params` array ($1, $2, ...). Column names, table name, and SQL
+					// structure are hard-coded constants, not derived from user input.
 					const sql = `
           INSERT INTO properties (
             property_id, name, prop_type, city, property_address,
