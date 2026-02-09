@@ -9,6 +9,10 @@ vi.mock("../../config", () => ({
 	},
 }));
 
+vi.mock("../../lib/logger", () => ({
+	default: { trace: vi.fn() },
+}));
+
 import { humanDelay } from "../timing";
 
 describe("humanDelay", () => {

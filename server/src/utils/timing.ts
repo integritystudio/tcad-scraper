@@ -3,6 +3,7 @@
  */
 
 import { config as appConfig } from "../config";
+import logger from "../lib/logger";
 
 /**
  * Wait for a random duration between min and max milliseconds.
@@ -13,5 +14,6 @@ export async function humanDelay(
   max: number = appConfig.scraper.humanDelay.max,
 ): Promise<void> {
   const delay = Math.floor(Math.random() * (max - min) + min);
+  logger.trace({ delayMs: delay, min, max }, "humanDelay");
   await new Promise((resolve) => setTimeout(resolve, delay));
 }

@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Property } from "@prisma/client";
+
+vi.mock("../../lib/logger", () => ({
+	default: { trace: vi.fn() },
+}));
+
 import { transformPropertyToSnakeCase } from "../property-transformers";
 
 function createMockProperty(overrides: Partial<Property> = {}): Property {
@@ -189,6 +194,17 @@ describe("transformPropertyToSnakeCase", () => {
 	it("should throw on Infinity appraisedValue", () => {
 		const prop = createMockProperty({ appraisedValue: Infinity });
 		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid appraisedValue");
+	});
+
+	it("should throw on NaN assessedValue when non-null", () => {
+		const prop = createMockProperty({ assessedValue: NaN });
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid assessedValue");
+	});
+
+	it("should allow null assessedValue", () => {
+		const prop = createMockProperty({ assessedValue: null });
+		const result = transformPropertyToSnakeCase(prop);
+		expect(result.assessed_value).toBeNull();
 	});
 
 	it("should include propertyId in validation error messages", () => {

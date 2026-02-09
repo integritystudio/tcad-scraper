@@ -4,6 +4,7 @@
  */
 
 import type { Property } from "@prisma/client";
+import logger from "../lib/logger";
 
 export interface SnakeCaseProperty {
   id: string;
@@ -24,11 +25,15 @@ export interface SnakeCaseProperty {
 }
 
 export function transformPropertyToSnakeCase(prop: Property): SnakeCaseProperty {
+  logger.trace({ propertyId: prop.propertyId }, "transformPropertyToSnakeCase");
   if (prop.year == null || !Number.isFinite(prop.year)) {
     throw new Error(`Invalid year value: ${prop.year} for property ${prop.propertyId}`);
   }
   if (prop.appraisedValue == null || !Number.isFinite(prop.appraisedValue)) {
     throw new Error(`Invalid appraisedValue: ${prop.appraisedValue} for property ${prop.propertyId}`);
+  }
+  if (prop.assessedValue != null && !Number.isFinite(prop.assessedValue)) {
+    throw new Error(`Invalid assessedValue: ${prop.assessedValue} for property ${prop.propertyId}`);
   }
   return {
     id: prop.id,

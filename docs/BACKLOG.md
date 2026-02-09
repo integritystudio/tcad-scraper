@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
 **Last Updated**: 2026-02-09
-**Status**: 595 tests passing, 0 skipped, 0 failed | TypeScript clean | Lint clean
+**Status**: 597 tests passing, 0 skipped, 0 failed | TypeScript clean | Lint clean
 
 ---
 
@@ -18,12 +18,6 @@
 - **Source**: DRY review (deferred)
 - **Issue**: Controllers use `.bind(this)` in route registration. Could standardize with arrow functions or a binding decorator pattern.
 - **Files**: `server/src/routes/property.routes.ts`
-
-### TD-26: Add debug logging to utility functions
-- **Priority**: LOW
-- **Source**: Code review (Feb 9, 2026)
-- **Issue**: `error-helpers.ts`, `timing.ts`, `property-transformers.ts` have no debug logging. Adding optional trace-level logging would aid production troubleshooting.
-- **Files**: `server/src/utils/error-helpers.ts`, `server/src/utils/timing.ts`, `server/src/utils/property-transformers.ts`
 
 ---
 
@@ -49,3 +43,6 @@ All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026
 - TD-22: Standardized all logging in `dom-scraper.ts` to Pino structured format
 - TD-27: Cleaned 27 stale dist/ artifacts from deleted scripts (rebuilt from clean)
 - TD-28: Refactored timing tests to verify interface contract (delay within range) instead of exact formula
+- TD-26: Added trace-level logging to `timing.ts` and `property-transformers.ts` (skipped `error-helpers.ts` - too simple)
+- Added `assessedValue` NaN/Infinity validation (when non-null) per code review
+- Standardized last emoji log in `dom-scraper.ts` to structured format

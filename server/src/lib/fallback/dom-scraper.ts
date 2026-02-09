@@ -159,7 +159,7 @@ export async function scrapeDOMFallback(
 	searchTerm: string,
 	maxRetries: number = 3,
 ): Promise<PropertyData[]> {
-	logger.warn("🔄 FALLBACK: Using DOM-based scraping (limited to 20 results)");
+	logger.warn({ method: "dom", limit: 20 }, "Fallback scraping mode");
 
 	let lastError: Error | null = null;
 
