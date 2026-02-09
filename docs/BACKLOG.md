@@ -7,7 +7,53 @@
 
 ## Open Items
 
-*No open items remaining.*
+### TD-29: Deduplicate search terms across batch configs
+- **Priority**: HIGH
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: "Drive" and "Lane" appear in both `high-priority` and `ultra-high-priority` batches; "Limited" appears in both `llc` and `priority-terms`. Causes duplicate scraping jobs with conflicting priorities.
+- **Files**: `server/src/scripts/config/batch-configs.ts`
+
+### TD-30: Fix non-deterministic timing test assertion
+- **Priority**: HIGH
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: "should produce varying delays" test computes `allSame` but never asserts it. The test passes even if `Math.random()` is broken. Either assert `!allSame` with retry logic, increase range/iterations, or add one deterministic test with mocked `Math.random()`.
+- **Files**: `server/src/utils/__tests__/timing.test.ts`
+
+### TD-31: Add `year` field to bulk insert SQL
+- **Priority**: MEDIUM
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: Raw SQL insert in `scraper.queue.ts` does not include the `year` column. Runtime validation in `transformPropertyToSnakeCase()` catches invalid `year` on API responses but not during database writes, creating an inconsistent validation boundary.
+- **Files**: `server/src/queues/scraper.queue.ts:115-133`
+
+### TD-32: Extract validation from transformPropertyToSnakeCase
+- **Priority**: MEDIUM
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: `transformPropertyToSnakeCase()` now performs validation AND transformation. Function name implies pure transformation. Extract to `validateProperty()` for single-responsibility.
+- **Files**: `server/src/utils/property-transformers.ts`
+
+### TD-33: Document QUEUE_BATCH_CHUNK_SIZE env var
+- **Priority**: MEDIUM
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: New `QUEUE_BATCH_CHUNK_SIZE` env var (default 500) not documented in README or CLAUDE.md. Operators cannot discover tuning capability.
+- **Files**: `CLAUDE.md`, `server/ENQUEUE_SCRIPTS_README.md`
+
+### TD-34: Trace logging performance in hot path
+- **Priority**: MEDIUM
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: `logger.trace()` added to `transformPropertyToSnakeCase()` and `humanDelay()`, called thousands of times per scraping job (418K+ properties). Pino is fast but JSON serialization overhead is non-zero even when filtered by log level. Document that trace should only be enabled for targeted debugging.
+- **Files**: `server/src/utils/property-transformers.ts:28`, `server/src/utils/timing.ts:17`
+
+### TD-35: Document batch config priority scale
+- **Priority**: LOW
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: Priority values (-100, 1, 2, undefined) lack documentation. BullMQ convention (lower = higher priority) is not documented in `BatchConfigEntry` type or batch-configs.ts.
+- **Files**: `server/src/scripts/config/batch-configs.ts`, `server/src/scripts/utils/batch-enqueue.ts`
+
+### TD-36: Expand logger mock in property-transformers test
+- **Priority**: LOW
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: Logger mock only provides `trace`. Should mock all levels (debug, info, warn, error) to prevent failures if future code adds other log calls.
+- **Files**: `server/src/utils/__tests__/property-transformers.test.ts:4-6`
 
 ---
 
