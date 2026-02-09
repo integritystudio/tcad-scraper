@@ -281,16 +281,112 @@ describe('Feature Name', () => {
 3. **Arrange-Act-Assert** - Clear test structure
 4. **Clean up** - Use afterEach to prevent test pollution
 5. **Mock external dependencies** - Don't call real APIs in tests
+6. **No `any` types** - Use the patterns below instead
+7. **No `console.*`** - Use `logger` from `../lib/logger` (lint warns in test files)
 
 ### Mocking Example
 
 ```typescript
-jest.mock('../lib/external-service');
+vi.mock('../lib/external-service');
 
 import { externalService } from '../lib/external-service';
 
-const mockService = externalService as jest.MockedFunction<typeof externalService>;
+const mockService = vi.mocked(externalService);
 mockService.mockResolvedValue({ data: 'mocked' });
+```
+
+### Type-Safe Test Patterns
+
+These patterns replace `as any` casts throughout test files. Use them when mocking dependencies or accessing internal APIs.
+
+#### Mock Objects with `Record<string, ReturnType<typeof vi.fn>>`
+
+For flat mock objects (services, queues, loggers):
+
+```typescript
+let scraperQueue: Record<string, ReturnType<typeof vi.fn>>;
+let cacheService: Record<string, ReturnType<typeof vi.fn>>;
+
+beforeEach(() => {
+  scraperQueue = { add: vi.fn(), getJob: vi.fn() };
+  cacheService = { get: vi.fn(), set: vi.fn(), delete: vi.fn() };
+});
+```
+
+For nested mock objects (Prisma client with model methods):
+
+```typescript
+let prisma: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+
+beforeEach(() => {
+  prisma = {
+    property: { findMany: vi.fn(), count: vi.fn(), createMany: vi.fn() },
+    scrapeJob: { findMany: vi.fn(), create: vi.fn() },
+  };
+});
+```
+
+#### Partial Types with `Pick<Type, "key">`
+
+When you only need a subset of a complex type:
+
+```typescript
+import type { IRoute } from "express";
+
+const mockRoute = {
+  path: "/api/properties",
+} as Pick<IRoute, "path">;
+```
+
+#### Safe Casting with `as unknown as Type`
+
+For module-level mock overrides where types don't align:
+
+```typescript
+import { scraperQueue } from "../queues/scraper.queue";
+
+const mockScraperQueue = scraperQueue as unknown as {
+  add: ReturnType<typeof vi.fn>;
+  getJob: ReturnType<typeof vi.fn>;
+};
+```
+
+For Prisma client access in tests with dynamic imports:
+
+```typescript
+import type { PrismaClient } from "@prisma/client";
+const mockPrisma = prisma as unknown as PrismaClient;
+```
+
+#### Config Mutation with `Record<string, unknown>`
+
+For overriding readonly config properties in tests:
+
+```typescript
+import { config } from "../config";
+
+(config.env as Record<string, unknown>).isProduction = true;
+(config.frontend as Record<string, unknown>).apiUrl = "http://test";
+```
+
+#### Dynamic Imports with Proper Types
+
+For integration tests that dynamically import app or database:
+
+```typescript
+import type { PrismaClient } from "@prisma/client";
+import type { Express } from "express";
+
+let app: Express;
+let prisma: PrismaClient;
+
+beforeAll(async () => {
+  const prismaModule = await import("../lib/prisma");
+  prisma = prismaModule.prisma;
+
+  const appModule = await import("../index");
+  app = appModule.default;
+});
 ```
 
 ## Troubleshooting
