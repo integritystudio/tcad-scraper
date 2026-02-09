@@ -1,6 +1,23 @@
 ## Recent Updates
 
-### February 8, 2026 - Technical Debt Cleanup (TD-2, TD-5, TD-8)
+### February 8, 2026 - Technical Debt Complete (TD-2 through TD-17)
+
+**All technical debt resolved.** Backlog is empty.
+
+**Production Type Safety** (TD-11):
+- Replaced `as any` with narrowing casts in `auth.ts` (`as import("ms").StringValue`) and `index.ts` (Helmet literal union) (`be99993`)
+
+**CLI Script Lint** (TD-12):
+- ESLint override `no-console: off` for 3 CLI scripts, removed 9 inline `eslint-disable` comments (`3ded5a8`)
+
+**Test Type Improvements** (TD-13, TD-16):
+- Typed `api.test.ts` dynamic imports with `Express` and `PrismaClient` (`36f4450`)
+- Replaced `require()` with ES module imports in `test-utils.ts` (`95bc64e`)
+
+**Lint & Docs** (TD-14, TD-15, TD-17):
+- ESLint `no-console` set to `"warn"` in test file overrides (`34783b6`)
+- Type-safe test patterns documented in `docs/TESTING.md` (`b0c2f44`)
+- Updated stale Jest references to Vitest in `TESTING.md` (`95bc64e`)
 
 **Test Type Safety** (TD-8):
 - Removed all 86 `as any` from 11 test files (`b57eac7`, `bb43a6e`, `517e4b7`)
@@ -12,7 +29,7 @@
 **Conditional Test Skipping** (TD-5):
 - Replaced `describe.skip()` with `describe.skipIf()` using infrastructure checks (`97a34a2`)
 
-**Previously completed** (included in this session's backlog consolidation):
+**Earlier items**:
 - TD-3: Replaced deprecated `startTransaction` with typed `startSpan<T>()` wrapper (`43c92f9`, `1f90485`)
 - TD-6: Added `npm run lint` script using Biome (`43c92f9`)
 - TD-7: Made `asyncHandler` generic, eliminated 3 `as any` in property routes (`43c92f9`)
@@ -47,10 +64,6 @@
 **Technical Debt Resolved**:
 - [x] TCAD Scraper Playwright mock pollution - FIXED
 - [x] Test expectations mismatched with implementation - FIXED
-
-**Technical Debt Remaining** (see `TECHNICAL_DEBT.md`):
-- [ ] Redis cache service tests (40 tests skipped) - needs mock infrastructure refactor
-- [ ] Integration tests require external services (run with `npm run test:integration`)
 
 ---
 
