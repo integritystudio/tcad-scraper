@@ -101,4 +101,98 @@ describe("transformPropertyToSnakeCase", () => {
 		expect(result.name).toBe("");
 		expect(result.property_address).toBe("");
 	});
+
+	it("should handle negative numeric values", () => {
+		const prop = createMockProperty({
+			assessedValue: -100,
+			appraisedValue: -999.99,
+			year: -1,
+		});
+		const result = transformPropertyToSnakeCase(prop);
+
+		expect(result.assessed_value).toBe(-100);
+		expect(result.appraised_value).toBe(-999.99);
+		expect(result.year).toBe(-1);
+	});
+
+	it("should handle very large numeric values", () => {
+		const prop = createMockProperty({
+			assessedValue: 999_999_999_999,
+			appraisedValue: Number.MAX_SAFE_INTEGER,
+			year: 9999,
+		});
+		const result = transformPropertyToSnakeCase(prop);
+
+		expect(result.assessed_value).toBe(999_999_999_999);
+		expect(result.appraised_value).toBe(Number.MAX_SAFE_INTEGER);
+		expect(result.year).toBe(9999);
+	});
+
+	it("should handle special characters in strings", () => {
+		const prop = createMockProperty({
+			name: "O'Brien & Associates <LLC>",
+			propertyAddress: '123 "Main" St; DROP TABLE--',
+			description: "Unicode: \u00e9\u00e0\u00fc\u00f1 \u2603 \u2764",
+			city: "SAN MARCOS / DEL VALLE",
+		});
+		const result = transformPropertyToSnakeCase(prop);
+
+		expect(result.name).toBe("O'Brien & Associates <LLC>");
+		expect(result.property_address).toBe('123 "Main" St; DROP TABLE--');
+		expect(result.description).toBe("Unicode: \u00e9\u00e0\u00fc\u00f1 \u2603 \u2764");
+		expect(result.city).toBe("SAN MARCOS / DEL VALLE");
+	});
+
+	it("should handle very long strings", () => {
+		const longString = "A".repeat(10_000);
+		const prop = createMockProperty({
+			name: longString,
+			description: longString,
+		});
+		const result = transformPropertyToSnakeCase(prop);
+
+		expect(result.name).toHaveLength(10_000);
+		expect(result.description).toHaveLength(10_000);
+	});
+
+	it("should handle fractional numeric values", () => {
+		const prop = createMockProperty({
+			assessedValue: 123456.789,
+			appraisedValue: 0.01,
+		});
+		const result = transformPropertyToSnakeCase(prop);
+
+		expect(result.assessed_value).toBe(123456.789);
+		expect(result.appraised_value).toBe(0.01);
+	});
+
+	it("should throw on null year", () => {
+		const prop = createMockProperty({ year: null as unknown as number });
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid year value");
+	});
+
+	it("should throw on NaN year", () => {
+		const prop = createMockProperty({ year: NaN });
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid year value");
+	});
+
+	it("should throw on null appraisedValue", () => {
+		const prop = createMockProperty({ appraisedValue: null as unknown as number });
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid appraisedValue");
+	});
+
+	it("should throw on NaN appraisedValue", () => {
+		const prop = createMockProperty({ appraisedValue: NaN });
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid appraisedValue");
+	});
+
+	it("should throw on Infinity appraisedValue", () => {
+		const prop = createMockProperty({ appraisedValue: Infinity });
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid appraisedValue");
+	});
+
+	it("should include propertyId in validation error messages", () => {
+		const prop = createMockProperty({ propertyId: "TEST-123", year: null as unknown as number });
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow("TEST-123");
+	});
 });

@@ -70,8 +70,7 @@ scraperQueue.process(
 			let savedCount = 0;
 
 			if (properties.length > 0) {
-				// Process in chunks of 500 to avoid query size limits
-				const CHUNK_SIZE = 500;
+				const CHUNK_SIZE = config.queue.batchChunkSize;
 
 				for (let i = 0; i < properties.length; i += CHUNK_SIZE) {
 					const chunk = properties.slice(i, i + CHUNK_SIZE);

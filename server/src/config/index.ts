@@ -102,6 +102,7 @@ export const config = {
 			removeOnComplete: parseIntEnv("QUEUE_REMOVE_ON_COMPLETE", 100),
 			removeOnFail: parseIntEnv("QUEUE_REMOVE_ON_FAIL", 50),
 		},
+		batchChunkSize: parseIntEnv("QUEUE_BATCH_CHUNK_SIZE", 500),
 		cleanupInterval: parseIntEnv("QUEUE_CLEANUP_INTERVAL", 3600000), // 1 hour
 		cleanupGracePeriod: parseIntEnv("QUEUE_CLEANUP_GRACE", 86400000), // 24 hours
 		dashboard: {

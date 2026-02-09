@@ -24,6 +24,12 @@ export interface SnakeCaseProperty {
 }
 
 export function transformPropertyToSnakeCase(prop: Property): SnakeCaseProperty {
+  if (prop.year == null || !Number.isFinite(prop.year)) {
+    throw new Error(`Invalid year value: ${prop.year} for property ${prop.propertyId}`);
+  }
+  if (prop.appraisedValue == null || !Number.isFinite(prop.appraisedValue)) {
+    throw new Error(`Invalid appraisedValue: ${prop.appraisedValue} for property ${prop.propertyId}`);
+  }
   return {
     id: prop.id,
     property_id: prop.propertyId,

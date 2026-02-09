@@ -136,10 +136,7 @@ async function scrapePropertyDetail(
 			...propertyData,
 		};
 	} catch (error) {
-		logger.error(
-			`Error scraping detail page for property ${propertyId}: %s`,
-			getErrorMessage(error),
-		);
+		logger.error({ propertyId, err: getErrorMessage(error) }, "Error scraping detail page");
 		return null;
 	}
 }
@@ -168,9 +165,7 @@ export async function scrapeDOMFallback(
 
 	for (let attempt = 1; attempt <= maxRetries; attempt++) {
 		try {
-			logger.info(
-				`DOM fallback attempt ${attempt} for search term: ${searchTerm}`,
-			);
+			logger.info({ attempt, searchTerm }, "DOM fallback attempt");
 
 			const context = await browser.newContext({
 				userAgent:
@@ -246,7 +241,7 @@ export async function scrapeDOMFallback(
 				});
 
 				if (hasNoResults) {
-					logger.info(`No results found for search term: ${searchTerm}`);
+					logger.info({ searchTerm }, "No results found");
 					await context.close();
 					return [];
 				}
@@ -273,9 +268,7 @@ export async function scrapeDOMFallback(
 					return ids;
 				});
 
-				logger.warn(
-					`⚠️ DOM scraping found ${propertyIds.length} property IDs (max 20 due to pagination limit)`,
-				);
+				logger.warn({ count: propertyIds.length, max: 20 }, "DOM scraping property IDs found (pagination-limited)");
 
 				const properties = [];
 				let successCount = 0;
@@ -285,9 +278,7 @@ export async function scrapeDOMFallback(
 					const propertyId = propertyIds[i];
 
 					try {
-						logger.info(
-							`Scraping property ${i + 1}/${propertyIds.length}: ${propertyId}`,
-						);
+						logger.info({ propertyId, progress: `${i + 1}/${propertyIds.length}` }, "Scraping property");
 
 						const propertyData = await scrapePropertyDetail(page, propertyId);
 
@@ -300,17 +291,13 @@ export async function scrapeDOMFallback(
 
 						await humanDelay(500, 1000);
 					} catch (error) {
-						logger.error(`Failed to scrape property ${propertyId}: %s`, getErrorMessage(error));
+						logger.error({ propertyId, err: getErrorMessage(error) }, "Failed to scrape property");
 						failCount++;
 					}
 				}
 
-				logger.info(
-					`DOM fallback complete: ${successCount} succeeded, ${failCount} failed`,
-				);
-				logger.warn(
-					`⚠️ Results limited to ${properties.length} properties (20 max due to AG Grid pagination)`,
-				);
+				logger.info({ successCount, failCount }, "DOM fallback complete");
+				logger.warn({ count: properties.length, max: 20 }, "Results limited by AG Grid pagination");
 
 				await context.close();
 				return properties;
@@ -319,11 +306,11 @@ export async function scrapeDOMFallback(
 			}
 		} catch (error) {
 			lastError = error as Error;
-			logger.error(`DOM fallback attempt ${attempt} failed: %s`, getErrorMessage(error));
+			logger.error({ attempt, err: getErrorMessage(error) }, "DOM fallback attempt failed");
 
 			if (attempt < maxRetries) {
 				const delay = config.retryDelay * 2 ** (attempt - 1);
-				logger.info(`Retrying in ${delay}ms...`);
+				logger.info({ delayMs: delay }, "Retrying DOM fallback");
 				await new Promise((resolve) => setTimeout(resolve, delay));
 			}
 		}
