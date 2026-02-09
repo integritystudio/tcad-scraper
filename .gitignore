@@ -16,6 +16,7 @@ results.png
 # Server artifacts
 server/screenshots/
 server/logs/
+server/data/
 server/*.log
 server/*.html
 server/*.deb
@@ -25,7 +26,7 @@ dist/
 **/dist/
 .next/
 out/
-repomix-output.xml
+**/repomix-output.xml
 *-output.xml
 
 # IDE
