@@ -10,6 +10,7 @@
 
 import { createClient, type RedisClientType } from "redis";
 import { config } from "../config";
+import { getErrorMessage } from "../utils/error-helpers";
 import logger from "./logger";
 
 export class RedisCacheService {
@@ -65,7 +66,7 @@ export class RedisCacheService {
 			await this.client.connect();
 			logger.info("Redis cache service initialized");
 		} catch (error) {
-			logger.error("Failed to connect to Redis cache: %s", error instanceof Error ? error.message : String(error));
+			logger.error("Failed to connect to Redis cache: %s", getErrorMessage(error));
 			this.stats.errors++;
 			throw error;
 		}
@@ -93,7 +94,7 @@ export class RedisCacheService {
 			logger.debug(`Cache HIT: ${key}`);
 			return JSON.parse(value) as T;
 		} catch (error) {
-			logger.error(`Cache get error for key ${key}: %s`, error instanceof Error ? error.message : String(error));
+			logger.error(`Cache get error for key ${key}: %s`, getErrorMessage(error));
 			this.stats.errors++;
 			return null;
 		}
@@ -123,7 +124,7 @@ export class RedisCacheService {
 			logger.debug(`Cache SET: ${key} (TTL: ${ttlSeconds}s)`);
 			return true;
 		} catch (error) {
-			logger.error(`Cache set error for key ${key}: %s`, error instanceof Error ? error.message : String(error));
+			logger.error(`Cache set error for key ${key}: %s`, getErrorMessage(error));
 			this.stats.errors++;
 			return false;
 		}
@@ -145,7 +146,7 @@ export class RedisCacheService {
 			logger.debug(`Cache DELETE: ${key}`);
 			return result > 0;
 		} catch (error) {
-			logger.error(`Cache delete error for key ${key}: %s`, error instanceof Error ? error.message : String(error));
+			logger.error(`Cache delete error for key ${key}: %s`, getErrorMessage(error));
 			this.stats.errors++;
 			return false;
 		}
@@ -174,7 +175,7 @@ export class RedisCacheService {
 			logger.info(`Cache DELETE PATTERN: ${pattern} (${result} keys deleted)`);
 			return result;
 		} catch (error) {
-			logger.error(`Cache delete pattern error for ${pattern}: %s`, error instanceof Error ? error.message : String(error));
+			logger.error(`Cache delete pattern error for ${pattern}: %s`, getErrorMessage(error));
 			this.stats.errors++;
 			return 0;
 		}
@@ -192,7 +193,7 @@ export class RedisCacheService {
 			const result = await this.client.exists(key);
 			return result === 1;
 		} catch (error) {
-			logger.error(`Cache exists error for key ${key}: %s`, error instanceof Error ? error.message : String(error));
+			logger.error(`Cache exists error for key ${key}: %s`, getErrorMessage(error));
 			return false;
 		}
 	}
@@ -208,7 +209,7 @@ export class RedisCacheService {
 		try {
 			return await this.client.ttl(key);
 		} catch (error) {
-			logger.error(`Cache TTL error for key ${key}: %s`, error instanceof Error ? error.message : String(error));
+			logger.error(`Cache TTL error for key ${key}: %s`, getErrorMessage(error));
 			return -1;
 		}
 	}
@@ -227,7 +228,7 @@ export class RedisCacheService {
 			logger.info("Cache flushed");
 			return true;
 		} catch (error) {
-			logger.error("Cache flush error: %s", error instanceof Error ? error.message : String(error));
+			logger.error("Cache flush error: %s", getErrorMessage(error));
 			this.stats.errors++;
 			return false;
 		}
@@ -316,7 +317,7 @@ export class RedisCacheService {
 			const result = await this.client.ping();
 			return result === "PONG";
 		} catch (error) {
-			logger.error("Cache health check failed: %s", error instanceof Error ? error.message : String(error));
+			logger.error("Cache health check failed: %s", getErrorMessage(error));
 			return false;
 		}
 	}
@@ -327,7 +328,7 @@ export const cacheService = new RedisCacheService();
 
 // Initialize on module load
 cacheService.connect().catch((error: unknown) => {
-	logger.error("Failed to initialize Redis cache on startup: %s", error instanceof Error ? error.message : String(error));
+	logger.error("Failed to initialize Redis cache on startup: %s", getErrorMessage(error));
 });
 
 // Graceful shutdown

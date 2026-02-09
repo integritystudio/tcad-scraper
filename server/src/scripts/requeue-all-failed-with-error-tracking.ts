@@ -13,6 +13,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import logger from "../lib/logger";
+import { getErrorMessage } from "../utils/error-helpers";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import { tokenRefreshService } from "../services/token-refresh.service";
@@ -233,9 +234,7 @@ async function main() {
 					);
 					enqueued++;
 				} catch (error: unknown) {
-					const errorMessage =
-						error instanceof Error ? error.message : String(error);
-					logger.error(`   ❌ Failed to enqueue "${term}": ${errorMessage}`);
+					logger.error(`   ❌ Failed to enqueue "${term}": ${getErrorMessage(error)}`);
 				}
 			}
 

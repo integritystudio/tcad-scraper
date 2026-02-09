@@ -2,6 +2,7 @@ import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import type { ScraperJob } from "../types/queue.types";
+import { getErrorMessage } from "./error-helpers";
 
 interface DeduplicationOptions {
 	verbose?: boolean;
@@ -162,7 +163,7 @@ export async function removeDuplicatesFromQueue(
 				failed++;
 				if (verbose && failed <= 3) {
 					const errorMessage =
-						error instanceof Error ? error.message : String(error);
+						getErrorMessage(error);
 					logger.error(
 						`${showProgress ? "\n" : ""}   ❌ Failed to remove job ${jobs[i].job.id}: ${errorMessage}`,
 					);
@@ -186,7 +187,7 @@ export async function removeDuplicatesFromQueue(
 				failed++;
 				if (verbose && failed <= 3) {
 					const errorMessage =
-						error instanceof Error ? error.message : String(error);
+						getErrorMessage(error);
 					logger.error(
 						`${showProgress ? "\n" : ""}   ❌ Failed to remove job ${jobInfo.job.id}: ${errorMessage}`,
 					);

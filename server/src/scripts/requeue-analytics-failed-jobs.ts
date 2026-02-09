@@ -13,6 +13,7 @@
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
+import { getErrorMessage } from "../utils/error-helpers";
 
 const BATCH_SIZE = 50;
 
@@ -97,9 +98,7 @@ async function main() {
 					);
 					enqueued++;
 				} catch (error: unknown) {
-					const errorMessage =
-						error instanceof Error ? error.message : String(error);
-					logger.error(`   ❌ Failed to enqueue "${term}": ${errorMessage}`);
+					logger.error(`   ❌ Failed to enqueue "${term}": ${getErrorMessage(error)}`);
 				}
 			}
 

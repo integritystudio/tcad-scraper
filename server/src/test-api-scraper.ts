@@ -1,4 +1,5 @@
 import logger from "./lib/logger";
+import { getErrorMessage } from "./utils/error-helpers";
 import { TCADScraper } from "./lib/tcad-scraper";
 
 async function testApiScraper() {
@@ -45,7 +46,7 @@ async function testApiScraper() {
 		}
 	} catch (error) {
 		logger.error(
-			`\n❌ Test failed: ${error instanceof Error ? error.message : String(error)}`,
+			`\n❌ Test failed: ${getErrorMessage(error)}`,
 		);
 	} finally {
 		await scraper.cleanup();

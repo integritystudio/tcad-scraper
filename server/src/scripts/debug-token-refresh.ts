@@ -7,6 +7,7 @@
 
 import logger from "../lib/logger";
 import { tokenRefreshService } from "../services/token-refresh.service";
+import { getErrorMessage } from "../utils/error-helpers";
 
 async function debugTokenRefresh() {
 	logger.info("=".repeat(60));
@@ -35,7 +36,7 @@ async function debugTokenRefresh() {
 		logger.info(`   Length: ${token ? token.length : "N/A"}`);
 	} catch (error) {
 		logger.error(
-			`\n3. refreshToken() threw error: ${error instanceof Error ? error.message : String(error)}`,
+			`\n3. refreshToken() threw error: ${getErrorMessage(error)}`,
 		);
 	}
 

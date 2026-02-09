@@ -6,6 +6,7 @@ import {
 	type SearchTermOptimizer,
 	searchTermOptimizer,
 } from "../services/search-term-optimizer";
+import { getErrorMessage } from "../utils/error-helpers";
 
 const logger = winston.createLogger({
 	level: "info",
@@ -1194,7 +1195,7 @@ class SearchPatternGenerator {
 			this.lastDbRefresh = now;
 		} catch (error) {
 			logger.error(
-				`❌ Failed to load used terms from database: ${error instanceof Error ? error.message : String(error)}`,
+				`❌ Failed to load used terms from database: ${getErrorMessage(error)}`,
 			);
 			throw error;
 		}
@@ -1365,7 +1366,7 @@ class SearchPatternGenerator {
 			return [...optimizedTerms, ...suggestedTerms];
 		} catch (error) {
 			logger.error(
-				`❌ Failed to optimize strategy: ${error instanceof Error ? error.message : String(error)}`,
+				`❌ Failed to optimize strategy: ${getErrorMessage(error)}`,
 			);
 			return [];
 		}
@@ -1602,7 +1603,7 @@ class ContinuousBatchScraper {
 				this.stats.totalQueued++;
 			} catch (error) {
 				logger.error(
-					`Failed to queue ${searchTerm}: ${error instanceof Error ? error.message : String(error)}`,
+					`Failed to queue ${searchTerm}: ${getErrorMessage(error)}`,
 				);
 			}
 		}
@@ -1662,7 +1663,7 @@ class ContinuousBatchScraper {
 				}
 			} catch (error) {
 				logger.error(
-					`Monitoring error: ${error instanceof Error ? error.message : String(error)}`,
+					`Monitoring error: ${getErrorMessage(error)}`,
 				);
 			}
 		}, CHECK_INTERVAL);
@@ -1711,7 +1712,7 @@ class ContinuousBatchScraper {
 const scraper = new ContinuousBatchScraper();
 scraper.run().catch((error) => {
 	logger.error(
-		`Fatal error: ${error instanceof Error ? error.message : String(error)}`,
+		`Fatal error: ${getErrorMessage(error)}`,
 	);
 	process.exit(1);
 });

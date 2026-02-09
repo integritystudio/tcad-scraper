@@ -1,5 +1,6 @@
 import winston from "winston";
 import { scraperQueue } from "../queues/scraper.queue";
+import { getErrorMessage } from "../utils/error-helpers";
 
 const logger = winston.createLogger({
 	level: "info",
@@ -163,7 +164,7 @@ async function queueBatch() {
 		} catch (error) {
 			failed++;
 			logger.error(
-				`  ✗ ${searchTerm}: ${error instanceof Error ? error.message : String(error)}`,
+				`  ✗ ${searchTerm}: ${getErrorMessage(error)}`,
 			);
 		}
 	}
@@ -191,7 +192,7 @@ async function queueBatch() {
 
 queueBatch().catch((error) => {
 	logger.error(
-		`Fatal error: ${error instanceof Error ? error.message : String(error)}`,
+		`Fatal error: ${getErrorMessage(error)}`,
 	);
 	process.exit(1);
 });

@@ -4,6 +4,7 @@
 
 import { type Request, type Response, Router } from "express";
 import logger from "../lib/logger";
+import { getErrorMessage } from "../utils/error-helpers";
 import {
 	cspMiddleware,
 	generateSecureHtml,
@@ -37,7 +38,7 @@ router.get(
 			res.send(html);
 		} catch (error) {
 			logger.error(
-				`Error serving app: ${error instanceof Error ? error.message : String(error)}`,
+				`Error serving app: ${getErrorMessage(error)}`,
 			);
 			res.status(500).send("Internal Server Error");
 		}

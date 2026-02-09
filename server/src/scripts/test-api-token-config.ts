@@ -12,6 +12,7 @@
 import { config } from "../config";
 import logger from "../lib/logger";
 import { TCADScraper } from "../lib/tcad-scraper";
+import { getErrorMessage } from "../utils/error-helpers";
 
 logger.info("=== TCAD API Token Configuration Test ===\n");
 
@@ -76,7 +77,7 @@ async function testTokenUsage() {
 		}
 	} catch (error) {
 		logger.error(
-			`❌ Error during test: ${error instanceof Error ? error.message : String(error)}`,
+			`❌ Error during test: ${getErrorMessage(error)}`,
 		);
 	} finally {
 		await scraper.cleanup();

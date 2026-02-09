@@ -15,6 +15,7 @@ import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import { tokenRefreshService } from "../services/token-refresh.service";
+import { getErrorMessage } from "../utils/error-helpers";
 
 const THREE_MINUTES_MS = 3 * 60 * 1000; // 3 minutes in milliseconds
 
@@ -109,9 +110,7 @@ async function main() {
 					);
 				}
 			} catch (error: unknown) {
-				const errorMessage =
-					error instanceof Error ? error.message : String(error);
-				logger.error(`   Failed to remove job ${job.id}: ${errorMessage}`);
+				logger.error(`   Failed to remove job ${job.id}: ${getErrorMessage(error)}`);
 			}
 		}
 
@@ -126,9 +125,7 @@ async function main() {
 					);
 				}
 			} catch (error: unknown) {
-				const errorMessage =
-					error instanceof Error ? error.message : String(error);
-				logger.error(`   Failed to remove job ${job.id}: ${errorMessage}`);
+				logger.error(`   Failed to remove job ${job.id}: ${getErrorMessage(error)}`);
 			}
 		}
 
@@ -191,9 +188,7 @@ async function main() {
 					);
 				}
 			} catch (error: unknown) {
-				const errorMessage =
-					error instanceof Error ? error.message : String(error);
-				logger.error(`\n   ❌ Failed to enqueue "${term}": ${errorMessage}`);
+				logger.error(`\n   ❌ Failed to enqueue "${term}": ${getErrorMessage(error)}`);
 			}
 		}
 

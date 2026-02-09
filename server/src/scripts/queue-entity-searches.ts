@@ -1,5 +1,6 @@
 import logger from "../lib/logger";
 import { scraperQueue } from "../queues/scraper.queue";
+import { getErrorMessage } from "../utils/error-helpers";
 
 /**
  * Queue 50 high-yield entity term searches based on optimal search strategy
@@ -115,7 +116,7 @@ async function queueEntitySearches() {
 			} catch (error) {
 				failedCount++;
 				logger.error(
-					`❌ Failed to queue "${searchTerm}": ${error instanceof Error ? error.message : "Unknown error"}`,
+					`❌ Failed to queue "${searchTerm}": ${getErrorMessage(error)}`,
 				);
 			}
 		}
@@ -151,7 +152,7 @@ async function queueEntitySearches() {
 		logger.info("✨ Entity term searches queued successfully!\n");
 	} catch (error) {
 		logger.error(
-			`❌ Fatal error: ${error instanceof Error ? error.message : String(error)}`,
+			`❌ Fatal error: ${getErrorMessage(error)}`,
 		);
 		process.exit(1);
 	}

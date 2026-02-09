@@ -1,6 +1,7 @@
 import winston from "winston";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
+import { getErrorMessage } from "../utils/error-helpers";
 
 const logger = winston.createLogger({
 	level: "info",
@@ -327,7 +328,7 @@ class ComprehensiveBatchScraper {
 					logger.info(`  ✓ ${searchTerm} (Job ${job.id})`);
 				} catch (error) {
 					logger.error(
-						`  ✗ ${searchTerm}: ${error instanceof Error ? error.message : String(error)}`,
+						`  ✗ ${searchTerm}: ${getErrorMessage(error)}`,
 					);
 				}
 			}
@@ -479,7 +480,7 @@ Coverage Strategy:
 			process.exit(0);
 		} catch (error) {
 			logger.error(
-				`❌ Fatal error: ${error instanceof Error ? error.message : String(error)}`,
+				`❌ Fatal error: ${getErrorMessage(error)}`,
 			);
 			process.exit(1);
 		}

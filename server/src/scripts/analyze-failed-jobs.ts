@@ -12,6 +12,7 @@
 
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
+import { getErrorMessage } from "../utils/error-helpers";
 
 interface ErrorStats {
 	errorMessage: string;
@@ -213,8 +214,7 @@ async function main() {
 }
 
 main().catch((error: unknown) => {
-	const errorMessage = error instanceof Error ? error.message : String(error);
-	logger.error(`Script failed: ${errorMessage}`);
+	logger.error(`Script failed: ${getErrorMessage(error)}`);
 	if (error instanceof Error && error.stack) {
 		logger.debug(error.stack);
 	}

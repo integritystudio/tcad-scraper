@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Prisma } from "@prisma/client";
 import { config } from "../config";
+import { getErrorMessage } from "../utils/error-helpers";
 import { calculateClaudeCost } from "./claude-pricing";
 import logger from "./logger";
 import { prisma } from "./prisma";
@@ -36,7 +37,7 @@ interface ClaudeErrorDetails {
 }
 
 function categorizeClaudeError(error: unknown): ClaudeErrorDetails {
-	const errorMsg = error instanceof Error ? error.message : String(error);
+	const errorMsg = getErrorMessage(error);
 
 	// Authentication errors
 	if (
@@ -146,7 +147,7 @@ export class ClaudeSearchService {
 			);
 		} catch (error) {
 			// Don't fail the main request if logging fails
-			const errorMsg = error instanceof Error ? error.message : String(error);
+			const errorMsg = getErrorMessage(error);
 			logger.error(`Failed to log API usage: ${errorMsg}`);
 		}
 	}
@@ -412,7 +413,7 @@ Now generate the JSON for the user's query above.`,
 					errorType: errorDetails.type,
 					actionable: errorDetails.actionable,
 					retryable: errorDetails.retryable,
-					originalError: error instanceof Error ? error.message : String(error),
+					originalError: getErrorMessage(error),
 				},
 				`Claude API error [${errorDetails.type}]: ${errorDetails.message}`,
 			);

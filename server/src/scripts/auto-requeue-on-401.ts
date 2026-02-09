@@ -14,6 +14,7 @@ import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import { tokenRefreshService } from "../services/token-refresh.service";
+import { getErrorMessage } from "../utils/error-helpers";
 
 const BATCH_SIZE = 50; // Enqueue 50 jobs at a time
 const CHECK_INTERVAL_MS = 60000; // Check every 1 minute
@@ -123,9 +124,7 @@ async function check401Errors() {
 							},
 						);
 					} catch (error: unknown) {
-						const errorMessage =
-							error instanceof Error ? error.message : String(error);
-						logger.error(`   ❌ Failed to enqueue "${term}": ${errorMessage}`);
+						logger.error(`   ❌ Failed to enqueue "${term}": ${getErrorMessage(error)}`);
 					}
 				}
 

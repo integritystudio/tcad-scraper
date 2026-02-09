@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import logger from "../lib/logger";
+import { getErrorMessage } from "../utils/error-helpers";
 
 async function checkColumnIds() {
 	logger.info("🔍 Checking actual column IDs...\n");
@@ -63,8 +64,7 @@ async function checkColumnIds() {
 			});
 		}
 	} catch (error: unknown) {
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		logger.error(`❌ Error: ${errorMessage}`);
+		logger.error(`❌ Error: ${getErrorMessage(error)}`);
 	} finally {
 		await context.close();
 		await browser.close();

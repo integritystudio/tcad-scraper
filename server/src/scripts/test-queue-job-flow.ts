@@ -8,6 +8,7 @@
 import { config } from "../config";
 import logger from "../lib/logger";
 import { TCADScraper } from "../lib/tcad-scraper";
+import { getErrorMessage } from "../utils/error-helpers";
 
 logger.info("=== Queue Job Flow Simulation ===\n");
 logger.info(
@@ -121,7 +122,7 @@ async function simulateQueueJobProcessing() {
 		logger.info("✅ Job marked as completed\n");
 	} catch (error) {
 		logger.error(
-			`❌ Error during simulation: ${error instanceof Error ? error.message : String(error)}`,
+			`❌ Error during simulation: ${getErrorMessage(error)}`,
 		);
 	} finally {
 		logger.info("Step 7: Cleanup");

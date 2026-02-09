@@ -7,6 +7,7 @@ import { TCADScraper } from "../lib/tcad-scraper";
 import { searchTermOptimizer } from "../services/search-term-optimizer";
 import { tcadTokenRefreshService } from "../services/token-refresh.service";
 import type { ScrapeJobData, ScrapeJobResult } from "../types";
+import { getErrorMessage } from "../utils/error-helpers";
 
 // Create the Bull queue
 export const scraperQueue = new Bull<ScrapeJobData>(config.queue.name, {
@@ -204,7 +205,7 @@ scraperQueue.process(
 		} catch (error) {
 			const errorMessage =
 				error instanceof Error ? error.message : "Unknown error";
-			logger.error(`Job ${job.id} failed: %s`, error instanceof Error ? error.message : String(error));
+			logger.error(`Job ${job.id} failed: %s`, getErrorMessage(error));
 
 			// Check if this is a token expiration error - trigger refresh before retry
 			if (
@@ -271,7 +272,7 @@ setInterval(async () => {
 		await scraperQueue.clean(config.queue.cleanupGracePeriod, "failed");
 		logger.info("Cleaned old jobs from queue");
 	} catch (error) {
-		logger.error("Failed to clean queue: %s", error instanceof Error ? error.message : String(error));
+		logger.error("Failed to clean queue: %s", getErrorMessage(error));
 	}
 }, config.queue.cleanupInterval);
 

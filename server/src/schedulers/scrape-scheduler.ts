@@ -2,6 +2,7 @@ import cron from "node-cron";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
+import { getErrorMessage } from "../utils/error-helpers";
 
 class ScheduledJobs {
 	private tasks: cron.ScheduledTask[] = [];
@@ -110,7 +111,7 @@ class ScheduledJobs {
 				);
 			}
 		} catch (error) {
-			logger.error(`Failed to run ${frequency} scheduled scrapes: %s`, error instanceof Error ? error.message : String(error));
+			logger.error(`Failed to run ${frequency} scheduled scrapes: %s`, getErrorMessage(error));
 		}
 	}
 
@@ -137,7 +138,7 @@ class ScheduledJobs {
 
 			logger.info(`Cleaned up ${deletedJobs.count} old database jobs`);
 		} catch (error) {
-			logger.error("Failed to clean up old jobs: %s", error instanceof Error ? error.message : String(error));
+			logger.error("Failed to clean up old jobs: %s", getErrorMessage(error));
 		}
 	}
 

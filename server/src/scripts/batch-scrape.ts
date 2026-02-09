@@ -1,6 +1,7 @@
 import winston from "winston";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
+import { getErrorMessage } from "../utils/error-helpers";
 
 const logger = winston.createLogger({
 	level: "info",
@@ -253,7 +254,7 @@ class BatchScraper {
 					logger.info(`  ✓ Queued: ${searchTerm} (Job ID: ${job.id})`);
 				} catch (error) {
 					logger.error(
-						`  ✗ Failed to queue: ${searchTerm}: ${error instanceof Error ? error.message : String(error)}`,
+						`  ✗ Failed to queue: ${searchTerm}: ${getErrorMessage(error)}`,
 					);
 				}
 			}
@@ -399,7 +400,7 @@ Strategy Used: ${this.config.searchStrategy}
 			process.exit(0);
 		} catch (error) {
 			logger.error(
-				`Fatal error during batch scraping: ${error instanceof Error ? error.message : String(error)}`,
+				`Fatal error during batch scraping: ${getErrorMessage(error)}`,
 			);
 			process.exit(1);
 		}
