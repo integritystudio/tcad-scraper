@@ -7,6 +7,8 @@
  * They are skipped by default in CI. Run with --testPathPattern=api.test to include them.
  */
 
+import type { PrismaClient } from "@prisma/client";
+import type { Express } from "express";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { isDatabaseAvailable, isRedisAvailable } from "./test-utils";
@@ -23,8 +25,8 @@ const checkInfrastructure = async () => {
 };
 
 describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
-	let app: unknown;
-	let prisma: unknown;
+	let app: Express;
+	let prisma: PrismaClient;
 
 	beforeAll(async () => {
 		// Import dependencies
