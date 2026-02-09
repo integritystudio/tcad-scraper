@@ -68,12 +68,12 @@ describe("PropertyController", () => {
 	let statusMock: Mock;
 
 	// Import mocked modules
-	let scraperQueue: any;
-	let canScheduleJob: any;
-	let prisma: any;
-	let prismaReadOnly: any;
-	let claudeSearchService: any;
-	let cacheService: any;
+	let scraperQueue: Record<string, ReturnType<typeof vi.fn>>;
+	let canScheduleJob: ReturnType<typeof vi.fn>;
+	let prisma: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+	let prismaReadOnly: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+	let claudeSearchService: Record<string, ReturnType<typeof vi.fn>>;
+	let cacheService: Record<string, ReturnType<typeof vi.fn>>;
 
 	beforeEach(async () => {
 		// Clear all mocks
@@ -298,7 +298,7 @@ describe("PropertyController", () => {
 
 			// Mock cacheService to execute the callback (cache miss)
 			cacheService.getOrSet.mockImplementation(
-				async (_key: string, callback: () => Promise<any>) => {
+				async (_key: string, callback: () => Promise<unknown>) => {
 					return await callback();
 				},
 			);
@@ -333,7 +333,7 @@ describe("PropertyController", () => {
 			mockReq.query = filters;
 
 			cacheService.getOrSet.mockImplementation(
-				async (_key: string, callback: () => Promise<any>) => {
+				async (_key: string, callback: () => Promise<unknown>) => {
 					return await callback();
 				},
 			);
@@ -567,7 +567,7 @@ describe("PropertyController", () => {
 
 		it("should fetch statistics from database on cache miss", async () => {
 			cacheService.getOrSet.mockImplementation(
-				async (_key: string, callback: () => Promise<any>) => {
+				async (_key: string, callback: () => Promise<unknown>) => {
 					return await callback();
 				},
 			);

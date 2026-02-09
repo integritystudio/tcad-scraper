@@ -127,31 +127,31 @@ describe("TCADScraper", () => {
 		describe("getRandomElement", () => {
 			it("should return element from array", () => {
 				// Access private method via any
-				const scraperAny = scraper as any;
+				const scraperPrivate = scraper as unknown as Record<string, (...args: unknown[]) => unknown>;
 				const testArray = [1, 2, 3, 4, 5];
 
-				const result = scraperAny.getRandomElement(testArray);
+				const result = scraperPrivate.getRandomElement(testArray);
 
 				expect(testArray).toContain(result);
 			});
 
 			it("should handle single element array", () => {
-				const scraperAny = scraper as any;
+				const scraperPrivate = scraper as unknown as Record<string, (...args: unknown[]) => unknown>;
 				const testArray = ["only-element"];
 
-				const result = scraperAny.getRandomElement(testArray);
+				const result = scraperPrivate.getRandomElement(testArray);
 
 				expect(result).toBe("only-element");
 			});
 
 			it("should return different elements on multiple calls", () => {
-				const scraperAny = scraper as any;
+				const scraperPrivate = scraper as unknown as Record<string, (...args: unknown[]) => unknown>;
 				const testArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 				const results = new Set();
 
 				// Call 20 times, should get variety
 				for (let i = 0; i < 20; i++) {
-					results.add(scraperAny.getRandomElement(testArray));
+					results.add(scraperPrivate.getRandomElement(testArray));
 				}
 
 				// With 20 calls on 10 elements, should get more than 1 unique value
@@ -169,9 +169,9 @@ describe("TCADScraper", () => {
 			});
 
 			it("should delay within specified range", async () => {
-				const scraperAny = scraper as any;
+				const scraperPrivate = scraper as unknown as Record<string, (...args: unknown[]) => unknown>;
 
-				const delayPromise = scraperAny.humanDelay(100, 200);
+				const delayPromise = scraperPrivate.humanDelay(100, 200);
 
 				// Run all pending timers
 				await vi.runAllTimersAsync();
@@ -182,9 +182,9 @@ describe("TCADScraper", () => {
 			});
 
 			it("should use default config values when not specified", async () => {
-				const scraperAny = scraper as any;
+				const scraperPrivate = scraper as unknown as Record<string, (...args: unknown[]) => unknown>;
 
-				const delayPromise = scraperAny.humanDelay();
+				const delayPromise = scraperPrivate.humanDelay();
 
 				// Run all pending timers (config uses 500-2000ms)
 				await vi.runAllTimersAsync();

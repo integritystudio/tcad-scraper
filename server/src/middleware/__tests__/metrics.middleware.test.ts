@@ -23,7 +23,7 @@ describe("Metrics Middleware", () => {
 			baseUrl: "/api",
 			route: {
 				path: "/test",
-			} as any,
+			} as Pick<import("express").IRoute, "path">,
 		};
 
 		mockRes = {
@@ -135,7 +135,7 @@ describe("Metrics Middleware", () => {
 		mockReq.baseUrl = "/api";
 		mockReq.route = {
 			path: "/properties/:id",
-		} as any;
+		} as Pick<import("express").IRoute, "path">;
 
 		metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
 		finishListeners.forEach((listener) => listener());
@@ -167,7 +167,7 @@ describe("Metrics Middleware", () => {
 		mockReq.baseUrl = "";
 		mockReq.route = {
 			path: "/health",
-		} as any;
+		} as Pick<import("express").IRoute, "path">;
 
 		metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
 		finishListeners.forEach((listener) => listener());
@@ -184,7 +184,7 @@ describe("Metrics Middleware", () => {
 		mockReq.baseUrl = "/api/properties";
 		mockReq.route = {
 			path: "/:id/details",
-		} as any;
+		} as Pick<import("express").IRoute, "path">;
 
 		metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);
 		finishListeners.forEach((listener) => listener());
@@ -200,7 +200,7 @@ describe("Metrics Middleware", () => {
 	it("should handle routes with no path correctly", () => {
 		mockReq.route = {
 			path: undefined,
-		} as any;
+		} as Pick<import("express").IRoute, "path">;
 		mockReq.path = "/fallback/path";
 
 		metricsMiddleware(mockReq as Request, mockRes as Response, mockNext);

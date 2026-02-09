@@ -218,7 +218,7 @@ describe("Validation Middleware", () => {
 				parse: () => {
 					throw new Error("Non-Zod error");
 				},
-			} as any;
+			} as Pick<z.ZodSchema, "parse">;
 
 			const middleware = validate(throwingSchema, "body");
 			middleware(mockReq as Request, mockRes as Response, mockNext);

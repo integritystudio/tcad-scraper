@@ -58,9 +58,9 @@ describe("BROKEN: vi.hoisted() approach", () => {
 // ==========================================
 
 describe("WORKING: Factory-based approach", () => {
-	let mockBrowser: any;
-	let mockContext: any;
-	let mockPage: any;
+	let mockBrowser: Record<string, ReturnType<typeof vi.fn>>;
+	let mockContext: Record<string, ReturnType<typeof vi.fn>>;
+	let mockPage: Record<string, ReturnType<typeof vi.fn>>;
 
 	beforeEach(() => {
 		vi.resetModules();
@@ -155,7 +155,7 @@ describe("Key Learnings", () => {
 		/**
 		 * PROPER PATTERN FOR PLAYWRIGHT/COMPLEX SDK MOCKING:
 		 *
-		 * 1. Declare mock variables outside beforeEach (let mockBrowser: any)
+		 * 1. Declare mock variables outside beforeEach
 		 * 2. Create fresh mock instances in beforeEach
 		 * 3. Use vi.doMock() instead of vi.mock() for dynamic mocking
 		 * 4. Use vi.resetModules() to clear previous module cache

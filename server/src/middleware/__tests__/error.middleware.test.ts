@@ -139,7 +139,7 @@ describe("Error Middleware", () => {
 		});
 
 		it("should handle ValidationError with 400 status", () => {
-			const error = new Error("Invalid input") as any;
+			const error = new Error("Invalid input");
 			error.name = "ValidationError";
 
 			errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
@@ -152,7 +152,7 @@ describe("Error Middleware", () => {
 		});
 
 		it("should handle UnauthorizedError with 401 status", () => {
-			const error = new Error("Not authorized") as any;
+			const error = new Error("Not authorized");
 			error.name = "UnauthorizedError";
 
 			errorHandler(error, mockReq as Request, mockRes as Response, mockNext);

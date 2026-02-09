@@ -261,7 +261,7 @@ describe("Auth Middleware", () => {
 			expect(token).toBeTruthy();
 			expect(typeof token).toBe("string");
 
-			const decoded = jwt.verify(token, "test-jwt-secret") as any;
+			const decoded = jwt.verify(token, "test-jwt-secret") as Record<string, unknown>;
 			expect(decoded.id).toBe("user123");
 			expect(decoded.email).toBe("test@example.com");
 			expect(decoded.exp).toBeTruthy();
@@ -272,7 +272,7 @@ describe("Auth Middleware", () => {
 
 			expect(token).toBeTruthy();
 
-			const decoded = jwt.verify(token, "test-jwt-secret") as any;
+			const decoded = jwt.verify(token, "test-jwt-secret") as Record<string, unknown>;
 			expect(decoded.id).toBe("user123");
 			expect(decoded.email).toBeUndefined();
 		});
@@ -281,7 +281,7 @@ describe("Auth Middleware", () => {
 			(config.auth.jwt as Record<string, unknown>).expiresIn = "2h";
 
 			const token = generateToken("user123");
-			const decoded = jwt.verify(token, "test-jwt-secret") as any;
+			const decoded = jwt.verify(token, "test-jwt-secret") as Record<string, unknown>;
 
 			const now = Math.floor(Date.now() / 1000);
 			const expectedExpiration = now + 2 * 60 * 60; // 2 hours from now

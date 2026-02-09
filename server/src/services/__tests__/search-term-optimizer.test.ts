@@ -40,7 +40,7 @@ describe("Search Term Optimizer", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		optimizer = new SearchTermOptimizer(mockPrisma as any);
+		optimizer = new SearchTermOptimizer(mockPrisma as unknown as import("@prisma/client").PrismaClient);
 	});
 
 	describe("OPTIMIZED_4_CHAR_STARTER_TERMS", () => {
@@ -86,7 +86,7 @@ describe("Search Term Optimizer", () => {
 		describe("constructor", () => {
 			it("should accept custom Prisma client", () => {
 				const customPrisma = { custom: "client" };
-				const customOptimizer = new SearchTermOptimizer(customPrisma as any);
+				const customOptimizer = new SearchTermOptimizer(customPrisma as unknown as import("@prisma/client").PrismaClient);
 				expect(customOptimizer).toBeDefined();
 			});
 

@@ -27,9 +27,9 @@ vi.mock("../../lib/logger", () => ({
 }));
 
 describe("removeDuplicatesFromQueue", () => {
-	let scraperQueue: any;
-	let prisma: any;
-	let logger: any;
+	let scraperQueue: Record<string, ReturnType<typeof vi.fn>>;
+	let prisma: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+	let logger: Record<string, ReturnType<typeof vi.fn>>;
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
