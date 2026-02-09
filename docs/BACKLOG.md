@@ -7,7 +7,23 @@
 
 ## Open Items
 
-(none)
+### TD-38: Standardize TCAD_YEAR type coercion across usage sites
+- **Priority**: LOW
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: `tcadYear` is used as: template interpolation (string) in `tcad-scraper.ts`, explicit `String()` in `test-api-direct.ts`, raw number in `scraper.queue.ts`. All work correctly but the inconsistency is confusing. Standardize with a comment explaining the API expects a string value.
+- **Files**: `server/src/lib/tcad-scraper.ts`, `server/src/test-api-direct.ts`, `server/src/queues/scraper.queue.ts`
+
+### TD-39: Add unit tests for TCAD_YEAR config parsing
+- **Priority**: LOW
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: `parseTcadYear()` has no direct unit test for default value, env var override, and out-of-range rejection. Config module is hard to test due to top-level `const config` evaluation, but targeted tests would prevent regressions.
+- **Files**: `server/src/config/index.ts`
+
+### TD-40: Add whitespace and min-terms edge cases to batch-configs tests
+- **Priority**: LOW
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: Current tests check for empty terms but not leading/trailing whitespace or zero-length terms arrays. Add `term === term.trim()` assertion and `terms.length > 0` assertion.
+- **Files**: `server/src/scripts/config/__tests__/batch-configs.test.ts`
 
 ---
 
