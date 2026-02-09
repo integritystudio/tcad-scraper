@@ -9,29 +9,20 @@
 
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { isDatabaseAvailable, isRedisAvailable } from "./test-utils";
 
-// Skip these tests in CI or if database is not available
-const _shouldSkip =
-	!process.env.RUN_INTEGRATION_TESTS && process.env.CI === "true";
+// Check infrastructure availability before running
+let skipApiTests = true;
+const checkInfrastructure = async () => {
+	const [redisOk, dbOk] = await Promise.all([
+		isRedisAvailable(3000),
+		isDatabaseAvailable(5000),
+	]);
+	skipApiTests = !redisOk || !dbOk;
+	return !skipApiTests;
+};
 
-// TODO: ALL 27 TESTS SKIPPED - describe.skip() on line 16
-// Issue: Tests are intentionally disabled, requiring running Express server
-// These tests cover:
-//   - Health check endpoints (5 tests)
-//   - Property query endpoints (5 tests)
-//   - Scraping endpoints (7 tests)
-//   - Statistics endpoints (1 test)
-//   - Monitoring endpoints (3 tests)
-//   - Search endpoints (3 tests)
-//   - Error handling (2 tests)
-//   - Security headers (1 test)
-// Fix: To enable, change to describe() and ensure:
-//   1. Express server is running or import app properly
-//   2. PostgreSQL database is accessible (via Tailscale)
-//   3. Redis is running
-//   4. Test data cleanup in beforeAll/afterAll works correctly
-// Run with: RUN_INTEGRATION_TESTS=true npm run test:integration
-describe.skip("API Integration Tests", () => {
+describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 	let app: unknown;
 	let prisma: unknown;
 
