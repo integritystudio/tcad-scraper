@@ -254,7 +254,7 @@ Stores scraped property information with automatic timestamps and comprehensive 
 ```prisma
 model Property {
   id              String   @id @default(uuid())
-  propertyId      String   @unique @map("property_id")  // TCAD unique identifier
+  propertyId      String   @map("property_id")          // TCAD unique identifier
   name            String                                 // Owner name
   propType        String   @map("prop_type")            // Property type
   city            String?                                // City location
@@ -267,12 +267,15 @@ model Property {
   scrapedAt       DateTime @default(now()) @map("scraped_at")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
+  year            Int                                    // Tax year
 
+  @@unique([propertyId, year])
   @@index([searchTerm, scrapedAt])
   @@index([propertyId])
   @@index([city])
   @@index([propType])
   @@index([appraisedValue])
+  @@index([year])
   @@map("properties")
 }
 ```
@@ -857,18 +860,17 @@ docker run --name tcad-postgres -d \
 
 ## Deployment
 
-The project includes a GitHub Actions workflow to deploy the application to GitHub Pages. To use this workflow, you will need to create a `DATABASE_URL` secret in your GitHub repository settings. This secret should contain the connection string for your production database.
+The frontend deploys automatically to **GitHub Pages** via GitHub Actions on push to `main`. The custom domain `alephatx.info` is configured via CNAME.
 
-**Steps to configure deployment:**
+The API runs on the Hobbes server, exposed via **Cloudflare Tunnel** at `api.alephatx.info`.
 
-1.  Navigate to your GitHub repository's **Settings** tab.
-2.  In the **Security** section, click on **Secrets and variables** > **Actions**.
-3.  Click on **New repository secret**.
-4.  Enter `DATABASE_URL` as the secret name.
-5.  Paste your database connection string as the secret value.
-6.  Click **Add secret**.
+**Required GitHub Secrets:**
+- `DOPPLER_TOKEN`: Access to Doppler secrets (provides `VITE_API_URL` at build time)
 
-Once the secret is configured, the workflow will automatically deploy the application to GitHub Pages whenever you push to the `main` branch.
+**Production URLs:**
+- Frontend: https://alephatx.info
+- API: https://api.alephatx.info/api
+- Health: https://api.alephatx.info/health
 
 ## Monitoring & Metrics
 

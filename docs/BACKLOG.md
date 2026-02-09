@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
 **Last Updated**: 2026-02-09
-**Status**: 616 tests passing, 0 skipped, 0 failed | TypeScript clean | Lint clean
+**Status**: 617 tests passing, 0 skipped, 0 failed | TypeScript clean | Lint clean
 
 ---
 
@@ -14,6 +14,17 @@ No open items.
 ## Completed
 
 All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026 entry).
+
+### Session: February 9, 2026 (infrastructure & deployment)
+- Migrated frontend from `www.aledlie.com/tcad-scraper/` to custom domain `alephatx.info` (GitHub Pages + Cloudflare)
+- Set Vite `base` from `"/tcad-scraper/"` to `"/"` for root domain deployment
+- Configured DNS: `alephatx.info` (GitHub Pages), `www.alephatx.info` (cert provisioning), `api.alephatx.info` (Cloudflare Tunnel)
+- Fixed Cloudflare SSL mode (Flexible) for Hobbes origin on port 80
+- Restarted nginx on Hobbes (had been failed since Feb 6)
+- Re-provisioned GitHub Pages HTTPS cert (was expired/stuck in `bad_authz`)
+- Created missing Prisma migration `20251201000000_add_year_column` (year column existed in schema/prod but had no migration)
+- Fixed CI deploy: added `npm rebuild` after `npm ci` for rollup native module on Linux
+- Updated CLAUDE.md infrastructure section, debugging table, access points
 
 ### Session: February 9, 2026 (stale file cleanup)
 - Deleted `server/docs/TEST-SEPARATION-STRATEGY.md` — superseded by `docs/TESTING.md` (referenced stale Jest config, wrong test counts)

@@ -252,22 +252,25 @@ CLAUDE_API_KEY: "test-key"
 
 **Trigger**: Push to `main` branch, or manual dispatch
 
+**Custom Domain**: `alephatx.info` (configured via CNAME file + GitHub Pages settings)
+
 **Jobs**:
 
 #### Build
 - Installs Node.js and dependencies
+- Runs `npm rebuild` to ensure platform-specific native modules (e.g., rollup) are available
 - Installs Doppler CLI for secrets
-- Fetches API URL from Doppler
-- Builds frontend with Vite
+- Fetches `VITE_API_URL` from Doppler (baked into bundle at build time)
+- Installs server dependencies for Prisma client (build-time constant generation)
+- Builds frontend with Vite (`base: "/"` for root domain deployment)
 - Uploads static assets
 
 #### Deploy
-- Deploys to GitHub Pages
-- Serves frontend application
-- Uses GitHub Pages environment
+- Deploys to GitHub Pages at `alephatx.info`
+- API served separately via Cloudflare Tunnel at `api.alephatx.info`
 
 **Secrets Required**:
-- `DOPPLER_TOKEN`: Doppler secrets access
+- `DOPPLER_TOKEN`: Doppler secrets access (provides `VITE_API_URL`, `DATABASE_URL`)
 
 ---
 
@@ -723,4 +726,4 @@ This ensures high code quality, security, and reliability throughout the develop
 
 ---
 
-*Last Updated: 2025-01-07*
+*Last Updated: 2026-02-09*

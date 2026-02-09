@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: February 9, 2026 | **Version**: 4.0
+**Last Updated**: February 9, 2026 | **Version**: 4.1
 
 ## Project Overview
 
@@ -49,6 +49,9 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 - `prisma/schema.prisma` - Schema (properties, scrape_jobs, monitored_searches)
 
 ### Infrastructure
+- **Hosting**: GitHub Pages (frontend via `alephatx.info`), Hobbes (API via Cloudflare Tunnel)
+- **Cloudflare Tunnel**: `tcad-api` tunnel routes `api.alephatx.info` → `localhost:3001` on Hobbes
+- **Nginx**: Reverse proxy on Hobbes (port 80 → Node.js 3001); must be running for tunnel to work
 - Docker Compose: `base.yml` + `dev.yml`
 - Ports: Frontend 5174, Backend 3000, Redis 6379, PostgreSQL 5432
 
@@ -136,6 +139,8 @@ curl -s "https://api.alephatx.info/health" | jq
 | TCAD API auth failed | Token expired (5 min lifetime); check `pm2 logs tcad-api \| grep "Token refreshed"` |
 | Queue not processing | `npm run queue:status` → `docker logs tcad-redis` |
 | Rate limiting error | Ensure `app.set('trust proxy', 1)` in `server/src/index.ts` |
+| API 522/unreachable | `ssh aledlie@hobbes "sudo systemctl status nginx"` → restart if failed |
+| DNS not resolving | Flush: `sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder` |
 
 ---
 
