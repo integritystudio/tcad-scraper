@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
 **Last Updated**: 2026-02-08
-**Status**: 560 tests passing, 0 skipped, 0 failed | TypeScript clean | Lint configured
+**Status**: 584 tests passing, 0 skipped, 0 failed | TypeScript clean | Lint configured
 
 ---
 
@@ -18,12 +18,6 @@
 - **Source**: DRY review (deferred)
 - **Issue**: Controllers use `.bind(this)` in route registration. Could standardize with arrow functions or a binding decorator pattern.
 - **Files**: `server/src/routes/property.routes.ts`
-
-### TD-21: Unit tests for extracted utilities
-- **Priority**: MEDIUM
-- **Source**: DRY code reviews
-- **Issue**: New utility files lack dedicated unit tests: `error-helpers.ts`, `timing.ts`, `property-transformers.ts`, `browser-factory.ts`
-- **Notes**: `humanDelay` has coverage via tcad-scraper.test.ts. Others tested indirectly through consumer tests.
 
 ### TD-22: Standardize Pino structured logging in dom-scraper.ts
 - **Priority**: LOW
@@ -44,3 +38,4 @@ All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026
 - DRY-4: Extracted `transformPropertyToSnakeCase()` utility
 - DRY-5: Extracted `humanDelay()` to shared timing utility
 - TD-18: Fixed missing `year` field in property transformer
+- TD-21: Added unit tests for extracted utilities (24 tests)
