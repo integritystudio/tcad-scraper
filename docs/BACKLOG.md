@@ -7,14 +7,6 @@
 
 ## Open Items
 
-### TD-11: `as any` in Production Source (2 documented exceptions)
-**Priority**: None (documented) | **Files**: `auth.ts:75`, `index.ts`
-
-- `auth.ts:75` - `jwt.sign()` options requires `any` (library limitation)
-- `index.ts` - Helmet `crossOriginResourcePolicy` requires `any` (type mismatch)
-
-Both are library-imposed limitations. No action needed unless library types improve.
-
 ### TD-12: `console.*` in CLI Scripts (39 occurrences, intentional)
 **Priority**: None (by design) | **3 script files**
 
@@ -41,6 +33,7 @@ Several sections still reference Jest instead of Vitest (project migrated to Vit
 
 ## Completed (February 8, 2026)
 
+- **TD-11**: Replaced `as any` with narrowing casts in `auth.ts` and `index.ts` (`be99993`)
 - **TD-13**: Typed `api.test.ts` dynamic imports with `Express` and `PrismaClient` (`36f4450`)
 - **TD-14**: ESLint `no-console` set to `"warn"` in test file overrides (`34783b6`)
 - **TD-15**: Type-safe test patterns documented in `docs/TESTING.md` (`b0c2f44`)
