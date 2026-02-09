@@ -237,9 +237,9 @@ Add to `.vscode/launch.json`:
 {
   "type": "node",
   "request": "launch",
-  "name": "Jest Debug",
-  "program": "${workspaceFolder}/server/node_modules/.bin/jest",
-  "args": ["--runInBand", "--testPathPattern=${relativeFile}"],
+  "name": "Vitest Debug",
+  "program": "${workspaceFolder}/server/node_modules/.bin/vitest",
+  "args": ["run", "--reporter=verbose", "${relativeFile}"],
   "console": "integratedTerminal",
   "internalConsoleOptions": "neverOpen"
 }
@@ -250,7 +250,7 @@ Add to `.vscode/launch.json`:
 ### Test Structure
 
 ```typescript
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('Feature Name', () => {
   beforeEach(() => {
@@ -421,7 +421,7 @@ npm test -- --forceExit
 
 ## Resources
 
-- [Jest Documentation](https://jestjs.io/)
+- [Vitest Documentation](https://vitest.dev/)
 - [Testing Library](https://testing-library.com/)
 - [Supertest](https://github.com/visionmedia/supertest)
 - [CI/CD Docs](docs/CI-CD.md)

@@ -4,6 +4,8 @@
  * Helper functions for integration tests to handle infrastructure dependencies
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import Redis from "ioredis";
 import { config } from "../config";
 import logger from "../lib/logger";
@@ -145,11 +147,6 @@ export function testWithRedis(
  * - frontend/dist/index.html (Vite build output, needs copying)
  */
 export function isFrontendBuilt(): boolean {
-	// eslint-disable-next-line @typescript-eslint/no-var-requires
-	const fs = require("node:fs");
-	// eslint-disable-next-line @typescript-eslint/no-var-requires
-	const path = require("node:path");
-
 	// Check for frontend build in Express's public directory (what Express actually serves)
 	// The test should only pass if the frontend is properly configured for Express to serve
 	const possiblePaths = [
