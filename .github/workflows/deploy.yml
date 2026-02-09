@@ -45,7 +45,7 @@ jobs:
         uses: dopplerhq/cli-action@v3
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci && npm rebuild
 
       - name: Build with Vite
         env:
