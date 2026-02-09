@@ -111,6 +111,45 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
     ],
     userId: "residential-batch-enqueue",
   },
+
+  grove: {
+    batchName: "Grove",
+    emoji: "🌳",
+    terms: ["Grove"],
+    userId: "grove-batch-enqueue",
+  },
+
+  "high-priority": {
+    batchName: "High Priority Streets & Names",
+    emoji: "🔥",
+    terms: [
+      "Boulevard", "Drive", "Lane", "Way", "Terrace", "Michelle",
+    ],
+    userId: "high-priority-batch-enqueue",
+    priority: 1,
+  },
+
+  "priority-terms": {
+    batchName: "Priority Geographic & Entity",
+    emoji: "🎯",
+    terms: [
+      "Lake", "River", "Pecan", "Maple", "Oak", "Mount", "Limited",
+    ],
+    userId: "priority-terms-batch-enqueue",
+    priority: 1,
+  },
+
+  "ultra-high-priority": {
+    batchName: "Ultra High Priority",
+    emoji: "🚀",
+    terms: [
+      "Street", "Drive", "Lane", "Road",
+      "Amy", "Cynthia",
+      "Brook", "Meadow", "Valley", "Point",
+    ],
+    userId: "ultra-high-priority-batch-enqueue",
+    priority: -100,
+  },
 };
 
 export function getAvailableBatchTypes(): string[] {

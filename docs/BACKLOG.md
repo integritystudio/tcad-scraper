@@ -7,16 +7,10 @@
 
 ## Open Items
 
-### TD-19: Consolidate remaining non-standard enqueue scripts
-- **Priority**: LOW
-- **Source**: DRY-1 review
-- **Issue**: 6 scripts use direct `scraperQueue.add()` instead of `enqueueBatchGeneric()`: `enqueue-grove.ts`, `enqueue-high-priority.ts`, `enqueue-priority-terms.ts`, `enqueue-ultra-high-priority.ts`, `enqueue-test-batch-20.ts`, `enqueue-high-value-batch.ts`
-- **Notes**: These have custom logic (token refresh, priority settings) that doesn't fit the standard config pattern. Consider if any can be migrated or if they should remain as-is.
-
 ### TD-20: DRY-6 controller method binding pattern
 - **Priority**: LOW
 - **Source**: DRY review (deferred)
-- **Issue**: Controllers use `.bind(this)` in route registration. Could standardize with arrow functions or a binding decorator pattern.
+- **Issue**: Controllers use `.bind(this)` in 10 route registrations. Could standardize with arrow functions. Documented exception in CLAUDE.md (TypeScript limitation with `Function.bind()` requiring `any`).
 - **Files**: `server/src/routes/property.routes.ts`
 
 ---
@@ -46,3 +40,4 @@ All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026
 - TD-26: Added trace-level logging to `timing.ts` and `property-transformers.ts` (skipped `error-helpers.ts` - too simple)
 - Added `assessedValue` NaN/Infinity validation (when non-null) per code review
 - Standardized last emoji log in `dom-scraper.ts` to structured format
+- TD-19: Migrated 4 scripts to batch-configs.ts (grove, high-priority, priority-terms, ultra-high-priority); kept 2 with custom logic (test-batch-20, high-value-batch)

@@ -14,18 +14,26 @@ All scripts automatically use the auto-refreshed TCAD API token system:
 
 | Type | Name | Terms | Priority | Est. Properties |
 |------|------|-------|----------|-----------------|
-| trust | Trust & Estate | 10 | High | ~700 |
-| investment | Investment & Holdings | 10 | High | ~600 |
-| commercial | Commercial | 10 | Medium | ~400 |
-| llc | LLC-owned | 10 | Medium | ~350 |
-| corporation | Corporation-owned | 10 | Medium | ~350 |
-| propertytype | Property Type | 10 | Medium | ~300 |
+| ultra-high-priority | Ultra High Priority | 10 | -100 | ~40,000+ |
+| high-priority | High Priority Streets & Names | 6 | 1 | ~24,000+ |
+| priority-terms | Priority Geographic & Entity | 7 | 1 | ~5,000+ |
+| trust | Trust & Estate | 10 | Standard | ~700 |
+| investment | Investment & Holdings | 10 | Standard | ~600 |
+| commercial | Commercial | 10 | Standard | ~400 |
+| llc | LLC-owned | 10 | Standard | ~350 |
+| corporation | Corporation-owned | 10 | 2 | ~350 |
+| property-type | Property Type | 10 | Standard | ~300 |
 | partnership | Partnership | 10 | Standard | ~250 |
 | construction | Construction & Builder | 10 | Standard | ~200 |
 | foundation | Foundation & Nonprofit | 10 | Standard | ~150 |
-| residential | Residential Names | 10 | Low | ~100 |
+| residential | Residential Names | 10 | Standard | ~100 |
+| grove | Grove | 1 | Standard | ~50 |
 
-**Total**: ~100 jobs across 10 batch types, ~3,400 estimated properties.
+**Total**: ~124 jobs across 14 batch types.
+
+**Standalone scripts** (custom orchestration logic):
+- `enqueue-test-batch-20.ts` - Test batch with inter-job delays and timing metrics
+- `enqueue-high-value-batch.ts` - Pre-flight token refresh + dynamic priority per category
 
 ## Quick Start
 
