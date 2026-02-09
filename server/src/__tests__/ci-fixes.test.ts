@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
+import logger from "../lib/logger";
 
 describe("CI/CD Fixes - Property Controller", () => {
 	describe("Return statement validation", () => {
@@ -191,7 +192,7 @@ describe("CI/CD Fixes - ESLint Configuration", () => {
 			expect(config).toHaveProperty("root", true);
 		} catch (_error) {
 			// Config might not exist in test environment, that's okay
-			console.log("ESLint config not found, skipping validation");
+			logger.debug("ESLint config not found, skipping validation");
 		}
 	});
 

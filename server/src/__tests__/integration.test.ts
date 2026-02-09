@@ -12,6 +12,7 @@
 import request from "supertest";
 import { describe, expect, test } from "vitest";
 import app from "../index";
+import logger from "../lib/logger";
 import { isFrontendBuilt, isRedisAvailable } from "./test-utils";
 
 const hasFrontend = isFrontendBuilt();
@@ -28,7 +29,7 @@ describe("Integration Tests", () => {
 			const redisAvailable = await isRedisAvailable(3000);
 
 			if (!redisAvailable) {
-				console.log("⏭️  Skipping queue health check: Redis not available");
+				logger.debug("⏭️  Skipping queue health check: Redis not available");
 				return;
 			}
 
@@ -115,7 +116,7 @@ describe("Integration Tests", () => {
 		// Conditionally skip if frontend not built - requires npm run build in frontend
 		test("should serve frontend for unmatched routes", async () => {
 			if (!hasFrontend) {
-				console.log(
+				logger.debug(
 					"⏭️  Skipping: Frontend not built (run `npm run build` in frontend/)",
 				);
 				return;

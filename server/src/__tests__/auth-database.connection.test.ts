@@ -10,6 +10,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import logger from "../lib/logger";
 import { prisma, prismaReadOnly } from "../lib/prisma";
 import { isDatabaseAvailable } from "./test-utils";
 
@@ -19,7 +20,7 @@ let canConnectToDatabase = false;
 beforeAll(async () => {
 	canConnectToDatabase = await isDatabaseAvailable();
 	if (!canConnectToDatabase) {
-		console.log(
+		logger.debug(
 			"⚠️  Database not reachable - connection tests will be skipped (Tailscale VPN may be required)",
 		);
 	}
@@ -30,7 +31,7 @@ beforeAll(async () => {
  */
 function skipIfNoDatabase(): boolean {
 	if (!canConnectToDatabase) {
-		console.log("Skipped: Database not reachable");
+		logger.debug("Skipped: Database not reachable");
 		return true;
 	}
 	return false;

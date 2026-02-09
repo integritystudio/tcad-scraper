@@ -15,6 +15,7 @@ import {
 	afterEach,
 	beforeAll,
 } from "vitest";
+import logger from "../logger";
 
 // Test the buildDatabaseUrl function behavior by examining the URL
 describe("Database URL Connection Pooling", () => {
@@ -206,7 +207,7 @@ describe("Prisma Client Integration", () => {
 	beforeAll(async () => {
 		canConnectToDatabase = await isDatabaseReachable();
 		if (!canConnectToDatabase) {
-			console.log(
+			logger.debug(
 				"⚠️  Skipping database integration tests - database not reachable (Tailscale VPN may be required)",
 			);
 		}
@@ -215,7 +216,7 @@ describe("Prisma Client Integration", () => {
 	describe("Database Connection", () => {
 		it("should be able to connect to database", async () => {
 			if (!canConnectToDatabase) {
-				console.log("Skipped: Database not reachable");
+				logger.debug("Skipped: Database not reachable");
 				return;
 			}
 
@@ -225,7 +226,7 @@ describe("Prisma Client Integration", () => {
 
 		it("should be able to disconnect from database", async () => {
 			if (!canConnectToDatabase) {
-				console.log("Skipped: Database not reachable");
+				logger.debug("Skipped: Database not reachable");
 				return;
 			}
 
@@ -236,7 +237,7 @@ describe("Prisma Client Integration", () => {
 
 		it("read-only client should be able to connect", async () => {
 			if (!canConnectToDatabase) {
-				console.log("Skipped: Database not reachable");
+				logger.debug("Skipped: Database not reachable");
 				return;
 			}
 

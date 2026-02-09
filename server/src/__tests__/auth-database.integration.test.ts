@@ -11,6 +11,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { config } from "../config";
 import app from "../index";
+import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { generateToken } from "../middleware/auth";
 import { isRedisAvailable } from "./test-utils";
@@ -139,7 +140,7 @@ describe("Authentication-Database Integration Tests", () => {
 				const redisAvailable = await isRedisAvailable(3000);
 
 				if (!redisAvailable) {
-					console.log("⏭️  Skipping scrape job test: Redis not available");
+					logger.debug("⏭️  Skipping scrape job test: Redis not available");
 					return;
 				}
 
@@ -162,7 +163,7 @@ describe("Authentication-Database Integration Tests", () => {
 				const redisAvailable = await isRedisAvailable(3000);
 
 				if (!redisAvailable) {
-					console.log("⏭️  Skipping scrape job test: Redis not available");
+					logger.debug("⏭️  Skipping scrape job test: Redis not available");
 					return;
 				}
 
@@ -199,7 +200,7 @@ describe("Authentication-Database Integration Tests", () => {
 				const redisAvailable = await isRedisAvailable(3000);
 
 				if (!redisAvailable) {
-					console.log("⏭️  Skipping job status test: Redis not available");
+					logger.debug("⏭️  Skipping job status test: Redis not available");
 					return;
 				}
 
@@ -214,7 +215,7 @@ describe("Authentication-Database Integration Tests", () => {
 				const redisAvailable = await isRedisAvailable(3000);
 
 				if (!redisAvailable) {
-					console.log("⏭️  Skipping job status test: Redis not available");
+					logger.debug("⏭️  Skipping job status test: Redis not available");
 					return;
 				}
 
@@ -229,7 +230,7 @@ describe("Authentication-Database Integration Tests", () => {
 				const redisAvailable = await isRedisAvailable(3000);
 
 				if (!redisAvailable) {
-					console.log("⏭️  Skipping job status test: Redis not available");
+					logger.debug("⏭️  Skipping job status test: Redis not available");
 					return;
 				}
 
@@ -319,7 +320,7 @@ describe("Authentication-Database Integration Tests", () => {
 			const redisAvailable = await isRedisAvailable(3000);
 
 			if (!redisAvailable) {
-				console.log(
+				logger.debug(
 					"⏭️  Skipping transaction integrity test: Redis not available",
 				);
 				return;
@@ -351,7 +352,7 @@ describe("Authentication-Database Integration Tests", () => {
 			const redisAvailable = await isRedisAvailable(3000);
 
 			if (!redisAvailable) {
-				console.log("⏭️  Skipping error handling test: Redis not available");
+				logger.debug("⏭️  Skipping error handling test: Redis not available");
 				return;
 			}
 
@@ -410,7 +411,7 @@ describe("Authentication-Database Integration Tests", () => {
 			const redisAvailable = await isRedisAvailable(3000);
 
 			if (!redisAvailable) {
-				console.log("⏭️  Skipping rate limiting test: Redis not available");
+				logger.debug("⏭️  Skipping rate limiting test: Redis not available");
 				return;
 			}
 

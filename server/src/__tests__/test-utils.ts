@@ -6,6 +6,7 @@
 
 import Redis from "ioredis";
 import { config } from "../config";
+import logger from "../lib/logger";
 
 /**
  * Check if Redis is available and responsive
@@ -51,7 +52,7 @@ export async function isRedisAvailable(
 export async function skipIfRedisUnavailable(): Promise<void> {
 	const available = await isRedisAvailable();
 	if (!available) {
-		console.log(
+		logger.debug(
 			`⏭️  Skipping test: Redis not available at ${config.redis.host}:${config.redis.port}`,
 		);
 		// Vitest doesn't have a programmatic skip, but we can throw to exit
@@ -99,13 +100,13 @@ export async function isDatabaseAvailable(
  */
 export async function skipIfDatabaseUnavailable(): Promise<void> {
 	if (!process.env.DATABASE_URL) {
-		console.log("⏭️  Skipping test: DATABASE_URL not configured");
+		logger.debug("⏭️  Skipping test: DATABASE_URL not configured");
 		throw new Error("SKIP_TEST_DATABASE_UNAVAILABLE");
 	}
 
 	const available = await isDatabaseAvailable();
 	if (!available) {
-		console.log(
+		logger.debug(
 			"⏭️  Skipping test: Database not reachable (Tailscale VPN may be required)",
 		);
 		throw new Error("SKIP_TEST_DATABASE_UNREACHABLE");
@@ -128,7 +129,7 @@ export function testWithRedis(
 	return async () => {
 		const available = await isRedisAvailable();
 		if (!available) {
-			console.log(`⏭️  Skipping "${name}": Redis not available`);
+			logger.debug(`⏭️  Skipping "${name}": Redis not available`);
 			return;
 		}
 		return fn();
