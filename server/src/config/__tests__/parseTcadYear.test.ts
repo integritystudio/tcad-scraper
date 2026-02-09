@@ -17,6 +17,7 @@ describe("parseTcadYear", () => {
 		parseTcadYear = mod.parseTcadYear;
 		const loggerMod = await import("../../lib/logger");
 		logger = loggerMod.default as unknown as typeof logger;
+		vi.clearAllMocks();
 	});
 
 	afterEach(() => {
@@ -46,7 +47,10 @@ describe("parseTcadYear", () => {
 		const farFuture = new Date().getFullYear() + 5;
 		process.env.TCAD_YEAR = String(farFuture);
 		expect(parseTcadYear("TCAD_YEAR", 2026)).toBe(2026);
-		expect(logger.warn).toHaveBeenCalled();
+		expect(logger.warn).toHaveBeenCalledWith(
+			expect.objectContaining({ envKey: "TCAD_YEAR", value: farFuture }),
+			expect.stringContaining("out of range"),
+		);
 	});
 
 	it("should accept currentYear+1 (next-year boundary)", () => {
@@ -62,6 +66,11 @@ describe("parseTcadYear", () => {
 
 	it("should return default for non-numeric value", () => {
 		process.env.TCAD_YEAR = "abc";
+		expect(parseTcadYear("TCAD_YEAR", 2026)).toBe(2026);
+	});
+
+	it("should return default for empty string", () => {
+		process.env.TCAD_YEAR = "";
 		expect(parseTcadYear("TCAD_YEAR", 2026)).toBe(2026);
 	});
 });
