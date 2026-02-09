@@ -347,8 +347,7 @@ Now generate the JSON for the user's query above.`,
 
 				logger.info("Successfully parsed and validated Claude response");
 			} catch (parseError) {
-				const errorMsg =
-					parseError instanceof Error ? parseError.message : String(parseError);
+				const errorMsg = getErrorMessage(parseError);
 				logger.warn(
 					`JSON parse failed: ${errorMsg}, falling back to generic search`,
 				);

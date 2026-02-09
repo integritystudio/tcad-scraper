@@ -466,7 +466,7 @@ export class TCADScraper {
 			);
 			return properties;
 		} catch (apiError) {
-			logger.error("Primary API method failed after all retries: %s", apiError instanceof Error ? apiError.message : String(apiError));
+			logger.error("Primary API method failed after all retries: %s", getErrorMessage(apiError));
 			logger.warn(
 				"Falling back to DOM-based scraping (limited to 20 results)",
 			);
@@ -483,10 +483,10 @@ export class TCADScraper {
 				);
 				return properties;
 			} catch (fallbackError) {
-				logger.error("Fallback method also failed: %s", fallbackError instanceof Error ? fallbackError.message : String(fallbackError));
+				logger.error("Fallback method also failed: %s", getErrorMessage(fallbackError));
 				throw new Error(
-					`Both scraping methods failed. API error: ${(apiError as Error).message}. ` +
-						`Fallback error: ${(fallbackError as Error).message}`,
+					`Both scraping methods failed. API error: ${getErrorMessage(apiError)}. ` +
+						`Fallback error: ${getErrorMessage(fallbackError)}`,
 				);
 			}
 		}

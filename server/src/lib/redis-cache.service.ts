@@ -45,7 +45,7 @@ export class RedisCacheService {
 			});
 
 			this.client.on("error", (err) => {
-				logger.error("Redis cache error: %s", err instanceof Error ? err.message : String(err));
+				logger.error("Redis cache error: %s", getErrorMessage(err));
 				this.stats.errors++;
 			});
 

@@ -203,9 +203,8 @@ scraperQueue.process(
 
 			return result;
 		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : "Unknown error";
-			logger.error(`Job ${job.id} failed: %s`, getErrorMessage(error));
+			const errorMessage = getErrorMessage(error);
+			logger.error(`Job ${job.id} failed: %s`, errorMessage);
 
 			// Check if this is a token expiration error - trigger refresh before retry
 			if (
@@ -221,7 +220,7 @@ scraperQueue.process(
 						`Job ${job.id}: Token refreshed successfully, job will retry`,
 					);
 				} catch (refreshError) {
-					logger.error(`Job ${job.id}: Token refresh failed: %s`, refreshError instanceof Error ? refreshError.message : String(refreshError));
+					logger.error(`Job ${job.id}: Token refresh failed: %s`, getErrorMessage(refreshError));
 				}
 			}
 
@@ -258,7 +257,7 @@ scraperQueue.on("completed", (job, result: ScrapeJobResult) => {
 });
 
 scraperQueue.on("failed", (job, err) => {
-	logger.error(`Job ${job.id} failed after ${job.attemptsMade} attempts: %s`, err instanceof Error ? err.message : String(err));
+	logger.error(`Job ${job.id} failed after ${job.attemptsMade} attempts: %s`, getErrorMessage(err));
 });
 
 scraperQueue.on("stalled", (job) => {
