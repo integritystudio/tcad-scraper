@@ -45,17 +45,29 @@ describe("batch-configs", () => {
 	});
 
 	it("should have no terms with leading or trailing whitespace", () => {
+		const violations: string[] = [];
+
 		for (const [batchType, config] of Object.entries(BATCH_CONFIGS)) {
 			for (const term of config.terms) {
-				expect(term, `Whitespace in term "${term}" in "${batchType}"`).toBe(term.trim());
+				if (term !== term.trim()) {
+					violations.push(`"${term}" has whitespace in "${batchType}"`);
+				}
 			}
 		}
+
+		expect(violations, `Whitespace violations:\n${violations.join("\n")}`).toHaveLength(0);
 	});
 
 	it("should have at least one term per batch", () => {
+		const empty: string[] = [];
+
 		for (const [batchType, config] of Object.entries(BATCH_CONFIGS)) {
-			expect(config.terms.length, `No terms in "${batchType}"`).toBeGreaterThan(0);
+			if (config.terms.length === 0) {
+				empty.push(batchType);
+			}
 		}
+
+		expect(empty, `Batches with no terms: ${empty.join(", ")}`).toHaveLength(0);
 	});
 
 	it("should return all batch types from getAvailableBatchTypes", () => {

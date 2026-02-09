@@ -7,6 +7,9 @@ vi.mock("../../lib/logger", () => ({
 // dotenv.config() is called at module top-level; stub it to avoid side effects
 vi.mock("dotenv", () => ({ default: { config: vi.fn() } }));
 
+// Arbitrary valid default for testing (not tied to current year)
+const TEST_DEFAULT = 2026;
+
 describe("parseTcadYear", () => {
 	let parseTcadYear: typeof import("../index").parseTcadYear;
 	let logger: { warn: ReturnType<typeof vi.fn> };
@@ -26,17 +29,17 @@ describe("parseTcadYear", () => {
 
 	it("should return default when env var is not set", () => {
 		delete process.env.TCAD_YEAR;
-		expect(parseTcadYear("TCAD_YEAR", 2026)).toBe(2026);
+		expect(parseTcadYear("TCAD_YEAR", TEST_DEFAULT)).toBe(TEST_DEFAULT);
 	});
 
 	it("should parse valid env var override", () => {
 		process.env.TCAD_YEAR = "2024";
-		expect(parseTcadYear("TCAD_YEAR", 2026)).toBe(2024);
+		expect(parseTcadYear("TCAD_YEAR", TEST_DEFAULT)).toBe(2024);
 	});
 
 	it("should reject year below 2020 and return default", () => {
 		process.env.TCAD_YEAR = "2019";
-		expect(parseTcadYear("TCAD_YEAR", 2026)).toBe(2026);
+		expect(parseTcadYear("TCAD_YEAR", TEST_DEFAULT)).toBe(TEST_DEFAULT);
 		expect(logger.warn).toHaveBeenCalledWith(
 			expect.objectContaining({ envKey: "TCAD_YEAR", value: 2019 }),
 			expect.stringContaining("out of range"),
@@ -46,7 +49,7 @@ describe("parseTcadYear", () => {
 	it("should reject year above currentYear+1 and return default", () => {
 		const farFuture = new Date().getFullYear() + 5;
 		process.env.TCAD_YEAR = String(farFuture);
-		expect(parseTcadYear("TCAD_YEAR", 2026)).toBe(2026);
+		expect(parseTcadYear("TCAD_YEAR", TEST_DEFAULT)).toBe(TEST_DEFAULT);
 		expect(logger.warn).toHaveBeenCalledWith(
 			expect.objectContaining({ envKey: "TCAD_YEAR", value: farFuture }),
 			expect.stringContaining("out of range"),
@@ -56,21 +59,21 @@ describe("parseTcadYear", () => {
 	it("should accept currentYear+1 (next-year boundary)", () => {
 		const nextYear = new Date().getFullYear() + 1;
 		process.env.TCAD_YEAR = String(nextYear);
-		expect(parseTcadYear("TCAD_YEAR", 2026)).toBe(nextYear);
+		expect(parseTcadYear("TCAD_YEAR", TEST_DEFAULT)).toBe(nextYear);
 	});
 
 	it("should accept 2020 (lower boundary)", () => {
 		process.env.TCAD_YEAR = "2020";
-		expect(parseTcadYear("TCAD_YEAR", 2026)).toBe(2020);
+		expect(parseTcadYear("TCAD_YEAR", TEST_DEFAULT)).toBe(2020);
 	});
 
 	it("should return default for non-numeric value", () => {
 		process.env.TCAD_YEAR = "abc";
-		expect(parseTcadYear("TCAD_YEAR", 2026)).toBe(2026);
+		expect(parseTcadYear("TCAD_YEAR", TEST_DEFAULT)).toBe(TEST_DEFAULT);
 	});
 
 	it("should return default for empty string", () => {
 		process.env.TCAD_YEAR = "";
-		expect(parseTcadYear("TCAD_YEAR", 2026)).toBe(2026);
+		expect(parseTcadYear("TCAD_YEAR", TEST_DEFAULT)).toBe(TEST_DEFAULT);
 	});
 });

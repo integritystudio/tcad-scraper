@@ -52,6 +52,6 @@ All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026
 - Updated ENQUEUE_SCRIPTS_README.md term counts after deduplication (124 → 120 jobs)
 - Replaced hardcoded pYear 2025 with configurable `TCAD_YEAR` (env var, default: current year)
 - TD-37: Added batch-configs unit tests (cross-batch duplicate detection, intra-batch duplicates, empty terms, getAvailableBatchTypes)
-- TD-38: Standardized `tcadYear` type coercion — template interpolation everywhere, inline comments on config field and SQL usage
+- TD-38: Standardized `tcadYear` type coercion — `String()` → template interpolation in `test-api-direct.ts`, inline comments on config field and SQL usage
 - TD-39: Added 7 unit tests for `parseTcadYear()` (default, override, boundary, out-of-range, non-numeric); exported function with `@internal` tag
 - TD-40: Added whitespace (`term === term.trim()`) and min-terms (`terms.length > 0`) edge case tests to batch-configs
