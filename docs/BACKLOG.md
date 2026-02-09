@@ -41,19 +41,4 @@ Document the type replacement patterns used in TD-8 (`Record<string, unknown>`, 
 
 ---
 
-## Completed Items
-
-- **TD-5**: Replaced `describe.skip()` with `describe.skipIf()` using infrastructure checks (`97a34a2`)
-- **TD-8**: Removed all 86 `as any` from 11 test files (`b57eac7`, `bb43a6e`, `517e4b7`)
-- **TD-2**: Replaced 21 `console.*` in 6 test files with `logger.debug()` (`5280dce`)
-- **TD-3**: Replaced deprecated `startTransaction` with typed `startSpan<T>()` wrapper (`43c92f9`, `1f90485`)
-- **TD-6**: Added `npm run lint` script using Biome (`43c92f9`)
-- **TD-7**: Made `asyncHandler` generic, eliminated 3 `as any` casts in property routes (`43c92f9`)
-- **TD-9**: All config mocks removed from both test files (`811ff05`)
-- **TD-10**: Separated frontend/server test runs in root vitest config (`ffd324b`)
-- **Redis cache tests**: 40 tests re-enabled (was `describe.skip`) (`85c3e5c`)
-- **Config mocks**: Removed from 5 test files (auth, claude, scraper.queue, xcontroller, token-refresh)
-- **Winston mocks**: Removed from 3 test files (scheduler, scraper.queue, token-refresh)
-- **Winston → Pino migration**: 4 source files (scraper.queue, token-refresh, scrape-scheduler, redis-cache.service)
-- **Typed mock objects**: 3 test files (scrape-scheduler, token-refresh, scraper.queue)
-- **Test setup**: Added auth env vars + LOG_LEVEL=silent
+*Completed items migrated to `docs/CHANGELOG.md` (February 8, 2026 entry).*

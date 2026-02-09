@@ -1,5 +1,34 @@
 ## Recent Updates
 
+### February 8, 2026 - Technical Debt Cleanup (TD-2, TD-5, TD-8)
+
+**Test Type Safety** (TD-8):
+- Removed all 86 `as any` from 11 test files (`b57eac7`, `bb43a6e`, `517e4b7`)
+- Patterns used: `Record<string, unknown>`, `Pick<Type, "key">`, `unknown as TypeCast`, `Record<string, ReturnType<typeof vi.fn>>`
+
+**Test Logging** (TD-2):
+- Replaced 21 `console.*` in 6 test files with `logger.debug()` (`5280dce`)
+
+**Conditional Test Skipping** (TD-5):
+- Replaced `describe.skip()` with `describe.skipIf()` using infrastructure checks (`97a34a2`)
+
+**Previously completed** (included in this session's backlog consolidation):
+- TD-3: Replaced deprecated `startTransaction` with typed `startSpan<T>()` wrapper (`43c92f9`, `1f90485`)
+- TD-6: Added `npm run lint` script using Biome (`43c92f9`)
+- TD-7: Made `asyncHandler` generic, eliminated 3 `as any` in property routes (`43c92f9`)
+- TD-9: All config mocks removed from both test files (`811ff05`)
+- TD-10: Separated frontend/server test runs in root vitest config (`ffd324b`)
+- Redis cache tests: 40 tests re-enabled (`85c3e5c`)
+- Config mocks removed from 5 test files
+- Winston mocks removed from 3 test files
+- Winston → Pino migration in 4 source files
+- Typed mock objects in 3 test files
+- Test setup: Added auth env vars + LOG_LEVEL=silent
+
+**Test Status**: 560 passing, 0 skipped, 0 failed | TypeScript clean | Lint configured
+
+---
+
 ### February 2, 2026 - Test Infrastructure & Technical Debt
 
 **Test Fixes**:
