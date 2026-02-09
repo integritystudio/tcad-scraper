@@ -81,8 +81,7 @@ scraperQueue.process(
 					const params: (string | number | Date | null)[] = [];
 					let paramIndex = 1;
 
-					// Year matches the TCAD API pYear parameter (hardcoded in tcad-scraper.ts)
-					const year = 2025;
+					const year = config.scraper.tcadYear;
 
 					for (const property of chunk) {
 						valuesClauses.push(

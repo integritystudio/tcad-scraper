@@ -189,6 +189,7 @@ export const config = {
 		autoRefreshToken: parseBoolEnv("TCAD_AUTO_REFRESH_TOKEN", true),
 		tokenRefreshInterval: parseIntEnv("TCAD_TOKEN_REFRESH_INTERVAL", 270000), // 4.5 minutes
 		tokenRefreshCron: process.env.TCAD_TOKEN_REFRESH_CRON, // Optional cron schedule
+		tcadYear: parseIntEnv("TCAD_YEAR", new Date().getFullYear()),
 		headless: parseBoolEnv("SCRAPER_HEADLESS", true),
 		timeout: parseIntEnv("SCRAPER_TIMEOUT", 30000),
 		retryAttempts: parseIntEnv("SCRAPER_RETRY_ATTEMPTS", 3),

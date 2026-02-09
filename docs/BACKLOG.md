@@ -7,7 +7,11 @@
 
 ## Open Items
 
-(none)
+### TD-37: Add batch term uniqueness validation script
+- **Priority**: LOW
+- **Source**: Code review (Feb 9, 2026)
+- **Issue**: No automated check prevents duplicate search terms from being re-introduced across batch configs. A simple script that reads `BATCH_CONFIGS` and reports duplicates would catch regressions before they reach production.
+- **Files**: `server/src/scripts/utils/validate-batch-terms.ts` (new)
 
 ---
 

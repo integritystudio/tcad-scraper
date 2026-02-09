@@ -252,7 +252,7 @@ export class TCADScraper {
                         'Accept': 'application/json'
                       },
                       body: JSON.stringify({
-                        pYear: { operator: '=', value: '2025' },
+                        pYear: { operator: '=', value: '${appConfig.scraper.tcadYear}' },
                         fullTextSearch: { operator: 'match', value: term }
                       })
                     })
@@ -298,7 +298,7 @@ export class TCADScraper {
                             'Accept': 'application/json'
                           },
                           body: JSON.stringify({
-                            pYear: { operator: '=', value: '2025' },
+                            pYear: { operator: '=', value: '${appConfig.scraper.tcadYear}' },
                             fullTextSearch: { operator: 'match', value: term }
                           })
                         })
