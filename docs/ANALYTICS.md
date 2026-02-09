@@ -4,6 +4,7 @@
 **Status:** ✅ Production Ready
 **Tracking IDs:**
 - Google Analytics 4: `G-J7TL7PQH7S`
+- Google Tag Manager: `G-ECH51H8L2Z`
 - Meta Pixel: `25629020546684786`
 
 ---
@@ -1033,6 +1034,56 @@ const logShare = useCallback(
 - **Implementation Context:** `dev/active/analytics-implementation-context.md`
 - **Task Breakdown:** `dev/active/analytics-implementation-tasks.md`
 - **Handoff Notes:** `dev/HANDOFF.md`
+
+---
+
+## Attribution Components
+
+Three layout components drive traffic to IntegrityStudio.dev with integrated GA4 tracking via `outbound_click` events.
+
+### Components
+
+| Component | Location | Visibility | GA4 Event Metadata |
+|-----------|----------|------------|-------------------|
+| **HeaderBadge** | `src/components/layout/HeaderBadge/` | Always visible (hero top-right) | `element_location: header_badge` |
+| **AttributionCard** | `src/components/layout/AttributionCard/` | After first search or error | `destination: integritystudio_services` / `github_repo` |
+| **Footer** | `src/components/layout/Footer/` | Bottom of page | `element_location: footer` |
+
+### Event Structure
+
+All attribution clicks emit `outbound_click` events:
+
+```json
+{
+  "category": "conversion",
+  "action": "outbound_click",
+  "label": "[component]_[action]",
+  "metadata": {
+    "element_location": "header_badge | inline_card | footer",
+    "destination": "integritystudio_homepage | integritystudio_services | github"
+  }
+}
+```
+
+### GTM Configuration
+
+Google Tag Manager (`G-ECH51H8L2Z`) provides additional tracking:
+
+| GTM Event | Trigger |
+|-----------|---------|
+| `generate_lead` | Form submissions |
+| `phone_click` | Phone link clicks |
+| `email_click` | Email link clicks |
+| `cta_click` | CTA button clicks |
+| `outbound_click` | IntegrityStudio link clicks |
+| `conversion` | Thank you page views |
+| `scroll_50` / `scroll_90` | Scroll depth thresholds |
+
+### Import Paths
+
+```typescript
+import { HeaderBadge, AttributionCard, Footer } from "@/components/layout";
+```
 
 ---
 

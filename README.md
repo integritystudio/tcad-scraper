@@ -960,6 +960,7 @@ The TCAD Scraper frontend implements comprehensive user behavior tracking using 
 
 **Active Tracking IDs:**
 - Google Analytics 4: `G-J7TL7PQH7S`
+- Google Tag Manager: `G-ECH51H8L2Z`
 - Meta Pixel: `25629020546684786`
 
 **Events Tracked:**

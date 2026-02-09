@@ -7,13 +7,20 @@
 
 ## Open Items
 
-None — backlog cleared.
+No open items.
 
 ---
 
 ## Completed
 
 All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026 entry).
+
+### Session: February 9, 2026 (stale file cleanup)
+- Deleted `server/docs/TEST-SEPARATION-STRATEGY.md` — superseded by `docs/TESTING.md` (referenced stale Jest config, wrong test counts)
+- Deleted `server/fallbackBrowserSearch/` — experimental code, not imported anywhere; production scraper has built-in Playwright fallback
+- Deleted `dev/RESUME-HERE.md` — stale session handoff doc (Nov 2025, `new-ui` branch, 138 tests)
+- Integrated `GTM-SETUP-GUIDE.md` — GTM measurement ID `G-ECH51H8L2Z` added to README.md and `docs/ANALYTICS.md`
+- Integrated `ATTRIBUTION-COMPONENTS.md` — attribution component docs merged into `docs/ANALYTICS.md` (Attribution Components section)
 
 ### Session: February 8-9, 2026
 - DRY-1: Consolidated 10 enqueue scripts into config-driven runner
