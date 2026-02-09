@@ -1,29 +1,13 @@
 # Backlog - Remaining Technical Debt
 
 **Last Updated**: 2026-02-09
-**Status**: 607 tests passing, 0 skipped, 0 failed | TypeScript clean | Lint clean
+**Status**: 616 tests passing, 0 skipped, 0 failed | TypeScript clean | Lint clean
 
 ---
 
 ## Open Items
 
-### TD-38: Standardize TCAD_YEAR type coercion across usage sites
-- **Priority**: LOW
-- **Source**: Code review (Feb 9, 2026)
-- **Issue**: `tcadYear` is used as: template interpolation (string) in `tcad-scraper.ts`, explicit `String()` in `test-api-direct.ts`, raw number in `scraper.queue.ts`. All work correctly but the inconsistency is confusing. Standardize with a comment explaining the API expects a string value.
-- **Files**: `server/src/lib/tcad-scraper.ts`, `server/src/test-api-direct.ts`, `server/src/queues/scraper.queue.ts`
-
-### TD-39: Add unit tests for TCAD_YEAR config parsing
-- **Priority**: LOW
-- **Source**: Code review (Feb 9, 2026)
-- **Issue**: `parseTcadYear()` has no direct unit test for default value, env var override, and out-of-range rejection. Config module is hard to test due to top-level `const config` evaluation, but targeted tests would prevent regressions.
-- **Files**: `server/src/config/index.ts`
-
-### TD-40: Add whitespace and min-terms edge cases to batch-configs tests
-- **Priority**: LOW
-- **Source**: Code review (Feb 9, 2026)
-- **Issue**: Current tests check for empty terms but not leading/trailing whitespace or zero-length terms arrays. Add `term === term.trim()` assertion and `terms.length > 0` assertion.
-- **Files**: `server/src/scripts/config/__tests__/batch-configs.test.ts`
+None — backlog cleared.
 
 ---
 
@@ -68,3 +52,6 @@ All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026
 - Updated ENQUEUE_SCRIPTS_README.md term counts after deduplication (124 → 120 jobs)
 - Replaced hardcoded pYear 2025 with configurable `TCAD_YEAR` (env var, default: current year)
 - TD-37: Added batch-configs unit tests (cross-batch duplicate detection, intra-batch duplicates, empty terms, getAvailableBatchTypes)
+- TD-38: Standardized `tcadYear` type coercion — template interpolation everywhere, inline comments on config field and SQL usage
+- TD-39: Added 7 unit tests for `parseTcadYear()` (default, override, boundary, out-of-range, non-numeric); exported function with `@internal` tag
+- TD-40: Added whitespace (`term === term.trim()`) and min-terms (`terms.length > 0`) edge case tests to batch-configs

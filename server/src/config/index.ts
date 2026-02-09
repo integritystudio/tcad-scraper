@@ -38,8 +38,9 @@ function parseBoolEnv(key: string, defaultValue: boolean): boolean {
 /**
  * Parse TCAD tax year from env with range validation.
  * TCAD data starts at 2020; allow up to next year for early-year testing.
+ * @internal Exported for unit testing
  */
-function parseTcadYear(key: string, defaultValue: number): number {
+export function parseTcadYear(key: string, defaultValue: number): number {
 	const parsed = parseIntEnv(key, defaultValue);
 	const currentYear = new Date().getFullYear();
 	if (parsed < 2020 || parsed > currentYear + 1) {
@@ -203,6 +204,7 @@ export const config = {
 		autoRefreshToken: parseBoolEnv("TCAD_AUTO_REFRESH_TOKEN", true),
 		tokenRefreshInterval: parseIntEnv("TCAD_TOKEN_REFRESH_INTERVAL", 270000), // 4.5 minutes
 		tokenRefreshCron: process.env.TCAD_TOKEN_REFRESH_CRON, // Optional cron schedule
+		/** Stored as number; coerced to string via template interpolation for the TCAD API pYear field */
 		tcadYear: parseTcadYear("TCAD_YEAR", new Date().getFullYear()),
 		headless: parseBoolEnv("SCRAPER_HEADLESS", true),
 		timeout: parseIntEnv("SCRAPER_TIMEOUT", 30000),

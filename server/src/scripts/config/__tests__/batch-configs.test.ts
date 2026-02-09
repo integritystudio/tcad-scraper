@@ -44,6 +44,20 @@ describe("batch-configs", () => {
 		}
 	});
 
+	it("should have no terms with leading or trailing whitespace", () => {
+		for (const [batchType, config] of Object.entries(BATCH_CONFIGS)) {
+			for (const term of config.terms) {
+				expect(term, `Whitespace in term "${term}" in "${batchType}"`).toBe(term.trim());
+			}
+		}
+	});
+
+	it("should have at least one term per batch", () => {
+		for (const [batchType, config] of Object.entries(BATCH_CONFIGS)) {
+			expect(config.terms.length, `No terms in "${batchType}"`).toBeGreaterThan(0);
+		}
+	});
+
 	it("should return all batch types from getAvailableBatchTypes", () => {
 		const types = getAvailableBatchTypes();
 		expect(types).toEqual(Object.keys(BATCH_CONFIGS));

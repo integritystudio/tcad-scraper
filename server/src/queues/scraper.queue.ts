@@ -81,7 +81,7 @@ scraperQueue.process(
 					const params: (string | number | Date | null)[] = [];
 					let paramIndex = 1;
 
-					const year = config.scraper.tcadYear;
+					const year = config.scraper.tcadYear; // number; SQL parameterization handles coercion
 
 					for (const property of chunk) {
 						valuesClauses.push(
