@@ -35,7 +35,7 @@ Open in browser:
 
 ## Key Features
 
-- **Config-driven** - All 10 batch types in a single config file
+- **Config-driven** - All 14 batch types in a single config file
 - **Auto-refreshed API tokens** - Tokens refresh automatically every 4.5 minutes
 - **Doppler secrets** - Secure credential management
 - **Priority queueing** - High-yield searches run first

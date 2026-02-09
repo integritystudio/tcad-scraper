@@ -2,6 +2,12 @@
  * Centralized batch enqueue configurations.
  * Each config defines terms for a specific search category.
  *
+ * Priority scale (BullMQ convention: lower number = higher priority):
+ *   -100  ultra-high-priority (processed first)
+ *      1  high-priority, priority-terms
+ *      2  corporation
+ *   omit  standard priority (all others)
+ *
  * Usage: npx tsx src/scripts/enqueue-batch.ts <batchType>
  * Example: npx tsx src/scripts/enqueue-batch.ts llc
  */
@@ -15,7 +21,7 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
     batchName: "LLC",
     emoji: "🏭",
     terms: [
-      "LLC", "LLC.", "L.L.C.", "Limited Liability", "Limited",
+      "LLC", "LLC.", "L.L.C.", "Limited Liability",
       "LMTD", "Limit", "L L C", "LTD", "Co LLC",
     ],
     userId: "llc-batch-enqueue",
@@ -67,7 +73,7 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
     emoji: "🎗️",
     terms: [
       "Foundation", "Charitable", "Charity", "Nonprofit", "Non-Profit",
-      "Organization", "Institute", "Society", "Association", "Endowment",
+      "Organization", "Institute", "Society", "Endowment",
     ],
     userId: "foundation-batch-enqueue",
   },
@@ -123,7 +129,7 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
     batchName: "High Priority Streets & Names",
     emoji: "🔥",
     terms: [
-      "Boulevard", "Drive", "Lane", "Way", "Terrace", "Michelle",
+      "Boulevard", "Way", "Terrace", "Michelle",
     ],
     userId: "high-priority-batch-enqueue",
     priority: 1,

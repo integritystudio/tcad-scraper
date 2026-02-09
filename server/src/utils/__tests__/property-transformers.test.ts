@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { Property } from "@prisma/client";
 
 vi.mock("../../lib/logger", () => ({
-	default: { trace: vi.fn() },
+	default: { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-import { transformPropertyToSnakeCase } from "../property-transformers";
+import { transformPropertyToSnakeCase, validateProperty } from "../property-transformers";
 
 function createMockProperty(overrides: Partial<Property> = {}): Property {
 	return {
@@ -210,5 +210,32 @@ describe("transformPropertyToSnakeCase", () => {
 	it("should include propertyId in validation error messages", () => {
 		const prop = createMockProperty({ propertyId: "TEST-123", year: null as unknown as number });
 		expect(() => transformPropertyToSnakeCase(prop)).toThrow("TEST-123");
+	});
+});
+
+describe("validateProperty", () => {
+	it("should not throw for valid property", () => {
+		const prop = createMockProperty();
+		expect(() => validateProperty(prop)).not.toThrow();
+	});
+
+	it("should throw on null year", () => {
+		const prop = createMockProperty({ year: null as unknown as number });
+		expect(() => validateProperty(prop)).toThrow("Invalid year value");
+	});
+
+	it("should throw on NaN appraisedValue", () => {
+		const prop = createMockProperty({ appraisedValue: NaN });
+		expect(() => validateProperty(prop)).toThrow("Invalid appraisedValue");
+	});
+
+	it("should throw on NaN assessedValue when non-null", () => {
+		const prop = createMockProperty({ assessedValue: NaN });
+		expect(() => validateProperty(prop)).toThrow("Invalid assessedValue");
+	});
+
+	it("should allow null assessedValue", () => {
+		const prop = createMockProperty({ assessedValue: null });
+		expect(() => validateProperty(prop)).not.toThrow();
 	});
 });

@@ -15,21 +15,21 @@ All scripts automatically use the auto-refreshed TCAD API token system:
 | Type | Name | Terms | Priority | Est. Properties |
 |------|------|-------|----------|-----------------|
 | ultra-high-priority | Ultra High Priority | 10 | -100 | ~40,000+ |
-| high-priority | High Priority Streets & Names | 6 | 1 | ~24,000+ |
+| high-priority | High Priority Streets & Names | 4 | 1 | ~24,000+ |
 | priority-terms | Priority Geographic & Entity | 7 | 1 | ~5,000+ |
 | trust | Trust & Estate | 10 | Standard | ~700 |
 | investment | Investment & Holdings | 10 | Standard | ~600 |
 | commercial | Commercial | 10 | Standard | ~400 |
-| llc | LLC-owned | 10 | Standard | ~350 |
+| llc | LLC-owned | 9 | Standard | ~350 |
 | corporation | Corporation-owned | 10 | 2 | ~350 |
 | property-type | Property Type | 10 | Standard | ~300 |
 | partnership | Partnership | 10 | Standard | ~250 |
 | construction | Construction & Builder | 10 | Standard | ~200 |
-| foundation | Foundation & Nonprofit | 10 | Standard | ~150 |
+| foundation | Foundation & Nonprofit | 9 | Standard | ~150 |
 | residential | Residential Names | 10 | Standard | ~100 |
 | grove | Grove | 1 | Standard | ~50 |
 
-**Total**: ~124 jobs across 14 batch types.
+**Total**: ~120 jobs across 14 batch types.
 
 **Standalone scripts** (custom orchestration logic):
 - `enqueue-test-batch-20.ts` - Test batch with inter-job delays and timing metrics
@@ -50,6 +50,7 @@ All scripts automatically use the auto-refreshed TCAD API token system:
    - `DATABASE_URL` - PostgreSQL connection string
    - `REDIS_HOST` / `REDIS_PORT` - Redis connection
    - `TCAD_AUTO_REFRESH_TOKEN=true`
+   - `QUEUE_BATCH_CHUNK_SIZE` - rows per SQL batch insert (default: 500, tune for memory/performance)
 
 ### Running Scripts
 

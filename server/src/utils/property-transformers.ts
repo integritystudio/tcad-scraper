@@ -1,6 +1,9 @@
 /**
  * Shared property data transformation utilities.
  * Transforms Prisma camelCase models to snake_case for frontend API responses.
+ *
+ * NOTE: trace logging in transformPropertyToSnakeCase is called per property
+ * (418K+ per full scrape). Only enable trace level for targeted debugging.
  */
 
 import type { Property } from "@prisma/client";
@@ -24,8 +27,7 @@ export interface SnakeCaseProperty {
   updated_at: string;
 }
 
-export function transformPropertyToSnakeCase(prop: Property): SnakeCaseProperty {
-  logger.trace({ propertyId: prop.propertyId }, "transformPropertyToSnakeCase");
+export function validateProperty(prop: Property): void {
   if (prop.year == null || !Number.isFinite(prop.year)) {
     throw new Error(`Invalid year value: ${prop.year} for property ${prop.propertyId}`);
   }
@@ -35,6 +37,11 @@ export function transformPropertyToSnakeCase(prop: Property): SnakeCaseProperty 
   if (prop.assessedValue != null && !Number.isFinite(prop.assessedValue)) {
     throw new Error(`Invalid assessedValue: ${prop.assessedValue} for property ${prop.propertyId}`);
   }
+}
+
+export function transformPropertyToSnakeCase(prop: Property): SnakeCaseProperty {
+  logger.trace({ propertyId: prop.propertyId }, "transformPropertyToSnakeCase");
+  validateProperty(prop);
   return {
     id: prop.id,
     property_id: prop.propertyId,

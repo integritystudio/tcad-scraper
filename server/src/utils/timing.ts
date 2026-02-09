@@ -8,6 +8,9 @@ import logger from "../lib/logger";
 /**
  * Wait for a random duration between min and max milliseconds.
  * Used to simulate human-like interaction timing in browser automation.
+ *
+ * NOTE: trace logging is called per invocation (thousands of times per job).
+ * Only enable trace level for targeted debugging, not in production.
  */
 export async function humanDelay(
   min: number = appConfig.scraper.humanDelay.min,

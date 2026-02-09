@@ -10,7 +10,7 @@ vi.mock("../../config", () => ({
 }));
 
 vi.mock("../../lib/logger", () => ({
-	default: { trace: vi.fn() },
+	default: { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
 import { humanDelay } from "../timing";
@@ -39,17 +39,25 @@ describe("humanDelay", () => {
 		expect(result).toBeInstanceOf(Promise);
 	});
 
-	it("should produce varying delays across calls", async () => {
+	it("should compute delay using Math.random formula", async () => {
+		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.5);
+		// min=10, max=30 → delay = Math.floor(0.5 * (30-10) + 10) = 20ms
+		const start = Date.now();
+		await humanDelay();
+		const elapsed = Date.now() - start;
+
+		expect(elapsed).toBeGreaterThanOrEqual(19); // allow 1ms drift
+		expect(elapsed).toBeLessThan(50);
+		randomSpy.mockRestore();
+	});
+
+	it("should produce delays within range across multiple calls", async () => {
 		const delays: number[] = [];
 		for (let i = 0; i < 5; i++) {
 			const start = Date.now();
 			await humanDelay(1, 50);
 			delays.push(Date.now() - start);
 		}
-		// At least one delay should differ from the first (probabilistic but near-certain)
-		const allSame = delays.every((d) => d === delays[0]);
-		// Not asserting !allSame since timer resolution can make them equal;
-		// just verify they all complete within range
 		for (const d of delays) {
 			expect(d).toBeGreaterThanOrEqual(0);
 			expect(d).toBeLessThan(200);

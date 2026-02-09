@@ -144,6 +144,7 @@ npm run test:all:coverage    # Full coverage report
 ### Redis/Queue
 **CRITICAL**: Production scraping MUST use hobbes Redis
 - `REDIS_HOST=hobbes` (production)
+- `QUEUE_BATCH_CHUNK_SIZE` - rows per SQL batch insert (default: 500)
 - Centralized queue management
 - Prevents duplicate work across machines
 

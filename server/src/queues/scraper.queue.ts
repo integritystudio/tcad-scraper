@@ -81,11 +81,14 @@ scraperQueue.process(
 					const params: (string | number | Date | null)[] = [];
 					let paramIndex = 1;
 
+					// Year matches the TCAD API pYear parameter (hardcoded in tcad-scraper.ts)
+					const year = 2025;
+
 					for (const property of chunk) {
 						valuesClauses.push(
 							`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, ` +
 								`$${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, ` +
-								`$${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12})`,
+								`$${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13})`,
 						);
 
 						params.push(
@@ -99,12 +102,13 @@ scraperQueue.process(
 							property.geoId,
 							property.description,
 							searchTerm,
+							year,
 							now,
 							now,
 							now,
 						);
 
-						paramIndex += 13;
+						paramIndex += 14;
 					}
 
 					// SECURITY: $queryRawUnsafe is safe here — all user-supplied data
@@ -115,7 +119,7 @@ scraperQueue.process(
           INSERT INTO properties (
             property_id, name, prop_type, city, property_address,
             assessed_value, appraised_value, geo_id, description,
-            search_term, scraped_at, created_at, updated_at
+            search_term, year, scraped_at, created_at, updated_at
           )
           VALUES ${valuesClauses.join(", ")}
           ON CONFLICT (property_id) DO UPDATE SET
@@ -128,6 +132,7 @@ scraperQueue.process(
             geo_id = EXCLUDED.geo_id,
             description = EXCLUDED.description,
             search_term = EXCLUDED.search_term,
+            year = EXCLUDED.year,
             scraped_at = EXCLUDED.scraped_at,
             updated_at = EXCLUDED.updated_at
           RETURNING (xmax = 0) AS inserted
