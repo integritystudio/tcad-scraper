@@ -5,6 +5,7 @@ import { prisma, prismaReadOnly } from "../lib/prisma";
 import { cacheService } from "../lib/redis-cache.service";
 import { canScheduleJob, scraperQueue } from "../queues/scraper.queue";
 import type { ScrapeResponse } from "../types";
+import { transformPropertyToSnakeCase } from "../utils/property-transformers";
 import type {
 	AnswerStatistics,
 	AnswerType,
@@ -117,26 +118,8 @@ export class PropertyController {
 					prismaReadOnly.property.count({ where }),
 				]);
 
-				// Transform properties from camelCase (Prisma) to snake_case (frontend expectation)
-				const transformedProperties = properties.map((prop) => ({
-					id: prop.id,
-					property_id: prop.propertyId,
-					name: prop.name,
-					prop_type: prop.propType,
-					city: prop.city,
-					property_address: prop.propertyAddress,
-					assessed_value: prop.assessedValue,
-					appraised_value: prop.appraisedValue,
-					geo_id: prop.geoId,
-					description: prop.description,
-					search_term: prop.searchTerm,
-					scraped_at: prop.scrapedAt.toISOString(),
-					created_at: prop.createdAt.toISOString(),
-					updated_at: prop.updatedAt.toISOString(),
-				}));
-
 				return {
-					data: transformedProperties,
+					data: properties.map(transformPropertyToSnakeCase),
 					pagination: {
 						total,
 						limit: filters.limit,
@@ -263,26 +246,8 @@ export class PropertyController {
 				);
 		}
 
-		// Transform properties from camelCase (Prisma) to snake_case (frontend expectation)
-		const transformedProperties = properties.map((prop) => ({
-			id: prop.id,
-			property_id: prop.propertyId,
-			name: prop.name,
-			prop_type: prop.propType,
-			city: prop.city,
-			property_address: prop.propertyAddress,
-			assessed_value: prop.assessedValue,
-			appraised_value: prop.appraisedValue,
-			geo_id: prop.geoId,
-			description: prop.description,
-			search_term: prop.searchTerm,
-			scraped_at: prop.scrapedAt.toISOString(),
-			created_at: prop.createdAt.toISOString(),
-			updated_at: prop.updatedAt.toISOString(),
-		}));
-
 		return res.json({
-			data: transformedProperties,
+			data: properties.map(transformPropertyToSnakeCase),
 			pagination: {
 				total,
 				limit: Math.min(limit, 1000),
