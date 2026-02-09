@@ -7,31 +7,45 @@
 
 ## Open Items
 
-### TD-5: 27 Skipped API Integration Tests
-**Priority**: Medium | **File**: `server/src/__tests__/api.test.ts`
+### TD-11: `as any` in Production Source (2 documented exceptions)
+**Priority**: None (documented) | **Files**: `auth.ts:75`, `index.ts`
 
-Entire test suite in `describe.skip()` (line 34). Requires running backend + Redis + PostgreSQL.
+- `auth.ts:75` - `jwt.sign()` options requires `any` (library limitation)
+- `index.ts` - Helmet `crossOriginResourcePolicy` requires `any` (type mismatch)
 
-**Fix**: Move to integration test suite or add testcontainers setup.
+Both are library-imposed limitations. No action needed unless library types improve.
 
-### TD-8: Remaining `as any` in Test Files
-**Priority**: Low | **86 occurrences across 11 test files**
+### TD-12: `console.*` in CLI Scripts (39 occurrences, intentional)
+**Priority**: None (by design) | **3 script files**
 
-Largest: `json-ld.utils.test.ts` (30), `xcontroller.middleware.test.ts` (25), `property.controller.test.ts` (6), `metrics.middleware.test.ts` (5), `tcad-scraper.test.ts` (5), `token-refresh-mock-repro.test.ts` (4), `auth.test.ts` (3), `deduplication.test.ts` (3)
+- `analyze-search-terms.ts` (27) - CLI report formatting
+- `migrate-to-logger.ts` (8) - Developer migration tool
+- `get-fresh-token.ts` (4) - Token stdout utility with eslint-disable
 
-No production impact. Fix with typed mock factories or `vi.mocked()` patterns.
+Scripts intentionally use console for CLI/stdout output. No change needed.
 
-### TD-2: console.* Statements in Scripts/Tests
-**Priority**: Low | **62 occurrences across 11 files**
+### TD-13: `api.test.ts` Types Use `unknown` for Dynamic Imports
+**Priority**: Low | **File**: `server/src/__tests__/api.test.ts`
 
-Largest: `analyze-search-terms.ts` (27), `migrate-to-logger.ts` (8), `auth-database.integration.test.ts` (8), `get-fresh-token.ts` (4), `test-utils.ts` (4)
+`app` and `prisma` variables are typed as `unknown` since they're dynamically imported in `beforeAll`. Methods like `prisma.property.deleteMany()` rely on runtime types. Could use `typeof import(...)` patterns to type them properly.
 
-Scripts intentionally use console for CLI output. Replace with Pino in scripts; remove from tests.
+### TD-14: ESLint Rule to Prevent `console.*` in Test Files
+**Priority**: Low | **Scope**: Biome/ESLint config
+
+Add a lint rule scoped to `**/*.test.ts` that warns on `console.*` usage, preventing regressions after TD-2 cleanup.
+
+### TD-15: Document Test Type Patterns for Contributors
+**Priority**: Low | **Scope**: Developer docs
+
+Document the type replacement patterns used in TD-8 (`Record<string, unknown>`, `Pick<Type, "key">`, `unknown as TypeCast`, `Record<string, ReturnType<typeof vi.fn>>`) so future contributors follow the same conventions.
 
 ---
 
 ## Completed Items
 
+- **TD-5**: Replaced `describe.skip()` with `describe.skipIf()` using infrastructure checks (`97a34a2`)
+- **TD-8**: Removed all 86 `as any` from 11 test files (`b57eac7`, `bb43a6e`, `517e4b7`)
+- **TD-2**: Replaced 21 `console.*` in 6 test files with `logger.debug()` (`5280dce`)
 - **TD-3**: Replaced deprecated `startTransaction` with typed `startSpan<T>()` wrapper (`43c92f9`, `1f90485`)
 - **TD-6**: Added `npm run lint` script using Biome (`43c92f9`)
 - **TD-7**: Made `asyncHandler` generic, eliminated 3 `as any` casts in property routes (`43c92f9`)
