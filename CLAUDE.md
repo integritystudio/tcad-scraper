@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: February 9, 2026 | **Version**: 4.1
+**Last Updated**: February 10, 2026 | **Version**: 4.2
 
 ## Project Overview
 
@@ -55,8 +55,22 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 - **Hosting**: GitHub Pages (frontend via `alephatx.info`), Hobbes (API via Cloudflare Tunnel)
 - **Cloudflare Tunnel**: `tcad-api` tunnel routes `api.alephatx.info` → `localhost:3001` on Hobbes
 - **Nginx**: Reverse proxy on Hobbes (port 80 → Node.js 3001); must be running for tunnel to work
-- Docker Compose: `base.yml` + `dev.yml`
+- Docker Compose: `config/docker-compose.base.yml` + `dev.yml`
+- Monitoring: `config/monitoring/` (Grafana dashboards, Prometheus configs)
 - Ports: Frontend 5174, Backend 3000, Redis 6379, PostgreSQL 5432
+
+### Project Layout
+```
+├── src/                  # Frontend (React + Vite)
+├── server/               # Backend (Express + BullMQ + Prisma)
+│   ├── src/scripts/      # CLI tools, batch scripts, test utilities
+│   └── prisma/           # Schema + migrations (canonical location)
+├── config/               # Docker Compose, monitoring, GTM configs
+│   └── monitoring/       # Grafana dashboards, Prometheus rules + Alloy
+├── scripts/              # Shell + Python utility scripts
+├── shared/               # Shared types between frontend/backend
+└── docs/                 # All documentation
+```
 
 ---
 
