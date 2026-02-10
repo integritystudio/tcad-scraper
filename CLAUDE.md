@@ -98,7 +98,7 @@ npm run queue:status
 
 - **Remote PostgreSQL only** via Tailscale VPN; local container disabled
 - **Production Redis**: `REDIS_HOST=hobbes` (prevents duplicate work across machines)
-- **Bearer tokens** expire ~5 min; `token-refresh.service.ts` auto-refreshes
+- **Bearer tokens** expire ~5 min; `token-refresh.service.ts` auto-refreshes (see [docs/TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md))
 - **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses. Does NOT work with cities, ZIP codes, short terms (<4 chars), compound names
 - **Env vars**: `TCAD_YEAR` (default: current year), `QUEUE_BATCH_CHUNK_SIZE` (default: 500)
 
