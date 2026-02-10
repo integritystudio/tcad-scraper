@@ -159,7 +159,7 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./config/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
     ports:
       # Uses GRAFANA_PORT from .env

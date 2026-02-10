@@ -159,7 +159,7 @@ services:
       - tcad-network
     volumes:
       - ./config/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - ./config/monitoring/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
       - ./backups/prometheus:/backups
     command:
@@ -199,7 +199,7 @@ services:
       - GF_INSTALL_PLUGINS=redis-datasource
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./config/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./backups/grafana:/backups
     # Don't expose externally (use reverse proxy)

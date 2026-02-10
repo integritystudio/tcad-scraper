@@ -48,6 +48,9 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 - `src/utils/` - Shared utilities (error-helpers, property-transformers, timing)
 - `prisma/schema.prisma` - Schema (properties, scrape_jobs, monitored_searches)
 
+### API
+- See [docs/API.md](docs/API.md) for full endpoint reference
+
 ### Infrastructure
 - **Hosting**: GitHub Pages (frontend via `alephatx.info`), Hobbes (API via Cloudflare Tunnel)
 - **Cloudflare Tunnel**: `tcad-api` tunnel routes `api.alephatx.info` → `localhost:3001` on Hobbes
