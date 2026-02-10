@@ -122,6 +122,8 @@
 	},
 	"optionalDependencies": {
 		"@rollup/rollup-darwin-arm64": "^4.53.3",
+		"@rollup/rollup-linux-x64-gnu": "^4.53.3",
+		"@esbuild/linux-x64": "^0.25.0",
 		"fsevents": "^2.3.3"
 	}
 }
