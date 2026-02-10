@@ -1,5 +1,5 @@
-import { config } from "./config";
-import logger from "./lib/logger";
+import { config } from "../config";
+import logger from "../lib/logger";
 
 async function testApi() {
 	logger.info("Testing TCAD API directly...\n");

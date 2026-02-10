@@ -1,6 +1,6 @@
-import logger from "./lib/logger";
-import { getErrorMessage } from "./utils/error-helpers";
-import { TCADScraper } from "./lib/tcad-scraper";
+import logger from "../lib/logger";
+import { getErrorMessage } from "../utils/error-helpers";
+import { TCADScraper } from "../lib/tcad-scraper";
 
 async function testApiDiscovery() {
 	logger.info("Starting API discovery...");

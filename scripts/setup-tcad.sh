@@ -119,7 +119,7 @@ echo ""
 
 # Step 5: Make scripts executable
 echo "🔧 Step 5: Making scripts executable..."
-chmod +x tcad-cli.js start.sh 2>/dev/null
+chmod +x start.sh 2>/dev/null
 
 echo "✅ Scripts ready"
 echo ""
@@ -150,8 +150,7 @@ echo "1. Start the worker:"
 echo "   npm start"
 echo ""
 echo "2. In a new terminal, use the CLI to add jobs:"
-echo "   ./tcad-cli.js"
-echo "   or: npm run cli"
+echo "   npm run cli"
 echo ""
 echo "3. Or run a test:"
 echo "   npm test"

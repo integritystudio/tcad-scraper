@@ -42,12 +42,12 @@ docker-compose -f config/docker-compose.monitoring.yml up -d
 
 ## Pre-built Dashboards
 
-- **TCAD Overview** (`monitoring/grafana/dashboards/tcad-overview.json`) - HTTP, scraper, queue, cache, token, heap, event loop
-- **Code Complexity** (`monitoring/grafana/dashboards/code-complexity.json`) - Cyclomatic complexity, LOC trends, top files
+- **TCAD Overview** (`config/monitoring/grafana/dashboards/tcad-overview.json`) - HTTP, scraper, queue, cache, token, heap, event loop
+- **Code Complexity** (`config/monitoring/grafana/dashboards/code-complexity.json`) - Cyclomatic complexity, LOC trends, top files
 
 ## Alert Rules
 
-Defined in `monitoring/prometheus/prometheus.rules.yml`:
+Defined in `config/monitoring/prometheus/prometheus.rules.yml`:
 
 | Alert | Threshold |
 |-------|-----------|
@@ -64,9 +64,9 @@ Defined in `monitoring/prometheus/prometheus.rules.yml`:
 | File | Purpose |
 |------|---------|
 | `config/docker-compose.monitoring.yml` | Stack definition |
-| `monitoring/prometheus/prometheus.yml` | Scrape config |
-| `monitoring/prometheus/prometheus.rules.yml` | Alert rules |
-| `monitoring/grafana/provisioning/` | Auto-configured datasources + dashboards |
+| `config/monitoring/prometheus/prometheus.yml` | Scrape config |
+| `config/monitoring/prometheus/prometheus.rules.yml` | Alert rules |
+| `config/monitoring/grafana/provisioning/` | Auto-configured datasources + dashboards |
 | `server/src/lib/metrics.service.ts` | Application metrics registration |
 | `server/src/services/code-complexity.service.ts` | Hourly codebase analysis |
 
