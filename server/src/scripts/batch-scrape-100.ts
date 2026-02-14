@@ -163,9 +163,7 @@ async function queueBatch() {
 			await new Promise((resolve) => setTimeout(resolve, 100));
 		} catch (error) {
 			failed++;
-			logger.error(
-				`  ✗ ${searchTerm}: ${getErrorMessage(error)}`,
-			);
+			logger.error(`  ✗ ${searchTerm}: ${getErrorMessage(error)}`);
 		}
 	}
 
@@ -191,8 +189,6 @@ async function queueBatch() {
 }
 
 queueBatch().catch((error) => {
-	logger.error(
-		`Fatal error: ${getErrorMessage(error)}`,
-	);
+	logger.error(`Fatal error: ${getErrorMessage(error)}`);
 	process.exit(1);
 });

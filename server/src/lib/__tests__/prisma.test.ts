@@ -7,13 +7,13 @@
  */
 
 import {
+	afterEach,
+	beforeAll,
+	beforeEach,
 	describe,
 	expect,
 	it,
 	vi,
-	beforeEach,
-	afterEach,
-	beforeAll,
 } from "vitest";
 import logger from "../logger";
 

@@ -1,6 +1,6 @@
 import logger from "../lib/logger";
-import { getErrorMessage } from "../utils/error-helpers";
 import { TCADScraper } from "../lib/tcad-scraper";
+import { getErrorMessage } from "../utils/error-helpers";
 
 async function testApiDiscovery() {
 	logger.info("Starting API discovery...");
@@ -18,9 +18,7 @@ async function testApiDiscovery() {
 
 		logger.info("\n✅ API discovery complete!");
 	} catch (error) {
-		logger.error(
-			`❌ API discovery failed: ${getErrorMessage(error)}`,
-		);
+		logger.error(`❌ API discovery failed: ${getErrorMessage(error)}`);
 	} finally {
 		await scraper.cleanup();
 	}

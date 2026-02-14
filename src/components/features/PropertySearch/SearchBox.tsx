@@ -31,7 +31,7 @@ export const SearchBox = ({
 	};
 
 	return (
-		<search role="search" className={styles.searchBox}>
+		<search className={styles.searchBox}>
 			<label htmlFor={inputId} className={styles.srOnly}>
 				Search properties
 			</label>

@@ -9,8 +9,7 @@
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { Suspense } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the analytics hook
 vi.mock("../hooks", () => ({
@@ -21,11 +20,14 @@ vi.mock("../hooks", () => ({
 }));
 
 // Mock the lazy-loaded component
-vi.mock("../components/features/PropertySearch/PropertySearchContainer", () => ({
-	PropertySearchContainer: () => (
-		<div data-testid="property-search-container">Property Search Loaded</div>
-	),
-}));
+vi.mock(
+	"../components/features/PropertySearch/PropertySearchContainer",
+	() => ({
+		PropertySearchContainer: () => (
+			<div data-testid="property-search-container">Property Search Loaded</div>
+		),
+	}),
+);
 
 // Mock the Footer component
 vi.mock("../components/layout", () => ({

@@ -10,7 +10,13 @@ vi.mock("../../config", () => ({
 }));
 
 vi.mock("../../lib/logger", () => ({
-	default: { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+	default: {
+		trace: vi.fn(),
+		debug: vi.fn(),
+		info: vi.fn(),
+		warn: vi.fn(),
+		error: vi.fn(),
+	},
 }));
 
 import { humanDelay } from "../timing";

@@ -1,6 +1,6 @@
 import logger from "../lib/logger";
-import { getErrorMessage } from "../utils/error-helpers";
 import { TCADScraper } from "../lib/tcad-scraper";
+import { getErrorMessage } from "../utils/error-helpers";
 
 async function testApiScraper() {
 	logger.info("Testing API-based scraper...\n");
@@ -45,9 +45,7 @@ async function testApiScraper() {
 			);
 		}
 	} catch (error) {
-		logger.error(
-			`\n❌ Test failed: ${getErrorMessage(error)}`,
-		);
+		logger.error(`\n❌ Test failed: ${getErrorMessage(error)}`);
 	} finally {
 		await scraper.cleanup();
 	}

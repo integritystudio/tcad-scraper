@@ -46,7 +46,9 @@ describe("TCADScraper", () => {
 				close: vi.fn(),
 			}),
 			close: vi.fn(),
-		} as unknown as ReturnType<typeof chromium.launch> extends Promise<infer T> ? T : never);
+		} as unknown as ReturnType<typeof chromium.launch> extends Promise<infer T>
+			? T
+			: never);
 		scraper = new TCADScraper();
 	});
 
@@ -127,7 +129,10 @@ describe("TCADScraper", () => {
 		describe("getRandomElement", () => {
 			it("should return element from array", () => {
 				// Access private method via any
-				const scraperPrivate = scraper as unknown as Record<string, (...args: unknown[]) => unknown>;
+				const scraperPrivate = scraper as unknown as Record<
+					string,
+					(...args: unknown[]) => unknown
+				>;
 				const testArray = [1, 2, 3, 4, 5];
 
 				const result = scraperPrivate.getRandomElement(testArray);
@@ -136,7 +141,10 @@ describe("TCADScraper", () => {
 			});
 
 			it("should handle single element array", () => {
-				const scraperPrivate = scraper as unknown as Record<string, (...args: unknown[]) => unknown>;
+				const scraperPrivate = scraper as unknown as Record<
+					string,
+					(...args: unknown[]) => unknown
+				>;
 				const testArray = ["only-element"];
 
 				const result = scraperPrivate.getRandomElement(testArray);
@@ -145,7 +153,10 @@ describe("TCADScraper", () => {
 			});
 
 			it("should return different elements on multiple calls", () => {
-				const scraperPrivate = scraper as unknown as Record<string, (...args: unknown[]) => unknown>;
+				const scraperPrivate = scraper as unknown as Record<
+					string,
+					(...args: unknown[]) => unknown
+				>;
 				const testArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 				const results = new Set();
 
@@ -256,7 +267,11 @@ describe("TCADScraper", () => {
 				close: vi.fn().mockRejectedValue(new Error("Close failed")),
 			};
 			vi.mocked(chromium.launch).mockResolvedValue(
-				mockBrowser as unknown as ReturnType<typeof chromium.launch> extends Promise<infer T> ? T : never,
+				mockBrowser as unknown as ReturnType<
+					typeof chromium.launch
+				> extends Promise<infer T>
+					? T
+					: never,
 			);
 
 			await scraper.initialize();

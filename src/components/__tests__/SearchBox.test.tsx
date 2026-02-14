@@ -8,7 +8,7 @@
  * - Keyboard navigation
  */
 
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SearchBox } from "../features/PropertySearch/SearchBox";
 
@@ -52,7 +52,7 @@ describe("SearchBox", () => {
 			expect(describedById).toBeTruthy();
 
 			// The hint should contain example search terms
-			const hint = document.getElementById(describedById!);
+			const hint = document.getElementById(describedById as string);
 			expect(hint).toBeInTheDocument();
 			expect(hint?.textContent).toContain("properties in Austin");
 		});
@@ -79,7 +79,9 @@ describe("SearchBox", () => {
 
 			// The search icon container should be hidden from screen readers
 			const searchContainer = screen.getByRole("search");
-			const iconContainer = searchContainer.querySelector('[aria-hidden="true"]');
+			const iconContainer = searchContainer.querySelector(
+				'[aria-hidden="true"]',
+			);
 			expect(iconContainer).toBeInTheDocument();
 		});
 
@@ -166,7 +168,9 @@ describe("SearchBox", () => {
 
 		it("should use custom placeholder when provided", () => {
 			const onSearch = vi.fn();
-			render(<SearchBox onSearch={onSearch} placeholder="Custom placeholder" />);
+			render(
+				<SearchBox onSearch={onSearch} placeholder="Custom placeholder" />,
+			);
 
 			const input = screen.getByRole("searchbox");
 			expect(input).toHaveAttribute("placeholder", "Custom placeholder");

@@ -5,7 +5,6 @@ import { prisma, prismaReadOnly } from "../lib/prisma";
 import { cacheService } from "../lib/redis-cache.service";
 import { canScheduleJob, scraperQueue } from "../queues/scraper.queue";
 import type { ScrapeResponse } from "../types";
-import { transformPropertyToSnakeCase } from "../utils/property-transformers";
 import type {
 	AnswerStatistics,
 	AnswerType,
@@ -15,6 +14,7 @@ import type {
 	PropertyFilters,
 	ScrapeRequestBody,
 } from "../types/property.types";
+import { transformPropertyToSnakeCase } from "../utils/property-transformers";
 
 export class PropertyController {
 	/**

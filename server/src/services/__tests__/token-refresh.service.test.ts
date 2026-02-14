@@ -5,7 +5,15 @@
  * See: server/MOCKING_BEST_PRACTICES.md
  */
 
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	type Mock,
+	vi,
+} from "vitest";
 
 interface MockPage {
 	goto: Mock;
@@ -220,19 +228,21 @@ describe("TCADTokenRefreshService", () => {
 
 		it("should initialize browser on first refresh", async () => {
 			// Mock successful token capture
-			mockPage.on.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
-				if (event === "request") {
-					// Simulate a request with auth header
-					setTimeout(() => {
-						handler({
-							headers: () => ({
-								authorization:
-									"eyJtest-captured-token-with-enough-length-to-pass-validation",
-							}),
-						});
-					}, 10);
-				}
-			});
+			mockPage.on.mockImplementation(
+				(event: string, handler: (...args: unknown[]) => void) => {
+					if (event === "request") {
+						// Simulate a request with auth header
+						setTimeout(() => {
+							handler({
+								headers: () => ({
+									authorization:
+										"eyJtest-captured-token-with-enough-length-to-pass-validation",
+								}),
+							});
+						}, 10);
+					}
+				},
+			);
 
 			mockPage.goto.mockResolvedValue(undefined);
 			mockPage.waitForFunction.mockResolvedValue(undefined);

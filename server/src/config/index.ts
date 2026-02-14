@@ -44,7 +44,10 @@ export function parseTcadYear(key: string, defaultValue: number): number {
 	const parsed = parseIntEnv(key, defaultValue);
 	const currentYear = new Date().getFullYear();
 	if (parsed < 2020 || parsed > currentYear + 1) {
-		logger.warn({ envKey: key, value: parsed, min: 2020, max: currentYear + 1 }, "TCAD_YEAR out of range, using default");
+		logger.warn(
+			{ envKey: key, value: parsed, min: 2020, max: currentYear + 1 },
+			"TCAD_YEAR out of range, using default",
+		);
 		return defaultValue;
 	}
 	return parsed;

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Footer } from "./components/layout";
 import { LoadingSkeleton } from "./components/ui/LoadingSkeleton";
@@ -7,11 +7,10 @@ import "./App.css";
 
 // Lazy load the main PropertySearch feature for code splitting
 // This reduces initial bundle size by ~40-50%
-const PropertySearchContainer = lazy(
-	() =>
-		import("./components/features/PropertySearch/PropertySearchContainer").then(
-			(module) => ({ default: module.PropertySearchContainer }),
-		),
+const PropertySearchContainer = lazy(() =>
+	import("./components/features/PropertySearch/PropertySearchContainer").then(
+		(module) => ({ default: module.PropertySearchContainer }),
+	),
 );
 
 function App() {

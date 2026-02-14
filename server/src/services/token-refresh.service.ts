@@ -103,8 +103,7 @@ export class TCADTokenRefreshService {
 		} catch (error: unknown) {
 			this.failureCount++;
 			const duration = Date.now() - startTime;
-			const errorMessage =
-				getErrorMessage(error);
+			const errorMessage = getErrorMessage(error);
 			logger.error(
 				`Token refresh failed after ${duration}ms (failure #${this.failureCount}): ${errorMessage}`,
 			);

@@ -199,13 +199,19 @@ describe("JSON-LD Utils", () => {
 		});
 
 		it("should use default name when no search query", () => {
-			const result = generatePropertyListJsonLd(mockResponse) as Record<string, unknown>;
+			const result = generatePropertyListJsonLd(mockResponse) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.name).toBe("Travis County Properties");
 		});
 
 		it("should include list items with correct positions", () => {
-			const result = generatePropertyListJsonLd(mockResponse) as Record<string, unknown>;
+			const result = generatePropertyListJsonLd(mockResponse) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.itemListElement).toHaveLength(1);
 			expect(result.itemListElement[0]).toMatchObject({
@@ -215,7 +221,10 @@ describe("JSON-LD Utils", () => {
 		});
 
 		it("should include item details for each property", () => {
-			const result = generatePropertyListJsonLd(mockResponse) as Record<string, unknown>;
+			const result = generatePropertyListJsonLd(mockResponse) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.itemListElement[0].item).toMatchObject({
 				"@type": "RealEstateListing",
@@ -234,20 +243,29 @@ describe("JSON-LD Utils", () => {
 				},
 			};
 
-			const result = generatePropertyListJsonLd(responseWithMore) as Record<string, unknown>;
+			const result = generatePropertyListJsonLd(responseWithMore) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.nextItem).toBeDefined();
 			expect(result.nextItem).toContain("offset=20");
 		});
 
 		it("should not include nextItem when hasMore is false", () => {
-			const result = generatePropertyListJsonLd(mockResponse) as Record<string, unknown>;
+			const result = generatePropertyListJsonLd(mockResponse) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.nextItem).toBeUndefined();
 		});
 
 		it("should include search action", () => {
-			const result = generatePropertyListJsonLd(mockResponse) as Record<string, unknown>;
+			const result = generatePropertyListJsonLd(mockResponse) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.potentialAction).toMatchObject({
 				"@type": "SearchAction",
@@ -267,7 +285,10 @@ describe("JSON-LD Utils", () => {
 		});
 
 		it("should use custom website URL", () => {
-			const result = generateOrganizationJsonLd("https://custom.com") as Record<string, unknown>;
+			const result = generateOrganizationJsonLd("https://custom.com") as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.url).toBe("https://custom.com");
 		});

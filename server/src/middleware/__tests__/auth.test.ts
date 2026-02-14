@@ -1,6 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	type Mock,
+	vi,
+} from "vitest";
 import { config } from "../../config";
 import {
 	type AuthRequest,
@@ -51,7 +59,10 @@ describe("Auth Middleware", () => {
 	afterEach(() => {
 		// Restore original config values
 		Object.assign(config.env, originalEnv);
-		Object.assign(config.auth, { ...originalAuth, jwt: { ...originalAuth.jwt } });
+		Object.assign(config.auth, {
+			...originalAuth,
+			jwt: { ...originalAuth.jwt },
+		});
 	});
 
 	describe("apiKeyAuth", () => {
@@ -261,7 +272,10 @@ describe("Auth Middleware", () => {
 			expect(token).toBeTruthy();
 			expect(typeof token).toBe("string");
 
-			const decoded = jwt.verify(token, "test-jwt-secret") as Record<string, unknown>;
+			const decoded = jwt.verify(token, "test-jwt-secret") as Record<
+				string,
+				unknown
+			>;
 			expect(decoded.id).toBe("user123");
 			expect(decoded.email).toBe("test@example.com");
 			expect(decoded.exp).toBeTruthy();
@@ -272,7 +286,10 @@ describe("Auth Middleware", () => {
 
 			expect(token).toBeTruthy();
 
-			const decoded = jwt.verify(token, "test-jwt-secret") as Record<string, unknown>;
+			const decoded = jwt.verify(token, "test-jwt-secret") as Record<
+				string,
+				unknown
+			>;
 			expect(decoded.id).toBe("user123");
 			expect(decoded.email).toBeUndefined();
 		});
@@ -281,7 +298,10 @@ describe("Auth Middleware", () => {
 			(config.auth.jwt as Record<string, unknown>).expiresIn = "2h";
 
 			const token = generateToken("user123");
-			const decoded = jwt.verify(token, "test-jwt-secret") as Record<string, unknown>;
+			const decoded = jwt.verify(token, "test-jwt-secret") as Record<
+				string,
+				unknown
+			>;
 
 			const now = Math.floor(Date.now() / 1000);
 			const expectedExpiration = now + 2 * 60 * 60; // 2 hours from now

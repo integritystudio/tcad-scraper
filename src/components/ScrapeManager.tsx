@@ -50,7 +50,9 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 	useEffect(() => {
 		loadScrapeHistory();
 		loadMonitoredSearches();
-		return () => { pollAbortRef.current?.abort(); };
+		return () => {
+			pollAbortRef.current?.abort();
+		};
 	}, [loadMonitoredSearches, loadScrapeHistory]);
 
 	const handleScrape = async () => {
@@ -75,7 +77,9 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 			// Poll for job status
 			const finalStatus = await propertyAPI.pollJobStatus(
 				jobId,
-				(status) => { setCurrentJob(status); },
+				(status) => {
+					setCurrentJob(status);
+				},
 				2000,
 				abortController.signal,
 			);
@@ -93,9 +97,15 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 		} catch (err: unknown) {
 			if (err instanceof DOMException && err.name === "AbortError") return;
 			if (axios.isAxiosError(err)) {
-				setError(err.response?.data?.error || err.message || "Failed to start scraping");
+				setError(
+					err.response?.data?.error ||
+						err.message ||
+						"Failed to start scraping",
+				);
 			} else {
-				setError(err instanceof Error ? err.message : "Failed to start scraping");
+				setError(
+					err instanceof Error ? err.message : "Failed to start scraping",
+				);
 			}
 		} finally {
 			setLoading(false);
@@ -117,7 +127,9 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 			if (axios.isAxiosError(err)) {
 				setError(err.response?.data?.error || "Failed to add monitored search");
 			} else {
-				setError(err instanceof Error ? err.message : "Failed to add monitored search");
+				setError(
+					err instanceof Error ? err.message : "Failed to add monitored search",
+				);
 			}
 		}
 	};

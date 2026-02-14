@@ -121,9 +121,7 @@ async function simulateQueueJobProcessing() {
 		logger.info('Code: await prisma.scrapeJob.update({ status: "completed" })');
 		logger.info("✅ Job marked as completed\n");
 	} catch (error) {
-		logger.error(
-			`❌ Error during simulation: ${getErrorMessage(error)}`,
-		);
+		logger.error(`❌ Error during simulation: ${getErrorMessage(error)}`);
 	} finally {
 		logger.info("Step 7: Cleanup");
 		logger.info("---------------");

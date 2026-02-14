@@ -17,147 +17,228 @@ import type { BatchEnqueueConfig } from "../utils/batch-enqueue";
 type BatchConfigEntry = Omit<BatchEnqueueConfig, "extraLogs">;
 
 export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
-  llc: {
-    batchName: "LLC",
-    emoji: "🏭",
-    terms: [
-      "LLC", "LLC.", "L.L.C.", "Limited Liability",
-      "LMTD", "Limit", "L L C", "LTD", "Co LLC",
-    ],
-    userId: "llc-batch-enqueue",
-  },
+	llc: {
+		batchName: "LLC",
+		emoji: "🏭",
+		terms: [
+			"LLC",
+			"LLC.",
+			"L.L.C.",
+			"Limited Liability",
+			"LMTD",
+			"Limit",
+			"L L C",
+			"LTD",
+			"Co LLC",
+		],
+		userId: "llc-batch-enqueue",
+	},
 
-  trust: {
-    batchName: "Trust & Estate",
-    emoji: "📜",
-    terms: [
-      "Trust", "Trustee", "Estate", "Family Trust", "Revocable Trust",
-      "Irrevocable Trust", "Living Trust", "Testamentary", "Fiduciary", "Beneficiary",
-    ],
-    userId: "trust-batch-enqueue",
-  },
+	trust: {
+		batchName: "Trust & Estate",
+		emoji: "📜",
+		terms: [
+			"Trust",
+			"Trustee",
+			"Estate",
+			"Family Trust",
+			"Revocable Trust",
+			"Irrevocable Trust",
+			"Living Trust",
+			"Testamentary",
+			"Fiduciary",
+			"Beneficiary",
+		],
+		userId: "trust-batch-enqueue",
+	},
 
-  corporation: {
-    batchName: "Corporation",
-    emoji: "🏛️",
-    terms: [
-      "Corp", "Corp.", "Corporation", "Incorporated", "Inc",
-      "Inc.", "Company", "Co.", "Enterprise", "Enterprises",
-    ],
-    userId: "corporation-batch-enqueue",
-    priority: 2,
-  },
+	corporation: {
+		batchName: "Corporation",
+		emoji: "🏛️",
+		terms: [
+			"Corp",
+			"Corp.",
+			"Corporation",
+			"Incorporated",
+			"Inc",
+			"Inc.",
+			"Company",
+			"Co.",
+			"Enterprise",
+			"Enterprises",
+		],
+		userId: "corporation-batch-enqueue",
+		priority: 2,
+	},
 
-  commercial: {
-    batchName: "Commercial",
-    emoji: "🏢",
-    terms: [
-      "Shopping", "Retail", "Office", "Warehouse", "Industrial",
-      "Commercial", "Business", "Store", "Mall", "Building",
-    ],
-    userId: "commercial-batch-enqueue",
-  },
+	commercial: {
+		batchName: "Commercial",
+		emoji: "🏢",
+		terms: [
+			"Shopping",
+			"Retail",
+			"Office",
+			"Warehouse",
+			"Industrial",
+			"Commercial",
+			"Business",
+			"Store",
+			"Mall",
+			"Building",
+		],
+		userId: "commercial-batch-enqueue",
+	},
 
-  construction: {
-    batchName: "Construction",
-    emoji: "🏗️",
-    terms: [
-      "Construction", "Builders", "Builder", "Contractor", "Contracting",
-      "Homes", "Home", "Custom Homes", "Housing", "Residential Builders",
-    ],
-    userId: "construction-batch-enqueue",
-  },
+	construction: {
+		batchName: "Construction",
+		emoji: "🏗️",
+		terms: [
+			"Construction",
+			"Builders",
+			"Builder",
+			"Contractor",
+			"Contracting",
+			"Homes",
+			"Home",
+			"Custom Homes",
+			"Housing",
+			"Residential Builders",
+		],
+		userId: "construction-batch-enqueue",
+	},
 
-  foundation: {
-    batchName: "Foundation",
-    emoji: "🎗️",
-    terms: [
-      "Foundation", "Charitable", "Charity", "Nonprofit", "Non-Profit",
-      "Organization", "Institute", "Society", "Endowment",
-    ],
-    userId: "foundation-batch-enqueue",
-  },
+	foundation: {
+		batchName: "Foundation",
+		emoji: "🎗️",
+		terms: [
+			"Foundation",
+			"Charitable",
+			"Charity",
+			"Nonprofit",
+			"Non-Profit",
+			"Organization",
+			"Institute",
+			"Society",
+			"Endowment",
+		],
+		userId: "foundation-batch-enqueue",
+	},
 
-  partnership: {
-    batchName: "Partnership",
-    emoji: "🤝",
-    terms: [
-      "Partnership", "Partners", "Part", "LP", "LLP",
-      "Association", "Associates", "Assoc", "Assoc.", "Joint Venture",
-    ],
-    userId: "partnership-batch-enqueue",
-  },
+	partnership: {
+		batchName: "Partnership",
+		emoji: "🤝",
+		terms: [
+			"Partnership",
+			"Partners",
+			"Part",
+			"LP",
+			"LLP",
+			"Association",
+			"Associates",
+			"Assoc",
+			"Assoc.",
+			"Joint Venture",
+		],
+		userId: "partnership-batch-enqueue",
+	},
 
-  investment: {
-    batchName: "Investment",
-    emoji: "💰",
-    terms: [
-      "Investments", "Holdings", "Capital", "Fund", "Equity",
-      "Ventures", "Asset", "Portfolio", "Management", "Manage",
-    ],
-    userId: "investment-batch-enqueue",
-  },
+	investment: {
+		batchName: "Investment",
+		emoji: "💰",
+		terms: [
+			"Investments",
+			"Holdings",
+			"Capital",
+			"Fund",
+			"Equity",
+			"Ventures",
+			"Asset",
+			"Portfolio",
+			"Management",
+			"Manage",
+		],
+		userId: "investment-batch-enqueue",
+	},
 
-  "property-type": {
-    batchName: "Property Type",
-    emoji: "🏘️",
-    terms: [
-      "Properties", "Property", "Real Estate", "Realty", "Land",
-      "Acres", "Development", "Developers", "Plaza", "Center",
-    ],
-    userId: "property-type-batch-enqueue",
-  },
+	"property-type": {
+		batchName: "Property Type",
+		emoji: "🏘️",
+		terms: [
+			"Properties",
+			"Property",
+			"Real Estate",
+			"Realty",
+			"Land",
+			"Acres",
+			"Development",
+			"Developers",
+			"Plaza",
+			"Center",
+		],
+		userId: "property-type-batch-enqueue",
+	},
 
-  residential: {
-    batchName: "Residential",
-    emoji: "🏠",
-    terms: [
-      "Smith", "Johnson", "Williams", "Brown", "Jones",
-      "Miller", "Davis", "Garcia", "Rodriguez", "Wilson",
-    ],
-    userId: "residential-batch-enqueue",
-  },
+	residential: {
+		batchName: "Residential",
+		emoji: "🏠",
+		terms: [
+			"Smith",
+			"Johnson",
+			"Williams",
+			"Brown",
+			"Jones",
+			"Miller",
+			"Davis",
+			"Garcia",
+			"Rodriguez",
+			"Wilson",
+		],
+		userId: "residential-batch-enqueue",
+	},
 
-  grove: {
-    batchName: "Grove",
-    emoji: "🌳",
-    terms: ["Grove"],
-    userId: "grove-batch-enqueue",
-  },
+	grove: {
+		batchName: "Grove",
+		emoji: "🌳",
+		terms: ["Grove"],
+		userId: "grove-batch-enqueue",
+	},
 
-  "high-priority": {
-    batchName: "High Priority Streets & Names",
-    emoji: "🔥",
-    terms: [
-      "Boulevard", "Way", "Terrace", "Michelle",
-    ],
-    userId: "high-priority-batch-enqueue",
-    priority: 1,
-  },
+	"high-priority": {
+		batchName: "High Priority Streets & Names",
+		emoji: "🔥",
+		terms: ["Boulevard", "Way", "Terrace", "Michelle"],
+		userId: "high-priority-batch-enqueue",
+		priority: 1,
+	},
 
-  "priority-terms": {
-    batchName: "Priority Geographic & Entity",
-    emoji: "🎯",
-    terms: [
-      "Lake", "River", "Pecan", "Maple", "Oak", "Mount", "Limited",
-    ],
-    userId: "priority-terms-batch-enqueue",
-    priority: 1,
-  },
+	"priority-terms": {
+		batchName: "Priority Geographic & Entity",
+		emoji: "🎯",
+		terms: ["Lake", "River", "Pecan", "Maple", "Oak", "Mount", "Limited"],
+		userId: "priority-terms-batch-enqueue",
+		priority: 1,
+	},
 
-  "ultra-high-priority": {
-    batchName: "Ultra High Priority",
-    emoji: "🚀",
-    terms: [
-      "Street", "Drive", "Lane", "Road",
-      "Amy", "Cynthia",
-      "Brook", "Meadow", "Valley", "Point",
-    ],
-    userId: "ultra-high-priority-batch-enqueue",
-    priority: -100,
-  },
+	"ultra-high-priority": {
+		batchName: "Ultra High Priority",
+		emoji: "🚀",
+		terms: [
+			"Street",
+			"Drive",
+			"Lane",
+			"Road",
+			"Amy",
+			"Cynthia",
+			"Brook",
+			"Meadow",
+			"Valley",
+			"Point",
+		],
+		userId: "ultra-high-priority-batch-enqueue",
+		priority: -100,
+	},
 };
 
 export function getAvailableBatchTypes(): string[] {
-  return Object.keys(BATCH_CONFIGS);
+	return Object.keys(BATCH_CONFIGS);
 }

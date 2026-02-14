@@ -1,4 +1,3 @@
-import { createClient } from "redis";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Use vi.hoisted for stable mock state across test lifecycle
@@ -362,9 +361,7 @@ describe("RedisCacheService", () => {
 		it("should return cache statistics", async () => {
 			// Generate some cache activity
 			mockClient.get.mockResolvedValueOnce(null); // miss
-			mockClient.get.mockResolvedValueOnce(
-				JSON.stringify({ data: "test" }),
-			); // hit
+			mockClient.get.mockResolvedValueOnce(JSON.stringify({ data: "test" })); // hit
 			mockClient.setEx.mockResolvedValue("OK");
 
 			await service.get("miss:key");

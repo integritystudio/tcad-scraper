@@ -1,11 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
 import type { Property } from "@prisma/client";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../lib/logger", () => ({
-	default: { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+	default: {
+		trace: vi.fn(),
+		debug: vi.fn(),
+		info: vi.fn(),
+		warn: vi.fn(),
+		error: vi.fn(),
+	},
 }));
 
-import { transformPropertyToSnakeCase, validateProperty } from "../property-transformers";
+import {
+	transformPropertyToSnakeCase,
+	validateProperty,
+} from "../property-transformers";
 
 function createMockProperty(overrides: Partial<Property> = {}): Property {
 	return {
@@ -144,7 +153,9 @@ describe("transformPropertyToSnakeCase", () => {
 
 		expect(result.name).toBe("O'Brien & Associates <LLC>");
 		expect(result.property_address).toBe('123 "Main" St; DROP TABLE--');
-		expect(result.description).toBe("Unicode: \u00e9\u00e0\u00fc\u00f1 \u2603 \u2764");
+		expect(result.description).toBe(
+			"Unicode: \u00e9\u00e0\u00fc\u00f1 \u2603 \u2764",
+		);
 		expect(result.city).toBe("SAN MARCOS / DEL VALLE");
 	});
 
@@ -173,32 +184,46 @@ describe("transformPropertyToSnakeCase", () => {
 
 	it("should throw on null year", () => {
 		const prop = createMockProperty({ year: null as unknown as number });
-		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid year value");
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow(
+			"Invalid year value",
+		);
 	});
 
 	it("should throw on NaN year", () => {
 		const prop = createMockProperty({ year: NaN });
-		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid year value");
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow(
+			"Invalid year value",
+		);
 	});
 
 	it("should throw on null appraisedValue", () => {
-		const prop = createMockProperty({ appraisedValue: null as unknown as number });
-		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid appraisedValue");
+		const prop = createMockProperty({
+			appraisedValue: null as unknown as number,
+		});
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow(
+			"Invalid appraisedValue",
+		);
 	});
 
 	it("should throw on NaN appraisedValue", () => {
 		const prop = createMockProperty({ appraisedValue: NaN });
-		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid appraisedValue");
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow(
+			"Invalid appraisedValue",
+		);
 	});
 
 	it("should throw on Infinity appraisedValue", () => {
 		const prop = createMockProperty({ appraisedValue: Infinity });
-		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid appraisedValue");
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow(
+			"Invalid appraisedValue",
+		);
 	});
 
 	it("should throw on NaN assessedValue when non-null", () => {
 		const prop = createMockProperty({ assessedValue: NaN });
-		expect(() => transformPropertyToSnakeCase(prop)).toThrow("Invalid assessedValue");
+		expect(() => transformPropertyToSnakeCase(prop)).toThrow(
+			"Invalid assessedValue",
+		);
 	});
 
 	it("should allow null assessedValue", () => {
@@ -208,7 +233,10 @@ describe("transformPropertyToSnakeCase", () => {
 	});
 
 	it("should include propertyId in validation error messages", () => {
-		const prop = createMockProperty({ propertyId: "TEST-123", year: null as unknown as number });
+		const prop = createMockProperty({
+			propertyId: "TEST-123",
+			year: null as unknown as number,
+		});
 		expect(() => transformPropertyToSnakeCase(prop)).toThrow("TEST-123");
 	});
 });

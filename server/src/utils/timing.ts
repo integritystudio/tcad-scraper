@@ -13,10 +13,10 @@ import logger from "../lib/logger";
  * Only enable trace level for targeted debugging, not in production.
  */
 export async function humanDelay(
-  min: number = appConfig.scraper.humanDelay.min,
-  max: number = appConfig.scraper.humanDelay.max,
+	min: number = appConfig.scraper.humanDelay.min,
+	max: number = appConfig.scraper.humanDelay.max,
 ): Promise<void> {
-  const delay = Math.floor(Math.random() * (max - min) + min);
-  logger.trace({ delayMs: delay, min, max }, "humanDelay");
-  await new Promise((resolve) => setTimeout(resolve, delay));
+	const delay = Math.floor(Math.random() * (max - min) + min);
+	logger.trace({ delayMs: delay, min, max }, "humanDelay");
+	await new Promise((resolve) => setTimeout(resolve, delay));
 }

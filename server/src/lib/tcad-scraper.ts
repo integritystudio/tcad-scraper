@@ -425,7 +425,10 @@ export class TCADScraper {
 				}
 			} catch (error) {
 				lastError = error as Error;
-				logger.error(`API scraping attempt ${attempt} failed: %s`, getErrorMessage(error));
+				logger.error(
+					`API scraping attempt ${attempt} failed: %s`,
+					getErrorMessage(error),
+				);
 
 				if (attempt < maxRetries) {
 					const delay = this.config.retryDelay * 2 ** (attempt - 1);
@@ -466,10 +469,11 @@ export class TCADScraper {
 			);
 			return properties;
 		} catch (apiError) {
-			logger.error("Primary API method failed after all retries: %s", getErrorMessage(apiError));
-			logger.warn(
-				"Falling back to DOM-based scraping (limited to 20 results)",
+			logger.error(
+				"Primary API method failed after all retries: %s",
+				getErrorMessage(apiError),
 			);
+			logger.warn("Falling back to DOM-based scraping (limited to 20 results)");
 
 			try {
 				const properties = await scrapeDOMFallback(
@@ -483,7 +487,10 @@ export class TCADScraper {
 				);
 				return properties;
 			} catch (fallbackError) {
-				logger.error("Fallback method also failed: %s", getErrorMessage(fallbackError));
+				logger.error(
+					"Fallback method also failed: %s",
+					getErrorMessage(fallbackError),
+				);
 				throw new Error(
 					`Both scraping methods failed. API error: ${getErrorMessage(apiError)}. ` +
 						`Fallback error: ${getErrorMessage(fallbackError)}`,

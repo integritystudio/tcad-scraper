@@ -21,9 +21,7 @@ logger.info("Test 1: Config Loading");
 logger.info("----------------------");
 if (config.scraper.tcadApiKey) {
 	logger.info("✅ TCAD_API_KEY is configured");
-	logger.info(
-		`   Token preview: ...${config.scraper.tcadApiKey.slice(-4)}`,
-	);
+	logger.info(`   Token preview: ...${config.scraper.tcadApiKey.slice(-4)}`);
 } else {
 	logger.info("❌ TCAD_API_KEY is NOT configured");
 	logger.info("   Scraper will fall back to browser-based token capture");
@@ -76,9 +74,7 @@ async function testTokenUsage() {
 			logger.info("   4. Then make API calls (slower)");
 		}
 	} catch (error) {
-		logger.error(
-			`❌ Error during test: ${getErrorMessage(error)}`,
-		);
+		logger.error(`❌ Error during test: ${getErrorMessage(error)}`);
 	} finally {
 		await scraper.cleanup();
 		logger.info("\n✅ Cleanup complete");

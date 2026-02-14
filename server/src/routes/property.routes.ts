@@ -115,12 +115,7 @@ router.post(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get(
-	"/jobs/:jobId",
-	asyncHandler(
-		propertyController.getJobStatus,
-	),
-);
+router.get("/jobs/:jobId", asyncHandler(propertyController.getJobStatus));
 
 /**
  * @swagger
@@ -181,9 +176,7 @@ router.get(
 router.get(
 	"/history",
 	validateQuery(historyQuerySchema),
-	asyncHandler(
-		propertyController.getScrapeHistory,
-	),
+	asyncHandler(propertyController.getScrapeHistory),
 );
 
 // ============================================================================
@@ -272,9 +265,7 @@ router.get(
 router.get(
 	"/",
 	validateQuery(propertyFilterSchema),
-	asyncHandler(
-		propertyController.getProperties,
-	),
+	asyncHandler(propertyController.getProperties),
 );
 
 /**
@@ -334,9 +325,7 @@ router.get(
 router.post(
 	"/search",
 	validateBody(naturalLanguageSearchSchema),
-	asyncHandler(
-		propertyController.naturalLanguageSearch,
-	),
+	asyncHandler(propertyController.naturalLanguageSearch),
 );
 
 /**
@@ -372,9 +361,7 @@ router.post(
  */
 router.get(
 	"/search/test",
-	asyncHandler(
-		propertyController.testClaudeConnection,
-	),
+	asyncHandler(propertyController.testClaudeConnection),
 );
 
 // ============================================================================
@@ -433,10 +420,7 @@ router.get(
  *                   description: Average appraised value
  *                   example: 275000
  */
-router.get(
-	"/stats",
-	asyncHandler(propertyController.getStats),
-);
+router.get("/stats", asyncHandler(propertyController.getStats));
 
 // ============================================================================
 // Monitoring Routes
@@ -542,11 +526,6 @@ router.post(
  *                         type: string
  *                         format: date-time
  */
-router.get(
-	"/monitor",
-	asyncHandler(
-		propertyController.getMonitoredSearches,
-	),
-);
+router.get("/monitor", asyncHandler(propertyController.getMonitoredSearches));
 
 export { router as propertyRouter };

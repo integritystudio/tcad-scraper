@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { getApiBaseUrl } from "../lib/api-config";
 import type { Property } from "../types";
 import "./PropertySearch.css";

@@ -1365,9 +1365,7 @@ class SearchPatternGenerator {
 			// Combine optimized and suggested terms
 			return [...optimizedTerms, ...suggestedTerms];
 		} catch (error) {
-			logger.error(
-				`❌ Failed to optimize strategy: ${getErrorMessage(error)}`,
-			);
+			logger.error(`❌ Failed to optimize strategy: ${getErrorMessage(error)}`);
 			return [];
 		}
 	}
@@ -1662,9 +1660,7 @@ class ContinuousBatchScraper {
 					);
 				}
 			} catch (error) {
-				logger.error(
-					`Monitoring error: ${getErrorMessage(error)}`,
-				);
+				logger.error(`Monitoring error: ${getErrorMessage(error)}`);
 			}
 		}, CHECK_INTERVAL);
 	}
@@ -1711,8 +1707,6 @@ class ContinuousBatchScraper {
 // Run the continuous scraper
 const scraper = new ContinuousBatchScraper();
 scraper.run().catch((error) => {
-	logger.error(
-		`Fatal error: ${getErrorMessage(error)}`,
-	);
+	logger.error(`Fatal error: ${getErrorMessage(error)}`);
 	process.exit(1);
 });

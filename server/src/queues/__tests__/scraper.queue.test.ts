@@ -72,7 +72,9 @@ vi.mock("../../lib/logger", () => ({
 }));
 
 // Mock setInterval at module level to prevent cleanup interval from running
-vi.spyOn(global, "setInterval").mockReturnValue({} as unknown as NodeJS.Timeout);
+vi.spyOn(global, "setInterval").mockReturnValue(
+	{} as unknown as NodeJS.Timeout,
+);
 
 describe("Scraper Queue", () => {
 	beforeEach(() => {
@@ -276,7 +278,8 @@ describe("Scraper Queue", () => {
 			await import("../scraper.queue");
 
 			const completedHandler = mockBullQueue.on.mock.calls.find(
-				(call: [string, (...args: unknown[]) => void]) => call[0] === "completed",
+				(call: [string, (...args: unknown[]) => void]) =>
+					call[0] === "completed",
 			)?.[1];
 
 			expect(completedHandler).toBeDefined();

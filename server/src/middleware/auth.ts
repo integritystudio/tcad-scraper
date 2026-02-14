@@ -89,9 +89,7 @@ export const optionalAuth = (
 
 // Generate JWT token
 export const generateToken = (userId: string, email?: string): string => {
-	return jwt.sign(
-		{ id: userId, email },
-		config.auth.jwt.secret,
-		{ expiresIn: config.auth.jwt.expiresIn as import("ms").StringValue },
-	);
+	return jwt.sign({ id: userId, email }, config.auth.jwt.secret, {
+		expiresIn: config.auth.jwt.expiresIn as import("ms").StringValue,
+	});
 };

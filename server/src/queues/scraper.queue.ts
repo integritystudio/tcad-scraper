@@ -226,7 +226,10 @@ scraperQueue.process(
 						`Job ${job.id}: Token refreshed successfully, job will retry`,
 					);
 				} catch (refreshError) {
-					logger.error(`Job ${job.id}: Token refresh failed: %s`, getErrorMessage(refreshError));
+					logger.error(
+						`Job ${job.id}: Token refresh failed: %s`,
+						getErrorMessage(refreshError),
+					);
 				}
 			}
 
@@ -263,7 +266,10 @@ scraperQueue.on("completed", (job, result: ScrapeJobResult) => {
 });
 
 scraperQueue.on("failed", (job, err) => {
-	logger.error(`Job ${job.id} failed after ${job.attemptsMade} attempts: %s`, getErrorMessage(err));
+	logger.error(
+		`Job ${job.id} failed after ${job.attemptsMade} attempts: %s`,
+		getErrorMessage(err),
+	);
 });
 
 scraperQueue.on("stalled", (job) => {

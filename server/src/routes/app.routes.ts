@@ -4,13 +4,13 @@
 
 import { type Request, type Response, Router } from "express";
 import logger from "../lib/logger";
-import { getErrorMessage } from "../utils/error-helpers";
 import {
 	cspMiddleware,
 	generateSecureHtml,
 	getInitialAppData,
 	nonceMiddleware,
 } from "../middleware/xcontroller.middleware";
+import { getErrorMessage } from "../utils/error-helpers";
 
 const router = Router();
 
@@ -37,9 +37,7 @@ router.get(
 			res.setHeader("Content-Type", "text/html; charset=utf-8");
 			res.send(html);
 		} catch (error) {
-			logger.error(
-				`Error serving app: ${getErrorMessage(error)}`,
-			);
+			logger.error(`Error serving app: ${getErrorMessage(error)}`);
 			res.status(500).send("Internal Server Error");
 		}
 	},

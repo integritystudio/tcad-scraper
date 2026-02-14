@@ -111,7 +111,10 @@ class ScheduledJobs {
 				);
 			}
 		} catch (error) {
-			logger.error(`Failed to run ${frequency} scheduled scrapes: %s`, getErrorMessage(error));
+			logger.error(
+				`Failed to run ${frequency} scheduled scrapes: %s`,
+				getErrorMessage(error),
+			);
 		}
 	}
 

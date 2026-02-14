@@ -3,7 +3,15 @@
  */
 
 import type { NextFunction, Request, Response } from "express";
-import { afterEach, beforeEach, describe, expect, type Mock, test, vi } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	type Mock,
+	test,
+	vi,
+} from "vitest";
 import { config } from "../../config";
 
 // Save original config values for restore
@@ -13,6 +21,7 @@ const originalFrontend = {
 	appVersion: config.frontend.appVersion,
 	features: { ...config.frontend.features },
 };
+
 import {
 	cspMiddleware,
 	encodeJsonForHtml,
@@ -25,8 +34,10 @@ import {
 describe("XController Middleware", () => {
 	afterEach(() => {
 		Object.assign(config.env, originalEnv);
-		(config.frontend as Record<string, unknown>).apiUrl = originalFrontend.apiUrl;
-		(config.frontend as Record<string, unknown>).appVersion = originalFrontend.appVersion;
+		(config.frontend as Record<string, unknown>).apiUrl =
+			originalFrontend.apiUrl;
+		(config.frontend as Record<string, unknown>).appVersion =
+			originalFrontend.appVersion;
 		Object.assign(config.frontend.features, originalFrontend.features);
 	});
 
@@ -332,7 +343,8 @@ describe("XController Middleware", () => {
 		});
 
 		test("should use environment variables when available", () => {
-			(config.frontend as Record<string, unknown>).apiUrl = "https://api.example.com";
+			(config.frontend as Record<string, unknown>).apiUrl =
+				"https://api.example.com";
 			(config.env as Record<string, unknown>).nodeEnv = "production";
 			(config.frontend as Record<string, unknown>).appVersion = "2.0.0";
 

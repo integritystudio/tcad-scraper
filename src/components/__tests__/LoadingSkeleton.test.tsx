@@ -59,7 +59,9 @@ describe("LoadingSkeleton", () => {
 		it("should render search variant", () => {
 			const { container } = render(<LoadingSkeleton variant="search" />);
 
-			const searchElement = container.querySelector('[class*="searchSkeleton"]');
+			const searchElement = container.querySelector(
+				'[class*="searchSkeleton"]',
+			);
 			expect(searchElement).toBeInTheDocument();
 		});
 
@@ -80,14 +82,18 @@ describe("LoadingSkeleton", () => {
 		});
 
 		it("should render specified number of skeleton cards", () => {
-			const { container } = render(<LoadingSkeleton variant="card" count={5} />);
+			const { container } = render(
+				<LoadingSkeleton variant="card" count={5} />,
+			);
 
 			const cards = container.querySelectorAll('[class*="cardSkeleton"]');
 			expect(cards).toHaveLength(5);
 		});
 
 		it("should render 1 skeleton card when count is 1", () => {
-			const { container } = render(<LoadingSkeleton variant="card" count={1} />);
+			const { container } = render(
+				<LoadingSkeleton variant="card" count={1} />,
+			);
 
 			const cards = container.querySelectorAll('[class*="cardSkeleton"]');
 			expect(cards).toHaveLength(1);
@@ -120,7 +126,9 @@ describe("LoadingSkeleton", () => {
 		});
 
 		it("should include card body with lines", () => {
-			const { container } = render(<LoadingSkeleton variant="card" count={1} />);
+			const { container } = render(
+				<LoadingSkeleton variant="card" count={1} />,
+			);
 
 			const cardBody = container.querySelector('[class*="cardBody"]');
 			const lines = container.querySelectorAll('[class*="line"]');

@@ -67,7 +67,10 @@ app.use((req, res, next) => {
 
 	helmet({
 		crossOriginResourcePolicy: {
-			policy: config.security.helmet.crossOriginResourcePolicy as "same-origin" | "same-site" | "cross-origin",
+			policy: config.security.helmet.crossOriginResourcePolicy as
+				| "same-origin"
+				| "same-site"
+				| "cross-origin",
 		},
 		hsts: config.security.helmet.enableHsts,
 		crossOriginOpenerPolicy: config.security.helmet.enableCoop,

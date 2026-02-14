@@ -10,8 +10,8 @@
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PropertyCard } from "../features/PropertySearch/PropertyCard";
 import type { Property } from "../../types";
+import { PropertyCard } from "../features/PropertySearch/PropertyCard";
 
 // Mock the hooks
 vi.mock("../../hooks", () => ({

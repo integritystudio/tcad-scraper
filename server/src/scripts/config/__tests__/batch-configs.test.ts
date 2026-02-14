@@ -17,7 +17,10 @@ describe("batch-configs", () => {
 			}
 		}
 
-		expect(duplicates, `Duplicate terms found:\n${duplicates.join("\n")}`).toHaveLength(0);
+		expect(
+			duplicates,
+			`Duplicate terms found:\n${duplicates.join("\n")}`,
+		).toHaveLength(0);
 	});
 
 	it("should have no duplicate terms within a single batch", () => {
@@ -33,7 +36,10 @@ describe("batch-configs", () => {
 			}
 		}
 
-		expect(duplicates, `Intra-batch duplicates:\n${duplicates.join("\n")}`).toHaveLength(0);
+		expect(
+			duplicates,
+			`Intra-batch duplicates:\n${duplicates.join("\n")}`,
+		).toHaveLength(0);
 	});
 
 	it("should have no empty terms", () => {
@@ -55,7 +61,10 @@ describe("batch-configs", () => {
 			}
 		}
 
-		expect(violations, `Whitespace violations:\n${violations.join("\n")}`).toHaveLength(0);
+		expect(
+			violations,
+			`Whitespace violations:\n${violations.join("\n")}`,
+		).toHaveLength(0);
 	});
 
 	it("should have at least one term per batch", () => {

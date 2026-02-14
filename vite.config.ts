@@ -21,10 +21,7 @@ export default defineConfig({
 		environment: "jsdom",
 		setupFiles: ["./src/setupTests.ts"],
 		// Frontend tests only - server tests use server/vitest.config.ts
-		include: [
-			"src/**/__tests__/**/*.test.{ts,tsx}",
-			"src/**/*.test.{ts,tsx}",
-		],
+		include: ["src/**/__tests__/**/*.test.{ts,tsx}", "src/**/*.test.{ts,tsx}"],
 		exclude: ["**/node_modules/**"],
 	},
 });

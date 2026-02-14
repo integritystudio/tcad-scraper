@@ -136,7 +136,10 @@ async function scrapePropertyDetail(
 			...propertyData,
 		};
 	} catch (error) {
-		logger.error({ propertyId, err: getErrorMessage(error) }, "Error scraping detail page");
+		logger.error(
+			{ propertyId, err: getErrorMessage(error) },
+			"Error scraping detail page",
+		);
 		return null;
 	}
 }
@@ -268,7 +271,10 @@ export async function scrapeDOMFallback(
 					return ids;
 				});
 
-				logger.warn({ count: propertyIds.length, max: 20 }, "DOM scraping property IDs found (pagination-limited)");
+				logger.warn(
+					{ count: propertyIds.length, max: 20 },
+					"DOM scraping property IDs found (pagination-limited)",
+				);
 
 				const properties = [];
 				let successCount = 0;
@@ -278,7 +284,10 @@ export async function scrapeDOMFallback(
 					const propertyId = propertyIds[i];
 
 					try {
-						logger.info({ propertyId, progress: `${i + 1}/${propertyIds.length}` }, "Scraping property");
+						logger.info(
+							{ propertyId, progress: `${i + 1}/${propertyIds.length}` },
+							"Scraping property",
+						);
 
 						const propertyData = await scrapePropertyDetail(page, propertyId);
 
@@ -291,13 +300,19 @@ export async function scrapeDOMFallback(
 
 						await humanDelay(500, 1000);
 					} catch (error) {
-						logger.error({ propertyId, err: getErrorMessage(error) }, "Failed to scrape property");
+						logger.error(
+							{ propertyId, err: getErrorMessage(error) },
+							"Failed to scrape property",
+						);
 						failCount++;
 					}
 				}
 
 				logger.info({ successCount, failCount }, "DOM fallback complete");
-				logger.warn({ count: properties.length, max: 20 }, "Results limited by AG Grid pagination");
+				logger.warn(
+					{ count: properties.length, max: 20 },
+					"Results limited by AG Grid pagination",
+				);
 
 				await context.close();
 				return properties;
@@ -306,7 +321,10 @@ export async function scrapeDOMFallback(
 			}
 		} catch (error) {
 			lastError = error as Error;
-			logger.error({ attempt, err: getErrorMessage(error) }, "DOM fallback attempt failed");
+			logger.error(
+				{ attempt, err: getErrorMessage(error) },
+				"DOM fallback attempt failed",
+			);
 
 			if (attempt < maxRetries) {
 				const delay = config.retryDelay * 2 ** (attempt - 1);

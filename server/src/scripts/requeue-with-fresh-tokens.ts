@@ -110,7 +110,9 @@ async function main() {
 					);
 				}
 			} catch (error: unknown) {
-				logger.error(`   Failed to remove job ${job.id}: ${getErrorMessage(error)}`);
+				logger.error(
+					`   Failed to remove job ${job.id}: ${getErrorMessage(error)}`,
+				);
 			}
 		}
 
@@ -125,7 +127,9 @@ async function main() {
 					);
 				}
 			} catch (error: unknown) {
-				logger.error(`   Failed to remove job ${job.id}: ${getErrorMessage(error)}`);
+				logger.error(
+					`   Failed to remove job ${job.id}: ${getErrorMessage(error)}`,
+				);
 			}
 		}
 
@@ -188,7 +192,9 @@ async function main() {
 					);
 				}
 			} catch (error: unknown) {
-				logger.error(`\n   ❌ Failed to enqueue "${term}": ${getErrorMessage(error)}`);
+				logger.error(
+					`\n   ❌ Failed to enqueue "${term}": ${getErrorMessage(error)}`,
+				);
 			}
 		}
 

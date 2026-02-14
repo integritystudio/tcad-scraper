@@ -124,7 +124,9 @@ async function check401Errors() {
 							},
 						);
 					} catch (error: unknown) {
-						logger.error(`   ❌ Failed to enqueue "${term}": ${getErrorMessage(error)}`);
+						logger.error(
+							`   ❌ Failed to enqueue "${term}": ${getErrorMessage(error)}`,
+						);
 					}
 				}
 

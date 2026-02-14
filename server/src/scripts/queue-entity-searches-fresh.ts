@@ -172,9 +172,7 @@ async function clearAndQueueSearches() {
 
 		logger.info("✨ Entity term searches queued successfully!\n");
 	} catch (error) {
-		logger.error(
-			`❌ Fatal error: ${getErrorMessage(error)}`,
-		);
+		logger.error(`❌ Fatal error: ${getErrorMessage(error)}`);
 		process.exit(1);
 	}
 }

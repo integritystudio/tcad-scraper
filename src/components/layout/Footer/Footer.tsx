@@ -71,7 +71,7 @@ export const Footer = () => {
 				<div className={styles.brand}>
 					<p className={styles.tagline}>
 						Built with{" "}
-						<span className={styles.heart} aria-label="love">
+						<span className={styles.heart} role="img" aria-label="love">
 							&#10084;
 						</span>{" "}
 						by{" "}

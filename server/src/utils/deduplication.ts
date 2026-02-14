@@ -162,8 +162,7 @@ export async function removeDuplicatesFromQueue(
 			} catch (error: unknown) {
 				failed++;
 				if (verbose && failed <= 3) {
-					const errorMessage =
-						getErrorMessage(error);
+					const errorMessage = getErrorMessage(error);
 					logger.error(
 						`${showProgress ? "\n" : ""}   ❌ Failed to remove job ${jobs[i].job.id}: ${errorMessage}`,
 					);
@@ -186,8 +185,7 @@ export async function removeDuplicatesFromQueue(
 			} catch (error: unknown) {
 				failed++;
 				if (verbose && failed <= 3) {
-					const errorMessage =
-						getErrorMessage(error);
+					const errorMessage = getErrorMessage(error);
 					logger.error(
 						`${showProgress ? "\n" : ""}   ❌ Failed to remove job ${jobInfo.job.id}: ${errorMessage}`,
 					);

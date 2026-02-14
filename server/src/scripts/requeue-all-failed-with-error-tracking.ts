@@ -13,10 +13,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import logger from "../lib/logger";
-import { getErrorMessage } from "../utils/error-helpers";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import { tokenRefreshService } from "../services/token-refresh.service";
+import { getErrorMessage } from "../utils/error-helpers";
 
 const THREE_MINUTES_MS = 3 * 60 * 1000;
 const BATCH_SIZE = 50; // Process 50 jobs at a time
@@ -234,7 +234,9 @@ async function main() {
 					);
 					enqueued++;
 				} catch (error: unknown) {
-					logger.error(`   ❌ Failed to enqueue "${term}": ${getErrorMessage(error)}`);
+					logger.error(
+						`   ❌ Failed to enqueue "${term}": ${getErrorMessage(error)}`,
+					);
 				}
 			}
 
