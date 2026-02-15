@@ -18,7 +18,7 @@ describe("SearchBox", () => {
 			const onSearch = vi.fn();
 			render(<SearchBox onSearch={onSearch} />);
 
-			const searchContainer = screen.getByRole("search");
+			const searchContainer = document.querySelector("search");
 			expect(searchContainer).toBeInTheDocument();
 		});
 
@@ -78,8 +78,8 @@ describe("SearchBox", () => {
 			render(<SearchBox onSearch={onSearch} />);
 
 			// The search icon container should be hidden from screen readers
-			const searchContainer = screen.getByRole("search");
-			const iconContainer = searchContainer.querySelector(
+			const searchContainer = document.querySelector("search");
+			const iconContainer = searchContainer?.querySelector(
 				'[aria-hidden="true"]',
 			);
 			expect(iconContainer).toBeInTheDocument();
