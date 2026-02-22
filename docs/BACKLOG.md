@@ -1,13 +1,51 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-02-09
-**Status**: 617 tests passing, 0 skipped, 0 failed | TypeScript clean | Lint clean
+**Last Updated**: 2026-02-21
+**Status**: 617/617 tests passing | TypeScript clean | Lint clean | Biome clean
 
 ---
 
 ## Open Items
 
-No open items.
+### BUG-1: Flaky timing test assertion (P1)
+- **File**: `server/src/utils/__tests__/timing.test.ts:56`
+- **Test**: `should compute delay using Math.random formula`
+- **Error**: `expected 137 to be less than 50` — `setTimeout(resolve, 20)` overshoots under system load
+- **Root cause**: Upper bound assertion (50ms) too tight for a mocked 20ms delay; `Date.now()` imprecise under load
+- **Fix**: Widen upper bound to 200ms or restructure to test formula without wall-clock timing
+
+### ~~BUG-2: MaxListenersExceededWarning in queue tests (P2)~~ FIXED
+- **File**: `server/src/lib/redis-cache.service.ts`, `server/src/services/token-refresh.service.ts`
+- **Warning**: `11 SIGTERM/SIGINT listeners added to [process]. MaxListeners is 10`
+- **Root cause**: Module-level `process.on('SIGTERM'/'SIGINT')` handlers in `redis-cache.service.ts` and `token-refresh.service.ts` registered unconditionally at import time, stacking duplicate listeners across test threads
+- **Fix**: Removed redundant module-level signal handlers; cleanup already handled by unified `gracefulShutdown` in `index.ts` (commit `68701c6`)
+
+### BUG-3: JSDOM `<search>` element warning (P3)
+- **File**: `src/components/__tests__/SearchBox.test.tsx`
+- **Warning**: `The tag <search> is unrecognized in this browser`
+- **Root cause**: JSDOM doesn't support HTML `<search>` element. Component correctly uses semantic HTML.
+- **Fix**: No fix needed — console noise only. Will resolve when JSDOM adds support.
+
+### BUG-4: Integration test TODOs (P3)
+- **File**: `server/src/__tests__/integration.test.ts`
+- **Details**: 5 TODO comments about tests depending on frontend build files or error handling setup
+- **Fix**: Implement conditional test setup or mark as known skips
+
+#### RENDER-1: test-utils.ts lacks REDIS_URL support (P3)
+**Priority**: P3 | **Source**: Render migration session (68701c6)
+Test infrastructure in `server/src/__tests__/test-utils.ts` creates Redis connections using `config.redis.host`/`config.redis.port` only. Does not use `config.redis.url` when set. Low impact — tests run locally where host/port is always correct.
+
+#### RENDER-2: worker.ts uses raw env vars instead of config (P3)
+**Priority**: P3 | **Source**: Render migration session (68701c6)
+`server/src/scripts/worker.ts` logs `process.env.REDIS_HOST` / `process.env.REDIS_PORT` directly instead of using `config.redis`. Also uses `winston` instead of project-standard Pino logger. -- `server/src/scripts/worker.ts:14-17`
+
+#### RENDER-3: Playwright Docker worker for Render (P2)
+**Priority**: P2 | **Source**: docs/RENDER-MIGRATION.md (section 3: Playwright on Render)
+Render's native Node runtime lacks Chromium system dependencies. Current approach is API-only mode (`TCAD_AUTO_REFRESH_TOKEN=true`). If browser fallback is needed, create a Docker-based Background Worker with Playwright deps pre-installed. Requires Dockerfile + `runtime: docker` in render.yaml.
+
+#### RENDER-4: Pin Node.js version for Render (P3)
+**Priority**: P3 | **Source**: Render migration session
+No `.node-version` file or `engines` field in `package.json`. Render defaults to latest LTS. Pin to avoid unexpected breakage on Node major version bumps.
 
 ---
 
@@ -73,3 +111,11 @@ All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026
 - TD-38: Standardized `tcadYear` type coercion — `String()` → template interpolation in `test-api-direct.ts`, inline comments on config field and SQL usage
 - TD-39: Added 7 unit tests for `parseTcadYear()` (default, override, boundary, out-of-range, non-numeric); exported function with `@internal` tag
 - TD-40: Added whitespace (`term === term.trim()`) and min-terms (`terms.length > 0`) edge case tests to batch-configs
+
+### Session: February 21, 2026 (Render migration prep)
+- Created `render.yaml` Render Blueprint (web service, key value, postgres, env groups)
+- Added `REDIS_URL` connection string support to config, redis-cache.service, scraper.queue
+- Unified SIGTERM/SIGINT handlers into single `gracefulShutdown` with hard timeout for Render redeploys
+- Updated `logConfigSummary` to display "URL configured" when REDIS_URL is set
+- BUG-2: Fixed MaxListenersExceededWarning — removed duplicate module-level signal handlers from `redis-cache.service.ts` and `token-refresh.service.ts` (cleanup already handled by `index.ts` graceful shutdown)
+- Added `docs/RENDER-MIGRATION.md` migration plan
