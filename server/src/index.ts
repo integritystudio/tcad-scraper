@@ -559,48 +559,42 @@ if (require.main === module) {
 		logger.info("Code complexity analysis will run every 1 hour");
 	});
 
-	// Graceful shutdown handlers (only register when server is running)
-	process.on("SIGTERM", async () => {
-		logger.info("SIGTERM signal received: closing HTTP server");
+	// Graceful shutdown with hard timeout (Render sends SIGKILL after 10s)
+	const gracefulShutdown = async (signal: string) => {
+		logger.info(`${signal} received: starting graceful shutdown`);
 
-		server.close(() => {
-			logger.info("HTTP server closed");
-		});
+		const timeout = config.server.gracefulShutdownTimeout;
+		const forceExit = setTimeout(() => {
+			logger.warn("Graceful shutdown timed out, forcing exit");
+			process.exit(1);
+		}, timeout);
+		forceExit.unref();
 
-		// Flush Sentry events before shutdown
-		logger.info("Flushing Sentry events...");
-		await sentryFlush(2000);
+		try {
+			// Stop accepting new connections
+			server.close(() => {
+				logger.info("HTTP server closed");
+			});
 
-		// Close queue connections
-		await scraperQueue.close();
+			// Cleanup in parallel where safe
+			await Promise.allSettled([
+				sentryFlush(2000),
+				scraperQueue.close(),
+				tokenRefreshService.cleanup(),
+				cacheService.disconnect(),
+			]);
 
-		// Close scheduled jobs
-		scheduledJobs.stop();
+			scheduledJobs.stop();
+			stopPeriodicAnalysis();
 
-		// Cleanup token refresh service
-		await tokenRefreshService.cleanup();
+			logger.info("Graceful shutdown complete");
+			process.exit(0);
+		} catch (error) {
+			logger.error({ error }, "Error during graceful shutdown");
+			process.exit(1);
+		}
+	};
 
-		// Stop code complexity analysis
-		stopPeriodicAnalysis();
-
-		process.exit(0);
-	});
-
-	process.on("SIGINT", async () => {
-		logger.info("SIGINT signal received: closing HTTP server");
-
-		server.close(() => {
-			logger.info("HTTP server closed");
-		});
-
-		// Flush Sentry events before shutdown
-		await sentryFlush(2000);
-
-		await scraperQueue.close();
-		scheduledJobs.stop();
-		await tokenRefreshService.cleanup();
-		stopPeriodicAnalysis();
-
-		process.exit(0);
-	});
+	process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+	process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 }

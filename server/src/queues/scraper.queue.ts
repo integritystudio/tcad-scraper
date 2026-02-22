@@ -11,12 +11,14 @@ import { getErrorMessage } from "../utils/error-helpers";
 
 // Create the Bull queue
 export const scraperQueue = new Bull<ScrapeJobData>(config.queue.name, {
-	redis: {
-		host: config.redis.host,
-		port: config.redis.port,
-		password: config.redis.password,
-		db: config.redis.db,
-	},
+	redis: config.redis.url
+		? config.redis.url
+		: {
+				host: config.redis.host,
+				port: config.redis.port,
+				password: config.redis.password,
+				db: config.redis.db,
+			},
 	defaultJobOptions: {
 		attempts: config.queue.defaultJobOptions.attempts,
 		backoff: {

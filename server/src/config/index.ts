@@ -102,6 +102,7 @@ export const config = {
 
 	// Redis Configuration
 	redis: {
+		url: process.env.REDIS_URL, // Full connection string (takes precedence over host/port)
 		host: process.env.REDIS_HOST || "localhost",
 		port: parseIntEnv("REDIS_PORT", 6379),
 		password: process.env.REDIS_PASSWORD,
@@ -355,7 +356,9 @@ export function logConfigSummary(): void {
 	logger.info(
 		`Database: ${config.database.url ? "Configured" : "Not configured"}`,
 	);
-	logger.info(`Redis: ${config.redis.host}:${config.redis.port}`);
+	logger.info(
+		`Redis: ${config.redis.url ? "URL configured" : `${config.redis.host}:${config.redis.port}`}`,
+	);
 	logger.info(
 		`Queue Dashboard: ${config.queue.dashboard.enabled ? config.queue.dashboard.basePath : "Disabled"}`,
 	);

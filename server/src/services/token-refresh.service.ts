@@ -479,13 +479,3 @@ export const tokenRefreshService = new TCADTokenRefreshService();
 // Alias for backwards compatibility
 export const tcadTokenRefreshService = tokenRefreshService;
 
-// Graceful shutdown
-process.on("SIGTERM", async () => {
-	logger.info("SIGTERM received, shutting down token refresh service...");
-	await tokenRefreshService.cleanup();
-});
-
-process.on("SIGINT", async () => {
-	logger.info("SIGINT received, shutting down token refresh service...");
-	await tokenRefreshService.cleanup();
-});

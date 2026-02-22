@@ -34,15 +34,20 @@ export class RedisCacheService {
 		}
 
 		try {
-			this.client = createClient({
-				socket: {
-					host: config.redis.host,
-					port: config.redis.port,
-					connectTimeout: config.redis.connectionTimeout,
-				},
-				password: config.redis.password,
-				database: config.redis.db,
-			});
+			this.client = config.redis.url
+				? createClient({
+						url: config.redis.url,
+						socket: { connectTimeout: config.redis.connectionTimeout },
+					})
+				: createClient({
+						socket: {
+							host: config.redis.host,
+							port: config.redis.port,
+							connectTimeout: config.redis.connectionTimeout,
+						},
+						password: config.redis.password,
+						database: config.redis.db,
+					});
 
 			this.client.on("error", (err) => {
 				logger.error("Redis cache error: %s", getErrorMessage(err));
@@ -355,13 +360,3 @@ cacheService.connect().catch((error: unknown) => {
 	);
 });
 
-// Graceful shutdown
-process.on("SIGTERM", async () => {
-	logger.info("SIGTERM received, closing Redis cache connection...");
-	await cacheService.disconnect();
-});
-
-process.on("SIGINT", async () => {
-	logger.info("SIGINT received, closing Redis cache connection...");
-	await cacheService.disconnect();
-});

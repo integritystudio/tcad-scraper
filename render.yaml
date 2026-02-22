@@ -1,0 +1,65 @@
+services:
+  # Express API Server
+  - type: web
+    name: tcad-api
+    runtime: node
+    region: oregon
+    plan: starter
+    branch: main
+    buildCommand: cd server && npm install && npx prisma generate && npm run build
+    startCommand: cd server && node dist/index.js
+    preDeployCommand: cd server && npx prisma migrate deploy
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: LOG_FILES_ENABLED
+        value: "false"
+      - key: TCAD_YEAR
+        value: "2026"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tcad-db
+          property: connectionString
+      - key: REDIS_HOST
+        fromService:
+          name: tcad-redis
+          type: keyvalue
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          name: tcad-redis
+          type: keyvalue
+          property: port
+      - fromGroup: tcad-secrets
+
+  # Redis (Bull Queue Backend)
+  - type: keyvalue
+    name: tcad-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
+databases:
+  - name: tcad-db
+    plan: basic-1gb
+    region: oregon
+    postgresMajorVersion: "15"
+    databaseName: tcad_scraper
+
+envVarGroups:
+  - name: tcad-secrets
+    envVars:
+      - key: JWT_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TCAD_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENABLED
+        value: "true"
