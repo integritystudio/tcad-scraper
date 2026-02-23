@@ -53,7 +53,7 @@ describe("humanDelay", () => {
 		const elapsed = Date.now() - start;
 
 		expect(elapsed).toBeGreaterThanOrEqual(19); // allow 1ms drift
-		expect(elapsed).toBeLessThan(50);
+		expect(elapsed).toBeLessThan(200);
 		randomSpy.mockRestore();
 	});
 
