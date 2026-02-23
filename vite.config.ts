@@ -20,6 +20,7 @@ export default defineConfig({
 		globals: true,
 		environment: "jsdom",
 		setupFiles: ["./src/setupTests.ts"],
+		css: { modules: { classNameStrategy: "non-scoped" } },
 		// Frontend tests only - server tests use server/vitest.config.ts
 		include: ["src/**/__tests__/**/*.test.{ts,tsx}", "src/**/*.test.{ts,tsx}"],
 		exclude: ["**/node_modules/**"],

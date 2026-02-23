@@ -49,92 +49,60 @@ describe("LoadingSkeleton", () => {
 
 	describe("Variants", () => {
 		it("should render page variant by default", () => {
-			const { container } = render(<LoadingSkeleton />);
-
-			// Page skeleton has pageSkeleton class
-			const pageElement = container.querySelector('[class*="pageSkeleton"]');
-			expect(pageElement).toBeInTheDocument();
+			render(<LoadingSkeleton />);
+			expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
 		});
 
 		it("should render search variant", () => {
-			const { container } = render(<LoadingSkeleton variant="search" />);
-
-			const searchElement = container.querySelector(
-				'[class*="searchSkeleton"]',
-			);
-			expect(searchElement).toBeInTheDocument();
+			render(<LoadingSkeleton variant="search" />);
+			expect(screen.getByTestId("search-skeleton")).toBeInTheDocument();
 		});
 
 		it("should render card variant", () => {
-			const { container } = render(<LoadingSkeleton variant="card" />);
-
-			const cardElement = container.querySelector('[class*="cardsSkeleton"]');
-			expect(cardElement).toBeInTheDocument();
+			render(<LoadingSkeleton variant="card" />);
+			expect(screen.getByTestId("cards-skeleton")).toBeInTheDocument();
 		});
 	});
 
 	describe("Card Variant Count", () => {
 		it("should render default 3 skeleton cards", () => {
-			const { container } = render(<LoadingSkeleton variant="card" />);
-
-			const cards = container.querySelectorAll('[class*="cardSkeleton"]');
-			expect(cards).toHaveLength(3);
+			render(<LoadingSkeleton variant="card" />);
+			expect(screen.getAllByTestId("card-skeleton")).toHaveLength(3);
 		});
 
 		it("should render specified number of skeleton cards", () => {
-			const { container } = render(
-				<LoadingSkeleton variant="card" count={5} />,
-			);
-
-			const cards = container.querySelectorAll('[class*="cardSkeleton"]');
-			expect(cards).toHaveLength(5);
+			render(<LoadingSkeleton variant="card" count={5} />);
+			expect(screen.getAllByTestId("card-skeleton")).toHaveLength(5);
 		});
 
 		it("should render 1 skeleton card when count is 1", () => {
-			const { container } = render(
-				<LoadingSkeleton variant="card" count={1} />,
-			);
-
-			const cards = container.querySelectorAll('[class*="cardSkeleton"]');
-			expect(cards).toHaveLength(1);
+			render(<LoadingSkeleton variant="card" count={1} />);
+			expect(screen.getAllByTestId("card-skeleton")).toHaveLength(1);
 		});
 	});
 
 	describe("Structure", () => {
 		it("should include hero skeleton in search variant", () => {
-			const { container } = render(<LoadingSkeleton variant="search" />);
+			render(<LoadingSkeleton variant="search" />);
 
-			const hero = container.querySelector('[class*="heroSkeleton"]');
-			const title = container.querySelector('[class*="titleSkeleton"]');
-			const subtitle = container.querySelector('[class*="subtitleSkeleton"]');
-			const searchBox = container.querySelector('[class*="searchBoxSkeleton"]');
-
-			expect(hero).toBeInTheDocument();
-			expect(title).toBeInTheDocument();
-			expect(subtitle).toBeInTheDocument();
-			expect(searchBox).toBeInTheDocument();
+			expect(screen.getByTestId("hero-skeleton")).toBeInTheDocument();
+			expect(screen.getByTestId("title-skeleton")).toBeInTheDocument();
+			expect(screen.getByTestId("subtitle-skeleton")).toBeInTheDocument();
+			expect(screen.getByTestId("searchbox-skeleton")).toBeInTheDocument();
 		});
 
 		it("should include hero and content in page variant", () => {
-			const { container } = render(<LoadingSkeleton variant="page" />);
+			render(<LoadingSkeleton variant="page" />);
 
-			const hero = container.querySelector('[class*="heroSkeleton"]');
-			const content = container.querySelector('[class*="contentSkeleton"]');
-
-			expect(hero).toBeInTheDocument();
-			expect(content).toBeInTheDocument();
+			expect(screen.getByTestId("hero-skeleton")).toBeInTheDocument();
+			expect(screen.getByTestId("content-skeleton")).toBeInTheDocument();
 		});
 
 		it("should include card body with lines", () => {
-			const { container } = render(
-				<LoadingSkeleton variant="card" count={1} />,
-			);
+			render(<LoadingSkeleton variant="card" count={1} />);
 
-			const cardBody = container.querySelector('[class*="cardBody"]');
-			const lines = container.querySelectorAll('[class*="line"]');
-
-			expect(cardBody).toBeInTheDocument();
-			expect(lines.length).toBeGreaterThan(0);
+			expect(screen.getByTestId("card-body")).toBeInTheDocument();
+			expect(screen.getAllByTestId("skeleton-line").length).toBeGreaterThan(0);
 		});
 	});
 });

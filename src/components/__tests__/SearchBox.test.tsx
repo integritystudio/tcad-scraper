@@ -8,7 +8,8 @@
  * - Keyboard navigation
  */
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SearchBox } from "../features/PropertySearch/SearchBox";
 
@@ -103,49 +104,53 @@ describe("SearchBox", () => {
 	});
 
 	describe("Functionality", () => {
-		it("should call onSearch when Enter is pressed", () => {
+		it("should call onSearch when Enter is pressed", async () => {
+			const user = userEvent.setup();
 			const onSearch = vi.fn();
 			render(<SearchBox onSearch={onSearch} />);
 
 			const input = screen.getByRole("searchbox");
-			fireEvent.change(input, { target: { value: "test query" } });
-			fireEvent.keyDown(input, { key: "Enter" });
+			await user.click(input);
+			await user.type(input, "test query{Enter}");
 
 			expect(onSearch).toHaveBeenCalledWith("test query");
 		});
 
-		it("should call onSearch when button is clicked", () => {
+		it("should call onSearch when button is clicked", async () => {
+			const user = userEvent.setup();
 			const onSearch = vi.fn();
 			render(<SearchBox onSearch={onSearch} />);
 
 			const input = screen.getByRole("searchbox");
-			fireEvent.change(input, { target: { value: "test query" } });
+			await user.type(input, "test query");
 
 			const button = screen.getByRole("button");
-			fireEvent.click(button);
+			await user.click(button);
 
 			expect(onSearch).toHaveBeenCalledWith("test query");
 		});
 
-		it("should not call onSearch with empty query", () => {
+		it("should not call onSearch with empty query", async () => {
+			const user = userEvent.setup();
 			const onSearch = vi.fn();
 			render(<SearchBox onSearch={onSearch} />);
 
 			const button = screen.getByRole("button");
-			fireEvent.click(button);
+			await user.click(button);
 
 			expect(onSearch).not.toHaveBeenCalled();
 		});
 
-		it("should not call onSearch with whitespace-only query", () => {
+		it("should not call onSearch with whitespace-only query", async () => {
+			const user = userEvent.setup();
 			const onSearch = vi.fn();
 			render(<SearchBox onSearch={onSearch} />);
 
 			const input = screen.getByRole("searchbox");
-			fireEvent.change(input, { target: { value: "   " } });
+			await user.type(input, "   ");
 
 			const button = screen.getByRole("button");
-			fireEvent.click(button);
+			await user.click(button);
 
 			expect(onSearch).not.toHaveBeenCalled();
 		});

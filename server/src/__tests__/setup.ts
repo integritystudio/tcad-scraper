@@ -57,6 +57,5 @@ if (!process.env.PORT) {
 
 // Global test cleanup
 afterAll(async () => {
-	// Give time for async operations to complete
-	await new Promise((resolve) => setTimeout(resolve, 500));
+	// No-op: cleanup handled by individual test suites
 });

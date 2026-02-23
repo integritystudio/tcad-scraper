@@ -43,6 +43,9 @@ coverage/
 # Auto-generated build constants
 src/constants/build.ts
 
+# Playwright artifacts
+e2e/test-results/
+
 # Claude Code local artifacts
 .claude/tsc-cache/
 server/.claude/

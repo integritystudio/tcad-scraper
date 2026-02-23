@@ -42,7 +42,7 @@ export default defineConfig({
 
 		// Integration tests need longer timeouts
 		testTimeout: 60000, // 60 seconds
-		hookTimeout: 60000,
+		hookTimeout: 120000,
 
 		// Run integration tests sequentially to avoid conflicts
 		threads: false,

@@ -1,6 +1,6 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-02-21
+**Last Updated**: 2026-02-23
 **Status**: 617/617 tests passing | TypeScript clean | Lint clean | Biome clean
 
 ---
@@ -15,10 +15,7 @@
 - **Fix**: Widen upper bound to 200ms or restructure to test formula without wall-clock timing
 
 ### ~~BUG-2: MaxListenersExceededWarning in queue tests (P2)~~ FIXED
-- **File**: `server/src/lib/redis-cache.service.ts`, `server/src/services/token-refresh.service.ts`
-- **Warning**: `11 SIGTERM/SIGINT listeners added to [process]. MaxListeners is 10`
-- **Root cause**: Module-level `process.on('SIGTERM'/'SIGINT')` handlers in `redis-cache.service.ts` and `token-refresh.service.ts` registered unconditionally at import time, stacking duplicate listeners across test threads
-- **Fix**: Removed redundant module-level signal handlers; cleanup already handled by unified `gracefulShutdown` in `index.ts` (commit `68701c6`)
+- See `docs/changelog/2026-02-21.md`
 
 ### BUG-3: JSDOM `<search>` element warning (P3)
 - **File**: `src/components/__tests__/SearchBox.test.tsx`
@@ -47,75 +44,45 @@ Render's native Node runtime lacks Chromium system dependencies. Current approac
 **Priority**: P3 | **Source**: Render migration session
 No `.node-version` file or `engines` field in `package.json`. Render defaults to latest LTS. Pin to avoid unexpected breakage on Node major version bumps.
 
+#### ~~E2E-1: Create comprehensive Playwright e2e test suite (P1)~~ DONE
+**Completed**: 2026-02-23 | Playwright config + 3 e2e specs (search, property-card, error-handling) with 12 tests covering search flow, expand/collapse, error states.
+
+#### ~~E2E-2: Reduce CSS module mocking in component tests (P2)~~ DONE
+**Completed**: 2026-02-23 | Removed 100+ lines of CSS class mocks from PropertyCard/LoadingSkeleton tests. Switched to `data-testid` + `getByRole` selectors. Added `css.modules.classNameStrategy: "non-scoped"` to vite config.
+
+#### ~~E2E-3: Add screenshot/trace collection on test failure (P2)~~ DONE
+**Completed**: 2026-02-23 | Playwright config: `screenshot: "only-on-failure"`, `trace: "on-first-retry"`, `outputDir: "./e2e/test-results"`. Gitignore updated.
+
+#### E2E-4: Increase integration test retry count (P2)
+**Priority**: P2 | **Source**: e2e test audit (vitest.integration.config.ts)
+Current retry limit is 1 for network-dependent integration tests. Intermittent CI failures likely. Recommendation: Increase to 2-3 retries. -- `server/vitest.integration.config.ts:56-57`
+
+#### E2E-5: Reduce unit test timeout threshold (P3)
+**Priority**: P3 | **Source**: e2e test audit
+Unit test timeout is 10s (too generous). Integration tests correctly use 60s. Recommendation: Default unit tests to 5s, allow 30s on specific integration tests via `.test(..., { timeout: 30000 })`. -- `server/vitest.config.ts:65`
+
+#### E2E-6: Implement page object pattern for complex components (P3)
+**Priority**: P3 | **Source**: e2e test audit
+Frontend tests directly interact with DOM without abstraction layer. Increases test maintenance burden when component structure changes. Recommendation: Create page object classes for PropertyCard, SearchBox, LoadingSkeleton.
+
+#### E2E-7: Add test data factory pattern (P3)
+**Priority**: P3 | **Source**: e2e test audit
+Integration tests manually seed/clean data. No test data builder pattern. Recommendation: Use factory-bot style builders or faker.js for consistent test data generation.
+
+#### E2E-8: Add visual regression testing (P3)
+**Priority**: P3 | **Source**: e2e test audit
+CSS changes can break layout silently without failing tests. Recommendation: Add Percy.io or Playwright visual comparisons for e2e tests.
+
+#### E2E-9: Add accessibility testing with axe-core (P3)
+**Priority**: P3 | **Source**: e2e test audit
+Frontend tests mock accessibility features but don't verify WCAG compliance. Recommendation: Integrate axe-core automated a11y tests in e2e suite.
+
+#### E2E-10: Add performance/load testing (P4)
+**Priority**: P4 | **Source**: e2e test audit
+No load testing on API endpoints. No Core Web Vitals monitoring. Recommendation: Add k6 or Artillery tests for scraping under load.
+
 ---
 
 ## Completed
 
-All items (TD-2 through TD-17) migrated to `docs/CHANGELOG.md` (February 8, 2026 entry).
-
-### Session: February 9, 2026 (infrastructure & deployment)
-- Migrated frontend from `www.aledlie.com/tcad-scraper/` to custom domain `alephatx.info` (GitHub Pages + Cloudflare)
-- Set Vite `base` from `"/tcad-scraper/"` to `"/"` for root domain deployment
-- Configured DNS: `alephatx.info` (GitHub Pages), `www.alephatx.info` (cert provisioning), `api.alephatx.info` (Cloudflare Tunnel)
-- Fixed Cloudflare SSL mode (Flexible) for Hobbes origin on port 80
-- Restarted nginx on Hobbes (had been failed since Feb 6)
-- Re-provisioned GitHub Pages HTTPS cert (was expired/stuck in `bad_authz`)
-- Created missing Prisma migration `20251201000000_add_year_column` (year column existed in schema/prod but had no migration)
-- Fixed CI deploy: added `npm rebuild` after `npm ci` for rollup native module on Linux
-- Updated CLAUDE.md infrastructure section, debugging table, access points
-
-### Session: February 9, 2026 (stale file cleanup)
-- Deleted `server/docs/TEST-SEPARATION-STRATEGY.md` — superseded by `docs/TESTING.md` (referenced stale Jest config, wrong test counts)
-- Deleted `server/fallbackBrowserSearch/` — experimental code, not imported anywhere; production scraper has built-in Playwright fallback
-- Deleted `dev/RESUME-HERE.md` — stale session handoff doc (Nov 2025, `new-ui` branch, 138 tests)
-- Integrated `GTM-SETUP-GUIDE.md` — GTM measurement ID `G-ECH51H8L2Z` added to README.md and `docs/ANALYTICS.md`
-- Integrated `ATTRIBUTION-COMPONENTS.md` — attribution component docs merged into `docs/ANALYTICS.md` (Attribution Components section)
-
-### Session: February 8-9, 2026
-- DRY-1: Consolidated 10 enqueue scripts into config-driven runner
-- DRY-2: Extracted `getErrorMessage()` utility (50+ occurrences)
-- DRY-3: Extracted `launchTCADBrowser()` browser factory
-- DRY-4: Extracted `transformPropertyToSnakeCase()` utility
-- DRY-5: Extracted `humanDelay()` to shared timing utility
-- TD-18: Fixed missing `year` field in property transformer
-- TD-21: Added unit tests for extracted utilities (24 tests)
-- Updated `QUICK-START.md` and `ENQUEUE_SCRIPTS_README.md` for consolidated script
-- Added SQL security audit comment to `scraper.queue.ts`
-
-### Session: February 9, 2026 (continued)
-- TD-23: Added edge case tests for property transformers (negative values, large numbers, special chars, long strings, fractional values)
-- TD-24: Added runtime validation for `year` and `appraisedValue` in `transformPropertyToSnakeCase()` with 6 validation tests
-- TD-25: Moved `CHUNK_SIZE` to `config.queue.batchChunkSize` (env: `QUEUE_BATCH_CHUNK_SIZE`)
-- TD-22: Standardized all logging in `dom-scraper.ts` to Pino structured format
-- TD-27: Cleaned 27 stale dist/ artifacts from deleted scripts (rebuilt from clean)
-- TD-28: Refactored timing tests to verify interface contract (delay within range) instead of exact formula
-- TD-26: Added trace-level logging to `timing.ts` and `property-transformers.ts` (skipped `error-helpers.ts` - too simple)
-- Added `assessedValue` NaN/Infinity validation (when non-null) per code review
-- Standardized last emoji log in `dom-scraper.ts` to structured format
-- TD-19: Migrated 4 scripts to batch-configs.ts (grove, high-priority, priority-terms, ultra-high-priority); kept 2 with custom logic (test-batch-20, high-value-batch)
-- TD-20: Removed unnecessary `.bind(propertyController)` from 9 routes (controller has zero `this` references); updated CLAUDE.md documented exceptions
-
-### Session: February 9, 2026 (code review findings)
-- TD-29: Deduplicated search terms across batch configs (removed "Drive", "Lane" from high-priority; "Limited" from llc; "Association" from foundation — kept in higher-priority batch)
-- TD-30: Fixed non-deterministic timing test — replaced dead `allSame` variable with deterministic test using mocked `Math.random()`
-- TD-31: Added `year` field to bulk insert SQL in `scraper.queue.ts` (14 columns, matches TCAD API pYear)
-- TD-32: Extracted `validateProperty()` from `transformPropertyToSnakeCase()` for single-responsibility; added 5 direct validation tests
-- TD-33: Documented `QUEUE_BATCH_CHUNK_SIZE` env var in CLAUDE.md and ENQUEUE_SCRIPTS_README.md
-- TD-34: Added JSDoc performance notes to `timing.ts` and `property-transformers.ts` (trace logging in hot path)
-- TD-35: Documented batch config priority scale (-100, 1, 2, omit) in `batch-configs.ts` JSDoc
-- TD-36: Expanded logger mocks in property-transformers and timing tests (trace → all levels)
-- Fixed QUICK-START.md stale "10 batch types" → 14
-- Updated ENQUEUE_SCRIPTS_README.md term counts after deduplication (124 → 120 jobs)
-- Replaced hardcoded pYear 2025 with configurable `TCAD_YEAR` (env var, default: current year)
-- TD-37: Added batch-configs unit tests (cross-batch duplicate detection, intra-batch duplicates, empty terms, getAvailableBatchTypes)
-- TD-38: Standardized `tcadYear` type coercion — `String()` → template interpolation in `test-api-direct.ts`, inline comments on config field and SQL usage
-- TD-39: Added 7 unit tests for `parseTcadYear()` (default, override, boundary, out-of-range, non-numeric); exported function with `@internal` tag
-- TD-40: Added whitespace (`term === term.trim()`) and min-terms (`terms.length > 0`) edge case tests to batch-configs
-
-### Session: February 21, 2026 (Render migration prep)
-- Created `render.yaml` Render Blueprint (web service, key value, postgres, env groups)
-- Added `REDIS_URL` connection string support to config, redis-cache.service, scraper.queue
-- Unified SIGTERM/SIGINT handlers into single `gracefulShutdown` with hard timeout for Render redeploys
-- Updated `logConfigSummary` to display "URL configured" when REDIS_URL is set
-- BUG-2: Fixed MaxListenersExceededWarning — removed duplicate module-level signal handlers from `redis-cache.service.ts` and `token-refresh.service.ts` (cleanup already handled by `index.ts` graceful shutdown)
-- Added `docs/RENDER-MIGRATION.md` migration plan
+All completed items migrated to `docs/changelog/` (per-date files).

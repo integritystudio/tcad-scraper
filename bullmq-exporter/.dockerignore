@@ -19,12 +19,13 @@ yarn-error.log*
 .env.*.local
 
 # Build outputs
+dist/
 *.log
 
 # Testing
 coverage/
-*.test.js
-*.spec.js
+*.test.ts
+*.spec.ts
 
 # Documentation
 *.md

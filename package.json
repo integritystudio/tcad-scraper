@@ -20,7 +20,9 @@
 		"scrape:batch:zipcodes": "cd server && doppler run -- npm run scrape:batch:zipcodes",
 		"scrape:batch:comprehensive": "cd server && doppler run -- npm run scrape:batch:comprehensive",
 		"db:query": "doppler run -- tsx src/query-db.ts",
-		"db:stats": "doppler run -- psql tcad_scraper -c 'SELECT COUNT(*) as total_properties, COUNT(DISTINCT city) as cities FROM properties;'"
+		"db:stats": "doppler run -- psql tcad_scraper -c 'SELECT COUNT(*) as total_properties, COUNT(DISTINCT city) as cities FROM properties;'",
+		"test:e2e": "playwright test",
+		"test:e2e:ui": "playwright test --ui"
 	},
 	"keywords": [],
 	"author": "",
@@ -47,6 +49,7 @@
 		"@biomejs/biome": "2.3.8",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.0",
+		"@testing-library/user-event": "^14.6.1",
 		"@types/mixpanel-browser": "^2.60.0",
 		"@types/react": "^19.2.2",
 		"@types/react-dom": "^19.2.2",
@@ -57,9 +60,9 @@
 		"vitest": "^4.0.8"
 	},
 	"optionalDependencies": {
+		"@esbuild/linux-x64": "^0.25.0",
 		"@rollup/rollup-darwin-arm64": "^4.53.3",
 		"@rollup/rollup-linux-x64-gnu": "^4.53.3",
-		"@esbuild/linux-x64": "^0.25.0",
 		"fsevents": "^2.3.3"
 	}
 }

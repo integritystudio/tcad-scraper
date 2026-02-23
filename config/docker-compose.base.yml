@@ -63,8 +63,8 @@ services:
   # ============================================
   bullmq-metrics:
     build:
-      context: ./bullmq-exporter
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: bullmq-exporter/Dockerfile
     container_name: tcad-bullmq-metrics
     networks:
       - tcad-network
