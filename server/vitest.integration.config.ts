@@ -53,8 +53,8 @@ export default defineConfig({
 		mockReset: false,
 		restoreMocks: false,
 
-		// Retry failed integration tests once (network issues, etc.)
-		retry: 1,
+		// Retry failed integration tests to handle transient network issues
+		retry: 2,
 
 		// Bail on first failure (don't waste time if infra is down)
 		bail: 1,
