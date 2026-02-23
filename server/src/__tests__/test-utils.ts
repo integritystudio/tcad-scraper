@@ -17,26 +17,13 @@ import logger from "../lib/logger";
 export async function isRedisAvailable(
 	timeoutMs: number = 2000,
 ): Promise<boolean> {
-	const redisOptions = config.redis.url
-		? {
-				// Use full connection URL when set (e.g. Render's REDIS_URL)
-				...(new URL(config.redis.url).protocol === "rediss:"
-					? { tls: {} }
-					: {}),
-			}
-		: {
-				host: config.redis.host,
-				port: config.redis.port,
-				password: config.redis.password,
-			};
-
 	const redis = config.redis.url
 		? new Redis(config.redis.url, {
+				...(config.redis.url.startsWith("rediss:") ? { tls: {} } : {}),
 				maxRetriesPerRequest: 1,
 				retryStrategy: () => null,
 				connectTimeout: timeoutMs,
 				lazyConnect: true,
-				...redisOptions,
 			})
 		: new Redis({
 				host: config.redis.host,

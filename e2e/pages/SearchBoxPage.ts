@@ -29,12 +29,4 @@ export class SearchBoxPage {
     await this.fillQuery(query);
     await this.submit();
   }
-
-  isSearchButtonDisabled() {
-    return this.searchButton.isDisabled();
-  }
-
-  isSearchButtonEnabled() {
-    return this.searchButton.isEnabled();
-  }
 }
