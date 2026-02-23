@@ -1,69 +1,57 @@
 import { expect, test } from "@playwright/test";
+import { PropertyCardPage } from "./pages/PropertyCardPage";
+import { SearchBoxPage } from "./pages/SearchBoxPage";
 
 test.describe("Property card expand/collapse", () => {
-  // Helper: perform a search to get property cards on screen
   async function searchForProperties(
-    page: import("@playwright/test").Page,
+    search: SearchBoxPage,
+    card: PropertyCardPage,
   ) {
-    await page.goto("/");
-    await page.getByRole("searchbox").fill("Oak Street");
-    await page.getByRole("button", { name: "Search properties" }).click();
-
-    // Wait for results to load
-    await page.locator("h3").first().waitFor({ timeout: 15_000 });
+    await search.goto();
+    await search.search("Oak Street");
+    await card.waitForResults();
   }
 
   test("expand button shows details and updates aria-expanded", async ({
     page,
   }) => {
-    await searchForProperties(page);
-
-    const expandButton = page
-      .getByRole("button", { name: /show details/i })
-      .first();
+    const search = new SearchBoxPage(page);
+    const card = new PropertyCardPage(page);
+    await searchForProperties(search, card);
 
     // Should start collapsed
-    await expect(expandButton).toHaveAttribute("aria-expanded", "false");
+    await expect(card.firstExpandButton()).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
 
-    await expandButton.click();
+    await card.expandFirst();
 
     // After click, should be expanded
-    const hideButton = page
-      .getByRole("button", { name: /hide details/i })
-      .first();
-    await expect(hideButton).toHaveAttribute("aria-expanded", "true");
+    await expect(card.firstHideButton()).toHaveAttribute("aria-expanded", "true");
   });
 
   test("collapse button hides details", async ({ page }) => {
-    await searchForProperties(page);
+    const search = new SearchBoxPage(page);
+    const card = new PropertyCardPage(page);
+    await searchForProperties(search, card);
 
-    // Expand first card
-    const expandButton = page
-      .getByRole("button", { name: /show details/i })
-      .first();
-    await expandButton.click();
-
-    // Collapse it
-    const hideButton = page
-      .getByRole("button", { name: /hide details/i })
-      .first();
-    await hideButton.click();
+    await card.expandFirst();
+    await card.collapseFirst();
 
     // Should be back to collapsed
-    await expect(
-      page.getByRole("button", { name: /show details/i }).first(),
-    ).toHaveAttribute("aria-expanded", "false");
+    await expect(card.firstExpandButton()).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
-  test("expanded card shows financial breakdown section", async ({
-    page,
-  }) => {
-    await searchForProperties(page);
+  test("expanded card shows financial breakdown section", async ({ page }) => {
+    const search = new SearchBoxPage(page);
+    const card = new PropertyCardPage(page);
+    await searchForProperties(search, card);
 
-    await page
-      .getByRole("button", { name: /show details/i })
-      .first()
-      .click();
+    await card.expandFirst();
 
     await expect(page.getByText("Financial Breakdown").first()).toBeVisible();
   });

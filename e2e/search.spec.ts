@@ -1,35 +1,32 @@
 import { expect, test } from "@playwright/test";
+import { SearchBoxPage } from "./pages/SearchBoxPage";
 
 test.describe("Search happy path", () => {
   test("search input and button are visible on load", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByRole("searchbox")).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Search properties" }),
-    ).toBeVisible();
+    const search = new SearchBoxPage(page);
+    await search.goto();
+    await expect(search.searchbox).toBeVisible();
+    await expect(search.searchButton).toBeVisible();
   });
 
   test("typing a query enables the search button", async ({ page }) => {
-    await page.goto("/");
-    const searchButton = page.getByRole("button", {
-      name: "Search properties",
-    });
+    const search = new SearchBoxPage(page);
+    await search.goto();
 
     // Button disabled with empty input
-    await expect(searchButton).toBeDisabled();
+    await expect(search.searchButton).toBeDisabled();
 
     // Type a query
-    await page.getByRole("searchbox").fill("Oak Street");
-    await expect(searchButton).toBeEnabled();
+    await search.fillQuery("Oak Street");
+    await expect(search.searchButton).toBeEnabled();
   });
 
   test("submitting a search shows results or no-results state", async ({
     page,
   }) => {
-    await page.goto("/");
-
-    await page.getByRole("searchbox").fill("Oak Street");
-    await page.getByRole("button", { name: "Search properties" }).click();
+    const search = new SearchBoxPage(page);
+    await search.goto();
+    await search.search("Oak Street");
 
     // Wait for either results grid or no-results message
     await expect(
@@ -40,20 +37,17 @@ test.describe("Search happy path", () => {
   test("search input shows loading state during request", async ({
     page,
   }) => {
-    await page.goto("/");
-
-    await page.getByRole("searchbox").fill("Austin properties");
-    await page.getByRole("button", { name: "Search properties" }).click();
+    const search = new SearchBoxPage(page);
+    await search.goto();
+    await search.search("Austin properties");
 
     // Input should show busy state while loading
-    await expect(page.getByRole("searchbox")).toHaveAttribute(
-      "aria-busy",
-      "true",
-    );
+    await expect(search.searchbox).toHaveAttribute("aria-busy", "true");
   });
 
   test("page heading is visible", async ({ page }) => {
-    await page.goto("/");
+    const search = new SearchBoxPage(page);
+    await search.goto();
     await expect(
       page.getByRole("heading", { name: /TCAD Property Explorer/i }),
     ).toBeVisible();

@@ -1,44 +1,39 @@
 import { expect, test } from "@playwright/test";
+import { PropertyCardPage } from "./pages/PropertyCardPage";
+import { SearchBoxPage } from "./pages/SearchBoxPage";
 
 test.describe("Error handling and edge cases", () => {
   test("search button is disabled with empty query", async ({ page }) => {
-    await page.goto("/");
-
-    const searchButton = page.getByRole("button", {
-      name: "Search properties",
-    });
-    await expect(searchButton).toBeDisabled();
+    const search = new SearchBoxPage(page);
+    await search.goto();
+    await expect(search.searchButton).toBeDisabled();
   });
 
   test("search button is disabled with whitespace-only query", async ({
     page,
   }) => {
-    await page.goto("/");
-
-    await page.getByRole("searchbox").fill("   ");
-    const searchButton = page.getByRole("button", {
-      name: "Search properties",
-    });
-    await expect(searchButton).toBeDisabled();
+    const search = new SearchBoxPage(page);
+    await search.goto();
+    await search.fillQuery("   ");
+    await expect(search.searchButton).toBeDisabled();
   });
 
   test("no results state displays helpful message", async ({ page }) => {
-    await page.goto("/");
+    const search = new SearchBoxPage(page);
+    const card = new PropertyCardPage(page);
+    await search.goto();
 
     // Use a query unlikely to match anything
-    await page.getByRole("searchbox").fill("zzzznonexistent99999");
-    await page.getByRole("button", { name: "Search properties" }).click();
+    await search.search("zzzznonexistent99999");
 
-    await expect(page.getByText("No properties found")).toBeVisible({
-      timeout: 15_000,
-    });
+    await expect(card.noResultsMessage()).toBeVisible({ timeout: 15_000 });
   });
 
   test("loading skeleton appears during initial page load", async ({
     page,
   }) => {
-    // Navigate and check for loading skeleton before app hydrates
-    await page.goto("/");
+    const search = new SearchBoxPage(page);
+    await search.goto();
 
     // The page skeleton or the main content should be visible
     // (skeleton may be too fast to catch, so we verify the page loaded)
