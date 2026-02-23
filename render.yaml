@@ -37,6 +37,37 @@ services:
           property: port
       - fromGroup: tcad-secrets
 
+  # Playwright Background Worker (Docker-based for Chromium support)
+  # Uncomment when browser fallback scraping is needed on Render.
+  # Requires: render.yaml runtime: docker + server/Dockerfile.worker
+  # - type: worker
+  #   name: tcad-worker
+  #   runtime: docker
+  #   region: oregon
+  #   plan: starter
+  #   branch: main
+  #   dockerfilePath: ./server/Dockerfile.worker
+  #   envVars:
+  #     - key: NODE_ENV
+  #       value: production
+  #     - key: LOG_FILES_ENABLED
+  #       value: "false"
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: tcad-db
+  #         property: connectionString
+  #     - key: REDIS_HOST
+  #       fromService:
+  #         name: tcad-redis
+  #         type: keyvalue
+  #         property: host
+  #     - key: REDIS_PORT
+  #       fromService:
+  #         name: tcad-redis
+  #         type: keyvalue
+  #         property: port
+  #     - fromGroup: tcad-secrets
+
   # Redis (Bull Queue Backend)
   - type: keyvalue
     name: tcad-redis
