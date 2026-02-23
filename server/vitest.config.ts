@@ -61,8 +61,8 @@ export default defineConfig({
 			},
 		},
 
-		// Unit tests should be fast
-		testTimeout: 10000, // 10 seconds
+		// Unit tests should be fast; individual tests may override with { timeout: N }
+		testTimeout: 5000, // 5 seconds
 
 		// Clear all mocks between tests
 		clearMocks: true,
