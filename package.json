@@ -46,6 +46,7 @@
 		"vite": "^7.1.11"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "^4.11.1",
 		"@biomejs/biome": "2.3.8",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.0",
