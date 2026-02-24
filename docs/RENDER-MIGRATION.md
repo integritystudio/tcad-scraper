@@ -98,7 +98,7 @@ If separating workers isn't needed initially, skip the Background Worker and run
 
 1. **Create Web Service** on Render dashboard or via `render.yaml`
    - Runtime: Node
-   - Build command: `cd server && npm install && npx prisma generate && npm run build`
+   - Build command: `cd server && npm install --include=dev && npx prisma generate && npm run build`
    - Start command: `cd server && node dist/index.js`
    - Health check path: `/health`
    - Region: Oregon
@@ -181,7 +181,7 @@ services:
     region: oregon
     plan: starter
     branch: main
-    buildCommand: cd server && npm install && npx prisma generate && npm run build
+    buildCommand: cd server && npm install --include=dev && npx prisma generate && npm run build
     startCommand: cd server && node dist/index.js
     preDeployCommand: cd server && npx prisma migrate deploy
     healthCheckPath: /health
