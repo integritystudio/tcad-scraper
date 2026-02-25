@@ -8,14 +8,14 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 
 - **Backend**: Express API (TypeScript) + BullMQ queues + Playwright scraping
 - **Frontend**: React 19 + Vite
-- **Database**: PostgreSQL (remote via Tailscale) + Prisma ORM
+- **Database**: PostgreSQL (Render) + Prisma ORM
 - **Queue**: BullMQ + Redis
 - **Logging**: Pino (structured JSON)
 - **Testing**: Vitest (617 tests, 0 skipped)
 - **Scale**: 418K+ properties
 
 ```
-React (5174) → Express (3000) → PostgreSQL (Tailscale)
+React (5174) → Express (3000) → PostgreSQL (Render)
                     ↓
                 BullMQ Queue (Redis 6379)
                     ↓
@@ -52,9 +52,7 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 - See [docs/API.md](docs/API.md) for full endpoint reference
 
 ### Infrastructure
-- **Hosting**: GitHub Pages (frontend via `alephatx.info`), Hobbes (API via Cloudflare Tunnel)
-- **Cloudflare Tunnel**: `tcad-api` tunnel routes `api.alephatx.info` → `localhost:3001` on Hobbes
-- **Nginx**: Reverse proxy on Hobbes (port 80 → Node.js 3001); must be running for tunnel to work
+- **Hosting**: GitHub Pages (frontend via `alephatx.info`), Render (API)
 - Docker Compose: `config/docker-compose.base.yml` + `dev.yml`
 - Monitoring: `config/monitoring/` (Grafana dashboards, Prometheus configs)
 - Ports: Frontend 5174, Backend 3000, Redis 6379, PostgreSQL 5432
@@ -95,13 +93,13 @@ cd server && npm install && doppler run -- npm run dev
 # Docker
 doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d
 
-# Database (Tailscale required)
+# Database
 npx prisma generate
 doppler run -- npx prisma migrate dev
 
 # Testing
 npm test                     # Unit tests (617 tests, <5 sec)
-npm run test:integration     # Integration tests (Tailscale required)
+npm run test:integration     # Integration tests
 npm run test:all:coverage    # Full coverage report
 
 # Scraping
@@ -113,29 +111,24 @@ npm run queue:status
 
 ## Architecture Decisions
 
-- **Remote PostgreSQL only** via Tailscale VPN; local container disabled
-- **Production Redis**: `REDIS_HOST=hobbes` (prevents duplicate work across machines)
+- **Remote PostgreSQL on Render**; local container disabled
+- **Production Redis**: `REDIS_URL via Doppler (Render Redis)` (prevents duplicate work across machines)
 - **Bearer tokens** expire ~5 min; `token-refresh.service.ts` auto-refreshes (see [docs/TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md))
 - **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses. Does NOT work with cities, ZIP codes, short terms (<4 chars), compound names
 - **Env vars**: `TCAD_YEAR` (default: current year), `QUEUE_BATCH_CHUNK_SIZE` (default: 500)
 
 ---
 
-## Production Deployment (Hobbes)
+## Production Deployment (Render)
 
-**Branch**: `linux-env` | **Process Manager**: PM2
+**Branch**: `main` | **Platform**: Render
+
+Deploys automatically on push to `main`. See `render.yaml` for service config.
 
 ```bash
-# Deploy
-ssh aledlie@hobbes "cd /home/aledlie/tcad-scraper && git pull origin linux-env"
-ssh aledlie@hobbes "cd /home/aledlie/tcad-scraper/server && npm run build && pm2 restart tcad-api"
-
 # Verify
-ssh aledlie@hobbes "pm2 status tcad-api"
 curl -s "https://api.alephatx.info/health" | jq
 ```
-
-`app.set('trust proxy', 1)` REQUIRED in `server/src/index.ts` for nginx reverse proxy.
 
 ---
 
@@ -152,11 +145,11 @@ curl -s "https://api.alephatx.info/health" | jq
 
 | Problem | Steps |
 |---------|-------|
-| DB connection failed | `tailscale status` → `doppler secrets get DATABASE_URL --plain` → `ping hobbes` |
+| DB connection failed | Check Render dashboard → verify DATABASE_URL in Doppler |
 | TCAD API auth failed | Token expired (5 min lifetime); check `pm2 logs tcad-api \| grep "Token refreshed"` |
 | Queue not processing | `npm run queue:status` → `docker logs tcad-redis` |
 | Rate limiting error | Ensure `app.set('trust proxy', 1)` in `server/src/index.ts` |
-| API 522/unreachable | `ssh aledlie@hobbes "sudo systemctl status nginx"` → restart if failed |
+| API 522/unreachable | Check Render dashboard → service logs |
 | DNS not resolving | Flush: `sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder` |
 
 ---

@@ -73,7 +73,7 @@ export async function skipIfRedisUnavailable(): Promise<void> {
 /**
  * Check if database is available and responsive
  * Returns true if database can be connected to, false otherwise
- * Requires Tailscale VPN for remote database access
+ * Requires remote database access
  */
 export async function isDatabaseAvailable(
 	timeoutMs: number = 5000,
@@ -117,7 +117,7 @@ export async function skipIfDatabaseUnavailable(): Promise<void> {
 	const available = await isDatabaseAvailable();
 	if (!available) {
 		logger.debug(
-			"⏭️  Skipping test: Database not reachable (Tailscale VPN may be required)",
+			"⏭️  Skipping test: Database not reachable",
 		);
 		throw new Error("SKIP_TEST_DATABASE_UNREACHABLE");
 	}
@@ -176,24 +176,10 @@ export function isFrontendBuilt(): boolean {
 }
 
 /**
- * Check if Tailscale VPN is connected
- * Required for remote database and Redis on hobbes
+ * Check if remote database is configured
+ * Required for integration tests against Render database
  */
-export function isTailscaleConnected(): boolean {
-	// Simple heuristic: if DATABASE_URL contains a Tailscale-like IP (100.x.x.x)
-	// or hostname, assume Tailscale might be needed
+export function isRemoteDatabaseConfigured(): boolean {
 	const dbUrl = process.env.DATABASE_URL || "";
-	const redisHost = config.redis.host;
-
-	// Check if we're trying to connect to Tailscale network ranges
-	const tailscalePattern = /100\.\d{1,3}\.\d{1,3}\.\d{1,3}/;
-	const hostnamesRequiringTailscale = ["hobbes"];
-
-	return (
-		tailscalePattern.test(dbUrl) ||
-		tailscalePattern.test(redisHost) ||
-		hostnamesRequiringTailscale.some(
-			(host) => dbUrl.includes(host) || redisHost.includes(host),
-		)
-	);
+	return dbUrl.length > 0 && !dbUrl.includes("localhost");
 }

@@ -1,15 +1,15 @@
 # Docker
 
-Docker is used for **local development services only** (Redis). Production runs on Hobbes via PM2, not Docker.
+Docker is used for **local development services only** (Redis). Production runs on Render.
 
 ## Current Architecture
 
 ```
-Local Dev:  Redis (Docker) + PostgreSQL (remote via Tailscale) + Node.js (native)
-Production: PM2 on Hobbes + Redis on Hobbes + PostgreSQL on Hobbes (all native)
+Local Dev:  Redis (Docker) + PostgreSQL (Render) + Node.js (native)
+Production: Render (Web Service + Redis + PostgreSQL)
 ```
 
-**PostgreSQL is remote via Tailscale** -- there is no local DB container.
+**PostgreSQL is on Render** -- there is no local DB container.
 
 ## Dev Quick Start
 

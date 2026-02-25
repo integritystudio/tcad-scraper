@@ -4,7 +4,7 @@
  * REQUIREMENTS:
  * 1. Redis running on localhost:6379 (for queue health tests)
  * 2. Frontend built (run `npm run build` in frontend/ directory)
- * 3. PostgreSQL accessible via Tailscale (for database tests)
+ * 3. PostgreSQL accessible (for database tests)
  *
  * Tests will gracefully skip if requirements not met.
  */

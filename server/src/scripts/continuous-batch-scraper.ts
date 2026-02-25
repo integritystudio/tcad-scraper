@@ -1040,6 +1040,44 @@ class SearchPatternGenerator {
 		"Assoc", // Association/Associates, etc.
 	];
 
+	// High-yield entity, family, and organization terms — processed first
+	// These return significantly more properties than random strategies
+	private priorityTerms: string[] = [
+		// Entity types (legal suffixes — high reliability)
+		"LLC", "LLC.", "L.L.C.", "LTD", "Inc", "Inc.", "Corp", "Corp.",
+		"Corporation", "Incorporated", "Company", "Co.", "Limited",
+		"Limited Liability", "LMTD", "Co LLC",
+		// Trust & estate
+		"Trust", "Trustee", "Estate", "Family Trust", "Revocable Trust",
+		"Irrevocable Trust", "Living Trust", "Testamentary", "Fiduciary",
+		// Partnership
+		"Partnership", "Partners", "LP", "LLP", "Association",
+		"Associates", "Assoc", "Joint Venture",
+		// Foundation & nonprofit
+		"Foundation", "Charitable", "Nonprofit", "Non-Profit",
+		"Organization", "Institute", "Society",
+		// Investment & holdings
+		"Investments", "Holdings", "Capital", "Fund", "Equity",
+		"Ventures", "Asset", "Portfolio", "Management",
+		// Property & real estate entities
+		"Properties", "Property", "Real Estate", "Realty",
+		"Development", "Developers", "Land",
+		// Family names (proven high-yield: 2000+ properties each)
+		"Garcia", "Hernandez", "Lopez", "Gonzalez", "Martinez",
+		"Rodriguez", "Perez", "Sanchez", "Rivera", "Torres",
+		"Ramirez", "Flores", "Gomez", "Cruz", "Morales",
+		"Gutierrez", "Ortiz", "Castillo", "Mendoza", "Ruiz",
+		"Alvarez", "Jimenez", "Reyes", "Diaz", "Vargas",
+		"Nguyen", "Lee", "Chen", "Kim", "Patel", "Singh", "Wang", "Chang",
+		"Smith", "Johnson", "Williams", "Brown", "Jones", "Miller",
+		"Davis", "Wilson", "Anderson", "Thomas", "Taylor", "Moore",
+		"Jackson", "Martin", "Thompson", "White", "Harris", "Clark",
+		"Lewis", "Robinson", "Walker", "Young", "Allen", "King",
+		"Wright", "Scott", "Hill", "Green", "Adams", "Nelson",
+		"Baker", "Hall", "Campbell", "Mitchell", "Carter", "Roberts",
+	];
+	private priorityIndex = 0;
+
 	// Austin neighborhoods and subdivisions (expanded to 75+)
 	private neighborhoods = [
 		"Hyde",
@@ -1428,7 +1466,26 @@ class SearchPatternGenerator {
 		// Reset deduplicator stats for this batch
 		this.deduplicator.resetStats();
 
-		// First, prioritize optimized terms (if available)
+		// Phase 1: Drain priority entity/family/org terms first
+		while (batch.length < batchSize && this.priorityIndex < this.priorityTerms.length) {
+			const term = this.priorityTerms[this.priorityIndex];
+			this.priorityIndex++;
+
+			if (!this.deduplicator.shouldSkipTerm(term)) {
+				this.deduplicator.markTermAsUsed(term);
+				this.usedTerms.add(term);
+				batch.push(term);
+			}
+		}
+
+		if (this.priorityIndex < this.priorityTerms.length) {
+			const remaining = this.priorityTerms.length - this.priorityIndex;
+			logger.info(`🏢 Priority phase: ${remaining} high-value terms remaining`);
+		} else if (batch.length > 0 && batch.length === batchSize) {
+			return batch; // Full batch from priority terms, skip random fill
+		}
+
+		// Phase 2: Use optimizer-suggested terms
 		if (optimizedTerms.length > 0) {
 			logger.info(
 				`🎯 Prioritizing ${optimizedTerms.length} high-performing terms in this batch`,
@@ -1436,7 +1493,6 @@ class SearchPatternGenerator {
 			for (const term of optimizedTerms) {
 				if (batch.length >= batchSize) break;
 
-				// Use the deduplicator to check if we should skip this term
 				if (!this.deduplicator.shouldSkipTerm(term)) {
 					this.deduplicator.markTermAsUsed(term);
 					this.usedTerms.add(term);

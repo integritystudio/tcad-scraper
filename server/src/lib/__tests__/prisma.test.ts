@@ -187,7 +187,7 @@ describe("Prisma Client Module", () => {
 
 describe("Prisma Client Integration", () => {
 	/**
-	 * Check if database is reachable (requires Tailscale VPN for remote DB)
+	 * Check if database is reachable
 	 * Returns true only if we can actually connect to the database
 	 */
 	async function isDatabaseReachable(): Promise<boolean> {
@@ -208,7 +208,7 @@ describe("Prisma Client Integration", () => {
 		canConnectToDatabase = await isDatabaseReachable();
 		if (!canConnectToDatabase) {
 			logger.debug(
-				"⚠️  Skipping database integration tests - database not reachable (Tailscale VPN may be required)",
+				"⚠️  Skipping database integration tests - database not reachable",
 			);
 		}
 	});

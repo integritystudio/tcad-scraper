@@ -37,7 +37,7 @@ doppler run -- npx tsx scripts/generate-build-constants.ts
 
 ### Fallback Behavior
 
-If the database is unavailable (e.g., in GitHub Actions without Tailscale):
+If the database is unavailable (e.g., in GitHub Actions without database access):
 - Uses `FALLBACK_PROPERTY_COUNT` environment variable if set
 - Otherwise defaults to hardcoded value (418,823 as of Nov 26, 2025)
 - Generates file with approximate count

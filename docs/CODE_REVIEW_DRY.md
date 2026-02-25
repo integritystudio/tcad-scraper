@@ -156,7 +156,7 @@ Repetitive `.bind(propertyController)` on every route handler. Low priority — 
 
 **Files**: `server/src/lib/prisma.ts`
 
-No retry logic, health checks, or auto-reconnect for Prisma. If Tailscale VPN drops, all DB operations fail permanently until process restart.
+No retry logic, health checks, or auto-reconnect for Prisma. If database connection drops, all DB operations fail permanently until process restart.
 
 **Missing**:
 - Connection retry with exponential backoff

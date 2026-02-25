@@ -2,14 +2,13 @@
  * Vitest Configuration for Integration Tests
  *
  * Integration tests require external services:
- * - PostgreSQL database (via Tailscale)
+ * - PostgreSQL database (Render)
  * - Redis (for queue operations)
  * - Running Express server
  *
  * Prerequisites:
- * - Tailscale VPN must be running
  * - DATABASE_URL must be configured in .env
- * - Redis must be running (local or hobbes)
+ * - Redis must be running (local or Render)
  *
  * Run with: npm run test:integration
  *

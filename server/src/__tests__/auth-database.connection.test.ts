@@ -4,7 +4,7 @@
  * Tests for PostgreSQL database connection, Prisma client initialization,
  * read/write client separation, and connection pooling.
  *
- * NOTE: These tests require Tailscale VPN for remote database access.
+ * NOTE: These tests require remote database access.
  * Tests will be skipped gracefully if database is not reachable.
  */
 
@@ -21,7 +21,7 @@ beforeAll(async () => {
 	canConnectToDatabase = await isDatabaseAvailable();
 	if (!canConnectToDatabase) {
 		logger.debug(
-			"⚠️  Database not reachable - connection tests will be skipped (Tailscale VPN may be required)",
+			"⚠️  Database not reachable - connection tests will be skipped",
 		);
 	}
 });

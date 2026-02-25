@@ -6,7 +6,6 @@ Getting the TCAD Scraper running locally.
 
 - **Node.js** 20+ and npm
 - **Docker** (for Redis)
-- **Tailscale** VPN (for remote PostgreSQL on Hobbes)
 - **Doppler CLI** (for secrets)
 - **Playwright** (`npx playwright install chromium`)
 
@@ -32,9 +31,6 @@ See [doppler-setup.md](doppler-setup.md) for detailed Doppler CLI installation.
 ## 3. Connect to Database
 
 ```bash
-# Ensure Tailscale is connected
-tailscale status
-
 # Verify DB access
 doppler run -- npx prisma db pull
 
@@ -42,7 +38,7 @@ doppler run -- npx prisma db pull
 npx prisma generate
 ```
 
-PostgreSQL runs on Hobbes, accessible via Tailscale VPN. There is no local DB container.
+PostgreSQL runs on Render. Connection string is managed via Doppler.
 
 ## 4. Start Services
 
@@ -79,7 +75,7 @@ cd server && npm test
 
 | Problem | Fix |
 |---------|-----|
-| DB connection failed | `tailscale status` then `ping hobbes` |
+| DB connection failed | Check DATABASE_URL in Doppler, verify Render DB status |
 | Redis connection refused | `docker ps` -- restart Redis container |
 | Doppler not configured | `doppler login && doppler setup` |
 | Prisma client missing | `npx prisma generate` |

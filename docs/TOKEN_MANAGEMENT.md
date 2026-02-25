@@ -39,7 +39,7 @@ Server Start → Token Refresh Service (every 4.5 min)
 
 ```bash
 # Production logs
-ssh aledlie@hobbes "pm2 logs tcad-api | grep 'Token refresh'"
+# Check Render service logs in dashboard
 
 # Health endpoint
 curl -s https://api.alephatx.info/health | jq '.tokenRefresh'

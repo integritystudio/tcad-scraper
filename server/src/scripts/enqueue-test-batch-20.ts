@@ -105,7 +105,7 @@ async function enqueueTestBatch() {
 		logger.info(`📋 Job IDs: ${jobIds.join(", ")}`);
 		logger.info("\n✨ Test batch enqueue completed!");
 		logger.info(
-			"Monitor progress at: http://hobbes.taildb60fa.ts.net:3001/admin/queues",
+			"Monitor progress at: http://localhost:3001/admin/queues",
 		);
 		logger.info("=".repeat(60));
 	} catch (error) {

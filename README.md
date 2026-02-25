@@ -107,8 +107,6 @@ The application supports two scraping methods:
 ### Deployment Environment
 - **Ubuntu Linux** (remote server)
 - **PM2** for process management
-- **Tailscale** for secure remote access
-
 ## Architecture
 
 ### System Overview
@@ -773,7 +771,7 @@ npm run prisma:generate            # Generate Prisma client
 npm run prisma:migrate             # Run database migrations
 npm run prisma:studio              # Open Prisma Studio
 npm test                           # Run unit tests (Vitest, 617 tests)
-npm run test:integration           # Run integration tests (Tailscale required)
+npm run test:integration           # Run integration tests
 npm run lint                       # Run ESLint
 ```
 
@@ -862,7 +860,7 @@ docker run --name tcad-postgres -d \
 
 The frontend deploys automatically to **GitHub Pages** via GitHub Actions on push to `main`. The custom domain `alephatx.info` is configured via CNAME.
 
-The API runs on the Hobbes server, exposed via **Cloudflare Tunnel** at `api.alephatx.info`.
+The API runs on **Render** at `api.alephatx.info`.
 
 **Required GitHub Secrets:**
 - `DOPPLER_TOKEN`: Access to Doppler secrets (provides `VITE_API_URL` at build time)
