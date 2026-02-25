@@ -109,6 +109,7 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 						assessedValue: 280000,
 						searchTerm: "test",
 						scrapedAt: new Date(),
+						year: 2026,
 					},
 					{
 						propertyId: "TEST002",
@@ -120,6 +121,7 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 						assessedValue: 480000,
 						searchTerm: "test",
 						scrapedAt: new Date(),
+						year: 2026,
 					},
 				],
 			});
