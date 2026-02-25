@@ -46,12 +46,9 @@ describe("Integration Tests", () => {
 			// Should work even if it returns an error
 			expect(response.status).toBeDefined();
 
-			// Should not have strict CSP that would break API
-			const csp = response.headers["content-security-policy"];
-			if (csp) {
-				// API endpoints should allow flexible content
-				expect(csp).not.toContain("frame-ancestors");
-			}
+			// API routes either have no CSP, or CSP without frame-ancestors
+			const csp = response.headers["content-security-policy"] ?? "";
+			expect(csp).not.toContain("frame-ancestors");
 		});
 	});
 
@@ -113,19 +110,14 @@ describe("Integration Tests", () => {
 			expect(response.headers["content-type"]).not.toContain("text/html");
 		});
 
-		// Conditionally skip if frontend not built - requires npm run build in frontend
-		test("should serve frontend for unmatched routes", async () => {
-			if (!hasFrontend) {
-				logger.debug(
-					"⏭️  Skipping: Frontend not built (run `npm run build` in frontend/)",
-				);
-				return;
-			}
-
-			const response = await request(app).get("/some-spa-route");
-			expect(response.status).toBe(200);
-			expect(response.headers["content-type"]).toContain("text/html");
-		});
+		test.skipIf(!hasFrontend)(
+			"should serve frontend for unmatched routes",
+			async () => {
+				const response = await request(app).get("/some-spa-route");
+				expect(response.status).toBe(200);
+				expect(response.headers["content-type"]).toContain("text/html");
+			},
+		);
 	});
 
 	describe("Data Passing", () => {

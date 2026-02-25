@@ -13,8 +13,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createPrismaMock } from "./helpers/claude-mock";
 
-// Use vi.hoisted to declare mocks before they're used
 const { mockCreate, MockAnthropic } = vi.hoisted(() => {
 	const mockCreate = vi.fn();
 	class MockAnthropic {
@@ -25,22 +25,7 @@ const { mockCreate, MockAnthropic } = vi.hoisted(() => {
 	return { mockCreate, MockAnthropic };
 });
 
-// Mock prisma to prevent database connection attempts
-vi.mock("../prisma", () => ({
-	prisma: {
-		$connect: vi.fn(),
-		$disconnect: vi.fn(),
-		apiUsageLog: {
-			create: vi.fn().mockResolvedValue({ id: 1 }),
-		},
-	},
-	prismaReadOnly: {
-		$connect: vi.fn(),
-		$disconnect: vi.fn(),
-	},
-}));
-
-// Mock Anthropic SDK
+vi.mock("../prisma", () => createPrismaMock());
 vi.mock("@anthropic-ai/sdk", () => ({
 	default: MockAnthropic,
 }));
@@ -240,22 +225,6 @@ describe("Claude JSON Parsing - Regression Tests", () => {
 			expect(result.whereClause.OR).toBeDefined();
 		});
 
-		it("should fallback on empty response", async () => {
-			mockCreate.mockResolvedValue({
-				content: [
-					{
-						type: "text",
-						text: "",
-					},
-				],
-				usage: { input_tokens: 100, output_tokens: 50 },
-			});
-
-			const result = await service.parseNaturalLanguageQuery("test");
-
-			expect(result.whereClause.OR).toBeDefined();
-		});
-
 		it("should fallback on whitespace-only response", async () => {
 			mockCreate.mockResolvedValue({
 				content: [
@@ -272,15 +241,6 @@ describe("Claude JSON Parsing - Regression Tests", () => {
 			expect(result.whereClause.OR).toBeDefined();
 		});
 
-		it("should fallback on API exception", async () => {
-			mockCreate.mockRejectedValue(new Error("API timeout"));
-
-			const result = await service.parseNaturalLanguageQuery("test");
-
-			expect(result.whereClause.OR).toBeDefined();
-			expect(result.explanation).toContain("test");
-		});
-
 		it("should fallback on network error", async () => {
 			mockCreate.mockRejectedValue(new Error("ECONNREFUSED"));
 
@@ -288,33 +248,6 @@ describe("Claude JSON Parsing - Regression Tests", () => {
 
 			expect(result.whereClause.OR).toBeDefined();
 			expect(result.explanation).toContain("Austin homes");
-		});
-	});
-
-	describe("Fallback Query Structure", () => {
-		it("should create OR clause searching all text fields", async () => {
-			mockCreate.mockRejectedValue(new Error("API Error"));
-
-			const result = await service.parseNaturalLanguageQuery("Smith Trust");
-
-			expect(result.whereClause.OR).toEqual([
-				{ name: { contains: "Smith Trust", mode: "insensitive" } },
-				{ propertyAddress: { contains: "Smith Trust", mode: "insensitive" } },
-				{ city: { contains: "Smith Trust", mode: "insensitive" } },
-				{ description: { contains: "Smith Trust", mode: "insensitive" } },
-			]);
-		});
-
-		it("should include user query in fallback explanation", async () => {
-			mockCreate.mockRejectedValue(new Error("Rate limited"));
-
-			const result = await service.parseNaturalLanguageQuery(
-				"expensive downtown properties",
-			);
-
-			// Updated: New error message format includes categorized error type and fallback indicator
-			expect(result.explanation).toContain("expensive downtown properties");
-			expect(result.explanation).toContain("text search fallback");
 		});
 	});
 

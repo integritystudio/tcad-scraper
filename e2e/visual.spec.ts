@@ -27,7 +27,7 @@ test.describe("Visual regression", () => {
     await search.search("Oak Street");
 
     await expect(
-      page.getByText("No properties found").or(page.locator("h3").first()),
+      page.getByText("No properties found").or(page.locator(".results-grid h3").first()),
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(page).toHaveScreenshot("search-results.png", {

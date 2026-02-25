@@ -10,7 +10,7 @@ export class PropertyCardPage {
 
   /** Wait for at least one property card heading to appear */
   async waitForResults() {
-    await this.page.locator("h3").first().waitFor({ timeout: RESULTS_TIMEOUT });
+    await this.page.locator(".results-grid h3").first().waitFor({ timeout: RESULTS_TIMEOUT });
   }
 
   /** First expand button in the results list */

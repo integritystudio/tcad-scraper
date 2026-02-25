@@ -26,7 +26,7 @@ test.describe("Accessibility (axe-core)", () => {
 
     // Wait for results or no-results state to appear
     await expect(
-      page.getByText("No properties found").or(page.locator("h3").first()),
+      page.getByText("No properties found").or(page.locator(".results-grid h3").first()),
     ).toBeVisible({ timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })

@@ -13,6 +13,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Property } from "../../types";
 import { PropertyCard } from "../features/PropertySearch/PropertyCard";
 
+const { mockLogPropertyView } = vi.hoisted(() => ({
+	mockLogPropertyView: vi.fn(),
+}));
+
 // Mock the hooks
 vi.mock("../../hooks", () => ({
 	useFormatting: () => ({
@@ -29,7 +33,7 @@ vi.mock("../../hooks", () => ({
 			text.length > maxLength ? `${text.slice(0, maxLength)}...` : text,
 	}),
 	useAnalytics: () => ({
-		logPropertyView: vi.fn(),
+		logPropertyView: mockLogPropertyView,
 		logSearch: vi.fn(),
 		logError: vi.fn(),
 	}),
@@ -277,8 +281,7 @@ describe("PropertyCard", () => {
 	describe("Analytics Integration", () => {
 		it("does not track property view on mount", () => {
 			render(<PropertyCard property={mockProperty} />);
-			expect(screen.getByText("John Smith")).toBeInTheDocument();
-			// Analytics should NOT fire on render — only on expand
+			expect(mockLogPropertyView).not.toHaveBeenCalled();
 		});
 
 		it("tracks property view when card is expanded", () => {
@@ -287,8 +290,7 @@ describe("PropertyCard", () => {
 				name: /show details/i,
 			});
 			fireEvent.click(expandButton);
-			// Card expanded — analytics should fire on expand interaction
-			expect(screen.getByText("Hide Details")).toBeInTheDocument();
+			expect(mockLogPropertyView).toHaveBeenCalled();
 		});
 	});
 });

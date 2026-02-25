@@ -30,7 +30,7 @@ test.describe("Search happy path", () => {
 
     // Wait for either results grid or no-results message
     await expect(
-      page.getByText("No properties found").or(page.locator("h3").first()),
+      page.getByText("No properties found").or(page.locator(".results-grid h3").first()),
     ).toBeVisible({ timeout: 15_000 });
   });
 
@@ -39,10 +39,21 @@ test.describe("Search happy path", () => {
   }) => {
     const search = new SearchBoxPage(page);
     await search.goto();
+
+    // Hold API response so we can reliably observe loading state
+    let fulfillRoute: (() => void) | undefined;
+    await page.route("**/api/**", async (route) => {
+      await new Promise<void>((resolve) => { fulfillRoute = resolve; });
+      await route.continue();
+    });
+
     await search.search("Austin properties");
 
-    // Input should show busy state while loading
+    // Request is in-flight — assert loading state
     await expect(search.searchbox).toHaveAttribute("aria-busy", "true");
+
+    // Release the API response
+    fulfillRoute!();
   });
 
   test("page heading is visible", async ({ page }) => {

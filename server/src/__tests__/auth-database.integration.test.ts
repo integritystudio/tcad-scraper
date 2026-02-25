@@ -11,10 +11,17 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { config } from "../config";
 import app from "../index";
-import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { generateToken } from "../middleware/auth";
 import { isRedisAvailable } from "./test-utils";
+
+// Check Redis once at module level
+let redisAvailable = false;
+const checkRedis = async () => {
+	redisAvailable = await isRedisAvailable(3000);
+	return redisAvailable;
+};
+await checkRedis();
 
 describe("Authentication-Database Integration Tests", () => {
 	let validToken: string;
@@ -60,11 +67,9 @@ describe("Authentication-Database Integration Tests", () => {
 			test("should return stats without authentication (optional auth)", async () => {
 				const response = await request(app).get("/api/properties/stats");
 
-				expect([200, 500]).toContain(response.status);
-				if (response.status === 200) {
-					expect(response.body).toHaveProperty("totalProperties");
-					expect(typeof response.body.totalProperties).toBe("number");
-				}
+				expect(response.status).toBe(200);
+				expect(response.body).toHaveProperty("totalProperties");
+				expect(typeof response.body.totalProperties).toBe("number");
 			});
 
 			test("should return stats with valid JWT token", async () => {
@@ -72,10 +77,8 @@ describe("Authentication-Database Integration Tests", () => {
 					.get("/api/properties/stats")
 					.set("Authorization", `Bearer ${validToken}`);
 
-				expect([200, 500]).toContain(response.status);
-				if (response.status === 200) {
-					expect(response.body).toHaveProperty("totalProperties");
-				}
+				expect(response.status).toBe(200);
+				expect(response.body).toHaveProperty("totalProperties");
 			});
 
 			test("should still work with invalid token (optional auth)", async () => {
@@ -84,7 +87,7 @@ describe("Authentication-Database Integration Tests", () => {
 					.set("Authorization", "Bearer invalid-token");
 
 				// Should work but user won't be authenticated
-				expect([200, 500]).toContain(response.status);
+				expect(response.status).toBe(200);
 			});
 		});
 
@@ -94,12 +97,10 @@ describe("Authentication-Database Integration Tests", () => {
 					.get("/api/properties")
 					.query({ limit: 10, offset: 0 });
 
-				expect([200, 500]).toContain(response.status);
-				if (response.status === 200) {
-					expect(response.body).toHaveProperty("data");
-					expect(response.body).toHaveProperty("pagination");
-					expect(Array.isArray(response.body.data)).toBe(true);
-				}
+				expect(response.status).toBe(200);
+				expect(response.body).toHaveProperty("data");
+				expect(response.body).toHaveProperty("pagination");
+				expect(Array.isArray(response.body.data)).toBe(true);
 			});
 
 			test("should search properties with valid authentication", async () => {
@@ -108,12 +109,10 @@ describe("Authentication-Database Integration Tests", () => {
 					.set("Authorization", `Bearer ${validToken}`)
 					.query({ limit: 10, offset: 0 });
 
-				expect([200, 500]).toContain(response.status);
-				if (response.status === 200) {
-					expect(response.body).toHaveProperty("data");
-					expect(response.body).toHaveProperty("pagination");
-					expect(Array.isArray(response.body.data)).toBe(true);
-				}
+				expect(response.status).toBe(200);
+				expect(response.body).toHaveProperty("data");
+				expect(response.body).toHaveProperty("pagination");
+				expect(Array.isArray(response.body.data)).toBe(true);
 			});
 
 			test("should handle database queries with filters", async () => {
@@ -126,24 +125,15 @@ describe("Authentication-Database Integration Tests", () => {
 						city: "Austin",
 					});
 
-				expect([200, 500]).toContain(response.status);
-				if (response.status === 200) {
-					expect(response.body).toHaveProperty("data");
-					expect(response.body).toHaveProperty("pagination");
-					expect(response.body.pagination).toHaveProperty("total");
-				}
+				expect(response.status).toBe(200);
+				expect(response.body).toHaveProperty("data");
+				expect(response.body).toHaveProperty("pagination");
+				expect(response.body.pagination).toHaveProperty("total");
 			});
 		});
 
-		describe("Scrape Job Creation (Database Write)", () => {
+		describe.skipIf(!redisAvailable)("Scrape Job Creation (Database Write)", () => {
 			test("should create scrape job without authentication (optional auth)", async () => {
-				const redisAvailable = await isRedisAvailable(3000);
-
-				if (!redisAvailable) {
-					logger.debug("⏭️  Skipping scrape job test: Redis not available");
-					return;
-				}
-
 				const response = await request(app)
 					.post("/api/properties/scrape")
 					.send({
@@ -151,7 +141,7 @@ describe("Authentication-Database Integration Tests", () => {
 					});
 
 				// Should succeed or fail based on rate limiting, not auth
-				expect([202, 400, 429, 500]).toContain(response.status);
+				expect([202, 400, 429]).toContain(response.status);
 
 				if (response.status === 202) {
 					expect(response.body).toHaveProperty("jobId");
@@ -160,13 +150,6 @@ describe("Authentication-Database Integration Tests", () => {
 			}, 10000);
 
 			test("should create scrape job with valid authentication", async () => {
-				const redisAvailable = await isRedisAvailable(3000);
-
-				if (!redisAvailable) {
-					logger.debug("⏭️  Skipping scrape job test: Redis not available");
-					return;
-				}
-
 				const response = await request(app)
 					.post("/api/properties/scrape")
 					.set("Authorization", `Bearer ${validToken}`)
@@ -174,7 +157,7 @@ describe("Authentication-Database Integration Tests", () => {
 						searchTerm: "test-auth-valid-token",
 					});
 
-				expect([202, 400, 429, 500]).toContain(response.status);
+				expect([202, 400, 429]).toContain(response.status);
 
 				if (response.status === 202) {
 					expect(response.body).toHaveProperty("jobId");
@@ -195,45 +178,23 @@ describe("Authentication-Database Integration Tests", () => {
 			});
 		});
 
-		describe("Job Status Retrieval (Database Read)", () => {
+		describe.skipIf(!redisAvailable)("Job Status Retrieval (Database Read)", () => {
 			test("should retrieve job status without authentication", async () => {
-				const redisAvailable = await isRedisAvailable(3000);
-
-				if (!redisAvailable) {
-					logger.debug("⏭️  Skipping job status test: Redis not available");
-					return;
-				}
-
-				// Job retrieval requires Redis (BullMQ queue lookup)
 				const response = await request(app).get(
 					"/api/properties/jobs/non-existent-job",
 				);
-				expect([200, 404, 500]).toContain(response.status);
+				expect([200, 404]).toContain(response.status);
 			}, 10000);
 
 			test("should retrieve job status with valid authentication", async () => {
-				const redisAvailable = await isRedisAvailable(3000);
-
-				if (!redisAvailable) {
-					logger.debug("⏭️  Skipping job status test: Redis not available");
-					return;
-				}
-
 				const response = await request(app)
 					.get("/api/properties/jobs/non-existent-job")
 					.set("Authorization", `Bearer ${validToken}`);
 
-				expect([200, 404, 500]).toContain(response.status);
+				expect([200, 404]).toContain(response.status);
 			}, 10000);
 
 			test("should handle non-existent job ID", async () => {
-				const redisAvailable = await isRedisAvailable(3000);
-
-				if (!redisAvailable) {
-					logger.debug("⏭️  Skipping job status test: Redis not available");
-					return;
-				}
-
 				const fakeJobId = "non-existent-job-id";
 				const response = await request(app)
 					.get(`/api/properties/jobs/${fakeJobId}`)
@@ -252,16 +213,15 @@ describe("Authentication-Database Integration Tests", () => {
 				.get("/api/properties/stats")
 				.set("Authorization", `Bearer ${freshToken}`);
 
-			expect([200, 500]).toContain(response.status);
+			expect(response.status).toBe(200);
 		});
 
 		test("should still work with expired token in optional auth endpoints", async () => {
-			// Optional auth endpoints should work even with expired tokens
 			const response = await request(app)
 				.get("/api/properties/stats")
 				.set("Authorization", `Bearer ${expiredToken}`);
 
-			expect([200, 500]).toContain(response.status);
+			expect(response.status).toBe(200);
 		});
 
 		test("should handle malformed tokens gracefully", async () => {
@@ -269,14 +229,13 @@ describe("Authentication-Database Integration Tests", () => {
 				.get("/api/properties/stats")
 				.set("Authorization", "Bearer malformed.token.here");
 
-			// Should not crash, optional auth allows this
-			expect([200, 500]).toContain(response.status);
+			expect(response.status).toBe(200);
 		});
 
 		test("should handle missing Authorization header", async () => {
 			const response = await request(app).get("/api/properties/stats");
 
-			expect([200, 500]).toContain(response.status);
+			expect(response.status).toBe(200);
 		});
 	});
 
@@ -290,9 +249,9 @@ describe("Authentication-Database Integration Tests", () => {
 
 			const responses = await Promise.all(requests);
 
-			responses.forEach((response) => {
-				expect([200, 500]).toContain(response.status);
-			});
+			for (const response of responses) {
+				expect(response.status).toBe(200);
+			}
 		});
 
 		test("should handle mixed authenticated and unauthenticated requests", async () => {
@@ -309,23 +268,14 @@ describe("Authentication-Database Integration Tests", () => {
 
 			const responses = await Promise.all(requests);
 
-			responses.forEach((response) => {
-				expect([200, 500]).toContain(response.status);
-			});
+			for (const response of responses) {
+				expect(response.status).toBe(200);
+			}
 		});
 	});
 
-	describe("Database Transaction Integrity with Authentication", () => {
+	describe.skipIf(!redisAvailable)("Database Transaction Integrity with Authentication", () => {
 		test("should maintain transaction integrity during authenticated writes", async () => {
-			const redisAvailable = await isRedisAvailable(3000);
-
-			if (!redisAvailable) {
-				logger.debug(
-					"⏭️  Skipping transaction integrity test: Redis not available",
-				);
-				return;
-			}
-
 			const searchTerm = `test-auth-transaction-${Date.now()}`;
 
 			// Create a scrape job
@@ -342,32 +292,28 @@ describe("Authentication-Database Integration Tests", () => {
 					.get(`/api/properties/jobs/${jobId}`)
 					.set("Authorization", `Bearer ${validToken}`);
 
-				expect([200, 404, 500]).toContain(statusResponse.status);
+				expect([200, 404]).toContain(statusResponse.status);
 			}
 		}, 10000);
 	});
 
 	describe("Error Handling with Authentication and Database", () => {
-		test("should handle database errors gracefully with valid auth", async () => {
-			const redisAvailable = await isRedisAvailable(3000);
+		test.skipIf(!redisAvailable)(
+			"should handle database errors gracefully with valid auth",
+			async () => {
+				const response = await request(app)
+					.post("/api/properties/scrape")
+					.set("Authorization", `Bearer ${validToken}`)
+					.send({
+						searchTerm: "test-auth-error-handling",
+					});
 
-			if (!redisAvailable) {
-				logger.debug("⏭️  Skipping error handling test: Redis not available");
-				return;
-			}
-
-			// This might work or fail depending on Redis availability
-			const response = await request(app)
-				.post("/api/properties/scrape")
-				.set("Authorization", `Bearer ${validToken}`)
-				.send({
-					searchTerm: "test-auth-error-handling",
-				});
-
-			// Should return a proper HTTP response, not crash
-			expect(response.status).toBeDefined();
-			expect([202, 400, 429, 500]).toContain(response.status);
-		}, 10000);
+				// Should return a proper HTTP response, not crash
+				expect(response.status).toBeDefined();
+				expect([202, 400, 429]).toContain(response.status);
+			},
+			10000,
+		);
 
 		test("should validate request data before database operations", async () => {
 			// Send invalid data
@@ -398,7 +344,7 @@ describe("Authentication-Database Integration Tests", () => {
 				});
 
 			// Prisma should handle this safely
-			expect([200, 400, 500]).toContain(response.status);
+			expect([200, 400]).toContain(response.status);
 
 			// Verify table still exists
 			const count = await prisma.property.count();
@@ -406,15 +352,8 @@ describe("Authentication-Database Integration Tests", () => {
 		});
 	});
 
-	describe("Rate Limiting with Authentication", () => {
+	describe.skipIf(!redisAvailable)("Rate Limiting with Authentication", () => {
 		test("should enforce rate limits on authenticated requests", async () => {
-			const redisAvailable = await isRedisAvailable(3000);
-
-			if (!redisAvailable) {
-				logger.debug("⏭️  Skipping rate limiting test: Redis not available");
-				return;
-			}
-
 			// Make multiple scrape requests rapidly
 			const requests = Array.from({ length: 3 }, (_, i) =>
 				request(app)
@@ -428,11 +367,9 @@ describe("Authentication-Database Integration Tests", () => {
 			const responses = await Promise.all(requests);
 
 			// Some requests should succeed (202) or be rate limited (429)
-			responses.forEach((response) => {
-				expect([202, 400, 429, 500]).toContain(response.status);
-			});
-
-			// Rate limiting may or may not trigger depending on timing - this is acceptable
+			for (const response of responses) {
+				expect([202, 400, 429]).toContain(response.status);
+			}
 		}, 10000);
 	});
 
@@ -445,19 +382,13 @@ describe("Authentication-Database Integration Tests", () => {
 				.get("/api/properties/stats")
 				.set("Authorization", `Bearer ${userToken}`);
 
-			// The middleware should decode the token and make user info available
-			expect([200, 500]).toContain(response.status);
-
-			// User context would be available in req.user for the endpoint to use
-			// This test verifies the token is accepted and processed
+			expect(response.status).toBe(200);
 		});
 
 		test("should handle requests without user context", async () => {
-			// No token provided
 			const response = await request(app).get("/api/properties/stats");
 
-			expect([200, 500]).toContain(response.status);
-			// Should work with optional auth
+			expect(response.status).toBe(200);
 		});
 	});
 
@@ -475,17 +406,14 @@ describe("Authentication-Database Integration Tests", () => {
 			const responses = await Promise.all(requests);
 			const duration = Date.now() - start;
 
-			// All requests should complete
+			// All requests should complete successfully
 			expect(responses).toHaveLength(burstSize);
+			for (const response of responses) {
+				expect(response.status).toBe(200);
+			}
 
-			// Most should succeed (some might fail if Redis/DB is down)
-			const successful = responses.filter((r) => r.status === 200).length;
-			const failed = responses.filter((r) => r.status === 500).length;
-
-			expect(successful + failed).toBe(burstSize);
-
-			// Should complete in reasonable time (adjust based on your environment)
-			expect(duration).toBeLessThan(10000); // 10 seconds
+			// Should complete in reasonable time
+			expect(duration).toBeLessThan(10000);
 		});
 	});
 });

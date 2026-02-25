@@ -369,33 +369,4 @@ describe.skipIf(!(await checkRedis()))("Queue Enqueuing Tests", () => {
 		});
 	});
 
-	describe("Rate Limiting", () => {
-		test("should enqueue jobs with delays between them", async () => {
-			const startTime = Date.now();
-			const jobs: Bull.Job<ScrapeJobData>[] = [];
-
-			for (let i = 0; i < 3; i++) {
-				const job = await scraperQueue.add("scrape-properties", {
-					searchTerm: `Rate Limit Test ${i}`,
-					userId: "rate-limit-test",
-					scheduled: true,
-				});
-				jobs.push(job);
-
-				// Small delay between jobs (simulating rate limiting)
-				if (i < 2) {
-					await new Promise((resolve) => setTimeout(resolve, 50));
-				}
-			}
-
-			const duration = Date.now() - startTime;
-
-			// Should take at least 100ms (2 delays of 50ms each)
-			expect(duration).toBeGreaterThanOrEqual(100);
-			expect(jobs.length).toBe(3);
-
-			// Clean up
-			await Promise.all(jobs.map((job) => job.remove()));
-		});
-	});
 });

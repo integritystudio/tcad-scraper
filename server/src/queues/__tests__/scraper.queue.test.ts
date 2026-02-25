@@ -227,56 +227,34 @@ describe("Scraper Queue", () => {
 	});
 
 	describe("Queue Event Listeners", () => {
-		it("should register completed event listener", async () => {
-			// Clear mocks and reset modules
+		beforeEach(async () => {
 			vi.clearAllMocks();
 			vi.resetModules();
-
-			// Import the module to trigger event listener registration
 			await import("../scraper.queue");
+		});
 
+		it("should register completed event listener", () => {
 			expect(mockBullQueue.on).toHaveBeenCalledWith(
 				"completed",
 				expect.any(Function),
 			);
 		});
 
-		it("should register failed event listener", async () => {
-			// Clear mocks and reset modules
-			vi.clearAllMocks();
-			vi.resetModules();
-
-			// Import the module to trigger event listener registration
-			await import("../scraper.queue");
-
+		it("should register failed event listener", () => {
 			expect(mockBullQueue.on).toHaveBeenCalledWith(
 				"failed",
 				expect.any(Function),
 			);
 		});
 
-		it("should register stalled event listener", async () => {
-			// Clear mocks and reset modules
-			vi.clearAllMocks();
-			vi.resetModules();
-
-			// Import the module to trigger event listener registration
-			await import("../scraper.queue");
-
+		it("should register stalled event listener", () => {
 			expect(mockBullQueue.on).toHaveBeenCalledWith(
 				"stalled",
 				expect.any(Function),
 			);
 		});
 
-		it("should handle completed event correctly", async () => {
-			// Clear mocks and reset modules
-			vi.clearAllMocks();
-			vi.resetModules();
-
-			// Import the module to trigger event listener registration
-			await import("../scraper.queue");
-
+		it("should handle completed event correctly", () => {
 			const completedHandler = mockBullQueue.on.mock.calls.find(
 				(call: [string, (...args: unknown[]) => void]) =>
 					call[0] === "completed",
@@ -284,7 +262,6 @@ describe("Scraper Queue", () => {
 
 			expect(completedHandler).toBeDefined();
 
-			// Simulate completed event
 			const mockJob = { id: "test-job-123" };
 			const mockResult = {
 				count: 50,
@@ -293,50 +270,31 @@ describe("Scraper Queue", () => {
 				properties: [],
 			};
 
-			// Should not throw
 			expect(() => completedHandler(mockJob, mockResult)).not.toThrow();
 		});
 
-		it("should handle failed event correctly", async () => {
-			// Clear mocks and reset modules
-			vi.clearAllMocks();
-			vi.resetModules();
-
-			// Import the module to trigger event listener registration
-			await import("../scraper.queue");
-
+		it("should handle failed event correctly", () => {
 			const failedHandler = mockBullQueue.on.mock.calls.find(
 				(call: [string, (...args: unknown[]) => void]) => call[0] === "failed",
 			)?.[1];
 
 			expect(failedHandler).toBeDefined();
 
-			// Simulate failed event
 			const mockJob = { id: "test-job-456", attemptsMade: 3 };
 			const mockError = new Error("Test error");
 
-			// Should not throw
 			expect(() => failedHandler(mockJob, mockError)).not.toThrow();
 		});
 
-		it("should handle stalled event correctly", async () => {
-			// Clear mocks and reset modules
-			vi.clearAllMocks();
-			vi.resetModules();
-
-			// Import the module to trigger event listener registration
-			await import("../scraper.queue");
-
+		it("should handle stalled event correctly", () => {
 			const stalledHandler = mockBullQueue.on.mock.calls.find(
 				(call: [string, (...args: unknown[]) => void]) => call[0] === "stalled",
 			)?.[1];
 
 			expect(stalledHandler).toBeDefined();
 
-			// Simulate stalled event
 			const mockJob = { id: "test-job-789" };
 
-			// Should not throw
 			expect(() => stalledHandler(mockJob)).not.toThrow();
 		});
 	});

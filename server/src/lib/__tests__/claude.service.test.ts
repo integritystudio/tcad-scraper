@@ -3,8 +3,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { createPrismaMock } from "./helpers/claude-mock";
 
-// Use vi.hoisted to declare mocks before they're used
 const { mockCreate, MockAnthropic } = vi.hoisted(() => {
 	const mockCreate = vi.fn();
 	class MockAnthropic {
@@ -15,22 +15,7 @@ const { mockCreate, MockAnthropic } = vi.hoisted(() => {
 	return { mockCreate, MockAnthropic };
 });
 
-// Mock prisma to prevent database connection attempts
-vi.mock("../prisma", () => ({
-	prisma: {
-		$connect: vi.fn(),
-		$disconnect: vi.fn(),
-		apiUsageLog: {
-			create: vi.fn().mockResolvedValue({ id: 1 }),
-		},
-	},
-	prismaReadOnly: {
-		$connect: vi.fn(),
-		$disconnect: vi.fn(),
-	},
-}));
-
-// Mock Anthropic SDK
+vi.mock("../prisma", () => createPrismaMock());
 vi.mock("@anthropic-ai/sdk", () => ({
 	default: MockAnthropic,
 }));
