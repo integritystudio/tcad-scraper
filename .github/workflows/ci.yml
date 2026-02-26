@@ -170,7 +170,7 @@ jobs:
           SKIP_DB_TESTS: "true"
           SENTRY_DSN: ""
           CLAUDE_API_KEY: "test-key"
-        run: npm run test -- --testPathPattern="(utils|helpers|validators)" --passWithNoTests
+        run: npm run test -- "(utils|helpers|validators)" --passWithNoTests
         continue-on-error: true
 
   # Job 4: Build Verification
