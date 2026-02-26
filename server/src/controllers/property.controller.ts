@@ -106,7 +106,7 @@ export class PropertyController {
 		const result = await cacheService.getOrSet(
 			cacheKey,
 			async () => {
-				const where = this.buildWhereClause(filters);
+				const where = buildWhereClause(filters);
 
 				const [properties, total] = await Promise.all([
 					prismaReadOnly.property.findMany({
@@ -393,43 +393,41 @@ export class PropertyController {
 		return res.json({ data: monitoredSearches });
 	}
 
-	/**
-	 * Helper method to build Prisma where clause from filters
-	 */
-	private buildWhereClause(
-		filters: PropertyFilters,
-	): Prisma.PropertyWhereInput {
-		const where: Prisma.PropertyWhereInput = {};
+}
 
-		if (filters.searchTerm) {
-			where.OR = [
-				{ searchTerm: { contains: filters.searchTerm, mode: "insensitive" } },
-				{ name: { contains: filters.searchTerm, mode: "insensitive" } },
-				{
-					propertyAddress: {
-						contains: filters.searchTerm,
-						mode: "insensitive",
-					},
+function buildWhereClause(
+	filters: PropertyFilters,
+): Prisma.PropertyWhereInput {
+	const where: Prisma.PropertyWhereInput = {};
+
+	if (filters.searchTerm) {
+		where.OR = [
+			{ searchTerm: { contains: filters.searchTerm, mode: "insensitive" } },
+			{ name: { contains: filters.searchTerm, mode: "insensitive" } },
+			{
+				propertyAddress: {
+					contains: filters.searchTerm,
+					mode: "insensitive",
 				},
-			];
-		}
-
-		if (filters.city) {
-			where.city = filters.city;
-		}
-
-		if (filters.propType) {
-			where.propType = filters.propType;
-		}
-
-		if (filters.minValue || filters.maxValue) {
-			where.appraisedValue = {};
-			if (filters.minValue) where.appraisedValue.gte = filters.minValue;
-			if (filters.maxValue) where.appraisedValue.lte = filters.maxValue;
-		}
-
-		return where;
+			},
+		];
 	}
+
+	if (filters.city) {
+		where.city = filters.city;
+	}
+
+	if (filters.propType) {
+		where.propType = filters.propType;
+	}
+
+	if (filters.minValue || filters.maxValue) {
+		where.appraisedValue = {};
+		if (filters.minValue) where.appraisedValue.gte = filters.minValue;
+		if (filters.maxValue) where.appraisedValue.lte = filters.maxValue;
+	}
+
+	return where;
 }
 
 export const propertyController = new PropertyController();
