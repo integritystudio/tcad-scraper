@@ -153,8 +153,8 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 				.get("/api/properties?minValue=400000")
 				.expect(200);
 
-			response.body.data.forEach((property: { appraisedValue: number }) => {
-				expect(property.appraisedValue).toBeGreaterThanOrEqual(400000);
+			response.body.data.forEach((property: { appraised_value: number }) => {
+				expect(property.appraised_value).toBeGreaterThanOrEqual(400000);
 			});
 		});
 
