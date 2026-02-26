@@ -49,5 +49,5 @@ docker run -d --name tcad-redis -p 6379:6379 redis:7-alpine
 ## Notes
 
 - All secrets via Doppler: `doppler run -- docker-compose ...`
-- Production deployment uses PM2, not Docker (see CLAUDE.md Production Deployment section)
+- Production runs on **Render** (Web Service + managed Redis with TLS + PostgreSQL). Docker is not used in production
 - The full Docker stack (frontend + backend + monitoring) exists but is not the primary dev workflow

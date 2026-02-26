@@ -1,5 +1,17 @@
 ## Recent Updates
 
+### February 26, 2026 - Redis TLS Migration & Scraper Fixes
+
+- **Render Redis migration**: All environments now use Render Redis with TLS (`rediss://`); local Docker Redis no longer required
+- **TLS support**: Auto-detected from URL prefix; `buildRedisConfig()` handles Bull queue TLS parsing
+- **NULL fix**: `COALESCE` + `|| 0` for null/NaN `appraised_value` from TCAD API
+- **ON CONFLICT fix**: Upsert now uses `(property_id, year)` matching unique constraint
+- **Docs updated**: Removed stale hobbes/PM2/local-Redis references across 5 files
+
+See [changelog/2026-02-26.md](changelog/2026-02-26.md) for full details.
+
+---
+
 ### February 8-9, 2026 - DRY Refactoring & Technical Debt Cleared
 
 - **Consolidated enqueue scripts**: 10 separate scripts merged into a config-driven runner (`enqueue-batch.ts` + `batch-configs.ts` with 14 batch types)

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: February 10, 2026 | **Version**: 4.2
+**Last Updated**: February 26, 2026 | **Version**: 4.3
 
 ## Project Overview
 
@@ -9,15 +9,15 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Backend**: Express API (TypeScript) + BullMQ queues + Playwright scraping
 - **Frontend**: React 19 + Vite
 - **Database**: PostgreSQL (Render) + Prisma ORM
-- **Queue**: BullMQ + Redis
+- **Queue**: BullMQ + Redis (Render, TLS)
 - **Logging**: Pino (structured JSON)
 - **Testing**: Vitest (617 tests, 0 skipped)
 - **Scale**: 418K+ properties
 
 ```
-React (5174) → Express (3000) → PostgreSQL (Render)
+React (5174) → Express (3001) → PostgreSQL (Render)
                     ↓
-                BullMQ Queue (Redis 6379)
+                BullMQ Queue (Render Redis / TLS)
                     ↓
                 Scraper Workers → TCAD API/Website
 ```
@@ -55,7 +55,7 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 - **Hosting**: GitHub Pages (frontend via `alephatx.info`), Render (API)
 - Docker Compose: `config/docker-compose.base.yml` + `dev.yml`
 - Monitoring: `config/monitoring/` (Grafana dashboards, Prometheus configs)
-- Ports: Frontend 5174, Backend 3000, Redis 6379, PostgreSQL 5432
+- Ports: Frontend 5174, Backend 3001, Redis 6379 (Render TLS), PostgreSQL (Render)
 
 ### Project Layout
 ```
@@ -112,7 +112,7 @@ npm run queue:status
 ## Architecture Decisions
 
 - **Remote PostgreSQL on Render**; local container disabled
-- **Production Redis**: `REDIS_URL via Doppler (Render Redis)` (prevents duplicate work across machines)
+- **Production Redis**: Render Redis via `REDIS_URL` in Doppler (`rediss://` TLS). Config auto-detects TLS from URL prefix. Local dev also uses Render Redis (IP allowlisted)
 - **Bearer tokens** expire ~5 min; `token-refresh.service.ts` auto-refreshes (see [docs/TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md))
 - **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses. Does NOT work with cities, ZIP codes, short terms (<4 chars), compound names
 - **Env vars**: `TCAD_YEAR` (default: current year), `QUEUE_BATCH_CHUNK_SIZE` (default: 500)
@@ -146,8 +146,8 @@ curl -s "https://api.alephatx.info/health" | jq
 | Problem | Steps |
 |---------|-------|
 | DB connection failed | Check Render dashboard → verify DATABASE_URL in Doppler |
-| TCAD API auth failed | Token expired (5 min lifetime); check `pm2 logs tcad-api \| grep "Token refreshed"` |
-| Queue not processing | `npm run queue:status` → `docker logs tcad-redis` |
+| TCAD API auth failed | Token expired (5 min lifetime); check server logs for "Token refreshed" |
+| Queue not processing | `npm run queue:status` → check Render Redis dashboard or server logs |
 | Rate limiting error | Ensure `app.set('trust proxy', 1)` in `server/src/index.ts` |
 | API 522/unreachable | Check Render dashboard → service logs |
 | DNS not resolving | Flush: `sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder` |
@@ -159,8 +159,8 @@ curl -s "https://api.alephatx.info/health" | jq
 | Environment | URL |
 |------------|-----|
 | Frontend (local) | http://localhost:5174 |
-| Backend (local) | http://localhost:3000 |
-| Bull Dashboard | http://localhost:3000/admin/queues |
+| Backend (local) | http://localhost:3001 |
+| Bull Dashboard | http://localhost:3001/admin/queues |
 | Frontend (prod) | https://alephatx.info |
 | API (prod) | https://api.alephatx.info/api |
 | Health (prod) | https://api.alephatx.info/health |

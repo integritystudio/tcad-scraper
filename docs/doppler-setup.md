@@ -42,11 +42,12 @@ doppler setup
 ### 2. Set Environment Variables in Doppler
 
 ```bash
-# Database
-doppler secrets set DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper"
+# Database (Render PostgreSQL — get URL from Render dashboard)
+doppler secrets set DATABASE_URL="postgresql://user:pass@host/tcad_scraper"
 
-# Redis
-doppler secrets set REDIS_HOST="localhost"
+# Redis (Render Redis with TLS — get URL from Render dashboard)
+doppler secrets set REDIS_URL="rediss://user:pass@oregon-keyvalue.render.com:6379"
+doppler secrets set REDIS_HOST="oregon-keyvalue.render.com"
 doppler secrets set REDIS_PORT="6379"
 
 # Server
@@ -66,7 +67,7 @@ doppler secrets set SCRAPER_RETRY_ATTEMPTS="3"
 doppler secrets set SCRAPER_RATE_LIMIT_DELAY="5000"
 
 # Frontend
-doppler secrets set FRONTEND_URL="http://localhost:5173"
+doppler secrets set FRONTEND_URL="http://localhost:5174"
 
 # Logging
 doppler secrets set LOG_LEVEL="info"
@@ -92,11 +93,11 @@ doppler run -- npm start
 cd ..
 
 # Create .env file for frontend
-echo "VITE_API_URL=http://localhost:5050/api" > .env
+echo "VITE_API_URL=http://localhost:3001/api" > .env
 
 # Or use Doppler for frontend too
 doppler setup
-doppler secrets set VITE_API_URL="http://localhost:5050/api"
+doppler secrets set VITE_API_URL="http://localhost:3001/api"
 doppler run -- npm run dev
 ```
 
@@ -138,12 +139,12 @@ doppler secrets
 
 3. Test server connection:
 ```bash
-curl http://localhost:5050/health
+curl http://localhost:3001/health
 ```
 
 4. Test API endpoint:
 ```bash
-curl http://localhost:5050/api/properties?limit=10
+curl http://localhost:3001/api/properties?limit=10
 ```
 
 ## Security Best Practices
@@ -166,9 +167,9 @@ curl http://localhost:5050/api/properties?limit=10
 - Ensure you have permissions to the Doppler project
 
 ### Database connection errors
-- Verify DATABASE_URL is correct
-- Check PostgreSQL is running: `docker ps | grep postgres`
-- Test connection: `psql $DATABASE_URL`
+- Verify DATABASE_URL is correct (should point to Render PostgreSQL)
+- Check Render dashboard for DB status
+- Test connection: `doppler run -- psql $DATABASE_URL`
 
 ## Alternative: Using .env without Doppler
 

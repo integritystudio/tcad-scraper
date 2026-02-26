@@ -85,7 +85,7 @@ The application supports two scraping methods:
 
 ### Infrastructure & DevOps
 - **PostgreSQL 15+** - Primary database
-- **Redis 7** (Docker container `bullmq-redis`) - Job queue and state management
+- **Redis 7** — Render Redis with TLS (`rediss://`) for production and local dev; Docker fallback for offline dev
 - **Prometheus** (Docker container `prometheus`) - Metrics collection and monitoring
 - **BullMQ Metrics Exporter** - Custom metrics exporter for queue statistics
 - **Docker Compose** for service orchestration
@@ -781,12 +781,13 @@ The application uses Docker Compose for infrastructure services defined in `dock
 
 ### Services
 
-#### Redis (bullmq-redis)
+#### Redis (bullmq-redis) — Dev Only
 - **Image**: redis:7-alpine
 - **Port**: 6379
-- **Purpose**: BullMQ job queue and state management
+- **Purpose**: Local dev fallback for BullMQ job queue
 - **Volume**: `redis-data`
 - **Features**: AOF persistence enabled
+- **Note**: Production and primary local dev use **Render Redis** with TLS (`rediss://` via Doppler `REDIS_URL`)
 
 #### BullMQ Metrics Exporter (bullmq-metrics)
 - **Build**: `./bullmq-exporter`
