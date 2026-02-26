@@ -165,6 +165,7 @@ jobs:
 
       - name: Run unit tests (no DB required)
         working-directory: ./server
+        shell: bash
         env:
           NODE_ENV: test
           SKIP_DB_TESTS: "true"
