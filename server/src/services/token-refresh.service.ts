@@ -27,6 +27,7 @@ export class TCADTokenRefreshService {
 	private lastRefreshTime: Date | null = null;
 	private refreshCount: number = 0;
 	private failureCount: number = 0;
+	private browserRefreshEnabled: boolean = true;
 
 	constructor() {
 		// Initialize with env token if available
@@ -41,6 +42,14 @@ export class TCADTokenRefreshService {
 				"Token refresh service initialized without token - will fetch on first refresh",
 			);
 		}
+	}
+
+	/**
+	 * Whether browser-based refresh is enabled.
+	 * Disabled automatically when browser launch fails (e.g. on Render).
+	 */
+	isBrowserRefreshEnabled(): boolean {
+		return this.browserRefreshEnabled;
 	}
 
 	/**
@@ -63,6 +72,7 @@ export class TCADTokenRefreshService {
 			failureCount: this.failureCount,
 			isRefreshing: this.isRefreshing,
 			isRunning: this.cronJob !== null || this.refreshInterval !== null,
+			browserRefreshEnabled: this.browserRefreshEnabled,
 		};
 	}
 
@@ -125,12 +135,27 @@ export class TCADTokenRefreshService {
 	private async _performTokenRefresh(
 		startTime: number,
 	): Promise<string | null> {
+		// If browser refresh is disabled, return existing token (no-op)
+		if (!this.browserRefreshEnabled) {
+			logger.debug("Browser refresh disabled, using existing env token");
+			return this.currentToken;
+		}
+
 		logger.info("Starting token refresh...");
 
 		// Initialize browser if needed
 		if (!this.browser) {
 			logger.info("Initializing browser for token refresh...");
-			this.browser = await launchTCADBrowser();
+			try {
+				this.browser = await launchTCADBrowser();
+			} catch (error) {
+				this.browserRefreshEnabled = false;
+				logger.info(
+					"Browser launch failed, disabling browser refresh — using env token: %s",
+					getErrorMessage(error),
+				);
+				return this.currentToken;
+			}
 		}
 
 		const context = await this.browser.newContext({
@@ -355,25 +380,36 @@ export class TCADTokenRefreshService {
 			return;
 		}
 
-		// Default: Run every 4.5 minutes
-		// Cron format: */5 * * * * (every 5 minutes)
-		// We'll use 4.5 minutes by alternating between 4 and 5 minute intervals
-		const schedule = cronSchedule || "*/4 * * * *"; // Every 4 minutes as baseline
+		// If we have an env token and browser refresh is already disabled, skip scheduling
+		if (this.currentToken && !this.browserRefreshEnabled) {
+			logger.info(
+				"Skipping auto-refresh scheduling — using env token without browser",
+			);
+			return;
+		}
+
+		const schedule = cronSchedule || "*/4 * * * *";
 
 		logger.info(`Starting automatic token refresh (schedule: ${schedule})`);
 
-		// Perform initial refresh
+		// Perform initial refresh (may disable browser refresh on failure)
 		this.refreshToken().catch((error: unknown) => {
 			logger.error("Initial token refresh failed: %s", getErrorMessage(error));
 		});
 
-		// Schedule recurring refreshes
-		this.cronJob = cron.schedule(schedule, async () => {
-			logger.info("Scheduled token refresh triggered");
-			await this.refreshToken();
-		});
+		// Only schedule recurring refreshes if browser refresh is still enabled
+		if (this.browserRefreshEnabled) {
+			this.cronJob = cron.schedule(schedule, async () => {
+				if (!this.browserRefreshEnabled) {
+					logger.debug("Skipping scheduled refresh — browser disabled");
+					return;
+				}
+				logger.info("Scheduled token refresh triggered");
+				await this.refreshToken();
+			});
 
-		logger.info("Automatic token refresh started successfully");
+			logger.info("Automatic token refresh started successfully");
+		}
 	}
 
 	/**
@@ -386,28 +422,42 @@ export class TCADTokenRefreshService {
 			return;
 		}
 
+		// If we have an env token and browser refresh is already disabled, skip scheduling
+		if (this.currentToken && !this.browserRefreshEnabled) {
+			logger.info(
+				"Skipping auto-refresh interval — using env token without browser",
+			);
+			return;
+		}
+
 		logger.info(
 			`Starting automatic token refresh (interval: ${intervalMs}ms / ${intervalMs / 60000} minutes)`,
 		);
 
-		// Perform initial refresh
+		// Perform initial refresh (may disable browser refresh on failure)
 		this.refreshToken().catch((error: unknown) => {
 			logger.error("Initial token refresh failed: %s", getErrorMessage(error));
 		});
 
-		// Schedule recurring refreshes with slight randomization
-		this.refreshInterval = setInterval(async () => {
-			// Add ±30 seconds of randomization to avoid detection patterns
-			const randomDelay = Math.floor(Math.random() * 60000) - 30000;
-			await new Promise((resolve) =>
-				setTimeout(resolve, Math.max(0, randomDelay)),
-			);
+		// Only schedule if browser refresh is still enabled
+		if (this.browserRefreshEnabled) {
+			this.refreshInterval = setInterval(async () => {
+				if (!this.browserRefreshEnabled) {
+					logger.debug("Skipping scheduled refresh — browser disabled");
+					return;
+				}
 
-			logger.info("Scheduled token refresh triggered");
-			await this.refreshToken();
-		}, intervalMs);
+				const randomDelay = Math.floor(Math.random() * 60000) - 30000;
+				await new Promise((resolve) =>
+					setTimeout(resolve, Math.max(0, randomDelay)),
+				);
 
-		logger.info("Automatic token refresh interval started successfully");
+				logger.info("Scheduled token refresh triggered");
+				await this.refreshToken();
+			}, intervalMs);
+
+			logger.info("Automatic token refresh interval started successfully");
+		}
 	}
 
 	/**
@@ -469,6 +519,7 @@ export class TCADTokenRefreshService {
 			isRefreshing: this.isRefreshing,
 			isAutoRefreshRunning:
 				this.cronJob !== null || this.refreshInterval !== null,
+			browserRefreshEnabled: this.browserRefreshEnabled,
 		};
 	}
 }
@@ -478,4 +529,3 @@ export const tokenRefreshService = new TCADTokenRefreshService();
 
 // Alias for backwards compatibility
 export const tcadTokenRefreshService = tokenRefreshService;
-

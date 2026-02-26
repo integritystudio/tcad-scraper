@@ -8,27 +8,18 @@ import { humanDelay } from "../utils/timing";
 import { launchTCADBrowser } from "./browser-factory";
 import { scrapeDOMFallback } from "./fallback/dom-scraper";
 import logger from "./logger";
+import {
+	fetchTCADProperties,
+	mapTCADResultToPropertyData,
+	type TCADApiResponse,
+	type TCADPropertyResult,
+} from "./tcad-api-client";
 
-interface TCADApiResponse {
-	totalCount: number;
-	results: TCADPropertyResult[];
-	pageSize: number;
-}
-
-interface TCADPropertyResult {
-	pid?: number;
-	displayName?: string;
-	propType?: string;
-	city?: string;
-	streetPrimary?: string;
-	assessedValue?: string | number;
-	appraisedValue?: string | number;
-	geoID?: string;
-	legalDescription?: string;
-}
+export type { TCADApiResponse, TCADPropertyResult };
 
 export class TCADScraper {
 	private browser: Browser | null = null;
+	private browserAvailable = false;
 	private config: ScraperConfig;
 
 	constructor(config?: Partial<ScraperConfig>) {
@@ -73,10 +64,43 @@ export class TCADScraper {
 	}
 
 	async initialize(): Promise<void> {
+		// Check if we already have a token (from refresh service or env)
+		const existingToken =
+			tokenRefreshService.getCurrentToken() ||
+			appConfig.scraper.tcadApiKey ||
+			null;
+
+		if (existingToken) {
+			// Try to launch browser, but don't fail if unavailable
+			try {
+				const proxyOptions = this.config.proxyServer
+					? {
+							proxy: {
+								server: this.config.proxyServer,
+								username: this.config.proxyUsername,
+								password: this.config.proxyPassword,
+							},
+						}
+					: undefined;
+
+				this.browser = await launchTCADBrowser(proxyOptions);
+				this.browserAvailable = true;
+				logger.info("Browser launched (token + browser available)");
+			} catch (error) {
+				this.browserAvailable = false;
+				logger.info(
+					"Browser unavailable, using API-direct mode with existing token: %s",
+					getErrorMessage(error),
+				);
+			}
+			return;
+		}
+
+		// No token — must launch browser for token capture
 		try {
 			const proxyEnabled = !!this.config.proxyServer;
 			logger.info(
-				`Initializing browser${proxyEnabled ? " with Bright Data proxy" : ""}...`,
+				`Initializing browser for token capture${proxyEnabled ? " with Bright Data proxy" : ""}...`,
 			);
 
 			const proxyOptions = this.config.proxyServer
@@ -90,6 +114,7 @@ export class TCADScraper {
 				: undefined;
 
 			this.browser = await launchTCADBrowser(proxyOptions);
+			this.browserAvailable = true;
 		} catch (error) {
 			logger.error("Failed to initialize browser: %s", getErrorMessage(error));
 			throw error;
@@ -121,19 +146,98 @@ export class TCADScraper {
 		searchTerm: string,
 		maxRetries: number = 3,
 	): Promise<PropertyData[]> {
-		if (!this.browser) {
-			throw new Error("Browser not initialized. Call initialize() first.");
+		// Acquire token first (needed for both paths)
+		let authToken: string | null = null;
+
+		if (appConfig.scraper.autoRefreshToken) {
+			authToken = tokenRefreshService.getCurrentToken();
+			if (authToken) {
+				logger.info("Using token from auto-refresh service");
+			}
+		}
+		if (!authToken) {
+			authToken = appConfig.scraper.tcadApiKey || null;
 		}
 
+		// API-direct mode: token available, no browser needed
+		if (authToken && !this.browserAvailable) {
+			return this.scrapeViaNodeFetch(authToken, searchTerm, maxRetries);
+		}
+
+		// Browser-based mode
+		if (!this.browser) {
+			throw new Error(
+				"No token available and browser not initialized. Call initialize() first.",
+			);
+		}
+
+		return this.scrapeViaBrowser(authToken, searchTerm, maxRetries);
+	}
+
+	/**
+	 * API-direct scraping using native Node.js fetch (no browser)
+	 */
+	private async scrapeViaNodeFetch(
+		token: string,
+		searchTerm: string,
+		maxRetries: number,
+	): Promise<PropertyData[]> {
 		let lastError: Error | null = null;
 
 		for (let attempt = 1; attempt <= maxRetries; attempt++) {
 			try {
 				logger.info(
-					`API scraping attempt ${attempt} for search term: ${searchTerm}`,
+					`API-direct scraping attempt ${attempt} for: ${searchTerm}`,
 				);
 
-				const context = await this.browser.newContext({
+				const response = await fetchTCADProperties(
+					token,
+					searchTerm,
+					appConfig.scraper.tcadYear,
+				);
+
+				logger.info(
+					`API returned ${response.totalCount} total properties, fetched ${response.results.length} results (pageSize: ${response.pageSize})`,
+				);
+
+				const properties = response.results.map(mapTCADResultToPropertyData);
+				logger.info(`Extracted ${properties.length} properties via API-direct`);
+				return properties;
+			} catch (error) {
+				lastError = error as Error;
+				logger.error(
+					`API-direct attempt ${attempt} failed: %s`,
+					getErrorMessage(error),
+				);
+
+				if (attempt < maxRetries) {
+					const delay = this.config.retryDelay * 2 ** (attempt - 1);
+					logger.info(`Retrying in ${delay}ms...`);
+					await new Promise((resolve) => setTimeout(resolve, delay));
+				}
+			}
+		}
+
+		throw lastError || new Error("All API-direct scraping attempts failed");
+	}
+
+	/**
+	 * Browser-based scraping: injects fetch into browser context
+	 */
+	private async scrapeViaBrowser(
+		authToken: string | null,
+		searchTerm: string,
+		maxRetries: number,
+	): Promise<PropertyData[]> {
+		let lastError: Error | null = null;
+
+		for (let attempt = 1; attempt <= maxRetries; attempt++) {
+			try {
+				logger.info(
+					`Browser API scraping attempt ${attempt} for search term: ${searchTerm}`,
+				);
+
+				const context = await this.browser!.newContext({
 					userAgent: this.getRandomElement(this.config.userAgents),
 					viewport: this.getRandomElement(this.config.viewports),
 					locale: "en-US",
@@ -146,26 +250,9 @@ export class TCADScraper {
 				suppressBrowserConsoleWarnings(page, logger);
 
 				try {
-					// Step 1: Get auth token - priority order:
-					// 1. Token from auto-refresh service (if enabled)
-					// 2. Token from environment/config
-					// 3. Capture from browser (fallback)
-					let authToken: string | null = null;
+					let token = authToken;
 
-					// Try to get token from refresh service first (if auto-refresh is enabled)
-					if (appConfig.scraper.autoRefreshToken) {
-						authToken = tokenRefreshService.getCurrentToken();
-						if (authToken) {
-							logger.info("Using token from auto-refresh service");
-						}
-					}
-
-					// Fall back to config token if refresh service doesn't have one
-					if (!authToken) {
-						authToken = appConfig.scraper.tcadApiKey || null;
-					}
-
-					if (authToken) {
+					if (token) {
 						logger.info("Using pre-fetched TCAD_API_KEY from environment");
 					} else {
 						logger.info(
@@ -176,17 +263,16 @@ export class TCADScraper {
 							const headers = request.headers();
 							const authHeader = headers.authorization;
 
-							// Only capture valid tokens (ignore "null" string and ensure it looks like a JWT)
 							if (
 								authHeader &&
 								authHeader !== "null" &&
 								authHeader.length > 50 &&
 								authHeader.startsWith("eyJ") &&
-								!authToken
+								!token
 							) {
-								authToken = authHeader;
+								token = authHeader;
 								logger.info(
-									`Auth token captured: length ${authToken.length}, preview: ${authToken.substring(0, 50)}...`,
+									`Auth token captured: length ${token.length}, preview: ${token.substring(0, 50)}...`,
 								);
 							}
 						});
@@ -206,22 +292,19 @@ export class TCADScraper {
 							{ timeout: 15000 },
 						);
 
-						// Trigger a search to activate auth token
 						await page.waitForSelector("#searchInput", { timeout: 10000 });
 						await humanDelay(500, 1000);
 						await page.type("#searchInput", "test", { delay: 50 });
 						await page.press("#searchInput", "Enter");
-						await humanDelay(3000, 4000); // Wait for API request to be made
+						await humanDelay(3000, 4000);
 
-						if (!authToken) {
+						if (!token) {
 							throw new Error("Failed to capture authorization token");
 						}
 
 						logger.info("Auth token captured from browser");
 					}
 
-					// Step 2: Make API calls from browser context using string injection to avoid tsx transformation
-					// Inject function as raw string to bypass __name issues
 					await page.addScriptTag({
 						content: `
               window.__tcad_search = function(token, term) {
@@ -229,7 +312,7 @@ export class TCADScraper {
                 const pageSizes = [1000, 500, 100, 50];
                 let currentSizeIndex = 0;
                 let lastErr = '';
-                const RATE_LIMIT_DELAY = 1000; // 1 second delay between requests to avoid 409
+                const RATE_LIMIT_DELAY = 1000;
 
                 return new Promise(function(resolve, reject) {
                   function tryNextPageSize() {
@@ -243,7 +326,6 @@ export class TCADScraper {
                     let totalCount = 0;
                     let currentPage = 1;
 
-                    // Fetch first page
                     fetch(apiUrl + '?page=1&pageSize=' + pageSize, {
                       method: 'POST',
                       headers: {
@@ -280,7 +362,6 @@ export class TCADScraper {
                         return;
                       }
 
-                      // Fetch remaining pages with rate-limit delay
                       function fetchNextPage() {
                         currentPage++;
                         if (allResults.length >= totalCount || currentPage > 100) {
@@ -288,7 +369,6 @@ export class TCADScraper {
                           return;
                         }
 
-                        // Add delay between pagination requests to avoid rate limiting
                         setTimeout(function() {
                           fetch(apiUrl + '?page=' + currentPage + '&pageSize=' + pageSize, {
                           method: 'POST',
@@ -332,23 +412,20 @@ export class TCADScraper {
                             lastErr = err.message;
                             tryNextPageSize();
                           } else if (err.message.indexOf('TOKEN_EXPIRED') >= 0) {
-                            // Auth token expired - reject with special error for queue to handle
                             reject(new Error('TOKEN_EXPIRED: Authorization token expired, needs refresh'));
                           } else if (err.message.indexOf('HTTP 409') >= 0) {
-                            // Rate limit hit - wait longer before retrying
                             setTimeout(function() {
                               fetchNextPage();
-                            }, RATE_LIMIT_DELAY * 2); // Wait 2 seconds before retry
+                            }, RATE_LIMIT_DELAY * 2);
                           } else if (err.message.indexOf('GATEWAY_TIMEOUT') >= 0) {
-                            // Gateway timeout - wait and retry with backoff
                             setTimeout(function() {
                               fetchNextPage();
-                            }, RATE_LIMIT_DELAY * 5); // Wait 5 seconds before retry
+                            }, RATE_LIMIT_DELAY * 5);
                           } else {
                             reject(err);
                           }
                         });
-                        }, RATE_LIMIT_DELAY); // Close the setTimeout for pagination delay
+                        }, RATE_LIMIT_DELAY);
                       }
 
                       fetchNextPage();
@@ -359,22 +436,19 @@ export class TCADScraper {
                         lastErr = err.message;
                         tryNextPageSize();
                       } else if (err.message.indexOf('TOKEN_EXPIRED') >= 0) {
-                        // Auth token expired - reject with special error for queue to handle
                         reject(new Error('TOKEN_EXPIRED: Authorization token expired, needs refresh'));
                       } else if (err.message.indexOf('HTTP 409') >= 0) {
-                        // Rate limit hit on first page - wait longer before retrying with different page size
                         setTimeout(function() {
                           currentSizeIndex++;
                           lastErr = err.message;
                           tryNextPageSize();
-                        }, RATE_LIMIT_DELAY * 3); // Wait 3 seconds before trying different page size
+                        }, RATE_LIMIT_DELAY * 3);
                       } else if (err.message.indexOf('GATEWAY_TIMEOUT') >= 0) {
-                        // Gateway timeout on first page - wait and try with smaller page size
                         setTimeout(function() {
                           currentSizeIndex++;
                           lastErr = err.message;
                           tryNextPageSize();
-                        }, RATE_LIMIT_DELAY * 5); // Wait 5 seconds before trying smaller page size
+                        }, RATE_LIMIT_DELAY * 5);
                       } else {
                         reject(err);
                       }
@@ -387,34 +461,16 @@ export class TCADScraper {
             `,
 					});
 
-					// Call the injected function
 					const allProperties = (await page.evaluate(
-						`window.__tcad_search('${authToken}', '${searchTerm.replace(/'/g, "\\'")}')`,
+						`window.__tcad_search('${token}', '${searchTerm.replace(/'/g, "\\'")}')`,
 					)) as TCADApiResponse;
 
 					logger.info(
 						`API returned ${allProperties.totalCount} total properties, fetched ${allProperties.results.length} results (pageSize: ${allProperties.pageSize})`,
 					);
 
-					// Step 3: Transform API response to PropertyData format
 					const properties: PropertyData[] = allProperties.results.map(
-						(r: TCADPropertyResult) => ({
-							propertyId: r.pid?.toString() || "",
-							name: r.displayName || "",
-							propType: r.propType || "",
-							city: r.city || null,
-							propertyAddress: r.streetPrimary || "",
-							assessedValue:
-								typeof r.assessedValue === "number"
-									? r.assessedValue
-									: parseFloat(String(r.assessedValue || 0)),
-							appraisedValue:
-								typeof r.appraisedValue === "number"
-									? r.appraisedValue
-									: parseFloat(String(r.appraisedValue || 0)),
-							geoId: r.geoID || null,
-							description: r.legalDescription || null,
-						}),
+						mapTCADResultToPropertyData,
 					);
 
 					logger.info(`Extracted ${properties.length} properties via API`);
@@ -473,11 +529,20 @@ export class TCADScraper {
 				"Primary API method failed after all retries: %s",
 				getErrorMessage(apiError),
 			);
+
+			// DOM fallback requires a browser
+			if (!this.browserAvailable || !this.browser) {
+				logger.warn(
+					"DOM fallback unavailable (no browser) — re-throwing API error",
+				);
+				throw apiError;
+			}
+
 			logger.warn("Falling back to DOM-based scraping (limited to 20 results)");
 
 			try {
 				const properties = await scrapeDOMFallback(
-					this.browser!,
+					this.browser,
 					this.config,
 					searchTerm,
 					maxRetries,
