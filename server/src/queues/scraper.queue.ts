@@ -9,16 +9,32 @@ import { tcadTokenRefreshService } from "../services/token-refresh.service";
 import type { ScrapeJobData, ScrapeJobResult } from "../types";
 import { getErrorMessage } from "../utils/error-helpers";
 
+// Build Redis connection options, supporting TLS for rediss:// URLs
+function buildRedisConfig(): Bull.QueueOptions["redis"] {
+	if (!config.redis.url) {
+		return {
+			host: config.redis.host,
+			port: config.redis.port,
+			password: config.redis.password,
+			db: config.redis.db,
+		};
+	}
+	if (config.redis.tls) {
+		const parsed = new URL(config.redis.url);
+		return {
+			host: parsed.hostname,
+			port: parseInt(parsed.port || "6379"),
+			password: parsed.password,
+			username: parsed.username,
+			tls: { rejectUnauthorized: false },
+		};
+	}
+	return config.redis.url;
+}
+
 // Create the Bull queue
 export const scraperQueue = new Bull<ScrapeJobData>(config.queue.name, {
-	redis: config.redis.url
-		? config.redis.url
-		: {
-				host: config.redis.host,
-				port: config.redis.port,
-				password: config.redis.password,
-				db: config.redis.db,
-			},
+	redis: buildRedisConfig(),
 	defaultJobOptions: {
 		attempts: config.queue.defaultJobOptions.attempts,
 		backoff: {
@@ -88,7 +104,7 @@ scraperQueue.process(
 					for (const property of chunk) {
 						valuesClauses.push(
 							`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, ` +
-								`$${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, ` +
+								`$${paramIndex + 5}, COALESCE($${paramIndex + 6}, 0), $${paramIndex + 7}, $${paramIndex + 8}, ` +
 								`$${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13})`,
 						);
 
@@ -99,7 +115,7 @@ scraperQueue.process(
 							property.city,
 							property.propertyAddress,
 							property.assessedValue,
-							property.appraisedValue,
+							property.appraisedValue || 0,
 							property.geoId,
 							property.description,
 							searchTerm,
@@ -123,7 +139,7 @@ scraperQueue.process(
             search_term, year, scraped_at, created_at, updated_at
           )
           VALUES ${valuesClauses.join(", ")}
-          ON CONFLICT (property_id) DO UPDATE SET
+          ON CONFLICT (property_id, year) DO UPDATE SET
             name = EXCLUDED.name,
             prop_type = EXCLUDED.prop_type,
             city = EXCLUDED.city,
@@ -133,7 +149,6 @@ scraperQueue.process(
             geo_id = EXCLUDED.geo_id,
             description = EXCLUDED.description,
             search_term = EXCLUDED.search_term,
-            year = EXCLUDED.year,
             scraped_at = EXCLUDED.scraped_at,
             updated_at = EXCLUDED.updated_at
           RETURNING (xmax = 0) AS inserted

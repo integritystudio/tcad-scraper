@@ -108,6 +108,7 @@ export const config = {
 		password: process.env.REDIS_PASSWORD,
 		db: parseIntEnv("REDIS_DB", 0),
 		connectionTimeout: parseIntEnv("REDIS_CONNECTION_TIMEOUT", 10000),
+		tls: process.env.REDIS_URL?.startsWith("rediss://") ?? false,
 	},
 
 	// Queue Configuration
