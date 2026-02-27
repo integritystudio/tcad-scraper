@@ -299,6 +299,10 @@ export function validateConfig(): void {
 		errors.push("DATABASE_URL is required");
 	}
 
+	if (!config.scraper.tokenWorkerUrl) {
+		errors.push("TOKEN_WORKER_URL is required");
+	}
+
 	if (config.env.isProduction) {
 		if (
 			!config.auth.jwt.secret ||
@@ -308,6 +312,9 @@ export function validateConfig(): void {
 		}
 		if (!config.claude.apiKey) {
 			errors.push("ANTHROPIC_API_KEY is required for AI search functionality");
+		}
+		if (!config.scraper.tokenWorkerSecret) {
+			errors.push("TOKEN_WORKER_SECRET is required in production");
 		}
 	}
 
@@ -337,7 +344,10 @@ export function logConfigSummary(): void {
 	);
 	logger.info(`Claude AI: ${config.claude.apiKey ? "Enabled" : "Disabled"}`);
 	logger.info(
-		`TCAD API Token: ${config.scraper.tcadApiKey ? "Configured" : "Not configured"}`,
+		`Token Worker: ${config.scraper.tokenWorkerUrl ? "Configured" : "Not configured"}`,
+	);
+	logger.info(
+		`Token Worker Secret: ${config.scraper.tokenWorkerSecret ? "Set" : "Not set"}`,
 	);
 	logger.info(
 		`Monitoring: ${config.monitoring.sentry.enabled ? "Enabled" : "Disabled"}`,

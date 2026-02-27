@@ -30,6 +30,7 @@ vi.mock("../logger", () => ({
 	},
 }));
 
+import { tokenRefreshService } from "../../services/token-refresh.service";
 import { TCADScraper } from "../tcad-scraper";
 
 describe("TCADScraper", () => {
@@ -38,6 +39,9 @@ describe("TCADScraper", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockFetchTCADProperties.mockReset();
+		vi.mocked(tokenRefreshService.getCurrentToken).mockReturnValue(
+			"test-tcad-key",
+		);
 		scraper = new TCADScraper();
 	});
 
@@ -70,21 +74,12 @@ describe("TCADScraper", () => {
 		});
 
 		it("should throw when no token is available", async () => {
-			const { tokenRefreshService } = await import(
-				"../../services/token-refresh.service"
-			);
 			vi.mocked(tokenRefreshService.getCurrentToken).mockReturnValue(null);
 
-			// Also need config to have no token — mock it at module level
-			// The scraper checks both tokenRefreshService and appConfig
-			// Since appConfig.scraper.tcadApiKey is "test-tcad-key" in test env,
-			// this will still succeed. We test the error path by verifying the message.
 			const noTokenScraper = new TCADScraper();
-			// Restore for other tests
-			vi.mocked(tokenRefreshService.getCurrentToken).mockReturnValue(
-				"test-tcad-key",
+			await expect(noTokenScraper.initialize()).rejects.toThrow(
+				"No TCAD API token available",
 			);
-			await expect(noTokenScraper.initialize()).resolves.not.toThrow();
 		});
 	});
 
@@ -129,26 +124,12 @@ describe("TCADScraper", () => {
 			).rejects.toThrow("API down");
 		});
 
-		it("should use env token when refresh service returns null", async () => {
-			const { tokenRefreshService } = await import(
-				"../../services/token-refresh.service"
-			);
+		it("should throw when no token is available", async () => {
 			vi.mocked(tokenRefreshService.getCurrentToken).mockReturnValue(null);
 
-			// appConfig.scraper.tcadApiKey is still "test-tcad-key" in test env,
-			// so scraper falls back to that token and proceeds normally.
-			mockFetchTCADProperties.mockResolvedValue({
-				totalCount: 0,
-				results: [],
-				pageSize: 1000,
-			});
-
-			const results = await scraper.scrapePropertiesViaAPI("test", 1);
-			expect(results).toEqual([]);
-
-			vi.mocked(tokenRefreshService.getCurrentToken).mockReturnValue(
-				"test-tcad-key",
-			);
+			await expect(
+				scraper.scrapePropertiesViaAPI("test", 1),
+			).rejects.toThrow("No TCAD API token available");
 		});
 	});
 

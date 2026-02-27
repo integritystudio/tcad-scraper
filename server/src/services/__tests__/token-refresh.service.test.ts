@@ -45,15 +45,17 @@ describe("TCADTokenRefreshService", () => {
 			expect(service.getCurrentToken()).toBeNull();
 		});
 
-		it("should throw if TOKEN_WORKER_URL is not set", async () => {
+		it("should throw on first refreshToken if TOKEN_WORKER_URL is not set", async () => {
 			const original = process.env.TOKEN_WORKER_URL;
 			delete process.env.TOKEN_WORKER_URL;
 			try {
 				vi.resetModules();
-				// Module-level singleton throws on import when URL is missing
-				await expect(
-					import("../token-refresh.service"),
-				).rejects.toThrow("TOKEN_WORKER_URL is not configured");
+				const mod = await import("../token-refresh.service");
+				const svc = new mod.TCADTokenRefreshService();
+				// Lazy init throws on first use, not at construction
+				await expect(svc.refreshToken()).rejects.toThrow(
+					"TOKEN_WORKER_URL is not configured",
+				);
 			} finally {
 				process.env.TOKEN_WORKER_URL = original;
 			}

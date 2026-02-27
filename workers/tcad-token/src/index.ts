@@ -10,6 +10,7 @@ const CORS_HEADERS = {
 } as const;
 
 interface Env {
+  // Required: set via `wrangler secret put WORKER_SECRET`
   WORKER_SECRET?: string;
 }
 
@@ -18,6 +19,21 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
   });
+}
+
+/** Decode JWT payload and return `exp - iat` (seconds), or null on failure. */
+function getJwtLifetime(token: string): number | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1])) as { exp?: number; iat?: number };
+    if (typeof payload.exp === 'number' && typeof payload.iat === 'number') {
+      return payload.exp - payload.iat;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export default {
@@ -30,12 +46,10 @@ export default {
       return json({ error: 'Method not allowed' }, 405);
     }
 
-    // Auth check: if a secret is configured, require it
-    if (env.WORKER_SECRET) {
-      const auth = request.headers.get('Authorization');
-      if (auth !== `Bearer ${env.WORKER_SECRET}`) {
-        return json({ error: 'Unauthorized' }, 401);
-      }
+    // Auth required — reject if secret is not configured or doesn't match
+    const auth = request.headers.get('Authorization');
+    if (!env.WORKER_SECRET || auth !== `Bearer ${env.WORKER_SECRET}`) {
+      return json({ error: 'Unauthorized' }, 401);
     }
 
     try {
@@ -69,7 +83,9 @@ export default {
         return json({ error: 'Auth token missing in TCAD response' }, 502);
       }
 
-      return json({ token, expiresIn: 300 });
+      const expiresIn = getJwtLifetime(token) ?? 300;
+
+      return json({ token, expiresIn });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       return json({ error: message }, 500);

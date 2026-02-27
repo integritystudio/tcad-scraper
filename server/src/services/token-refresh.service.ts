@@ -26,10 +26,21 @@ export class TCADTokenRefreshService {
   private failureCount = 0;
   private refreshPromise: Promise<string | null> | null = null;
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
-  private readonly workerUrl: string;
-  private readonly workerSecret: string | undefined;
+  private workerUrl: string | null = null;
+  private workerSecret: string | undefined;
+  private initialized = false;
 
-  constructor() {
+  getCurrentToken(): string | null {
+    return this.currentToken;
+  }
+
+  /**
+   * Lazily resolve config on first use, so module-level import
+   * doesn't throw before validateConfig() runs.
+   */
+  private ensureInitialized(): void {
+    if (this.initialized) return;
+
     const url = config.scraper.tokenWorkerUrl;
     if (!url) {
       throw new Error(
@@ -43,11 +54,8 @@ export class TCADTokenRefreshService {
       logger.warn("TOKEN_WORKER_SECRET not set — requests will be unauthenticated");
     }
 
+    this.initialized = true;
     logger.info("Token refresh service initialized (worker mode)");
-  }
-
-  getCurrentToken(): string | null {
-    return this.currentToken;
   }
 
   getStats() {
@@ -68,6 +76,8 @@ export class TCADTokenRefreshService {
    * Concurrent callers share a single in-flight request.
    */
   async refreshToken(): Promise<string | null> {
+    this.ensureInitialized();
+
     if (this.refreshPromise) {
       return this.refreshPromise;
     }
@@ -86,7 +96,7 @@ export class TCADTokenRefreshService {
         headers.Authorization = `Bearer ${this.workerSecret}`;
       }
 
-      const res = await fetch(this.workerUrl, {
+      const res = await fetch(this.workerUrl!, {
         headers,
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
@@ -121,6 +131,7 @@ export class TCADTokenRefreshService {
 
   /**
    * Start auto-refresh on an interval.
+   * Interval should be significantly larger than FETCH_TIMEOUT_MS (10s).
    */
   startAutoRefreshInterval(intervalMs?: number): void {
     if (this.refreshTimer) {
@@ -131,8 +142,8 @@ export class TCADTokenRefreshService {
     const interval = intervalMs ?? DEFAULT_REFRESH_INTERVAL_MS;
 
     this.refreshTimer = setInterval(() => {
-      this.refreshToken().catch((err) => {
-        logger.error(`Auto-refresh error: ${err instanceof Error ? err.message : err}`);
+      this.refreshToken().catch(() => {
+        // doRefresh handles all errors internally; this is a safety net
       });
     }, interval);
 

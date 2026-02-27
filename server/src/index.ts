@@ -304,14 +304,10 @@ app.get("/health/queue", async (_req, res) => {
 app.get("/health/token", async (_req, res) => {
 	try {
 		const health = tokenRefreshService.getHealth();
-		const stats = tokenRefreshService.getStats();
 
 		res.json({
 			status: health.healthy ? "healthy" : "unhealthy",
-			tokenRefresh: {
-				...health,
-				...stats,
-			},
+			tokenRefresh: health,
 		});
 	} catch (error) {
 		logger.error({ error }, "Token health check failed");
@@ -528,7 +524,9 @@ if (require.main === module) {
 		// Initialize scheduled jobs
 		scheduledJobs.initialize();
 
-		// Fetch initial TCAD token and start auto-refresh unconditionally
+		// Start auto-refresh before initial fetch so the timer is always running,
+		// even if the first fetch fails or the process receives SIGTERM during startup.
+		tokenRefreshService.startAutoRefreshInterval();
 		tokenRefreshService
 			.refreshToken()
 			.then((token) => {
@@ -542,9 +540,6 @@ if (require.main === module) {
 				logger.error(
 					`Token service startup error: ${err instanceof Error ? err.message : String(err)}`,
 				);
-			})
-			.finally(() => {
-				tokenRefreshService.startAutoRefreshInterval();
 			});
 
 		// Start periodic code complexity analysis

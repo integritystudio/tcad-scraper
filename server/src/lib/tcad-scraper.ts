@@ -25,14 +25,11 @@ export class TCADScraper {
 	}
 
 	async initialize(): Promise<void> {
-		const token =
-			tokenRefreshService.getCurrentToken() ||
-			appConfig.scraper.tcadApiKey ||
-			null;
+		const token = tokenRefreshService.getCurrentToken();
 
 		if (!token) {
 			throw new Error(
-				"No TCAD API token available. Set TCAD_API_KEY in environment.",
+				"No TCAD API token available. Ensure token refresh service is running.",
 			);
 		}
 
@@ -46,14 +43,11 @@ export class TCADScraper {
 		searchTerm: string,
 		maxRetries: number = this.config.retryAttempts,
 	): Promise<PropertyData[]> {
-		const authToken =
-			tokenRefreshService.getCurrentToken() ||
-			appConfig.scraper.tcadApiKey ||
-			null;
+		const authToken = tokenRefreshService.getCurrentToken();
 
 		if (!authToken) {
 			throw new Error(
-				"No TCAD API token available. Set TCAD_API_KEY in environment.",
+				"No TCAD API token available. Ensure token refresh service is running.",
 			);
 		}
 
