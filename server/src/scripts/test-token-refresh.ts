@@ -27,7 +27,7 @@ async function testTokenRefresh() {
 	const initialStats = tokenRefreshService.getStats();
 	logger.info(`Current Token: ${initialStats.currentToken || "None"}`);
 	logger.info(`Last Refresh: ${initialStats.lastRefreshTime || "Never"}`);
-	logger.info(`Refresh Count: ${initialStats.refreshCount}`);
+	logger.info(`Success Count: ${initialStats.successCount}`);
 	logger.info(`Failure Count: ${initialStats.failureCount}`);
 	logger.info(`Is Running: ${initialStats.isRunning}`);
 	logger.info("");

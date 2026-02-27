@@ -273,6 +273,29 @@ describe("TCADTokenRefreshService", () => {
 			const health = service.getHealth();
 			expect(health.failureRate).toBe("50.00%");
 		});
+
+		it("should show failure rate when only failures exist", async () => {
+			mockFetch.mockResolvedValueOnce({ ok: false, status: 502 });
+			await service.refreshToken();
+
+			const health = service.getHealth();
+			expect(health.failureRate).toBe("100.00%");
+		});
+
+		it("should use server-reported expiresIn for health clock", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ token: "tok", expiresIn: 120 }),
+			});
+			await service.refreshToken();
+
+			// 120s lifetime - advance 95s (only 25s left, within 30s buffer)
+			vi.advanceTimersByTime(95_000);
+
+			const health = service.getHealth();
+			expect(health.healthy).toBe(false);
+			expect(health.expiresInMs).toBeLessThanOrEqual(30_000);
+		});
 	});
 
 	describe("cleanup", () => {

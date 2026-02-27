@@ -21,6 +21,7 @@ interface TokenResponse {
 export class TCADTokenRefreshService {
   private currentToken: string | null = null;
   private lastRefreshTime: Date | null = null;
+  private tokenExpiryMs: number = TOKEN_EXPIRY_MS;
   private successCount = 0;
   private failureCount = 0;
   private refreshPromise: Promise<string | null> | null = null;
@@ -102,6 +103,7 @@ export class TCADTokenRefreshService {
 
       this.currentToken = data.token;
       this.lastRefreshTime = new Date();
+      this.tokenExpiryMs = data.expiresIn > 0 ? data.expiresIn * 1000 : TOKEN_EXPIRY_MS;
       this.successCount++;
 
       logger.info(
@@ -155,7 +157,7 @@ export class TCADTokenRefreshService {
       ? Date.now() - this.lastRefreshTime.getTime()
       : null;
     const expiresInMs =
-      ageMs !== null ? TOKEN_EXPIRY_MS - ageMs : null;
+      ageMs !== null ? this.tokenExpiryMs - ageMs : null;
     const tokenExpired =
       expiresInMs !== null && expiresInMs <= EXPIRY_BUFFER_MS;
 
@@ -168,7 +170,7 @@ export class TCADTokenRefreshService {
       successCount: this.successCount,
       failureCount: this.failureCount,
       failureRate:
-        this.successCount > 0
+        this.successCount + this.failureCount > 0
           ? `${(
               (this.failureCount / (this.successCount + this.failureCount)) *
               100

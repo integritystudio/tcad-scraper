@@ -188,7 +188,7 @@ async function showStatus() {
 	logger.info(`     - Completed: ${completed}`);
 	logger.info("   Token:");
 	logger.info(`     - Last refresh: ${tokenStats.lastRefreshTime}`);
-	logger.info(`     - Refresh count: ${tokenStats.refreshCount}`);
+	logger.info(`     - Success count: ${tokenStats.successCount}`);
 	logger.info(`     - Failure count: ${tokenStats.failureCount}`);
 }
 

@@ -46,8 +46,11 @@ export default {
         return json({ error: 'Office lookup failed', status: officeRes.status }, 502);
       }
 
-      const officeData = (await officeRes.json()) as { results: { office: string } };
-      const office = officeData.results.office;
+      const officeData = (await officeRes.json()) as { results?: { office?: string } };
+      const office = officeData?.results?.office;
+      if (!office) {
+        return json({ error: 'Office lookup returned unexpected shape' }, 502);
+      }
 
       const tokenRes = await fetch(AUTH_TOKEN, {
         method: 'POST',
@@ -60,9 +63,13 @@ export default {
         return json({ error: 'Token request failed', status: tokenRes.status }, 502);
       }
 
-      const tokenData = (await tokenRes.json()) as { user: { token: string } };
+      const tokenData = (await tokenRes.json()) as { user?: { token?: string } };
+      const token = tokenData?.user?.token;
+      if (!token) {
+        return json({ error: 'Auth token missing in TCAD response' }, 502);
+      }
 
-      return json({ token: tokenData.user.token, expiresIn: 300 });
+      return json({ token, expiresIn: 300 });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       return json({ error: message }, 500);
