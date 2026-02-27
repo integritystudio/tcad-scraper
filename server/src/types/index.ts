@@ -1,14 +1,8 @@
 // Scraper configuration types
 export interface ScraperConfig {
-	headless: boolean;
 	timeout: number;
 	retryAttempts: number;
 	retryDelay: number;
-	userAgents: string[];
-	viewports: Array<{ width: number; height: number }>;
-	proxyServer?: string;
-	proxyUsername?: string;
-	proxyPassword?: string;
 }
 
 // Property data structure matching database schema

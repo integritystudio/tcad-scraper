@@ -51,7 +51,7 @@ export async function enqueueBatchGeneric(
 	const { batchName, emoji, terms, userId, priority, extraLogs } = batchConfig;
 
 	logger.info(`${emoji} Starting ${batchName} Batch Enqueue`);
-	logger.info(`Auto-refresh token enabled: ${config.scraper.autoRefreshToken}`);
+	logger.info(`TCAD API token: ${config.scraper.tcadApiKey ? "configured" : "NOT configured"}`);
 
 	// Call extra logs if provided
 	if (extraLogs) {

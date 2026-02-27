@@ -5,9 +5,7 @@ import { getErrorMessage } from "../utils/error-helpers";
 async function testApiScraper() {
 	logger.info("Testing API-based scraper...\n");
 
-	const scraper = new TCADScraper({
-		headless: true, // Run headless for speed
-	});
+	const scraper = new TCADScraper();
 
 	try {
 		await scraper.initialize();

@@ -66,9 +66,7 @@ scraperQueue.process(
 			},
 		});
 
-		const scraper = new TCADScraper({
-			headless: config.env.isProduction ? true : config.scraper.headless,
-		});
+		const scraper = new TCADScraper();
 
 		try {
 			// Update progress: Initializing

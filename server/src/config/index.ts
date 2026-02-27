@@ -206,44 +206,11 @@ export const config = {
 	// Scraper Configuration
 	scraper: {
 		tcadApiKey: process.env.TCAD_API_KEY,
-		autoRefreshToken: parseBoolEnv("TCAD_AUTO_REFRESH_TOKEN", true),
-		tokenRefreshInterval: parseIntEnv("TCAD_TOKEN_REFRESH_INTERVAL", 270000), // 4.5 minutes
-		tokenRefreshCron: process.env.TCAD_TOKEN_REFRESH_CRON, // Optional cron schedule
 		/** Stored as number; coerced to string via template interpolation for the TCAD API pYear field */
 		tcadYear: parseTcadYear("TCAD_YEAR", new Date().getFullYear()),
-		headless: parseBoolEnv("SCRAPER_HEADLESS", true),
 		timeout: parseIntEnv("SCRAPER_TIMEOUT", 30000),
 		retryAttempts: parseIntEnv("SCRAPER_RETRY_ATTEMPTS", 3),
 		retryDelay: parseIntEnv("SCRAPER_RETRY_DELAY", 2000),
-		humanDelay: {
-			min: parseIntEnv("SCRAPER_HUMAN_DELAY_MIN", 100),
-			max: parseIntEnv("SCRAPER_HUMAN_DELAY_MAX", 500),
-		},
-		userAgents: parseArrayEnv("SCRAPER_USER_AGENTS", [
-			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-			"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-		]),
-		viewports: process.env.SCRAPER_VIEWPORTS
-			? JSON.parse(process.env.SCRAPER_VIEWPORTS)
-			: [
-					{ width: 3840, height: 2160 }, // 4K to see all columns
-					{ width: 2560, height: 1440 }, // 1440p
-					{ width: 1920, height: 1080 }, // 1080p
-				],
-		proxy: {
-			enabled: parseBoolEnv("SCRAPER_PROXY_ENABLED", false),
-			server: process.env.SCRAPER_PROXY_SERVER,
-			username: process.env.SCRAPER_PROXY_USERNAME,
-			password: process.env.SCRAPER_PROXY_PASSWORD,
-		},
-		brightData: {
-			enabled: parseBoolEnv("BRIGHT_DATA_ENABLED", false),
-			customerId: process.env.BRIGHT_DATA_CUSTOMER_ID,
-			apiToken: process.env.BRIGHT_DATA_API_TOKEN,
-			proxyHost: process.env.BRIGHT_DATA_PROXY_HOST || "brd.superproxy.io",
-			proxyPort: parseIntEnv("BRIGHT_DATA_PROXY_PORT", 22225),
-		},
 	},
 
 	// Claude AI Configuration
@@ -368,16 +335,7 @@ export function logConfigSummary(): void {
 	);
 	logger.info(`Claude AI: ${config.claude.apiKey ? "Enabled" : "Disabled"}`);
 	logger.info(
-		`TCAD API Token: ${config.scraper.tcadApiKey ? "Configured (fast API mode)" : "Not configured (fallback to browser capture)"}`,
-	);
-	logger.info(
-		`TCAD Auto Refresh: ${config.scraper.autoRefreshToken ? `Enabled (every ${config.scraper.tokenRefreshInterval / 60000} min)` : "Disabled"}`,
-	);
-	logger.info(
-		`Scraper Proxy: ${config.scraper.proxy.enabled ? "Enabled" : "Disabled"}`,
-	);
-	logger.info(
-		`Bright Data: ${config.scraper.brightData.enabled ? "Enabled" : "Disabled"}`,
+		`TCAD API Token: ${config.scraper.tcadApiKey ? "Configured" : "Not configured"}`,
 	);
 	logger.info(
 		`Monitoring: ${config.monitoring.sentry.enabled ? "Enabled" : "Disabled"}`,

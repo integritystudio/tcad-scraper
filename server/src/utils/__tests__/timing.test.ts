@@ -1,14 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-// Mock config before importing
-vi.mock("../../config", () => ({
-	config: {
-		scraper: {
-			humanDelay: { min: 10, max: 30 },
-		},
-	},
-}));
-
 vi.mock("../../lib/logger", () => ({
 	default: {
 		trace: vi.fn(),
@@ -22,13 +13,14 @@ vi.mock("../../lib/logger", () => ({
 import { humanDelay } from "../timing";
 
 describe("humanDelay", () => {
-	it("should resolve within default config range", async () => {
+	it("should resolve within default range", async () => {
 		const start = Date.now();
 		await humanDelay();
 		const elapsed = Date.now() - start;
 
-		expect(elapsed).toBeGreaterThanOrEqual(9); // allow 1ms timer drift
-		expect(elapsed).toBeLessThan(100);
+		// defaults: min=100, max=500
+		expect(elapsed).toBeGreaterThanOrEqual(99); // allow 1ms timer drift
+		expect(elapsed).toBeLessThan(600);
 	});
 
 	it("should resolve within custom range", async () => {
@@ -47,13 +39,13 @@ describe("humanDelay", () => {
 
 	it("should compute delay using Math.random formula", async () => {
 		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.5);
-		// min=10, max=30 → delay = Math.floor(0.5 * (30-10) + 10) = 20ms
+		// min=100, max=500 → delay = Math.floor(0.5 * (500-100) + 100) = 300ms
 		const start = Date.now();
 		await humanDelay();
 		const elapsed = Date.now() - start;
 
-		expect(elapsed).toBeGreaterThanOrEqual(19); // allow 1ms drift
-		expect(elapsed).toBeLessThan(200);
+		expect(elapsed).toBeGreaterThanOrEqual(299); // allow 1ms drift
+		expect(elapsed).toBeLessThan(500);
 		randomSpy.mockRestore();
 	});
 

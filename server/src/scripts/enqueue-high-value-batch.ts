@@ -73,7 +73,7 @@ const HIGH_VALUE_TERMS = [
 
 async function enqueueHighValueBatch() {
 	logger.info("💎 Starting High-Value Batch Enqueue (40 queries)");
-	logger.info(`Auto-refresh token enabled: ${config.scraper.autoRefreshToken}`);
+	logger.info(`TCAD API token: ${config.scraper.tcadApiKey ? "configured" : "NOT configured"}`);
 
 	try {
 		// Step 1: Refresh token first

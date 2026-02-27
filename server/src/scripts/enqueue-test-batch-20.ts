@@ -44,7 +44,7 @@ async function enqueueTestBatch() {
 	logger.info(
 		"🧪 Starting Test Batch Enqueue (20 queries with fixed token refresh)",
 	);
-	logger.info(`Auto-refresh token enabled: ${config.scraper.autoRefreshToken}`);
+	logger.info(`TCAD API token: ${config.scraper.tcadApiKey ? "configured" : "NOT configured"}`);
 
 	try {
 		let successCount = 0;

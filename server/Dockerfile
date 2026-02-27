@@ -56,21 +56,12 @@ RUN npm run build
 # ============================================
 FROM node:20-alpine3.19 AS production
 
-# Install Playwright/Chromium dependencies for scraping
 RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
     ca-certificates \
-    ttf-freefont \
     openssl \
     openssl-dev
 
-# Set Playwright environment variables
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
-    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    NODE_ENV=production
+ENV NODE_ENV=production
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -108,20 +99,12 @@ CMD ["node", "dist/index.js"]
 # ============================================
 FROM node:20-alpine3.19 AS development
 
-# Install Playwright/Chromium dependencies
 RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
     ca-certificates \
-    ttf-freefont \
     openssl \
     openssl-dev
 
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
-    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    NODE_ENV=development
+ENV NODE_ENV=development
 
 WORKDIR /app
 

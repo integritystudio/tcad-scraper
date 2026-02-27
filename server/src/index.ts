@@ -528,28 +528,10 @@ if (require.main === module) {
 		// Initialize scheduled jobs
 		scheduledJobs.initialize();
 
-		// Start automatic token refresh if enabled
-		if (config.scraper.autoRefreshToken) {
-			logger.info("Starting TCAD token auto-refresh service...");
-
-			if (config.scraper.tokenRefreshCron) {
-				// Use cron schedule if provided
-				tokenRefreshService.startAutoRefresh(config.scraper.tokenRefreshCron);
-				logger.info(
-					`Token refresh scheduled with cron: ${config.scraper.tokenRefreshCron}`,
-				);
-			} else {
-				// Use interval-based refresh
-				tokenRefreshService.startAutoRefreshInterval(
-					config.scraper.tokenRefreshInterval,
-				);
-				logger.info(
-					`Token refresh scheduled every ${config.scraper.tokenRefreshInterval / 60000} minutes`,
-				);
-			}
-		} else {
-			logger.info("TCAD token auto-refresh is disabled");
-		}
+		// Token is managed via TCAD_API_KEY env var (Doppler)
+		logger.info(
+			`TCAD API token: ${config.scraper.tcadApiKey ? "configured" : "NOT configured"}`,
+		);
 
 		// Start periodic code complexity analysis
 		logger.info("Starting periodic code complexity analysis...");
