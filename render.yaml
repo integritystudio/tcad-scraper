@@ -64,3 +64,7 @@ envVarGroups:
         sync: false
       - key: SENTRY_ENABLED
         value: "true"
+      - key: TOKEN_WORKER_URL
+        sync: false
+      - key: TOKEN_WORKER_SECRET
+        sync: false
