@@ -45,9 +45,23 @@ describe("TCADTokenRefreshService", () => {
 			expect(service.getCurrentToken()).toBeNull();
 		});
 
+		it("should throw if TOKEN_WORKER_URL is not set", async () => {
+			const original = process.env.TOKEN_WORKER_URL;
+			delete process.env.TOKEN_WORKER_URL;
+			try {
+				vi.resetModules();
+				// Module-level singleton throws on import when URL is missing
+				await expect(
+					import("../token-refresh.service"),
+				).rejects.toThrow("TOKEN_WORKER_URL is not configured");
+			} finally {
+				process.env.TOKEN_WORKER_URL = original;
+			}
+		});
+
 		it("should initialize stats correctly", () => {
 			const stats = service.getStats();
-			expect(stats.refreshCount).toBe(0);
+			expect(stats.successCount).toBe(0);
 			expect(stats.failureCount).toBe(0);
 			expect(stats.isRefreshing).toBe(false);
 			expect(stats.lastRefreshTime).toBeNull();
@@ -65,12 +79,21 @@ describe("TCADTokenRefreshService", () => {
 			expect(mockFetch).toHaveBeenCalledOnce();
 		});
 
-		it("should increment refreshCount on success", async () => {
+		it("should send Authorization header when secret is configured", async () => {
 			mockFetch.mockResolvedValueOnce(tokenResponse());
 
 			await service.refreshToken();
 
-			expect(service.getStats().refreshCount).toBe(1);
+			const [, opts] = mockFetch.mock.calls[0];
+			expect(opts.headers.Authorization).toBe("Bearer test-worker-secret");
+		});
+
+		it("should increment successCount on success", async () => {
+			mockFetch.mockResolvedValueOnce(tokenResponse());
+
+			await service.refreshToken();
+
+			expect(service.getStats().successCount).toBe(1);
 		});
 
 		it("should increment failureCount on HTTP error", async () => {
@@ -99,7 +122,7 @@ describe("TCADTokenRefreshService", () => {
 			expect(result).toBe("first");
 		});
 
-		it("should skip concurrent refresh calls", async () => {
+		it("should share in-flight request between concurrent callers", async () => {
 			let resolveFirst!: (v: unknown) => void;
 			mockFetch.mockReturnValueOnce(
 				new Promise((r) => {
@@ -110,11 +133,12 @@ describe("TCADTokenRefreshService", () => {
 			const p1 = service.refreshToken();
 			const p2 = service.refreshToken();
 
-			resolveFirst(tokenResponse("tok"));
-			await p1;
-			await p2;
+			resolveFirst(tokenResponse("shared-tok"));
+			const [r1, r2] = await Promise.all([p1, p2]);
 
 			expect(mockFetch).toHaveBeenCalledOnce();
+			expect(r1).toBe("shared-tok");
+			expect(r2).toBe("shared-tok");
 		});
 
 		it("should handle missing token in response", async () => {
@@ -122,6 +146,14 @@ describe("TCADTokenRefreshService", () => {
 				ok: true,
 				json: () => Promise.resolve({ expiresIn: 300 }),
 			});
+
+			await service.refreshToken();
+
+			expect(service.getStats().failureCount).toBe(1);
+		});
+
+		it("should handle non-Error thrown values", async () => {
+			mockFetch.mockRejectedValueOnce("string error");
 
 			await service.refreshToken();
 
@@ -179,14 +211,15 @@ describe("TCADTokenRefreshService", () => {
 	});
 
 	describe("getHealth", () => {
-		it("should return health status", () => {
+		it("should return all health fields", () => {
 			const health = service.getHealth();
 
 			expect(health).toHaveProperty("healthy");
 			expect(health).toHaveProperty("hasToken");
 			expect(health).toHaveProperty("lastRefresh");
 			expect(health).toHaveProperty("timeSinceLastRefresh");
-			expect(health).toHaveProperty("refreshCount");
+			expect(health).toHaveProperty("expiresInMs");
+			expect(health).toHaveProperty("successCount");
 			expect(health).toHaveProperty("failureCount");
 			expect(health).toHaveProperty("failureRate");
 			expect(health).toHaveProperty("isRefreshing");
@@ -206,6 +239,19 @@ describe("TCADTokenRefreshService", () => {
 			const health = service.getHealth();
 			expect(health.healthy).toBe(true);
 			expect(health.hasToken).toBe(true);
+			expect(health.expiresInMs).toBeGreaterThan(0);
+		});
+
+		it("should report unhealthy when token is near expiry", async () => {
+			mockFetch.mockResolvedValueOnce(tokenResponse());
+			await service.refreshToken();
+
+			// Advance past 4m30s (only 30s left = at buffer threshold)
+			vi.advanceTimersByTime(4 * 60 * 1000 + 30 * 1000);
+
+			const health = service.getHealth();
+			expect(health.healthy).toBe(false);
+			expect(health.hasToken).toBe(true);
 		});
 
 		it("should report autoRefresh running state", () => {
@@ -216,6 +262,16 @@ describe("TCADTokenRefreshService", () => {
 
 			service.stopAutoRefresh();
 			expect(service.getHealth().isAutoRefreshRunning).toBe(false);
+		});
+
+		it("should calculate failure rate correctly", async () => {
+			mockFetch.mockResolvedValueOnce(tokenResponse());
+			await service.refreshToken();
+			mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+			await service.refreshToken();
+
+			const health = service.getHealth();
+			expect(health.failureRate).toBe("50.00%");
 		});
 	});
 

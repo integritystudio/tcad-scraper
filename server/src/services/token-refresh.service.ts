@@ -5,13 +5,13 @@
  * Tokens expire after ~5 minutes; auto-refresh keeps them current.
  */
 
+import { config } from "../config";
 import logger from "../lib/logger";
-
-const TOKEN_WORKER_URL =
-  "https://tcad-token-refresh.alyshia-b38.workers.dev/";
 
 const DEFAULT_REFRESH_INTERVAL_MS = 4 * 60 * 1000; // 4 min (tokens expire at 5)
 const FETCH_TIMEOUT_MS = 10_000;
+const TOKEN_EXPIRY_MS = 5 * 60 * 1000;
+const EXPIRY_BUFFER_MS = 30_000;
 
 interface TokenResponse {
   token: string;
@@ -21,12 +21,27 @@ interface TokenResponse {
 export class TCADTokenRefreshService {
   private currentToken: string | null = null;
   private lastRefreshTime: Date | null = null;
-  private refreshCount = 0;
+  private successCount = 0;
   private failureCount = 0;
-  private isRefreshing = false;
+  private refreshPromise: Promise<string | null> | null = null;
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly workerUrl: string;
+  private readonly workerSecret: string | undefined;
 
   constructor() {
+    const url = config.scraper.tokenWorkerUrl;
+    if (!url) {
+      throw new Error(
+        "TOKEN_WORKER_URL is not configured — set it in Doppler or environment",
+      );
+    }
+    this.workerUrl = url;
+    this.workerSecret = config.scraper.tokenWorkerSecret;
+
+    if (!this.workerSecret) {
+      logger.warn("TOKEN_WORKER_SECRET not set — requests will be unauthenticated");
+    }
+
     logger.info("Token refresh service initialized (worker mode)");
   }
 
@@ -40,26 +55,38 @@ export class TCADTokenRefreshService {
         ? `...${this.currentToken.slice(-4)}`
         : null,
       lastRefreshTime: this.lastRefreshTime,
-      refreshCount: this.refreshCount,
+      successCount: this.successCount,
       failureCount: this.failureCount,
-      isRefreshing: this.isRefreshing,
+      isRefreshing: this.refreshPromise !== null,
       isRunning: this.refreshTimer !== null,
     };
   }
 
   /**
    * Fetch a fresh token from the Cloudflare Worker.
+   * Concurrent callers share a single in-flight request.
    */
   async refreshToken(): Promise<string | null> {
-    if (this.isRefreshing) {
-      logger.debug("Token refresh already in progress, waiting...");
-      return this.currentToken;
+    if (this.refreshPromise) {
+      return this.refreshPromise;
     }
 
-    this.isRefreshing = true;
+    this.refreshPromise = this.doRefresh().finally(() => {
+      this.refreshPromise = null;
+    });
 
+    return this.refreshPromise;
+  }
+
+  private async doRefresh(): Promise<string | null> {
     try {
-      const res = await fetch(TOKEN_WORKER_URL, {
+      const headers: Record<string, string> = {};
+      if (this.workerSecret) {
+        headers.Authorization = `Bearer ${this.workerSecret}`;
+      }
+
+      const res = await fetch(this.workerUrl, {
+        headers,
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
 
@@ -75,28 +102,19 @@ export class TCADTokenRefreshService {
 
       this.currentToken = data.token;
       this.lastRefreshTime = new Date();
-      this.refreshCount++;
+      this.successCount++;
 
       logger.info(
-        `Token refreshed (expiresIn=${data.expiresIn}s, count=${this.refreshCount})`,
+        `Token refreshed (expiresIn=${data.expiresIn}s, count=${this.successCount})`,
       );
       return this.currentToken;
     } catch (error) {
       this.failureCount++;
       const msg =
-        error instanceof Error ? error.message : "Unknown error";
+        error instanceof Error ? error.message : String(error);
       logger.error(`Token refresh failed (failures=${this.failureCount}): ${msg}`);
       return this.currentToken;
-    } finally {
-      this.isRefreshing = false;
     }
-  }
-
-  /**
-   * Start auto-refresh on an interval (default 4 min).
-   */
-  startAutoRefresh(_cronSchedule?: string): void {
-    this.startAutoRefreshInterval();
   }
 
   /**
@@ -133,23 +151,30 @@ export class TCADTokenRefreshService {
   }
 
   getHealth() {
+    const ageMs = this.lastRefreshTime
+      ? Date.now() - this.lastRefreshTime.getTime()
+      : null;
+    const expiresInMs =
+      ageMs !== null ? TOKEN_EXPIRY_MS - ageMs : null;
+    const tokenExpired =
+      expiresInMs !== null && expiresInMs <= EXPIRY_BUFFER_MS;
+
     return {
-      healthy: this.currentToken !== null,
+      healthy: this.currentToken !== null && !tokenExpired,
       hasToken: this.currentToken !== null,
       lastRefresh: this.lastRefreshTime,
-      timeSinceLastRefresh: this.lastRefreshTime
-        ? Date.now() - this.lastRefreshTime.getTime()
-        : null,
-      refreshCount: this.refreshCount,
+      timeSinceLastRefresh: ageMs,
+      expiresInMs,
+      successCount: this.successCount,
       failureCount: this.failureCount,
       failureRate:
-        this.refreshCount > 0
+        this.successCount > 0
           ? `${(
-              (this.failureCount / (this.refreshCount + this.failureCount)) *
+              (this.failureCount / (this.successCount + this.failureCount)) *
               100
             ).toFixed(2)}%`
           : "0%",
-      isRefreshing: this.isRefreshing,
+      isRefreshing: this.refreshPromise !== null,
       isAutoRefreshRunning: this.refreshTimer !== null,
     };
   }

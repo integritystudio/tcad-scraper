@@ -29,6 +29,8 @@ process.env.AUTH_SKIP_IN_DEVELOPMENT = "false";
 process.env.CLAUDE_API_KEY = "test-claude-key";
 process.env.ANTHROPIC_API_KEY = "test-anthropic-api-key";
 process.env.TCAD_API_KEY = "test-tcad-key";
+process.env.TOKEN_WORKER_URL = "https://test-worker.example.com/";
+process.env.TOKEN_WORKER_SECRET = "test-worker-secret";
 
 // Mock environment variables if needed
 if (!process.env.REDIS_HOST) {

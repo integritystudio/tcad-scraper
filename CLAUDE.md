@@ -6,12 +6,12 @@
 
 TCAD Scraper extracts property tax data from Travis Central Appraisal District (TCAD).
 
-- **Backend**: Express API (TypeScript) + BullMQ queues + Playwright scraping
+- **Backend**: Express API (TypeScript) + BullMQ queues + TCAD API-direct scraping
 - **Frontend**: React 19 + Vite
 - **Database**: PostgreSQL (Render) + Prisma ORM
 - **Queue**: BullMQ + Redis (Render, TLS)
 - **Logging**: Pino (structured JSON)
-- **Testing**: Vitest (617 tests, 0 skipped)
+- **Testing**: Vitest (582 tests, 0 skipped)
 - **Scale**: 418K+ properties
 
 ```

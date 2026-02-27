@@ -528,15 +528,24 @@ if (require.main === module) {
 		// Initialize scheduled jobs
 		scheduledJobs.initialize();
 
-		// Fetch initial TCAD token and start auto-refresh
-		tokenRefreshService.refreshToken().then((token) => {
-			if (token) {
+		// Fetch initial TCAD token and start auto-refresh unconditionally
+		tokenRefreshService
+			.refreshToken()
+			.then((token) => {
+				if (token) {
+					logger.info("TCAD token fetched successfully");
+				} else {
+					logger.warn("Initial TCAD token fetch failed — auto-refresh will retry");
+				}
+			})
+			.catch((err) => {
+				logger.error(
+					`Token service startup error: ${err instanceof Error ? err.message : String(err)}`,
+				);
+			})
+			.finally(() => {
 				tokenRefreshService.startAutoRefreshInterval();
-				logger.info("TCAD token fetched, auto-refresh started");
-			} else {
-				logger.warn("Initial TCAD token fetch failed — will retry on demand");
-			}
-		});
+			});
 
 		// Start periodic code complexity analysis
 		logger.info("Starting periodic code complexity analysis...");

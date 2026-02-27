@@ -206,6 +206,8 @@ export const config = {
 	// Scraper Configuration
 	scraper: {
 		tcadApiKey: process.env.TCAD_API_KEY,
+		tokenWorkerUrl: process.env.TOKEN_WORKER_URL,
+		tokenWorkerSecret: process.env.TOKEN_WORKER_SECRET,
 		/** Stored as number; coerced to string via template interpolation for the TCAD API pYear field */
 		tcadYear: parseTcadYear("TCAD_YEAR", new Date().getFullYear()),
 		timeout: parseIntEnv("SCRAPER_TIMEOUT", 30000),
