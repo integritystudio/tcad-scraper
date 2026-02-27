@@ -4,8 +4,21 @@
 **Status**: 617/617 tests passing | TypeScript clean | Lint clean | Biome clean
 
 ---
-
 ## Open Items
+
+### Code Review 02-27-2026 of commit 66dc363
+
+
+  Medium
+  1. ensureInitialized() concurrency comment — synchronous so safe in Node.js, but needs a comment explaining the guarantee
+  2. ensureInitialized() throw path is subtle but correct — just needs a clarifying comment
+  3. startAutoRefreshInterval swallows init errors silently — should call ensureInitialized() at start, or log in the .catch()
+  Low
+  4. getJwtLifetime should guard exp > iat — negative/zero result could slip through
+  5. config.scraper.tcadApiKey still exists in config — unused dead field, needs removal or deprecation comment
+  6. Test vi.resetModules() could leak — suggest vi.isolateModules() instead
+  7. Warn message misleading — says "unauthenticated" but Worker now rejects all unauthenticated requests
+  8. /health/token returns 200 even when unhealthy — should return 503
 
 ### BUG-3: JSDOM `<search>` element warning (P3) — No fix needed
 - **File**: `src/components/__tests__/SearchBox.test.tsx`
