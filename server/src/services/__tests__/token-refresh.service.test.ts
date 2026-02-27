@@ -1,5 +1,5 @@
 /**
- * Token Refresh Service Tests (env-token mode)
+ * Token Refresh Service Tests (worker mode)
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,24 +14,35 @@ vi.mock("../../lib/logger", () => ({
 	},
 }));
 
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
+
 import { TCADTokenRefreshService } from "../token-refresh.service";
+
+function tokenResponse(token = "jwt-abc-123") {
+	return {
+		ok: true,
+		json: () => Promise.resolve({ token, expiresIn: 300 }),
+	};
+}
 
 describe("TCADTokenRefreshService", () => {
 	let service: TCADTokenRefreshService;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.useFakeTimers();
 		service = new TCADTokenRefreshService();
 	});
 
 	afterEach(async () => {
 		await service.cleanup();
+		vi.useRealTimers();
 	});
 
 	describe("constructor", () => {
-		it("should initialize with token from environment if available", () => {
-			const token = service.getCurrentToken();
-			expect(token).toBe("test-tcad-key");
+		it("should initialize without a token", () => {
+			expect(service.getCurrentToken()).toBeNull();
 		});
 
 		it("should initialize stats correctly", () => {
@@ -43,34 +54,127 @@ describe("TCADTokenRefreshService", () => {
 		});
 	});
 
-	describe("getCurrentToken", () => {
-		it("should return the current token", () => {
-			const token = service.getCurrentToken();
-			expect(token).toBe("test-tcad-key");
+	describe("refreshToken", () => {
+		it("should fetch a token from the worker", async () => {
+			mockFetch.mockResolvedValueOnce(tokenResponse("fresh-token"));
+
+			const result = await service.refreshToken();
+
+			expect(result).toBe("fresh-token");
+			expect(service.getCurrentToken()).toBe("fresh-token");
+			expect(mockFetch).toHaveBeenCalledOnce();
+		});
+
+		it("should increment refreshCount on success", async () => {
+			mockFetch.mockResolvedValueOnce(tokenResponse());
+
+			await service.refreshToken();
+
+			expect(service.getStats().refreshCount).toBe(1);
+		});
+
+		it("should increment failureCount on HTTP error", async () => {
+			mockFetch.mockResolvedValueOnce({ ok: false, status: 502 });
+
+			await service.refreshToken();
+
+			expect(service.getStats().failureCount).toBe(1);
+		});
+
+		it("should increment failureCount on network error", async () => {
+			mockFetch.mockRejectedValueOnce(new Error("fetch failed"));
+
+			await service.refreshToken();
+
+			expect(service.getStats().failureCount).toBe(1);
+		});
+
+		it("should return stale token on failure", async () => {
+			mockFetch.mockResolvedValueOnce(tokenResponse("first"));
+			await service.refreshToken();
+
+			mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+			const result = await service.refreshToken();
+
+			expect(result).toBe("first");
+		});
+
+		it("should skip concurrent refresh calls", async () => {
+			let resolveFirst!: (v: unknown) => void;
+			mockFetch.mockReturnValueOnce(
+				new Promise((r) => {
+					resolveFirst = r;
+				}),
+			);
+
+			const p1 = service.refreshToken();
+			const p2 = service.refreshToken();
+
+			resolveFirst(tokenResponse("tok"));
+			await p1;
+			await p2;
+
+			expect(mockFetch).toHaveBeenCalledOnce();
+		});
+
+		it("should handle missing token in response", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ expiresIn: 300 }),
+			});
+
+			await service.refreshToken();
+
+			expect(service.getStats().failureCount).toBe(1);
 		});
 	});
 
 	describe("getStats", () => {
-		it("should return complete statistics", () => {
-			const stats = service.getStats();
+		it("should mask token in stats", async () => {
+			mockFetch.mockResolvedValueOnce(tokenResponse("abcdef1234"));
+			await service.refreshToken();
 
-			expect(stats).toHaveProperty("currentToken");
-			expect(stats).toHaveProperty("lastRefreshTime");
-			expect(stats).toHaveProperty("refreshCount");
-			expect(stats).toHaveProperty("failureCount");
-			expect(stats).toHaveProperty("isRefreshing");
-			expect(stats).toHaveProperty("isRunning");
+			const stats = service.getStats();
+			expect(stats.currentToken).toBe("...1234");
 		});
 
-		it("should mask token in stats", () => {
-			const stats = service.getStats();
-			expect(stats.currentToken).toContain("...");
-			expect(stats.currentToken).not.toBe("test-tcad-key");
+		it("should show null when no token", () => {
+			expect(service.getStats().currentToken).toBeNull();
+		});
+	});
+
+	describe("startAutoRefreshInterval", () => {
+		it("should refresh on interval", async () => {
+			mockFetch.mockResolvedValue(tokenResponse());
+
+			service.startAutoRefreshInterval(60_000);
+			expect(service.getStats().isRunning).toBe(true);
+
+			await vi.advanceTimersByTimeAsync(60_000);
+			expect(mockFetch).toHaveBeenCalledOnce();
+
+			await vi.advanceTimersByTimeAsync(60_000);
+			expect(mockFetch).toHaveBeenCalledTimes(2);
 		});
 
-		it("should show isRunning as false", () => {
-			const stats = service.getStats();
-			expect(stats.isRunning).toBe(false);
+		it("should stop previous timer when called again", () => {
+			service.startAutoRefreshInterval(60_000);
+			service.startAutoRefreshInterval(30_000);
+
+			expect(service.getStats().isRunning).toBe(true);
+		});
+	});
+
+	describe("stopAutoRefresh", () => {
+		it("should stop the timer", () => {
+			service.startAutoRefreshInterval(60_000);
+			service.stopAutoRefresh();
+
+			expect(service.getStats().isRunning).toBe(false);
+		});
+
+		it("should handle being called when not running", () => {
+			expect(() => service.stopAutoRefresh()).not.toThrow();
 		});
 	});
 
@@ -89,47 +193,29 @@ describe("TCADTokenRefreshService", () => {
 			expect(health).toHaveProperty("isAutoRefreshRunning");
 		});
 
-		it("should show healthy when token exists", () => {
+		it("should report unhealthy with no token", () => {
+			const health = service.getHealth();
+			expect(health.healthy).toBe(false);
+			expect(health.hasToken).toBe(false);
+		});
+
+		it("should report healthy after successful refresh", async () => {
+			mockFetch.mockResolvedValueOnce(tokenResponse());
+			await service.refreshToken();
+
 			const health = service.getHealth();
 			expect(health.healthy).toBe(true);
 			expect(health.hasToken).toBe(true);
 		});
 
-		it("should calculate failure rate correctly", () => {
-			const health = service.getHealth();
-			expect(health.failureRate).toBe("0%");
-		});
+		it("should report autoRefresh running state", () => {
+			expect(service.getHealth().isAutoRefreshRunning).toBe(false);
 
-		it("should show autoRefresh as not running", () => {
-			const health = service.getHealth();
-			expect(health.isAutoRefreshRunning).toBe(false);
-		});
-	});
+			service.startAutoRefreshInterval(60_000);
+			expect(service.getHealth().isAutoRefreshRunning).toBe(true);
 
-	describe("refreshToken", () => {
-		it("should return current env token", async () => {
-			const result = await service.refreshToken();
-			expect(result).toBe("test-tcad-key");
-		});
-	});
-
-	describe("startAutoRefresh", () => {
-		it("should be a no-op", () => {
-			expect(() => service.startAutoRefresh()).not.toThrow();
-			expect(service.getStats().isRunning).toBe(false);
-		});
-	});
-
-	describe("startAutoRefreshInterval", () => {
-		it("should be a no-op", () => {
-			expect(() => service.startAutoRefreshInterval()).not.toThrow();
-			expect(service.getStats().isRunning).toBe(false);
-		});
-	});
-
-	describe("stopAutoRefresh", () => {
-		it("should handle being called when not running", () => {
-			expect(() => service.stopAutoRefresh()).not.toThrow();
+			service.stopAutoRefresh();
+			expect(service.getHealth().isAutoRefreshRunning).toBe(false);
 		});
 	});
 
@@ -138,9 +224,10 @@ describe("TCADTokenRefreshService", () => {
 			await expect(service.cleanup()).resolves.not.toThrow();
 		});
 
-		it("should be safe to call multiple times", async () => {
+		it("should stop auto-refresh", async () => {
+			service.startAutoRefreshInterval(60_000);
 			await service.cleanup();
-			await expect(service.cleanup()).resolves.not.toThrow();
+			expect(service.getStats().isRunning).toBe(false);
 		});
 	});
 });

@@ -528,10 +528,15 @@ if (require.main === module) {
 		// Initialize scheduled jobs
 		scheduledJobs.initialize();
 
-		// Token is managed via TCAD_API_KEY env var (Doppler)
-		logger.info(
-			`TCAD API token: ${config.scraper.tcadApiKey ? "configured" : "NOT configured"}`,
-		);
+		// Fetch initial TCAD token and start auto-refresh
+		tokenRefreshService.refreshToken().then((token) => {
+			if (token) {
+				tokenRefreshService.startAutoRefreshInterval();
+				logger.info("TCAD token fetched, auto-refresh started");
+			} else {
+				logger.warn("Initial TCAD token fetch failed — will retry on demand");
+			}
+		});
 
 		// Start periodic code complexity analysis
 		logger.info("Starting periodic code complexity analysis...");
