@@ -121,6 +121,7 @@ export interface OptimizerConfig {
 	maxTermsToReturn?: number; // Maximum number of terms to return
 	excludeRecentlyUsed?: boolean; // Exclude terms used within last N days
 	recentDays?: number; // Days to consider "recent"
+	maxSearches?: number; // Exclude terms searched more than N times
 }
 
 export class SearchTermOptimizer {
@@ -234,6 +235,7 @@ export class SearchTermOptimizer {
 			maxTermsToReturn = 50,
 			excludeRecentlyUsed = false,
 			recentDays = 7,
+			maxSearches,
 		} = config;
 
 		const whereClause: Prisma.SearchTermAnalyticsWhereInput = {
@@ -249,6 +251,10 @@ export class SearchTermOptimizer {
 			const cutoffDate = new Date();
 			cutoffDate.setDate(cutoffDate.getDate() - recentDays);
 			whereClause.lastSearched = { lte: cutoffDate };
+		}
+
+		if (maxSearches !== undefined) {
+			whereClause.totalSearches = { lte: maxSearches };
 		}
 
 		const analytics = await this.prisma.searchTermAnalytics.findMany({
@@ -420,6 +426,18 @@ export class SearchTermOptimizer {
 			.slice(0, count);
 
 		return newSuggestions;
+	}
+
+	/**
+	 * Get terms that have been searched many times (diminishing returns).
+	 * Used to prevent random generation from re-selecting these terms.
+	 */
+	async getOverSearchedTerms(minSearches = 5): Promise<string[]> {
+		const terms = await this.prisma.searchTermAnalytics.findMany({
+			where: { totalSearches: { gte: minSearches } },
+			select: { searchTerm: true },
+		});
+		return terms.map((t) => t.searchTerm);
 	}
 
 	/**

@@ -1234,6 +1234,23 @@ class SearchPatternGenerator {
 				);
 			}
 
+			// Load over-searched terms (>= 5 searches) to prevent random re-generation
+			try {
+				const overSearched = await this.optimizer.getOverSearchedTerms(5);
+				for (const term of overSearched) {
+					this.usedTerms.add(term);
+				}
+				if (overSearched.length > 0) {
+					logger.info(
+						`   Marked ${overSearched.length} over-searched terms as used`,
+					);
+				}
+			} catch (osError) {
+				logger.warn(
+					`Failed to load over-searched terms: ${getErrorMessage(osError)}`,
+				);
+			}
+
 			// Load blacklisted terms (0% success rate, >= 3 searches)
 			try {
 				const blacklisted = await this.optimizer.getBlacklistedTerms(3);
@@ -1409,6 +1426,7 @@ class SearchPatternGenerator {
 				maxTermsToReturn: 30,
 				excludeRecentlyUsed: true,
 				recentDays: 1, // Only exclude terms used in last 24 hours
+				maxSearches: 5, // Don't keep suggesting over-searched terms
 			});
 
 			// Get suggested new terms based on successful patterns
