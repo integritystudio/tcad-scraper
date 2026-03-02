@@ -14,17 +14,21 @@
  *   --limit N   number of terms to generate (default: 200)
  */
 
+import { config } from "../config";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import { getErrorMessage } from "../utils/error-helpers";
 
-const TARGET_TERM_COUNT = parseInt(
+const rawLimit =
   process.argv.find((a) => a.startsWith("--limit="))?.split("=")[1] ??
-    (process.argv.includes("--limit")
-      ? process.argv[process.argv.indexOf("--limit") + 1]
-      : "200"),
-  10,
-);
+  (process.argv.includes("--limit")
+    ? process.argv[process.argv.indexOf("--limit") + 1]
+    : "200");
+const TARGET_TERM_COUNT = parseInt(rawLimit ?? "200", 10);
+if (isNaN(TARGET_TERM_COUNT) || TARGET_TERM_COUNT <= 0) {
+  console.error("--limit must be a positive integer");
+  process.exit(1);
+}
 const SHOULD_ENQUEUE = process.argv.includes("--enqueue");
 const OUTPUT_JSON = process.argv.includes("--json");
 
@@ -255,7 +259,7 @@ async function main() {
   console.log(`\n=== Search Term Generator (Adaptive Prefix) ===`);
   console.log(`Target: ${TARGET_TERM_COUNT} new terms\n`);
 
-  // 1. Get already-searched terms
+  // 1. Get already-searched terms (bounded by distinct search terms, not properties)
   console.log("Fetching already-searched terms...");
   const analyticsRows = await prisma.searchTermAnalytics.findMany({
     select: { searchTerm: true },
@@ -328,14 +332,20 @@ async function main() {
 
   // 4. Optional: enqueue
   if (SHOULD_ENQUEUE) {
+    const { jobName, defaultJobOptions } = config.queue;
     console.log(`\nEnqueuing ${candidates.length} terms...`);
     let enqueued = 0;
     for (const term of candidates) {
       try {
         await scraperQueue.add(
-          "scrape-properties",
+          jobName,
           { searchTerm: term, userId: "generate-search-terms", scheduled: true },
-          { attempts: 3, backoff: { type: "exponential", delay: 2000 }, removeOnComplete: 100, removeOnFail: 50 },
+          {
+            attempts: defaultJobOptions.attempts,
+            backoff: { type: "exponential", delay: defaultJobOptions.backoffDelay },
+            removeOnComplete: defaultJobOptions.removeOnComplete,
+            removeOnFail: defaultJobOptions.removeOnFail,
+          },
         );
         enqueued++;
       } catch (error) {
@@ -343,7 +353,6 @@ async function main() {
       }
     }
     console.log(`  Enqueued ${enqueued}/${candidates.length} terms`);
-    await scraperQueue.close();
   }
 
   // 5. Summary
@@ -355,11 +364,14 @@ async function main() {
   }
   if (SHOULD_ENQUEUE) console.log(`  Enqueued: yes`);
   console.log("");
-
-  await prisma.$disconnect();
 }
 
-main().catch((err) => {
-  console.error("Fatal:", getErrorMessage(err));
-  process.exit(1);
-});
+main()
+  .catch((err) => {
+    console.error("Fatal:", getErrorMessage(err));
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+    if (SHOULD_ENQUEUE) await scraperQueue.close();
+  });

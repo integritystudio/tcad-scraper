@@ -78,6 +78,30 @@ Unlike `getOptimizedTerms` which uses `take: maxTermsToReturn`, `getOverSearched
 **Priority**: P3 | **Source**: code-reviewer commit 799976b
 The two new SearchTermOptimizer methods have zero test coverage. `SearchTermDeduplicator` tests cover blacklist methods adequately, but optimizer tests should add: (1) `getBlacklistedTerms` returns only `successRate === 0` and `totalSearches >= minSearches`, (2) `getOverSearchedTerms` returns only `totalSearches >= minSearches`, (3) `getOptimizedTerms` with `maxSearches` respects threshold. -- `server/src/services/__tests__/search-term-optimizer.test.ts`
 
+### Code Review 03-02-2026 of commit f15f68c (Adaptive Prefix Algorithm)
+
+#### MEDIUM
+
+#### CR-M8: O(n^4) nested loop in Tier 3 allocates ~171K strings synchronously
+**Priority**: P2 | **Source**: code-reviewer commit f15f68c
+Tier 3 nested loop (19 × 26 × 26 × 26 iterations) generates and allocates ~171K candidate strings synchronously on the event loop. While not catastrophic for a CLI tool, this blocks for 50-200ms at scale. Suggested fix: document the performance characteristic in code, or convert to lazy generator pattern to avoid materialization. -- `server/src/scripts/generate-search-terms.ts:200-219`
+
+#### CR-M9: Missing escaping in generated TypeScript source code
+**Priority**: P2 | **Source**: code-reviewer commit f15f68c
+Terms embedded into generated TypeScript source at line 322 without escaping quotes or backslashes: `"${t}"` can produce invalid syntax if term contains `"` or `\`. While low risk in practice (terms are short alphanumeric), should use `JSON.stringify(t)` to handle escaping properly. -- `server/src/scripts/generate-search-terms.ts:322`
+
+#### CR-M10: Dead length check in getDenseTermExpansions
+**Priority**: P2 | **Source**: code-reviewer commit f15f68c
+Line 131 checks `expanded.length < MIN_TERM_LENGTH` but this is unreachable: `base` from analytics is always >= 4 chars, so `expanded = base + ch` is always >= 5 chars. Dead code creates false sense of validation. Suggested fix: remove check or add clarifying comment on why it's defensive. -- `server/src/scripts/generate-search-terms.ts:131`
+
+#### CR-M11: Implicit contract on getUnexploredPrefixes — searched Set must be pre-lowercased
+**Priority**: P2 | **Source**: code-reviewer commit f15f68c
+Function accepts `searched: Set<string>` but does not document that all entries must be lowercase. Callers normalize to lowercase before calling, but this implicit contract is fragile and should be documented in JSDoc. Suggested fix: add `@param searched - Set of already-searched terms, all lowercase` to function signature. -- `server/src/scripts/generate-search-terms.ts:183-188`
+
+#### CR-M12: optimize/ directory should not be in server/src/ — reference code pollutes compilation
+**Priority**: P2 | **Source**: code-reviewer commit f15f68c
+Files `server/src/scripts/optimize/search_algorithm_example.ts` and `example_client_wrapper.ts` are reference/proof-of-concept code, not production modules. Both are unimported; `example_client_wrapper.ts` contains `throw new Error("implement")`. Compiled by `npx tsc --noEmit`, polluting type-check surface (includes `as any` cast violation). Suggested fix: move to `docs/examples/` and exclude from tsconfig.json, or delete and reference via git branch/gist. -- `server/src/scripts/optimize/`
+
 ### BUG-3: JSDOM `<search>` element warning (P3) — No fix needed
 - **File**: `src/components/__tests__/SearchBox.test.tsx`
 - **Warning**: `The tag <search> is unrecognized in this browser`

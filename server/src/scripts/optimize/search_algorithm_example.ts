@@ -159,7 +159,8 @@ export async function* exploreByAdaptivePrefixes<T>(
       const r = results[i];
 
       if (r.status === "rejected") {
-        // In production: retry with backoff, and/or persist to a dead-letter queue
+        // TODO: retry with backoff, and/or persist to a dead-letter queue
+        console.error(`Prefix "${prefix}" failed:`, r.reason);
         continue;
       }
 
@@ -195,7 +196,7 @@ export async function* exploreByAdaptivePrefixes<T>(
 }
 
 function isExpandSignal<T>(v: T[] | { expand: string }): v is { expand: string } {
-  return typeof (v as any)?.expand === "string";
+  return !Array.isArray(v) && typeof (v as { expand?: unknown }).expand === "string";
 }
 
 function normalizeQuery(q: string): string {
