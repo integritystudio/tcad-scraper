@@ -17,7 +17,8 @@ const FALLBACK_TERMS = [
 ];
 
 async function main() {
-  const requested = Math.min(parseInt(process.argv[2] || "10", 10), FALLBACK_TERMS.length);
+  const raw = parseInt(process.argv[2] || "10", 10);
+  const requested = Math.min(Number.isNaN(raw) ? 10 : raw, FALLBACK_TERMS.length);
 
   // Filter out terms that have already been searched
   const alreadySearched = await prisma.searchTermAnalytics.findMany({

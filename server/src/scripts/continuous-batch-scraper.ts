@@ -81,6 +81,7 @@ export class TermSelector {
 	private optimizer: SearchTermOptimizer;
 	private blacklistLoaded = false;
 	private queueSeeded = false;
+	private cachedSearchedTermSet: Set<string> | null = null;
 
 	constructor(optimizer?: SearchTermOptimizer) {
 		this.optimizer = optimizer ?? searchTermOptimizer;
@@ -196,6 +197,8 @@ export class TermSelector {
 	}
 
 	private async getSearchedTermSet(): Promise<Set<string>> {
+		if (this.cachedSearchedTermSet) return this.cachedSearchedTermSet;
+
 		// Merge analytics table + distinct search_term from properties for current year
 		const [analyticsRows, propertyTerms] = await Promise.all([
 			prisma.searchTermAnalytics.findMany({
@@ -211,6 +214,7 @@ export class TermSelector {
 		for (const r of propertyTerms) {
 			if (r.searchTerm) set.add(r.searchTerm.toLowerCase());
 		}
+		this.cachedSearchedTermSet = set;
 		return set;
 	}
 

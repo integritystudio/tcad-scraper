@@ -303,6 +303,8 @@ export class PropertyController {
 	 * Cached for 10 minutes (expensive aggregation queries)
 	 */
 	async getStats(_req: Request, res: Response) {
+		// TODO: Include DISPLAY_YEAR in cache key when updating the year cutover,
+		// otherwise stale stats from the previous year will be served for up to 10 min.
 		const cacheKey = "properties:stats:all";
 
 		// Cache stats for 10 minutes (600 seconds)
