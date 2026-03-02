@@ -16,6 +16,10 @@ import type {
 } from "../types/property.types";
 import { transformPropertyToSnakeCase } from "../utils/property-transformers";
 
+// TODO: Update to 2026 in April/May when TCAD publishes 2026 appraised values.
+// Until then, 2026 data has appraisedValue="N/A" which gets stored as 0.
+export const DISPLAY_YEAR = 2025;
+
 export class PropertyController {
 	/**
 	 * POST /api/properties/scrape - Trigger a new scrape job
@@ -170,14 +174,15 @@ export class PropertyController {
 			await claudeSearchService.parseNaturalLanguageQuery(query);
 
 		// Query the database with the generated filters
+		const yearFilteredClause = { ...whereClause, year: DISPLAY_YEAR };
 		const [properties, total] = await Promise.all([
 			prismaReadOnly.property.findMany({
-				where: whereClause,
+				where: yearFilteredClause,
 				orderBy: orderBy || { scrapedAt: "desc" },
 				skip: offset,
 				take: Math.min(limit, 1000),
 			}),
-			prismaReadOnly.property.count({ where: whereClause }),
+			prismaReadOnly.property.count({ where: yearFilteredClause }),
 		]);
 
 		// Calculate statistics if an answer is requested
@@ -188,7 +193,7 @@ export class PropertyController {
 			// Calculate aggregate statistics
 			const [aggregates, cityStats, typeStats] = await Promise.all([
 				prismaReadOnly.property.aggregate({
-					where: whereClause,
+					where: yearFilteredClause,
 					_avg: { appraisedValue: true },
 					_sum: { appraisedValue: true },
 					_min: { appraisedValue: true },
@@ -196,14 +201,14 @@ export class PropertyController {
 				}),
 				prismaReadOnly.property.groupBy({
 					by: ["city"],
-					where: { ...whereClause, city: { not: null } },
+					where: { ...yearFilteredClause, city: { not: null } },
 					_count: true,
 					orderBy: { _count: { city: "desc" } },
 					take: 1,
 				}),
 				prismaReadOnly.property.groupBy({
 					by: ["propType"],
-					where: whereClause,
+					where: yearFilteredClause,
 					_count: true,
 					orderBy: { _count: { propType: "desc" } },
 					take: 5,
@@ -304,9 +309,10 @@ export class PropertyController {
 		const stats = await cacheService.getOrSet(
 			cacheKey,
 			async () => {
+				const yearFilter = { year: DISPLAY_YEAR };
 				const [totalProperties, totalJobs, recentJobs, cityStats, typeStats] =
 					await Promise.all([
-						prismaReadOnly.property.count(),
+						prismaReadOnly.property.count({ where: yearFilter }),
 						prismaReadOnly.scrapeJob.count(),
 						prismaReadOnly.scrapeJob.count({
 							where: {
@@ -319,6 +325,7 @@ export class PropertyController {
 							by: ["city"],
 							_count: true,
 							where: {
+								...yearFilter,
 								city: { not: null },
 							},
 							orderBy: {
@@ -331,6 +338,7 @@ export class PropertyController {
 						prismaReadOnly.property.groupBy({
 							by: ["propType"],
 							_count: true,
+							where: yearFilter,
 							_avg: {
 								appraisedValue: true,
 							},
@@ -398,7 +406,9 @@ export class PropertyController {
 function buildWhereClause(
 	filters: PropertyFilters,
 ): Prisma.PropertyWhereInput {
-	const where: Prisma.PropertyWhereInput = {};
+	const where: Prisma.PropertyWhereInput = {
+		year: DISPLAY_YEAR,
+	};
 
 	if (filters.searchTerm) {
 		where.OR = [

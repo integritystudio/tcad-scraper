@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
-import { PropertyController } from "../property.controller";
+import { DISPLAY_YEAR, PropertyController } from "../property.controller";
 
 // Mock dependencies with proper structure
 vi.mock("../../queues/scraper.queue", () => ({
@@ -311,13 +311,13 @@ describe("PropertyController", () => {
 			await controller.getProperties(mockReq as Request, mockRes as Response);
 
 			expect(prismaReadOnly.property.findMany).toHaveBeenCalledWith({
-				where: {},
+				where: { year: DISPLAY_YEAR },
 				skip: 0,
 				take: 10,
 				orderBy: { scrapedAt: "desc" },
 			});
 			expect(prismaReadOnly.property.count).toHaveBeenCalledWith({
-				where: {},
+				where: { year: DISPLAY_YEAR },
 			});
 		});
 
@@ -436,7 +436,7 @@ describe("PropertyController", () => {
 				claudeSearchService.parseNaturalLanguageQuery,
 			).toHaveBeenCalledWith(query);
 			expect(prismaReadOnly.property.findMany).toHaveBeenCalledWith({
-				where: mockClaudeResponse.whereClause,
+				where: { ...mockClaudeResponse.whereClause, year: DISPLAY_YEAR },
 				orderBy: mockClaudeResponse.orderBy,
 				skip: 0,
 				take: 100,

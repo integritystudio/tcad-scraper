@@ -26,7 +26,7 @@ const DELAY_BETWEEN_BATCHES = 30000;
 const CHECK_INTERVAL = 60000;
 
 // Curated fallback terms for when DB candidates are exhausted.
-// ~200 proven terms from first names, last names, geographic, entity, and neighborhood categories.
+// 198 proven terms from first names, last names, geographic, entity, and neighborhood categories.
 const FALLBACK_TERMS: readonly string[] = [
 	// First names (proven high-yield)
 	"Joseph", "Taylor", "Charles", "Carol", "Steven", "Juan", "James", "Mary",
@@ -39,9 +39,9 @@ const FALLBACK_TERMS: readonly string[] = [
 	// Last names (common Travis County, 4+ chars)
 	"Smith", "Johnson", "Williams", "Brown", "Garcia", "Miller", "Davis",
 	"Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson",
-	"Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Thompson",
+	"Anderson", "Moore", "Jackson", "Martin", "Thompson",
 	"White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson",
-	"Walker", "Young", "Allen", "Wright", "Scott", "Torres", "Nguyen",
+	"Walker", "Young", "Allen", "Wright", "Torres", "Nguyen",
 	"Flores", "Green", "Adams", "Nelson", "Baker", "Rivera", "Campbell",
 	"Mitchell", "Carter", "Roberts", "Gomez", "Phillips", "Evans", "Turner",
 	"Diaz", "Parker", "Cruz", "Edwards", "Collins", "Reyes", "Stewart",

@@ -21,7 +21,8 @@ export interface TCADPropertyResult {
   propType?: string;
   city?: string;
   streetPrimary?: string;
-  assessedValue?: string | number;
+  // TCAD API returns marketValue, not assessedValue
+  marketValue?: string | number;
   appraisedValue?: string | number;
   geoID?: string;
   legalDescription?: string;
@@ -214,10 +215,11 @@ export function mapTCADResultToPropertyData(r: TCADPropertyResult): PropertyData
     propType: r.propType ?? "",
     city: r.city ?? null,
     propertyAddress: r.streetPrimary ?? "",
+    // TCAD API returns marketValue; we store it as assessedValue
     assessedValue:
-      typeof r.assessedValue === "number"
-        ? r.assessedValue
-        : parseFloat(String(r.assessedValue || 0)),
+      typeof r.marketValue === "number"
+        ? r.marketValue
+        : parseFloat(String(r.marketValue || 0)),
     appraisedValue:
       typeof r.appraisedValue === "number"
         ? r.appraisedValue

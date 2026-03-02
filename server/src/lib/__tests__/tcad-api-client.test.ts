@@ -43,7 +43,7 @@ function makeResults(count: number, startPid = 1): TCADPropertyResult[] {
     propType: "R",
     city: "Austin",
     streetPrimary: `${startPid + i} Main St`,
-    assessedValue: 100000 + i,
+    marketValue: 100000 + i,
     appraisedValue: 120000 + i,
     geoID: `GEO-${startPid + i}`,
     legalDescription: `Lot ${startPid + i}`,
@@ -256,7 +256,7 @@ describe("tcad-api-client", () => {
         propType: "R",
         city: "Austin",
         streetPrimary: "123 Main St",
-        assessedValue: 200000,
+        marketValue: 200000,
         appraisedValue: 250000,
         geoID: "GEO-123",
         legalDescription: "Lot 5 Block A",
@@ -297,7 +297,7 @@ describe("tcad-api-client", () => {
 
     it("parses string numeric values", () => {
       const input: TCADPropertyResult = {
-        assessedValue: "150000",
+        marketValue: "150000",
         appraisedValue: "175000",
       };
 
