@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../services/token-refresh.service", () => ({
 	tokenRefreshService: {
 		getCurrentToken: vi.fn().mockReturnValue("test-tcad-key"),
+		waitForToken: vi.fn().mockResolvedValue("test-tcad-key"),
 	},
 }));
 
@@ -42,6 +43,9 @@ describe("TCADScraper", () => {
 		vi.mocked(tokenRefreshService.getCurrentToken).mockReturnValue(
 			"test-tcad-key",
 		);
+		vi.mocked(tokenRefreshService.waitForToken).mockResolvedValue(
+			"test-tcad-key",
+		);
 		scraper = new TCADScraper();
 	});
 
@@ -74,7 +78,9 @@ describe("TCADScraper", () => {
 		});
 
 		it("should throw when no token is available", async () => {
-			vi.mocked(tokenRefreshService.getCurrentToken).mockReturnValue(null);
+			vi.mocked(tokenRefreshService.waitForToken).mockRejectedValue(
+				new Error("No TCAD API token available after refresh attempt"),
+			);
 
 			const noTokenScraper = new TCADScraper();
 			await expect(noTokenScraper.initialize()).rejects.toThrow(
@@ -125,7 +131,9 @@ describe("TCADScraper", () => {
 		});
 
 		it("should throw when no token is available", async () => {
-			vi.mocked(tokenRefreshService.getCurrentToken).mockReturnValue(null);
+			vi.mocked(tokenRefreshService.waitForToken).mockRejectedValue(
+				new Error("No TCAD API token available after refresh attempt"),
+			);
 
 			await expect(
 				scraper.scrapePropertiesViaAPI("test", 1),

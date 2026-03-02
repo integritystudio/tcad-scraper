@@ -12,6 +12,7 @@ const DEFAULT_REFRESH_INTERVAL_MS = 4 * 60 * 1000; // 4 min (tokens expire at 5)
 const FETCH_TIMEOUT_MS = 10_000;
 const TOKEN_EXPIRY_MS = 5 * 60 * 1000;
 const EXPIRY_BUFFER_MS = 30_000;
+const DEFAULT_WAIT_TIMEOUT_MS = 15_000;
 
 interface TokenResponse {
   token: string;
@@ -32,6 +33,38 @@ export class TCADTokenRefreshService {
 
   getCurrentToken(): string | null {
     return this.currentToken;
+  }
+
+  /**
+   * Wait for a valid token, refreshing if necessary.
+   * Fast path: returns immediately if a token is already available.
+   * Slow path: triggers refreshToken() with a timeout.
+   */
+  async waitForToken(timeoutMs = DEFAULT_WAIT_TIMEOUT_MS): Promise<string> {
+    if (this.currentToken) {
+      return this.currentToken;
+    }
+
+    const TIMEOUT_SENTINEL = Symbol("timeout");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const tokenPromise = this.refreshToken();
+    const timeoutPromise = new Promise<typeof TIMEOUT_SENTINEL>((resolve) => {
+      timer = setTimeout(() => resolve(TIMEOUT_SENTINEL), timeoutMs);
+    });
+
+    const result = await Promise.race([tokenPromise, timeoutPromise]);
+    clearTimeout(timer);
+
+    if (result === TIMEOUT_SENTINEL) {
+      throw new Error("TOKEN_WAIT_TIMEOUT: Timed out waiting for token");
+    }
+
+    if (!result) {
+      throw new Error("No TCAD API token available after refresh attempt");
+    }
+
+    return result;
   }
 
   /**

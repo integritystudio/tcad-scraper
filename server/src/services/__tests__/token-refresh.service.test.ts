@@ -300,6 +300,57 @@ describe("TCADTokenRefreshService", () => {
 		});
 	});
 
+	describe("waitForToken", () => {
+		it("should return immediately if token already exists", async () => {
+			mockFetch.mockResolvedValueOnce(tokenResponse("existing-tok"));
+			await service.refreshToken();
+
+			const result = await service.waitForToken();
+			// No additional fetch call — fast path
+			expect(result).toBe("existing-tok");
+			expect(mockFetch).toHaveBeenCalledOnce();
+		});
+
+		it("should refresh and return token when none exists", async () => {
+			mockFetch.mockResolvedValueOnce(tokenResponse("new-tok"));
+
+			const result = await service.waitForToken();
+
+			expect(result).toBe("new-tok");
+			expect(mockFetch).toHaveBeenCalledOnce();
+		});
+
+		it("should throw on timeout", async () => {
+			let fetchResolve!: (v: unknown) => void;
+			mockFetch.mockReturnValueOnce(
+				new Promise((r) => { fetchResolve = r; }),
+			);
+
+			const promise = service.waitForToken(100);
+			// Attach rejection handler BEFORE advancing timers
+			const resultPromise = promise.catch((e: Error) => e);
+
+			await vi.advanceTimersByTimeAsync(150);
+			const error = await resultPromise;
+
+			expect(error).toBeInstanceOf(Error);
+			expect((error as Error).message).toContain("TOKEN_WAIT_TIMEOUT");
+
+			// Clean up dangling fetch
+			fetchResolve(tokenResponse("late-tok"));
+			await vi.advanceTimersByTimeAsync(0);
+		});
+
+		it("should throw when refresh returns null", async () => {
+			// Simulate fetch failure that returns null token
+			mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+
+			await expect(service.waitForToken()).rejects.toThrow(
+				"No TCAD API token available after refresh attempt",
+			);
+		});
+	});
+
 	describe("cleanup", () => {
 		it("should not throw", async () => {
 			await expect(service.cleanup()).resolves.not.toThrow();

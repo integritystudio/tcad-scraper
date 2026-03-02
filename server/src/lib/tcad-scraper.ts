@@ -25,14 +25,7 @@ export class TCADScraper {
 	}
 
 	async initialize(): Promise<void> {
-		const token = tokenRefreshService.getCurrentToken();
-
-		if (!token) {
-			throw new Error(
-				"No TCAD API token available. Ensure token refresh service is running.",
-			);
-		}
-
+		await tokenRefreshService.waitForToken();
 		logger.info("TCADScraper initialized (API-direct mode)");
 	}
 
@@ -43,13 +36,7 @@ export class TCADScraper {
 		searchTerm: string,
 		maxRetries: number = this.config.retryAttempts,
 	): Promise<PropertyData[]> {
-		const authToken = tokenRefreshService.getCurrentToken();
-
-		if (!authToken) {
-			throw new Error(
-				"No TCAD API token available. Ensure token refresh service is running.",
-			);
-		}
+		const authToken = await tokenRefreshService.waitForToken();
 
 		let lastError: Error | null = null;
 
