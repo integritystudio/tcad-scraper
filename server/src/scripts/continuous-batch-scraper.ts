@@ -1234,6 +1234,25 @@ class SearchPatternGenerator {
 				);
 			}
 
+			// Load blacklisted terms (0% success rate, >= 3 searches)
+			try {
+				const blacklisted = await this.optimizer.getBlacklistedTerms(3);
+				for (const term of blacklisted) {
+					this.deduplicator.markTermFailed(term);
+					this.deduplicator.markTermFailed(term);
+					this.deduplicator.markTermFailed(term); // 3 failures = blacklisted
+				}
+				if (blacklisted.length > 0) {
+					logger.info(
+						`   Blacklisted ${blacklisted.length} zero-yield terms from analytics`,
+					);
+				}
+			} catch (blError) {
+				logger.warn(
+					`Failed to load blacklisted terms: ${getErrorMessage(blError)}`,
+				);
+			}
+
 			this.dbTermsLoaded = true;
 			this.lastDbRefresh = now;
 		} catch (error) {
@@ -1545,6 +1564,11 @@ class SearchPatternGenerator {
 		if (stats.multiWordSupersets > 0) {
 			logger.info(
 				`   📚 Skipped ${stats.multiWordSupersets} multi-word supersets`,
+			);
+		}
+		if (stats.blacklistedTerms > 0) {
+			logger.info(
+				`   🚫 Skipped ${stats.blacklistedTerms} blacklisted zero-yield terms`,
 			);
 		}
 

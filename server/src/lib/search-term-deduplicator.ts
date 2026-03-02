@@ -11,10 +11,14 @@ export interface DeduplicationStats {
 	twoWordSupersets: number;
 	multiWordSupersets: number;
 	tooCommonTerms: number;
+	blacklistedTerms: number;
 }
+
+const MAX_CONSECUTIVE_FAILURES = 3;
 
 export class SearchTermDeduplicator {
 	private usedTerms: Set<string>;
+	private failedTerms: Map<string, number> = new Map();
 	private stats: DeduplicationStats;
 
 	// Known terms that are too common and cause TCAD API timeouts (HTTP 504)
@@ -40,6 +44,7 @@ export class SearchTermDeduplicator {
 			twoWordSupersets: 0,
 			multiWordSupersets: 0,
 			tooCommonTerms: 0,
+			blacklistedTerms: 0,
 		};
 	}
 
@@ -51,6 +56,12 @@ export class SearchTermDeduplicator {
 	public shouldSkipTerm(term: string): boolean {
 		if (!term || term.length < 4) {
 			return true; // Skip invalid/too-short terms
+		}
+
+		// Check blacklist first (zero-yield terms)
+		if (this.isBlacklisted(term)) {
+			this.stats.blacklistedTerms++;
+			return true;
 		}
 
 		// Check if term is too common (causes TCAD API timeouts)
@@ -94,6 +105,27 @@ export class SearchTermDeduplicator {
 	}
 
 	/**
+	 * Record a consecutive failure for a term.
+	 */
+	public markTermFailed(term: string): void {
+		this.failedTerms.set(term, (this.failedTerms.get(term) ?? 0) + 1);
+	}
+
+	/**
+	 * Reset consecutive failure count on success.
+	 */
+	public markTermSucceeded(term: string): void {
+		this.failedTerms.delete(term);
+	}
+
+	/**
+	 * Check if a term has exceeded the max consecutive failure threshold.
+	 */
+	public isBlacklisted(term: string): boolean {
+		return (this.failedTerms.get(term) ?? 0) >= MAX_CONSECUTIVE_FAILURES;
+	}
+
+	/**
 	 * Get current deduplication statistics
 	 */
 	public getStats(): DeduplicationStats {
@@ -110,6 +142,7 @@ export class SearchTermDeduplicator {
 			twoWordSupersets: 0,
 			multiWordSupersets: 0,
 			tooCommonTerms: 0,
+			blacklistedTerms: 0,
 		};
 	}
 
@@ -122,7 +155,8 @@ export class SearchTermDeduplicator {
 			this.stats.businessSupersets +
 			this.stats.twoWordSupersets +
 			this.stats.multiWordSupersets +
-			this.stats.tooCommonTerms
+			this.stats.tooCommonTerms +
+			this.stats.blacklistedTerms
 		);
 	}
 

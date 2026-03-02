@@ -160,6 +160,46 @@ describe("SearchTermDeduplicator", () => {
 		});
 	});
 
+	describe("Failure Blacklist", () => {
+		test("should not blacklist term with fewer than 3 failures", () => {
+			deduplicator.markTermFailed("Beverly");
+			deduplicator.markTermFailed("Beverly");
+
+			expect(deduplicator.isBlacklisted("Beverly")).toBe(false);
+			expect(deduplicator.shouldSkipTerm("Beverly")).toBe(false);
+		});
+
+		test("should blacklist term after 3 consecutive failures", () => {
+			deduplicator.markTermFailed("Sendero Springs");
+			deduplicator.markTermFailed("Sendero Springs");
+			deduplicator.markTermFailed("Sendero Springs");
+
+			expect(deduplicator.isBlacklisted("Sendero Springs")).toBe(true);
+			expect(deduplicator.shouldSkipTerm("Sendero Springs")).toBe(true);
+			expect(deduplicator.getStats().blacklistedTerms).toBe(1);
+		});
+
+		test("should clear blacklist on success", () => {
+			deduplicator.markTermFailed("Village");
+			deduplicator.markTermFailed("Village");
+			deduplicator.markTermFailed("Village");
+
+			expect(deduplicator.isBlacklisted("Village")).toBe(true);
+
+			deduplicator.markTermSucceeded("Village");
+			expect(deduplicator.isBlacklisted("Village")).toBe(false);
+		});
+
+		test("should count blacklisted terms in total skipped", () => {
+			deduplicator.markTermFailed("TestTerm");
+			deduplicator.markTermFailed("TestTerm");
+			deduplicator.markTermFailed("TestTerm");
+
+			deduplicator.shouldSkipTerm("TestTerm");
+			expect(deduplicator.getTotalSkipped()).toBe(1);
+		});
+	});
+
 	describe("Integration with Existing Terms", () => {
 		test("should initialize with existing terms", () => {
 			const existingTerms = new Set(["Smith", "Jones", "Williams"]);

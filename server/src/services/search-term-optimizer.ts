@@ -423,6 +423,21 @@ export class SearchTermOptimizer {
 	}
 
 	/**
+	 * Get terms with 0% success rate and sufficient search history.
+	 * These are candidates for blacklisting to avoid wasting jobs.
+	 */
+	async getBlacklistedTerms(minSearches = 3): Promise<string[]> {
+		const zeroYieldTerms = await this.prisma.searchTermAnalytics.findMany({
+			where: {
+				successRate: 0,
+				totalSearches: { gte: minSearches },
+			},
+			select: { searchTerm: true },
+		});
+		return zeroYieldTerms.map((t) => t.searchTerm);
+	}
+
+	/**
 	 * Check if database is empty (cold start scenario)
 	 */
 	async isDatabaseEmpty(): Promise<boolean> {
