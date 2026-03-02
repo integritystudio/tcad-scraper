@@ -6,7 +6,8 @@
 
 import path from "node:path";
 import dotenv from "dotenv";
-import { afterAll } from "vitest";
+import { afterAll, beforeEach } from "vitest";
+import { resetFactoryCounter } from "./factories";
 
 // Load .env file from server directory
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
@@ -56,6 +57,11 @@ if (!process.env.DATABASE_READ_ONLY_URL) {
 if (!process.env.PORT) {
 	process.env.PORT = "3000";
 }
+
+// Reset factory counter before each test for isolation
+beforeEach(() => {
+	resetFactoryCounter();
+});
 
 // Global test cleanup
 afterAll(async () => {

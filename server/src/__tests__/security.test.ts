@@ -193,12 +193,6 @@ describe("Security Tests", () => {
 	});
 
 	describe("HTTPS and Transport Security", () => {
-		test("should recommend HTTPS in production", () => {
-			// This is a note/documentation test
-			// HSTS header should be set in production with HTTPS
-			expect(true).toBe(true);
-		});
-
 		test("should not set HSTS in development", async () => {
 			const response = await request(app).get("/");
 			// In development, HSTS should not be set
