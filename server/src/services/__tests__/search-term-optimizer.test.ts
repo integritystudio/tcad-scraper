@@ -364,6 +364,78 @@ describe("Search Term Optimizer", () => {
 			});
 		});
 
+		describe("getBlacklistedTerms", () => {
+			it("should filter by successRate lte 0 and totalSearches gte minSearches", async () => {
+				mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([
+					{ searchTerm: "zero" },
+				]);
+
+				const terms = await optimizer.getBlacklistedTerms(3);
+
+				expect(mockPrisma.searchTermAnalytics.findMany).toHaveBeenCalledWith(
+					expect.objectContaining({
+						where: expect.objectContaining({
+							successRate: { lte: 0 },
+							totalSearches: { gte: 3 },
+						}),
+					}),
+				);
+				expect(terms).toEqual(["zero"]);
+			});
+
+			it("should return empty array when no blacklisted terms exist", async () => {
+				mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([]);
+
+				const terms = await optimizer.getBlacklistedTerms(5);
+
+				expect(terms).toEqual([]);
+			});
+		});
+
+		describe("getOverSearchedTerms", () => {
+			it("should filter by totalSearches gte minSearches with a take limit", async () => {
+				mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([
+					{ searchTerm: "frequent" },
+				]);
+
+				const terms = await optimizer.getOverSearchedTerms(5);
+
+				expect(mockPrisma.searchTermAnalytics.findMany).toHaveBeenCalledWith(
+					expect.objectContaining({
+						where: { totalSearches: { gte: 5 } },
+						take: 10_000,
+					}),
+				);
+				expect(terms).toEqual(["frequent"]);
+			});
+
+			it("should respect custom limit parameter", async () => {
+				mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([]);
+
+				await optimizer.getOverSearchedTerms(5, 50);
+
+				expect(mockPrisma.searchTermAnalytics.findMany).toHaveBeenCalledWith(
+					expect.objectContaining({ take: 50 }),
+				);
+			});
+		});
+
+		describe("getOptimizedTerms with maxSearches", () => {
+			it("should use lt (strict less than) for maxSearches to avoid overlap with getOverSearchedTerms", async () => {
+				mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([]);
+
+				await optimizer.getOptimizedTerms({ maxSearches: 5 });
+
+				expect(mockPrisma.searchTermAnalytics.findMany).toHaveBeenCalledWith(
+					expect.objectContaining({
+						where: expect.objectContaining({
+							totalSearches: { lt: 5 },
+						}),
+					}),
+				);
+			});
+		});
+
 		describe("isDatabaseEmpty", () => {
 			it("should return true when database is empty", async () => {
 				mockPrisma.scrapeJob.count.mockResolvedValue(0);
