@@ -5,6 +5,7 @@
  * so scrape jobs can run on hosts without a Chromium binary.
  */
 
+import logger from "./logger";
 import type { PropertyData } from "../types";
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -116,6 +117,7 @@ export async function fetchTCADProperties(
     const allResults: TCADPropertyResult[] = [];
     let totalCount = 0;
     let downsized = false;
+    let truncatedAtPage = -1;
 
     try {
       // First page
@@ -147,6 +149,7 @@ export async function fetchTCADProperties(
 
           if (msg === "TRUNCATED" || msg.includes("JSON")) {
             downsized = true;
+            truncatedAtPage = page;
             lastError = msg;
             break; // fall through to try smaller page size
           }
@@ -176,6 +179,9 @@ export async function fetchTCADProperties(
       // Mid-pagination truncation: return partial results instead of
       // discarding them and trying a smaller page size from scratch.
       if (allResults.length > 0) {
+        logger.warn(
+          `Mid-pagination truncation at page ${truncatedAtPage} (pageSize=${pageSize}, collected=${allResults.length}/${totalCount}) for "${searchTerm}"`,
+        );
         return { totalCount, results: allResults, pageSize };
       }
     } catch (err) {
