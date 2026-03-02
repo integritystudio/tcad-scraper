@@ -171,6 +171,12 @@ export async function fetchTCADProperties(
       if (!downsized) {
         return { totalCount, results: allResults, pageSize };
       }
+
+      // Mid-pagination truncation: return partial results instead of
+      // discarding them and trying a smaller page size from scratch.
+      if (allResults.length > 0) {
+        return { totalCount, results: allResults, pageSize };
+      }
     } catch (err) {
       const msg = (err as Error).message;
 

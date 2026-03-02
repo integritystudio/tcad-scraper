@@ -165,6 +165,26 @@ describe("tcad-api-client", () => {
       expect(res.pageSize).toBe(500);
     });
 
+    it("preserves partial results on mid-pagination truncation", async () => {
+      // Page 1 succeeds with 1000 results
+      const page1Results = makeResults(1000, 1);
+      fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(2000, page1Results)));
+
+      // Page 2 returns truncated JSON
+      fetchSpy.mockResolvedValueOnce(
+        new Response('{"totalProperty":{"propertyCount":2000},"results":[{"pid":1001', {
+          status: 200,
+        }),
+      );
+
+      const res = await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
+
+      // Should return the 1000 results from page 1, not 0
+      expect(res.totalCount).toBe(2000);
+      expect(res.results).toHaveLength(1000);
+      expect(res.pageSize).toBe(1000);
+    });
+
     it("throws when all page sizes are exhausted", async () => {
       for (let i = 0; i < 4; i++) {
         fetchSpy.mockResolvedValueOnce(
