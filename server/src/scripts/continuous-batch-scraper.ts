@@ -1,4 +1,5 @@
 import winston from "winston";
+import { config } from "../config";
 import { prisma } from "../lib/prisma";
 import { SearchTermDeduplicator } from "../lib/search-term-deduplicator";
 import { scraperQueue } from "../queues/scraper.queue";
@@ -79,6 +80,7 @@ export class TermSelector {
 	private deduplicator = new SearchTermDeduplicator();
 	private optimizer: SearchTermOptimizer;
 	private blacklistLoaded = false;
+	private queueSeeded = false;
 
 	constructor(optimizer?: SearchTermOptimizer) {
 		this.optimizer = optimizer ?? searchTermOptimizer;
@@ -86,6 +88,7 @@ export class TermSelector {
 
 	async getNextBatch(size: number): Promise<string[]> {
 		await this.loadBlacklist();
+		await this.seedFromQueue();
 
 		const batch: string[] = [];
 
@@ -168,11 +171,47 @@ export class TermSelector {
 		return picked;
 	}
 
+	private async seedFromQueue(): Promise<void> {
+		if (this.queueSeeded) return;
+		try {
+			const [waiting, active] = await Promise.all([
+				scraperQueue.getWaiting(),
+				scraperQueue.getActive(),
+			]);
+			let seeded = 0;
+			for (const job of [...waiting, ...active]) {
+				const term = job.data?.searchTerm;
+				if (term && !this.enqueuedTerms.has(term)) {
+					this.enqueuedTerms.add(term);
+					seeded++;
+				}
+			}
+			if (seeded > 0) {
+				logger.info(`Seeded ${seeded} in-flight terms from queue`);
+			}
+		} catch (error) {
+			logger.warn(`Failed to seed from queue: ${getErrorMessage(error)}`);
+		}
+		this.queueSeeded = true;
+	}
+
 	private async getSearchedTermSet(): Promise<Set<string>> {
-		const rows = await prisma.searchTermAnalytics.findMany({
-			select: { searchTerm: true },
-		});
-		return new Set(rows.map((r) => r.searchTerm.toLowerCase()));
+		// Merge analytics table + distinct search_term from properties for current year
+		const [analyticsRows, propertyTerms] = await Promise.all([
+			prisma.searchTermAnalytics.findMany({
+				select: { searchTerm: true },
+			}),
+			prisma.property.groupBy({
+				by: ["searchTerm"],
+				where: { year: config.scraper.tcadYear, searchTerm: { not: null } },
+			}),
+		]);
+		const set = new Set<string>();
+		for (const r of analyticsRows) set.add(r.searchTerm.toLowerCase());
+		for (const r of propertyTerms) {
+			if (r.searchTerm) set.add(r.searchTerm.toLowerCase());
+		}
+		return set;
 	}
 
 	private async loadBlacklist(): Promise<void> {

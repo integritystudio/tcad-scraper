@@ -2,10 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock prisma before importing TermSelector
 const mockFindMany = vi.fn();
+const mockGroupBy = vi.fn();
 vi.mock("../../lib/prisma", () => ({
 	prisma: {
 		searchTermAnalytics: {
 			findMany: (...args: unknown[]) => mockFindMany(...args),
+		},
+		property: {
+			groupBy: (...args: unknown[]) => mockGroupBy(...args),
 		},
 	},
 }));
@@ -16,6 +20,8 @@ vi.mock("../../queues/scraper.queue", () => ({
 		add: vi.fn(),
 		getWaitingCount: vi.fn().mockResolvedValue(0),
 		getActiveCount: vi.fn().mockResolvedValue(0),
+		getWaiting: vi.fn().mockResolvedValue([]),
+		getActive: vi.fn().mockResolvedValue([]),
 	},
 }));
 
@@ -44,6 +50,7 @@ describe("TermSelector", () => {
 		mockGetBlacklistedTerms.mockResolvedValue([]);
 		mockGetOverSearchedTerms.mockResolvedValue([]);
 		mockFindMany.mockResolvedValue([]);
+		mockGroupBy.mockResolvedValue([]);
 		selector = new TermSelector();
 	});
 
