@@ -90,6 +90,7 @@ export class TermSelector {
 	async getNextBatch(size: number): Promise<string[]> {
 		await this.loadBlacklist();
 		await this.seedFromQueue();
+		const searched = await this.getSearchedTermSet();
 
 		const batch: string[] = [];
 
@@ -99,7 +100,7 @@ export class TermSelector {
 				totalSearches: 1,
 				successRate: 1,
 				avgResultsPerSearch: { gte: 500 },
-			}, size - batch.length);
+			}, size - batch.length, searched);
 			batch.push(...tier1);
 		}
 
@@ -109,7 +110,7 @@ export class TermSelector {
 				totalSearches: 1,
 				successRate: 1,
 				avgResultsPerSearch: { gte: 100 },
-			}, size - batch.length);
+			}, size - batch.length, searched);
 			batch.push(...tier2);
 		}
 
@@ -119,13 +120,12 @@ export class TermSelector {
 				totalSearches: { lte: 2 },
 				successRate: { gte: 0.4 },
 				avgResultsPerSearch: { gte: 1000 },
-			}, size - batch.length);
+			}, size - batch.length, searched);
 			batch.push(...tier3);
 		}
 
 		// Tier 4: fallback — never-searched terms from curated list
 		if (batch.length < size) {
-			const searched = await this.getSearchedTermSet();
 			for (const term of FALLBACK_TERMS) {
 				if (batch.length >= size) break;
 				if (this.enqueuedTerms.has(term)) continue;
@@ -150,6 +150,7 @@ export class TermSelector {
 	private async queryTier(
 		where: Record<string, unknown>,
 		limit: number,
+		searched: Set<string>,
 	): Promise<string[]> {
 		const results = await prisma.searchTermAnalytics.findMany({
 			where,
@@ -163,6 +164,7 @@ export class TermSelector {
 			if (picked.length >= limit) break;
 			const term = row.searchTerm;
 			if (this.enqueuedTerms.has(term)) continue;
+			if (searched.has(term.toLowerCase())) continue;
 			if (this.deduplicator.shouldSkipTerm(term)) continue;
 
 			this.enqueuedTerms.add(term);

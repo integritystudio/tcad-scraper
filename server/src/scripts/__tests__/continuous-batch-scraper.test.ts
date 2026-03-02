@@ -41,6 +41,13 @@ function makeTierRow(searchTerm: string) {
 	return { searchTerm };
 }
 
+// Call order per getNextBatch:
+// 1. getSearchedTermSet → searchTermAnalytics.findMany (searched set) + property.groupBy
+// 2. queryTier(tier1) → searchTermAnalytics.findMany
+// 3. queryTier(tier2) → searchTermAnalytics.findMany
+// 4. queryTier(tier3) → searchTermAnalytics.findMany
+// 5. Tier 4 fallback (no findMany, uses cached searched set)
+
 describe("TermSelector", () => {
 	let selector: TermSelector;
 
@@ -57,10 +64,10 @@ describe("TermSelector", () => {
 	describe("tier ordering", () => {
 		it("selects Tier 1 terms before Tier 2 and Tier 3", async () => {
 			mockFindMany
+				.mockResolvedValueOnce([]) // getSearchedTermSet (analytics)
 				.mockResolvedValueOnce([makeTierRow("HighYield500")]) // tier 1
 				.mockResolvedValueOnce([makeTierRow("ModYield100")]) // tier 2
-				.mockResolvedValueOnce([makeTierRow("ReScrape1000")]) // tier 3
-				.mockResolvedValueOnce([]); // getSearchedTermSet (fallback check)
+				.mockResolvedValueOnce([makeTierRow("ReScrape1000")]); // tier 3
 
 			const batch = await selector.getNextBatch(3);
 			expect(batch).toEqual(["HighYield500", "ModYield100", "ReScrape1000"]);
@@ -68,10 +75,10 @@ describe("TermSelector", () => {
 
 		it("fills from lower tiers when higher tiers are empty", async () => {
 			mockFindMany
+				.mockResolvedValueOnce([]) // getSearchedTermSet (analytics)
 				.mockResolvedValueOnce([]) // tier 1 empty
 				.mockResolvedValueOnce([makeTierRow("ModYield")]) // tier 2
-				.mockResolvedValueOnce([]) // tier 3 empty
-				.mockResolvedValueOnce([]); // getSearchedTermSet
+				.mockResolvedValueOnce([]); // tier 3 empty
 
 			const batch = await selector.getNextBatch(2);
 			// Should have ModYield from tier 2, plus a fallback term
@@ -82,11 +89,11 @@ describe("TermSelector", () => {
 
 	describe("enqueued term exclusion", () => {
 		it("does not return the same term twice across calls", async () => {
-			// First call (size=1): tier1 returns [TermA] → picks TermA, batch full
-			// Only 1 findMany call for tier1 (other tiers skipped)
+			// First call: searched set + tier1 returns [TermA]
 			mockFindMany
+				.mockResolvedValueOnce([]) // getSearchedTermSet (analytics) — cached after first call
 				.mockResolvedValueOnce([makeTierRow("TermA")]) // call 1: tier1
-				// Second call (size=1): tier1 returns [TermA, TermB] → TermA skipped, picks TermB
+				// Second call: searched set cached, tier1 returns [TermA, TermB]
 				.mockResolvedValueOnce([makeTierRow("TermA"), makeTierRow("TermB")]); // call 2: tier1
 
 			const batch1 = await selector.getNextBatch(1);
@@ -107,14 +114,14 @@ describe("TermSelector", () => {
 
 		it("excludes already-searched terms from fallback", async () => {
 			mockFindMany
-				.mockResolvedValueOnce([]) // tier 1
-				.mockResolvedValueOnce([]) // tier 2
-				.mockResolvedValueOnce([]) // tier 3
-				.mockResolvedValueOnce([ // getSearchedTermSet
+				.mockResolvedValueOnce([ // getSearchedTermSet (analytics)
 					{ searchTerm: "Joseph" },
 					{ searchTerm: "Taylor" },
 					{ searchTerm: "Charles" },
-				]);
+				])
+				.mockResolvedValueOnce([]) // tier 1
+				.mockResolvedValueOnce([]) // tier 2
+				.mockResolvedValueOnce([]); // tier 3
 
 			const batch = await selector.getNextBatch(3);
 			expect(batch).not.toContain("Joseph");
@@ -140,10 +147,10 @@ describe("TermSelector", () => {
 			mockGetBlacklistedTerms.mockResolvedValue(["BadTerm"]);
 
 			mockFindMany
+				.mockResolvedValueOnce([]) // getSearchedTermSet (analytics)
 				.mockResolvedValueOnce([makeTierRow("BadTerm"), makeTierRow("GoodTerm")]) // tier 1
 				.mockResolvedValueOnce([]) // tier 2
-				.mockResolvedValueOnce([]) // tier 3
-				.mockResolvedValueOnce([]); // getSearchedTermSet
+				.mockResolvedValueOnce([]); // tier 3
 
 			const batch = await selector.getNextBatch(1);
 			expect(batch).toEqual(["GoodTerm"]);
@@ -153,8 +160,8 @@ describe("TermSelector", () => {
 			mockGetOverSearchedTerms.mockResolvedValue(["OverDone"]);
 
 			mockFindMany
+				.mockResolvedValueOnce([]) // getSearchedTermSet (analytics)
 				.mockResolvedValueOnce([makeTierRow("OverDone"), makeTierRow("Fresh")]) // tier 1
-				.mockResolvedValueOnce([])
 				.mockResolvedValueOnce([])
 				.mockResolvedValueOnce([]);
 
