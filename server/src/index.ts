@@ -305,7 +305,8 @@ app.get("/health/token", async (_req, res) => {
 	try {
 		const health = tokenRefreshService.getHealth();
 
-		res.json({
+		const statusCode = health.healthy ? 200 : 503;
+		res.status(statusCode).json({
 			status: health.healthy ? "healthy" : "unhealthy",
 			tokenRefresh: health,
 		});
