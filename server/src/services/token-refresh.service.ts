@@ -12,7 +12,8 @@ const DEFAULT_REFRESH_INTERVAL_MS = 4 * 60 * 1000; // 4 min (tokens expire at 5)
 const FETCH_TIMEOUT_MS = 10_000;
 const TOKEN_EXPIRY_MS = 5 * 60 * 1000;
 const EXPIRY_BUFFER_MS = 30_000;
-const DEFAULT_WAIT_TIMEOUT_MS = 15_000;
+// Must exceed FETCH_TIMEOUT_MS (10s) plus network variance; 20s provides a 10s margin.
+const DEFAULT_WAIT_TIMEOUT_MS = 20_000;
 
 interface TokenResponse {
   token: string;
@@ -76,12 +77,18 @@ export class TCADTokenRefreshService {
   /**
    * Lazily resolve config on first use, so module-level import
    * doesn't throw before validateConfig() runs.
+   *
+   * Node.js is single-threaded: no concurrent callers can observe a
+   * half-initialized state between `if (this.initialized)` and setting
+   * `this.initialized = true`. The check is safe without a lock.
    */
   private ensureInitialized(): void {
     if (this.initialized) return;
 
     const url = config.scraper.tokenWorkerUrl;
     if (!url) {
+      // Throw here (not in constructor) so the import succeeds even when
+      // TOKEN_WORKER_URL is missing; the error surfaces on the first usage.
       throw new Error(
         "TOKEN_WORKER_URL is not configured — set it in Doppler or environment",
       );
@@ -90,7 +97,9 @@ export class TCADTokenRefreshService {
     this.workerSecret = config.scraper.tokenWorkerSecret;
 
     if (!this.workerSecret) {
-      logger.warn("TOKEN_WORKER_SECRET not set — requests will be unauthenticated");
+      logger.warn(
+        "TOKEN_WORKER_SECRET not set — Worker will reject the request (secret required)",
+      );
     }
 
     this.initialized = true;
@@ -171,8 +180,11 @@ export class TCADTokenRefreshService {
   /**
    * Start auto-refresh on an interval.
    * Interval should be significantly larger than FETCH_TIMEOUT_MS (10s).
+   * Throws immediately if TOKEN_WORKER_URL is not configured.
    */
   startAutoRefreshInterval(intervalMs?: number): void {
+    this.ensureInitialized(); // fail fast if misconfigured
+
     if (this.refreshTimer) {
       logger.warn("Auto-refresh already running, stopping previous");
       this.stopAutoRefresh();
@@ -181,8 +193,9 @@ export class TCADTokenRefreshService {
     const interval = intervalMs ?? DEFAULT_REFRESH_INTERVAL_MS;
 
     this.refreshTimer = setInterval(() => {
-      this.refreshToken().catch(() => {
-        // doRefresh handles all errors internally; this is a safety net
+      this.refreshToken().catch((err) => {
+        // doRefresh handles most errors internally; log any that escape
+        logger.error(`Auto-refresh interval error: ${err instanceof Error ? err.message : String(err)}`);
       });
     }, interval);
 
