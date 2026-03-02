@@ -11,15 +11,22 @@ import { getErrorMessage } from "../utils/error-helpers";
 
 /**
  * Remove duplicate properties by propertyId, keeping the last occurrence.
+ * Properties with an empty propertyId are dropped with a warning.
  */
 export function deduplicateByPropertyId(
 	properties: PropertyData[],
 ): PropertyData[] {
 	const map = new Map<string, PropertyData>();
+	let droppedEmpty = 0;
 	for (const prop of properties) {
 		if (prop.propertyId) {
 			map.set(prop.propertyId, prop);
+		} else {
+			droppedEmpty++;
 		}
+	}
+	if (droppedEmpty > 0) {
+		logger.warn(`deduplicateByPropertyId: dropped ${droppedEmpty} properties with empty propertyId`);
 	}
 	return Array.from(map.values());
 }
