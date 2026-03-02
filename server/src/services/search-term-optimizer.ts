@@ -254,7 +254,9 @@ export class SearchTermOptimizer {
 		}
 
 		if (maxSearches !== undefined) {
-			whereClause.totalSearches = { lte: maxSearches };
+			// lt (strictly less than) avoids overlap with getOverSearchedTerms(maxSearches),
+			// which uses gte. A term at exactly maxSearches would otherwise appear in both.
+			whereClause.totalSearches = { lt: maxSearches };
 		}
 
 		const analytics = await this.prisma.searchTermAnalytics.findMany({
@@ -447,7 +449,8 @@ export class SearchTermOptimizer {
 	async getBlacklistedTerms(minSearches = 3): Promise<string[]> {
 		const zeroYieldTerms = await this.prisma.searchTermAnalytics.findMany({
 			where: {
-				successRate: 0,
+				// lte: 0 rather than exact equality to catch NaN-coerced 0 and negative values
+				successRate: { lte: 0 },
 				totalSearches: { gte: minSearches },
 			},
 			select: { searchTerm: true },
