@@ -18,6 +18,9 @@ const MAX_CONSECUTIVE_FAILURES = 3;
 
 export class SearchTermDeduplicator {
 	private usedTerms: Set<string>;
+	// Grows O(n) with no eviction; blacklisted terms (count >= 3) are never deleted
+	// (only cleared on markTermSucceeded). Acceptable at current scale — if this
+	// grows to tens of thousands, consider using DB as authoritative blacklist source.
 	private failedTerms: Map<string, number> = new Map();
 	private stats: DeduplicationStats;
 

@@ -433,11 +433,14 @@ export class SearchTermOptimizer {
 	/**
 	 * Get terms that have been searched many times (diminishing returns).
 	 * Used to prevent random generation from re-selecting these terms.
+	 * @param minSearches - Minimum search count to qualify (inclusive)
+	 * @param limit - Maximum rows to return; prevents unbounded memory at scale (default: 10000)
 	 */
-	async getOverSearchedTerms(minSearches = 5): Promise<string[]> {
+	async getOverSearchedTerms(minSearches = 5, limit = 10_000): Promise<string[]> {
 		const terms = await this.prisma.searchTermAnalytics.findMany({
 			where: { totalSearches: { gte: minSearches } },
 			select: { searchTerm: true },
+			take: limit,
 		});
 		return terms.map((t) => t.searchTerm);
 	}
