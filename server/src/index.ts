@@ -274,7 +274,7 @@ app.get("/health/queue", async (_req, res) => {
  *     tags: [Health]
  *     responses:
  *       200:
- *         description: Token service status
+ *         description: Token service is healthy
  *         content:
  *           application/json:
  *             schema:
@@ -298,6 +298,8 @@ app.get("/health/queue", async (_req, res) => {
  *                       type: integer
  *                     failureCount:
  *                       type: integer
+ *       503:
+ *         description: Token service is unhealthy (no valid token or token expired)
  *       500:
  *         description: Failed to get token status
  */

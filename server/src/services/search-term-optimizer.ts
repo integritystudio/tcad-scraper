@@ -449,7 +449,11 @@ export class SearchTermOptimizer {
 	 * Get terms with 0% success rate and sufficient search history.
 	 * These are candidates for blacklisting to avoid wasting jobs.
 	 */
-	async getBlacklistedTerms(minSearches = 3): Promise<string[]> {
+	/**
+	 * @param minSearches - Minimum search count to qualify
+	 * @param limit - Maximum rows to return (default: 10000)
+	 */
+	async getBlacklistedTerms(minSearches = 3, limit = 10_000): Promise<string[]> {
 		const zeroYieldTerms = await this.prisma.searchTermAnalytics.findMany({
 			where: {
 				// lte: 0 rather than exact equality to catch NaN-coerced 0 and negative values
@@ -457,6 +461,7 @@ export class SearchTermOptimizer {
 				totalSearches: { gte: minSearches },
 			},
 			select: { searchTerm: true },
+			take: limit,
 		});
 		return zeroYieldTerms.map((t) => t.searchTerm);
 	}
