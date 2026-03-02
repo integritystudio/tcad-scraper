@@ -105,6 +105,11 @@ npm run test:all:coverage    # Full coverage report
 # Scraping
 doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts
 npm run queue:status
+
+# Queue Management
+## Dequeue all waiting/failed jobs
+# ⚠️ Use --eval flag (NOT heredoc) for tsx inline module imports
+npx tsx --eval "import { scraperQueue } from './src/queues/scraper.queue'; (async () => { const waiting = await scraperQueue.getWaitingCount(); const failed = await scraperQueue.getFailedCount(); if (waiting > 0) { await scraperQueue.clean(0, 'wait'); } if (failed > 0) { await scraperQueue.clean(0, 'failed'); } await scraperQueue.close(); })();"
 ```
 
 ---

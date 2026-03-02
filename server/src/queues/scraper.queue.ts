@@ -112,7 +112,8 @@ scraperQueue.process(
 				const CHUNK_SIZE = config.queue.batchChunkSize;
 
 				for (let i = 0; i < properties.length; i += CHUNK_SIZE) {
-					const chunk = properties.slice(i, i + CHUNK_SIZE);
+					const rawChunk = properties.slice(i, i + CHUNK_SIZE);
+					const chunk = deduplicateByPropertyId(rawChunk);
 
 					// Build the VALUES clause dynamically
 					const now = new Date();
