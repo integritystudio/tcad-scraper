@@ -448,8 +448,6 @@ export class SearchTermOptimizer {
 	/**
 	 * Get terms with 0% success rate and sufficient search history.
 	 * These are candidates for blacklisting to avoid wasting jobs.
-	 */
-	/**
 	 * @param minSearches - Minimum search count to qualify
 	 * @param limit - Maximum rows to return (default: 10000)
 	 */

@@ -39,7 +39,6 @@ describe("Search Term Optimizer", () => {
 	let optimizer: SearchTermOptimizer;
 
 	beforeEach(() => {
-		vi.clearAllMocks();
 		optimizer = new SearchTermOptimizer(
 			mockPrisma as unknown as import("@prisma/client").PrismaClient,
 		);
@@ -365,7 +364,7 @@ describe("Search Term Optimizer", () => {
 		});
 
 		describe("getBlacklistedTerms", () => {
-			it("should filter by successRate lte 0 and totalSearches gte minSearches", async () => {
+			it("should filter by successRate lte 0, totalSearches gte minSearches, with take limit", async () => {
 				mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([
 					{ searchTerm: "zero" },
 				]);
@@ -378,9 +377,20 @@ describe("Search Term Optimizer", () => {
 							successRate: { lte: 0 },
 							totalSearches: { gte: 3 },
 						}),
+						take: 10_000,
 					}),
 				);
 				expect(terms).toEqual(["zero"]);
+			});
+
+			it("should respect custom limit parameter", async () => {
+				mockPrisma.searchTermAnalytics.findMany.mockResolvedValue([]);
+
+				await optimizer.getBlacklistedTerms(5, 100);
+
+				expect(mockPrisma.searchTermAnalytics.findMany).toHaveBeenCalledWith(
+					expect.objectContaining({ take: 100 }),
+				);
 			});
 
 			it("should return empty array when no blacklisted terms exist", async () => {

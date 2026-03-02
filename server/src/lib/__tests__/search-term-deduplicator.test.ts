@@ -160,6 +160,28 @@ describe("SearchTermDeduplicator", () => {
 		});
 	});
 
+	describe("forceBlacklist", () => {
+		test("should immediately blacklist a term without requiring 3 calls", () => {
+			deduplicator.forceBlacklist("Lakeshore");
+
+			expect(deduplicator.isBlacklisted("Lakeshore")).toBe(true);
+			expect(deduplicator.shouldSkipTerm("Lakeshore")).toBe(true);
+		});
+
+		test("should be idempotent — repeated calls do not inflate failure count", () => {
+			deduplicator.forceBlacklist("Stonegate");
+			deduplicator.forceBlacklist("Stonegate");
+			deduplicator.forceBlacklist("Stonegate");
+
+			// Still blacklisted, not multiply-counted
+			expect(deduplicator.isBlacklisted("Stonegate")).toBe(true);
+
+			// Succeeding the term should clear it, same as after markTermFailed x3
+			deduplicator.markTermSucceeded("Stonegate");
+			expect(deduplicator.isBlacklisted("Stonegate")).toBe(false);
+		});
+	});
+
 	describe("Failure Blacklist", () => {
 		test("should not blacklist term with fewer than 3 failures", () => {
 			deduplicator.markTermFailed("Beverly");
