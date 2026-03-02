@@ -35,13 +35,19 @@ export class TCADTokenRefreshService {
     return this.currentToken;
   }
 
+  private isTokenExpired(): boolean {
+    if (!this.currentToken || !this.lastRefreshTime) return true;
+    const ageMs = Date.now() - this.lastRefreshTime.getTime();
+    return ageMs >= this.tokenExpiryMs - EXPIRY_BUFFER_MS;
+  }
+
   /**
    * Wait for a valid token, refreshing if necessary.
-   * Fast path: returns immediately if a token is already available.
+   * Fast path: returns immediately if a non-expired token is available.
    * Slow path: triggers refreshToken() with a timeout.
    */
   async waitForToken(timeoutMs = DEFAULT_WAIT_TIMEOUT_MS): Promise<string> {
-    if (this.currentToken) {
+    if (this.currentToken && !this.isTokenExpired()) {
       return this.currentToken;
     }
 
