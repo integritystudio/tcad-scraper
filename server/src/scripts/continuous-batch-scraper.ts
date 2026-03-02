@@ -2,7 +2,6 @@ import winston from "winston";
 import { prisma } from "../lib/prisma";
 import { SearchTermDeduplicator } from "../lib/search-term-deduplicator";
 import { scraperQueue } from "../queues/scraper.queue";
-import { HIGH_RESULT_TERM_SPLITS } from "./config/batch-configs";
 import {
 	type SearchTermOptimizer,
 	searchTermOptimizer,
