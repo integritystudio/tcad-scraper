@@ -60,22 +60,7 @@ describe("App", () => {
 	});
 
 	describe("Code Splitting", () => {
-		it("should render loading skeleton as fallback during lazy load", async () => {
-			// Import App fresh to trigger lazy loading
-			const { default: App } = await import("../App");
-
-			render(<App />);
-
-			// The loading skeleton should appear as Suspense fallback
-			// Note: Due to mocking, the lazy component resolves immediately
-			await waitFor(() => {
-				expect(
-					screen.getByTestId("property-search-container"),
-				).toBeInTheDocument();
-			});
-		});
-
-		it("should load PropertySearchContainer after suspense resolves", async () => {
+		it("should render PropertySearchContainer after suspense resolves", async () => {
 			const { default: App } = await import("../App");
 
 			render(<App />);

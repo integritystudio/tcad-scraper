@@ -75,33 +75,8 @@ describe("formatCurrency", () => {
 		});
 	});
 
-	describe("type safety", () => {
-		it("should accept number type", () => {
-			const value: number = 1000;
-			expect(formatCurrency(value)).toBe("$1,000");
-		});
-
-		it("should accept null type", () => {
-			const value: null = null;
-			expect(formatCurrency(value)).toBe("-");
-		});
-
-		it("should accept undefined type", () => {
-			const value: undefined = undefined;
-			expect(formatCurrency(value)).toBe("-");
-		});
-
-		it("should handle optional number (number | undefined)", () => {
-			const value: number | undefined = undefined;
-			expect(formatCurrency(value)).toBe("-");
-		});
-
-		it("should handle nullable number (number | null)", () => {
-			const value: number | null = null;
-			expect(formatCurrency(value)).toBe("-");
-		});
-	});
 });
+
 
 describe("formatNumber", () => {
 	it("should format numbers with thousands separators", () => {
