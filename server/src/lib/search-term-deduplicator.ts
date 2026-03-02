@@ -126,6 +126,17 @@ export class SearchTermDeduplicator {
 	}
 
 	/**
+	 * Immediately blacklist a term, setting its failure count to the threshold.
+	 * Idempotent: calling multiple times is safe and won't inflate the count beyond threshold.
+	 * Prefer this over calling markTermFailed() N times at call sites.
+	 */
+	public forceBlacklist(term: string): void {
+		if (!this.isBlacklisted(term)) {
+			this.failedTerms.set(term, MAX_CONSECUTIVE_FAILURES);
+		}
+	}
+
+	/**
 	 * Get current deduplication statistics
 	 */
 	public getStats(): DeduplicationStats {

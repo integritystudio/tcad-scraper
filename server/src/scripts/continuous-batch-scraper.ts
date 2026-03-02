@@ -225,10 +225,7 @@ export class TermSelector {
 		try {
 			const blacklisted = await this.optimizer.getBlacklistedTerms(3);
 			for (const term of blacklisted) {
-				// 3 failures = blacklisted in deduplicator
-				this.deduplicator.markTermFailed(term);
-				this.deduplicator.markTermFailed(term);
-				this.deduplicator.markTermFailed(term);
+				this.deduplicator.forceBlacklist(term);
 			}
 			if (blacklisted.length > 0) {
 				logger.info(`Blacklisted ${blacklisted.length} zero-yield terms`);
