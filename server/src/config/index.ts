@@ -205,6 +205,7 @@ export const config = {
 
 	// Scraper Configuration
 	scraper: {
+		/** @deprecated No longer used — TCAD now requires a bearer token via TOKEN_WORKER_URL. Remove after confirming no callers. */
 		tcadApiKey: process.env.TCAD_API_KEY,
 		tokenWorkerUrl: process.env.TOKEN_WORKER_URL,
 		tokenWorkerSecret: process.env.TOKEN_WORKER_SECRET,
