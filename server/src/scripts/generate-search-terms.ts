@@ -132,6 +132,9 @@ async function getDenseTermExpansions(searched: Set<string>): Promise<string[]> 
     for (const ch of ALPHABET) {
       const expanded = base + ch;
       const lower = expanded.toLowerCase();
+      // expanded = base + 1 char; base from analytics is >= 4 chars, so
+      // expanded is always >= 5. This check is unreachable but kept as a
+      // defensive guard in case MIN_TERM_LENGTH changes.
       if (expanded.length < MIN_TERM_LENGTH) continue;
       if (searched.has(lower)) continue;
       if (seen.has(lower)) continue;
@@ -182,6 +185,12 @@ async function getAnalyticsSeedTerms(searched: Set<string>): Promise<string[]> {
 
 // ── Tier 3: Unexplored prefix gap analysis ───────────────────────────
 
+/**
+ * Generate 4-char prefix candidates not yet present in the searched set.
+ * @param searched - Set of already-searched terms, all lowercase.
+ *   Callers must normalize to lowercase before passing; this function
+ *   does not normalize internally for performance.
+ */
 async function getUnexploredPrefixes(searched: Set<string>): Promise<string[]> {
   // Build set of all 4-char prefixes already searched
   const searchedPrefixes = new Set<string>();
@@ -323,7 +332,7 @@ async function main() {
     const lines: string[] = [];
     for (let i = 0; i < candidates.length; i += 8) {
       const chunk = candidates.slice(i, i + 8);
-      lines.push("\t" + chunk.map((t) => `"${t}"`).join(", ") + ",");
+      lines.push("\t" + chunk.map((t) => JSON.stringify(t)).join(", ") + ",");
     }
     console.log("const GENERATED_TERMS: readonly string[] = [");
     for (const line of lines) console.log(line);
