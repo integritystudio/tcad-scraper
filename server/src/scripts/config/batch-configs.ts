@@ -239,6 +239,19 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 	},
 };
 
+/**
+ * Terms with >5000 max_results that should be split into narrower sub-queries
+ * to prevent truncation and timeouts. Based on search_term_analytics data.
+ */
+export const HIGH_RESULT_TERM_SPLITS: ReadonlyMap<string, readonly string[]> = new Map([
+	// Oak (7210 max_results) → neighborhood/subdivision sub-queries
+	["Oak", ["Oak Hill", "Oakwood", "Oak Run", "Oakhurst", "Oak Creek"]],
+	// Maria (6026 max_results) → common middle-initial sub-queries
+	["Maria", ["Maria E", "Maria G", "Maria R", "Maria L"]],
+	// Estate (5051 max_results) → specific entity patterns
+	["Estate", ["Estate of", "Estates at", "Estate Trust"]],
+]);
+
 export function getAvailableBatchTypes(): string[] {
 	return Object.keys(BATCH_CONFIGS);
 }

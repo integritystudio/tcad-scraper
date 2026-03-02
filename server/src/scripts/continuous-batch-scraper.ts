@@ -2,6 +2,7 @@ import winston from "winston";
 import { prisma } from "../lib/prisma";
 import { SearchTermDeduplicator } from "../lib/search-term-deduplicator";
 import { scraperQueue } from "../queues/scraper.queue";
+import { HIGH_RESULT_TERM_SPLITS } from "./config/batch-configs";
 import {
 	type SearchTermOptimizer,
 	searchTermOptimizer,
@@ -1047,8 +1048,9 @@ class SearchPatternGenerator {
 		"LLC", "LLC.", "L.L.C.", "LTD", "Inc", "Inc.", "Corp", "Corp.",
 		"Corporation", "Incorporated", "Company", "Co.", "Limited",
 		"Limited Liability", "LMTD", "Co LLC",
-		// Trust & estate
-		"Trust", "Trustee", "Estate", "Family Trust", "Revocable Trust",
+		// Trust & estate (Estate split into sub-queries to avoid truncation)
+		"Trust", "Trustee", "Estate of", "Estates at", "Estate Trust",
+		"Family Trust", "Revocable Trust",
 		"Irrevocable Trust", "Living Trust", "Testamentary", "Fiduciary",
 		// Partnership
 		"Partnership", "Partners", "LP", "LLP", "Association",
@@ -1062,6 +1064,9 @@ class SearchPatternGenerator {
 		// Property & real estate entities
 		"Properties", "Property", "Real Estate", "Realty",
 		"Development", "Developers", "Land",
+		// High-result term splits (>5000 results → narrower sub-queries)
+		"Oak Hill", "Oakwood", "Oak Run", "Oakhurst", "Oak Creek",
+		"Maria E", "Maria G", "Maria R", "Maria L",
 		// Family names (proven high-yield: 2000+ properties each)
 		"Garcia", "Hernandez", "Lopez", "Gonzalez", "Martinez",
 		"Rodriguez", "Perez", "Sanchez", "Rivera", "Torres",
