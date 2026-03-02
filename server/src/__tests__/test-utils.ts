@@ -56,21 +56,6 @@ export async function isRedisAvailable(
 }
 
 /**
- * Skip test if Redis is not available
- * Usage: await skipIfRedisUnavailable()
- */
-export async function skipIfRedisUnavailable(): Promise<void> {
-	const available = await isRedisAvailable();
-	if (!available) {
-		logger.debug(
-			`⏭️  Skipping test: Redis not available at ${config.redis.host}:${config.redis.port}`,
-		);
-		// Vitest doesn't have a programmatic skip, but we can throw to exit
-		throw new Error("SKIP_TEST_REDIS_UNAVAILABLE");
-	}
-}
-
-/**
  * Check if database is available and responsive
  * Returns true if database can be connected to, false otherwise
  * Requires remote database access
@@ -101,25 +86,6 @@ export async function isDatabaseAvailable(
 		return true;
 	} catch (_error) {
 		return false;
-	}
-}
-
-/**
- * Skip test if database is not available
- * This checks if the DATABASE_URL is set and accessible
- */
-export async function skipIfDatabaseUnavailable(): Promise<void> {
-	if (!process.env.DATABASE_URL) {
-		logger.debug("⏭️  Skipping test: DATABASE_URL not configured");
-		throw new Error("SKIP_TEST_DATABASE_UNAVAILABLE");
-	}
-
-	const available = await isDatabaseAvailable();
-	if (!available) {
-		logger.debug(
-			"⏭️  Skipping test: Database not reachable",
-		);
-		throw new Error("SKIP_TEST_DATABASE_UNREACHABLE");
 	}
 }
 
