@@ -76,6 +76,55 @@ vi.spyOn(global, "setInterval").mockReturnValue(
 	{} as unknown as NodeJS.Timeout,
 );
 
+describe("deduplicateByPropertyId", () => {
+	let deduplicateByPropertyId: (
+		props: { propertyId: string }[],
+	) => { propertyId: string }[];
+
+	beforeEach(async () => {
+		vi.resetModules();
+		const module = await import("../scraper.queue");
+		deduplicateByPropertyId = module.deduplicateByPropertyId as typeof deduplicateByPropertyId;
+	});
+
+	it("should return empty array for empty input", () => {
+		expect(deduplicateByPropertyId([] as never[])).toEqual([]);
+	});
+
+	it("should pass through when no duplicates exist", () => {
+		const props = [
+			{ propertyId: "1", name: "A" },
+			{ propertyId: "2", name: "B" },
+		];
+		const result = deduplicateByPropertyId(props as never[]);
+		expect(result).toHaveLength(2);
+	});
+
+	it("should keep last occurrence when duplicates exist", () => {
+		const props = [
+			{ propertyId: "1", name: "First" },
+			{ propertyId: "2", name: "Middle" },
+			{ propertyId: "1", name: "Last" },
+		];
+		const result = deduplicateByPropertyId(props as never[]);
+		expect(result).toHaveLength(2);
+		expect(result.find((p) => p.propertyId === "1")).toHaveProperty(
+			"name",
+			"Last",
+		);
+	});
+
+	it("should skip properties with empty propertyId", () => {
+		const props = [
+			{ propertyId: "", name: "Empty" },
+			{ propertyId: "1", name: "Valid" },
+		];
+		const result = deduplicateByPropertyId(props as never[]);
+		expect(result).toHaveLength(1);
+		expect(result[0].propertyId).toBe("1");
+	});
+});
+
 describe("Scraper Queue", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();

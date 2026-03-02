@@ -6,8 +6,23 @@ import { cacheService } from "../lib/redis-cache.service";
 import { TCADScraper } from "../lib/tcad-scraper";
 import { searchTermOptimizer } from "../services/search-term-optimizer";
 import { tcadTokenRefreshService } from "../services/token-refresh.service";
-import type { ScrapeJobData, ScrapeJobResult } from "../types";
+import type { PropertyData, ScrapeJobData, ScrapeJobResult } from "../types";
 import { getErrorMessage } from "../utils/error-helpers";
+
+/**
+ * Remove duplicate properties by propertyId, keeping the last occurrence.
+ */
+export function deduplicateByPropertyId(
+	properties: PropertyData[],
+): PropertyData[] {
+	const map = new Map<string, PropertyData>();
+	for (const prop of properties) {
+		if (prop.propertyId) {
+			map.set(prop.propertyId, prop);
+		}
+	}
+	return Array.from(map.values());
+}
 
 // Build Redis connection options, supporting TLS for rediss:// URLs
 function buildRedisConfig(): Bull.QueueOptions["redis"] {
@@ -76,7 +91,15 @@ scraperQueue.process(
 			// Update progress: Scraping
 			// Using API-based scraping for better results (up to 1000x more properties)
 			await job.progress(30);
-			const properties = await scraper.scrapePropertiesViaAPI(searchTerm);
+			const rawProperties = await scraper.scrapePropertiesViaAPI(searchTerm);
+
+			// Deduplicate before upsert to prevent DUPLICATE_UPSERT failures
+			const properties = deduplicateByPropertyId(rawProperties);
+			if (properties.length < rawProperties.length) {
+				logger.warn(
+					`Removed ${rawProperties.length - properties.length} duplicate properties for "${searchTerm}"`,
+				);
+			}
 
 			// Update progress: Saving to database
 			await job.progress(70);
