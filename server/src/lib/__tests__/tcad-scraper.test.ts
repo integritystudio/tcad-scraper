@@ -55,7 +55,9 @@ describe("TCADScraper", () => {
 
 	describe("constructor", () => {
 		it("should initialize with default config", () => {
-			expect(scraper).toBeDefined();
+			expect(scraper).toBeInstanceOf(TCADScraper);
+			expect(typeof scraper.initialize).toBe("function");
+			expect(typeof scraper.scrapePropertiesViaAPI).toBe("function");
 		});
 
 		it("should accept custom config", () => {
@@ -63,12 +65,12 @@ describe("TCADScraper", () => {
 				timeout: 60000,
 				retryAttempts: 5,
 			});
-			expect(custom).toBeDefined();
+			expect(custom).toBeInstanceOf(TCADScraper);
 		});
 
 		it("should handle empty config object", () => {
 			const defaultScraper = new TCADScraper({});
-			expect(defaultScraper).toBeDefined();
+			expect(defaultScraper).toBeInstanceOf(TCADScraper);
 		});
 	});
 
