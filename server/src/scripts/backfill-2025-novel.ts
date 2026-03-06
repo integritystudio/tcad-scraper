@@ -22,6 +22,8 @@ const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
 const MIN_PROPS_PER_TERM = 10;
 
 async function get2025Count(): Promise<number> {
+  // ::int cast required: Prisma $queryRaw returns BigInt for COUNT(*); cast to int before JS receives it.
+  // If this cast is removed, the `number` type annotation will silently lie (BigInt !== number).
   const result = await prisma.$queryRaw<[{ count: number }]>`
     SELECT COUNT(*)::int as count FROM properties WHERE year = 2025`;
   return result[0].count;
