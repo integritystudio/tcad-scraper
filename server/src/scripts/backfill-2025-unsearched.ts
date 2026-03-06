@@ -269,7 +269,7 @@ async function main() {
     const newCount = await get2025Count();
     const gained = newCount - current;
     totalGained += gained;
-    console.log(`  2025 properties: ${newCount.toLocaleString()} (+${gained.toLocaleString()}) [session total: +${totalGained.toLocaleString()}]`);
+    console.log(`  2025 properties: ${newCount.toLocaleString()} (+${gained.toLocaleString()}) [session: +${totalGained.toLocaleString()}]`);
     console.log(`  Remaining: ${Math.max(0, TARGET_2025_COUNT - newCount).toLocaleString()}`);
 
     if (gained === 0) {
