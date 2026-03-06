@@ -285,6 +285,7 @@ async function main() {
 
   let batchNum = 0;
   let consecutiveZeroBatches = 0;
+  let totalGained = 0;
   for (let i = 0; i < allTerms.length; i += BATCH_SIZE) {
     current = await get2025Count();
     if (current >= TARGET_2025_COUNT) {
@@ -304,7 +305,8 @@ async function main() {
 
     const newCount = await get2025Count();
     const gained = newCount - current;
-    console.log(`  2025 properties: ${newCount.toLocaleString()} (+${gained.toLocaleString()})`);
+    totalGained += gained;
+    console.log(`  2025 properties: ${newCount.toLocaleString()} (+${gained.toLocaleString()}) [session: +${totalGained.toLocaleString()}]`);
     console.log(`  Remaining: ${Math.max(0, TARGET_2025_COUNT - newCount).toLocaleString()}`);
 
     if (gained === 0) {
@@ -323,6 +325,7 @@ async function main() {
   const finalCount = await get2025Count();
   console.log(`\n=== Done ===`);
   console.log(`Final 2025 count: ${finalCount.toLocaleString()}`);
+  console.log(`Session gained: +${totalGained.toLocaleString()}`);
   console.log(`Target met: ${finalCount >= TARGET_2025_COUNT ? "YES" : "NO"}`);
 }
 
