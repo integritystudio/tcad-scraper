@@ -163,8 +163,7 @@ async function getUnsearchedTerms(): Promise<string[]> {
   for (const n of fullNames) addTerm(n.phrase);
   console.log(`    Full names added: ${result.length - prevCount3}`);
 
-  // ── Source 5: GEO ID prefixes (4-digit) as search terms ────────────
-  // Note: fullTextSearch may not match GEO IDs, but worth trying unique ones
+  // ── Source 5: Description first-words from 2026-only properties ────
   const prevCount4 = result.length;
   console.log("  Mining description keywords...");
   const descriptions = await prisma.$queryRaw<Array<{ word: string; cnt: number }>>`
