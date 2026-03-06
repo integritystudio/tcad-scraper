@@ -61,6 +61,11 @@ async function getTermSets(): Promise<TermSets> {
   return { searched, successful, searched2025 };
 }
 
+// Extension filter: skip candidates that extend an already-successful shorter term.
+// Example: skip "JOHNSONVIL" if "JOHNSON" yielded results — the TCAD full-text search
+// returns all properties matching the shorter prefix, so it already captured this set.
+// Contrast with backfill-2025-novel.ts which uses the OPPOSITE strategy: skip terms
+// that are themselves prefixes of longer already-searched terms.
 function isSupersetOfSuccessful(lower: string, successful: Set<string>): boolean {
   for (let len = MIN_TERM_LENGTH; len < lower.length; len++) {
     if (successful.has(lower.substring(0, len))) return true;

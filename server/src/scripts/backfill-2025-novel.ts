@@ -54,6 +54,12 @@ async function getSearchedTerms(): Promise<Set<string>> {
   return searched;
 }
 
+// Prefix filter (opposite strategy from other backfill scripts):
+// Skip novel candidates that are already a prefix of a longer already-searched term.
+// Example: skip "FORT" if "FORTENBERRY" was already searched — the novel-terms goal
+// is to mine genuinely new owner name namespaces, not extend already-explored ones.
+// Contrast with backfill-2025.ts / backfill-2025-unsearched.ts which use the OPPOSITE
+// strategy: skip candidates that EXTEND (are supersets of) successful shorter terms.
 function buildPrefixIndex(searched: Set<string>): Set<string> {
   const prefixes = new Set<string>();
   for (const term of searched) {
