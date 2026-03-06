@@ -24,9 +24,9 @@ Token is fetched at top of method, then reused across retry loop. If TOKEN_EXPIR
 
 #### MEDIUM
 
-#### CR-M1: Hardcoded date strings will silently include wrong jobs when re-run on a different day
+#### ~~CR-M1: Hardcoded date strings will silently include wrong jobs when re-run on a different day~~ [FIXED in 31090b8]
 **Priority**: P2 | **Source**: code-reviewer 2026-03-06
-All four backfill scripts use hardcoded date strings (`new Date("2026-03-05")` / `"2026-03-06"`) to exclude recently-attempted jobs. Running scripts on a different day will include jobs from stale dates. Replace with rolling window: `new Date(Date.now() - 24*60*60*1000)`. -- `backfill-2025*.ts` lines 38-48 across all four scripts
+Replaced hardcoded dates with 7-day rolling window via `RECENT_JOBS_LOOKBACK_DAYS` constant across all four scripts.
 
 #### CR-M2: `isSubstringOfSearched` and `isSupersetOfSuccessful` semantically opposite with no documentation
 **Priority**: P2 | **Source**: code-reviewer 2026-03-06
@@ -36,9 +36,9 @@ Novel script filters out candidates that are **prefixes of** existing terms (e.g
 **Priority**: P3 | **Source**: code-reviewer 2026-03-06
 All four backfill scripts use `COUNT(*)::int` to downcast from `bigint` before Prisma receives it. If cast is ever removed, type annotation `number` will silently lie. Add comment explaining why `::int` is required. -- `backfill-2025*.ts:23-27` in all four scripts
 
-#### CR-M4: `getDenseExpansions`/`getSeedExpansions` duplicated from `generate-search-terms.ts`
+#### ~~CR-M4: `getDenseExpansions`/`getSeedExpansions` duplicated from `generate-search-terms.ts`~~ [FIXED]
 **Priority**: P2 | **Source**: code-reviewer 2026-03-06
-Functions and constants (`DENSE_MAX_RESULTS_THRESHOLD`, etc.) copy-pasted from source. If thresholds change, backfill script silently diverges. Extract to shared module `src/scripts/lib/prefix-expansions.ts` or import from generate-search-terms. -- `backfill-2025.ts:69-122`
+Extracted shared constants to `src/scripts/lib/backfill-constants.ts`. All 5 scripts now import from single source of truth.
 
 #### CR-M5: Stale "GEO ID prefixes" comment on description-mining section
 **Priority**: P3 | **Source**: code-reviewer 2026-03-06

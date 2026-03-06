@@ -9,23 +9,17 @@ import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import { config } from "../config";
 import { getErrorMessage } from "../utils/error-helpers";
+import {
+  DENSE_MAX_RESULTS_THRESHOLD, DENSE_AVG_RESULTS_THRESHOLD,
+  DENSE_MIN_SUCCESS_RATE, DENSE_MAX_BASE_LENGTH,
+  SEED_MIN_SUCCESS_RATE, SEED_MIN_AVG_RESULTS,
+  RECENT_JOBS_LOOKBACK_MS, MIN_TERM_LENGTH, ALPHABET,
+} from "./lib/backfill-constants";
 
 const TARGET_2025_COUNT = 420_000;
 const BATCH_SIZE = 20;
 const POLL_INTERVAL_MS = 15_000;
 const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
-
-// Prefix expansion constants (from generate-search-terms.ts)
-const DENSE_MAX_RESULTS_THRESHOLD = 5000;
-const DENSE_AVG_RESULTS_THRESHOLD = 2000;
-const DENSE_MIN_SUCCESS_RATE = 0.5;
-const DENSE_MAX_BASE_LENGTH = 6;
-const SEED_MIN_SUCCESS_RATE = 0.5;
-const SEED_MIN_AVG_RESULTS = 100;
-const RECENT_JOBS_LOOKBACK_DAYS = 7;
-const RECENT_JOBS_LOOKBACK_MS = RECENT_JOBS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
-const MIN_TERM_LENGTH = 4;
-const ALPHABET = "abcdefghijklmnopqrstuvwxyz";
 
 async function get2025Count(): Promise<number> {
   const result = await prisma.$queryRaw<[{ count: number }]>`

@@ -18,6 +18,12 @@ import { config } from "../config";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import { getErrorMessage } from "../utils/error-helpers";
+import {
+  DENSE_MAX_RESULTS_THRESHOLD, DENSE_AVG_RESULTS_THRESHOLD,
+  DENSE_MIN_SUCCESS_RATE, DENSE_MAX_BASE_LENGTH,
+  SEED_MIN_SUCCESS_RATE, SEED_MIN_AVG_RESULTS,
+  MIN_TERM_LENGTH, ALPHABET,
+} from "./lib/backfill-constants";
 
 const rawLimit =
   process.argv.find((a) => a.startsWith("--limit="))?.split("=")[1] ??
@@ -32,13 +38,7 @@ if (isNaN(TARGET_TERM_COUNT) || TARGET_TERM_COUNT <= 0) {
 const SHOULD_ENQUEUE = process.argv.includes("--enqueue");
 const OUTPUT_JSON = process.argv.includes("--json");
 
-// ── Thresholds (from plan) ───────────────────────────────────────────
-const DENSE_MAX_RESULTS_THRESHOLD = 5000;
-const DENSE_AVG_RESULTS_THRESHOLD = 2000;
-const SEED_MIN_SUCCESS_RATE = 0.5;
-const SEED_MIN_AVG_RESULTS = 100;
-const MIN_TERM_LENGTH = 4;
-const ALPHABET = "abcdefghijklmnopqrstuvwxyz";
+
 
 // ── Static fallback arrays (tier 4) ─────────────────────────────────
 
@@ -119,9 +119,10 @@ async function getDenseTermExpansions(searched: Set<string>): Promise<string[]> 
         { maxResults: { gte: DENSE_MAX_RESULTS_THRESHOLD } },
         { avgResultsPerSearch: { gte: DENSE_AVG_RESULTS_THRESHOLD } },
       ],
+      successRate: { gte: DENSE_MIN_SUCCESS_RATE },
     },
     orderBy: { avgResultsPerSearch: "desc" },
-    select: { searchTerm: true, maxResults: true, avgResultsPerSearch: true },
+    select: { searchTerm: true, maxResults: true, avgResultsPerSearch: true, successRate: true },
   });
 
   const expansions: string[] = [];
@@ -129,12 +130,11 @@ async function getDenseTermExpansions(searched: Set<string>): Promise<string[]> 
 
   for (const row of dense) {
     const base = row.searchTerm;
+    // Skip long bases — expanded terms >7 chars cause TCAD API truncation
+    if (base.length > DENSE_MAX_BASE_LENGTH) continue;
     for (const ch of ALPHABET) {
       const expanded = base + ch;
       const lower = expanded.toLowerCase();
-      // expanded = base + 1 char; base from analytics is >= 4 chars, so
-      // expanded is always >= 5. This check is unreachable but kept as a
-      // defensive guard in case MIN_TERM_LENGTH changes.
       if (expanded.length < MIN_TERM_LENGTH) continue;
       if (searched.has(lower)) continue;
       if (seen.has(lower)) continue;
@@ -186,12 +186,20 @@ async function getAnalyticsSeedTerms(searched: Set<string>): Promise<string[]> {
 // ── Tier 3: Unexplored prefix gap analysis ───────────────────────────
 
 /**
- * Generate 4-char prefix candidates not yet present in the searched set.
+ * Lazily generate 4-char prefix candidates not yet present in the searched set.
+ *
+ * Uses a generator to avoid materializing ~149K strings (19×26×26×26 iterations,
+ * filtered by vowel/consonant heuristic). Callers consume only as many terms as
+ * needed via for-of, so typical runs yield ~200 strings instead of the full set.
+ *
+ * Iteration order is pre-shuffled per position via simpleHash to avoid
+ * alphabetical bias without requiring a post-generation sort.
+ *
  * @param searched - Set of already-searched terms, all lowercase.
  *   Callers must normalize to lowercase before passing; this function
  *   does not normalize internally for performance.
  */
-async function getUnexploredPrefixes(searched: Set<string>): Promise<string[]> {
+function* generateUnexploredPrefixes(searched: Set<string>): Generator<string> {
   // Build set of all 4-char prefixes already searched
   const searchedPrefixes = new Set<string>();
   for (const term of searched) {
@@ -206,35 +214,36 @@ async function getUnexploredPrefixes(searched: Set<string>): Promise<string[]> {
   const CONSONANTS = "bcdfghjklmnpqrstvwxyz";
   const VOWELS = "aeiou";
 
-  const candidates: string[] = [];
+  // Pre-shuffle character arrays via simpleHash (salted per position) to
+  // produce deterministic non-alphabetical iteration order without a post-sort.
+  const shuffled1 = [...HIGH_FREQ_FIRST].sort((a, b) => simpleHash("1" + a) - simpleHash("1" + b));
+  const shuffled2 = [...ALPHABET].sort((a, b) => simpleHash("2" + a) - simpleHash("2" + b));
+  const shuffled3 = [...ALPHABET].sort((a, b) => simpleHash("3" + a) - simpleHash("3" + b));
+  const shuffled4 = [...ALPHABET].sort((a, b) => simpleHash("4" + a) - simpleHash("4" + b));
+
   const seen = new Set<string>();
 
   // Generate plausible 4-char prefixes: consonant-vowel or vowel-consonant patterns
-  for (const c1 of HIGH_FREQ_FIRST) {
-    for (const c2 of ALPHABET) {
-      for (const c3 of ALPHABET) {
+  for (const c1 of shuffled1) {
+    for (const c2 of shuffled2) {
+      for (const c3 of shuffled3) {
         // Only keep if it looks like a name/word start (has at least one vowel in first 3 chars)
         const first3 = c1 + c2 + c3;
         const hasVowel = [...first3].some((ch) => VOWELS.includes(ch));
         const hasConsonant = [...first3].some((ch) => CONSONANTS.includes(ch));
         if (!hasVowel || !hasConsonant) continue;
 
-        for (const c4 of ALPHABET) {
+        for (const c4 of shuffled4) {
           const prefix = c1 + c2 + c3 + c4;
           if (searchedPrefixes.has(prefix)) continue;
           if (searched.has(prefix)) continue;
           if (seen.has(prefix)) continue;
           seen.add(prefix);
-          candidates.push(prefix);
+          yield prefix;
         }
       }
     }
   }
-
-  // Shuffle deterministically (by prefix hash) to avoid alphabetical bias
-  candidates.sort((a, b) => simpleHash(a) - simpleHash(b));
-
-  return candidates;
 }
 
 function simpleHash(s: string): number {
@@ -268,21 +277,35 @@ async function main() {
   console.log(`\n=== Search Term Generator (Adaptive Prefix) ===`);
   console.log(`Target: ${TARGET_TERM_COUNT} new terms\n`);
 
-  // 1. Get already-searched terms (bounded by distinct search terms, not properties)
+  // 1. Get already-searched terms and identify successful ones (results > 0)
   console.log("Fetching already-searched terms...");
   const analyticsRows = await prisma.searchTermAnalytics.findMany({
-    select: { searchTerm: true },
+    select: { searchTerm: true, totalResults: true },
   });
   const searched = new Set<string>();
-  for (const r of analyticsRows) searched.add(r.searchTerm.toLowerCase());
-  console.log(`  Already searched: ${searched.size} terms`);
+  const successful = new Set<string>();
+  for (const r of analyticsRows) {
+    const lower = r.searchTerm.toLowerCase();
+    searched.add(lower);
+    if (r.totalResults > 0) successful.add(lower);
+  }
+  console.log(`  Already searched: ${searched.size} terms (${successful.size} successful)`);
 
   // 2. Generate terms tier by tier
   const candidates: string[] = [];
   const seen = new Set<string>();
   const tierResults: TierResult[] = [];
 
-  function addFromTier(tierName: string, terms: string[]): void {
+  function isSupersetOfSuccessful(lower: string): boolean {
+    for (let len = MIN_TERM_LENGTH; len < lower.length; len++) {
+      if (successful.has(lower.substring(0, len))) return true;
+    }
+    return false;
+  }
+
+  let skippedSupersets = 0;
+
+  function addFromTier(tierName: string, terms: Iterable<string>): void {
     let added = 0;
     for (const term of terms) {
       if (candidates.length >= TARGET_TERM_COUNT) break;
@@ -290,6 +313,7 @@ async function main() {
       if (searched.has(lower)) continue;
       if (seen.has(lower)) continue;
       if (term.length < MIN_TERM_LENGTH) continue;
+      if (isSupersetOfSuccessful(lower)) { skippedSupersets++; continue; }
       seen.add(lower);
       candidates.push(term);
       added++;
@@ -299,7 +323,7 @@ async function main() {
   }
 
   // Tier 1: Dense term expansions
-  console.log("\nTier 1: Expanding dense terms (maxResults > 5000)...");
+  console.log(`\nTier 1: Expanding dense terms (successRate >= ${DENSE_MIN_SUCCESS_RATE * 100}%, baseLen <= ${DENSE_MAX_BASE_LENGTH})...`);
   const denseExpansions = await getDenseTermExpansions(searched);
   addFromTier("Dense expansions", denseExpansions);
 
@@ -313,8 +337,7 @@ async function main() {
   // Tier 3: Unexplored prefix gap fill
   if (candidates.length < TARGET_TERM_COUNT) {
     console.log("Tier 3: Unexplored prefix gap analysis...");
-    const gapPrefixes = await getUnexploredPrefixes(searched);
-    addFromTier("Gap prefixes", gapPrefixes);
+    addFromTier("Gap prefixes", generateUnexploredPrefixes(searched));
   }
 
   // Tier 4: Static fallback
@@ -367,7 +390,8 @@ async function main() {
   // 5. Summary
   console.log(`\n=== Summary ===`);
   console.log(`  Total generated: ${candidates.length}`);
-  console.log(`  Already searched: ${searched.size}`);
+  console.log(`  Already searched: ${searched.size} (${successful.size} successful)`);
+  console.log(`  Skipped supersets: ${skippedSupersets}`);
   for (const tier of tierResults) {
     console.log(`  ${tier.name}: ${tier.count}`);
   }

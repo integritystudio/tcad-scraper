@@ -13,14 +13,12 @@ import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import { config } from "../config";
 import { getErrorMessage } from "../utils/error-helpers";
+import { RECENT_JOBS_LOOKBACK_MS, MIN_TERM_LENGTH } from "./lib/backfill-constants";
 
 const TARGET_2025_COUNT = 420_000;
 const BATCH_SIZE = 20;
 const POLL_INTERVAL_MS = 15_000;
 const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
-const RECENT_JOBS_LOOKBACK_DAYS = 7;
-const RECENT_JOBS_LOOKBACK_MS = RECENT_JOBS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
-const MIN_TERM_LENGTH = 4;
 
 async function get2025Count(): Promise<number> {
   const result = await prisma.$queryRaw<[{ count: number }]>`
