@@ -1,0 +1,285 @@
+/**
+ * Backfill 2025 TCAD properties using NOVEL terms mined from 2026-only
+ * properties — owner names that have NEVER been searched before.
+ *
+ * These are terms like NGUYEN, MARTINEZ, HERNANDEZ etc. that appear on
+ * 2026 properties with no 2025 counterpart and haven't been used as
+ * search terms in any prior scrape.
+ *
+ * Usage: TCAD_YEAR=2025 doppler run -- npx tsx src/scripts/backfill-2025-novel.ts
+ */
+
+import { prisma } from "../lib/prisma";
+import { scraperQueue } from "../queues/scraper.queue";
+import { config } from "../config";
+import { getErrorMessage } from "../utils/error-helpers";
+
+const TARGET_2025_COUNT = 420_000;
+const BATCH_SIZE = 20;
+const POLL_INTERVAL_MS = 15_000;
+const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
+const MIN_TERM_LENGTH = 4;
+const MIN_PROPS_PER_TERM = 10;
+
+async function get2025Count(): Promise<number> {
+  const result = await prisma.$queryRaw<[{ count: number }]>`
+    SELECT COUNT(*)::int as count FROM properties WHERE year = 2025`;
+  return result[0].count;
+}
+
+async function getSearchedTerms(): Promise<Set<string>> {
+  // All terms ever used: 2025 properties + 2026 properties + scrape_jobs
+  const [terms25, terms26, jobs] = await Promise.all([
+    prisma.$queryRaw<Array<{ search_term: string }>>`
+      SELECT DISTINCT search_term FROM properties WHERE year = 2025`,
+    prisma.$queryRaw<Array<{ search_term: string }>>`
+      SELECT DISTINCT search_term FROM properties WHERE year = 2026`,
+    prisma.scrapeJob.findMany({
+      where: { startedAt: { gte: new Date("2026-03-05") } },
+      select: { searchTerm: true },
+    }),
+  ]);
+
+  const searched = new Set<string>();
+  for (const r of terms25) searched.add(r.search_term.toLowerCase());
+  for (const r of terms26) searched.add(r.search_term.toLowerCase());
+  for (const j of jobs) searched.add(j.searchTerm.toLowerCase());
+
+  // Also include analytics terms
+  const analytics = await prisma.searchTermAnalytics.findMany({
+    select: { searchTerm: true },
+  });
+  for (const a of analytics) searched.add(a.searchTerm.toLowerCase());
+
+  return searched;
+}
+
+function isSubstringOfSearched(lower: string, searched: Set<string>): boolean {
+  // Skip if any already-searched term starts with this term (superset match)
+  // e.g. "FORT" skipped because "FORTENBERRY" was already searched
+  for (const term of searched) {
+    if (term.length > lower.length && term.startsWith(lower)) return true;
+  }
+  return false;
+}
+
+interface CandidateTerm {
+  term: string;
+  yield: number;
+  source: string;
+}
+
+async function getNovelTerms(): Promise<string[]> {
+  const searched = await getSearchedTerms();
+  console.log(`  Already-searched terms: ${searched.size}`);
+
+  // Collect all candidates with their yields from all sources
+  const candidates: CandidateTerm[] = [];
+
+  // ── Source 1: Owner first-words from 2026-only properties ──────────
+  console.log("  Mining owner first-words from 2026-only properties...");
+  const firstWords = await prisma.$queryRaw<Array<{ word: string; cnt: number }>>`
+    SELECT SPLIT_PART(p.name, ' ', 1) as word, COUNT(DISTINCT p.property_id)::int as cnt
+    FROM properties p
+    WHERE p.year = 2026
+    AND p.property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+    AND LENGTH(SPLIT_PART(p.name, ' ', 1)) >= ${MIN_TERM_LENGTH}
+    AND SPLIT_PART(p.name, ' ', 1) ~ '^[A-Za-z]'
+    GROUP BY SPLIT_PART(p.name, ' ', 1)
+    HAVING COUNT(DISTINCT p.property_id) >= ${MIN_PROPS_PER_TERM}
+    ORDER BY cnt DESC`;
+  for (const w of firstWords) candidates.push({ term: w.word, yield: w.cnt, source: "owner" });
+  console.log(`    First-words mined: ${firstWords.length}`);
+
+  // ── Source 2: Street names from 2026-only properties ───────────────
+  console.log("  Mining street names from 2026-only properties...");
+  const streets = await prisma.$queryRaw<Array<{ street: string; cnt: number }>>`
+    SELECT SPLIT_PART(property_address, ' ', 2) as street,
+           COUNT(DISTINCT property_id)::int as cnt
+    FROM properties
+    WHERE year = 2026
+    AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+    AND property_address IS NOT NULL
+    AND LENGTH(SPLIT_PART(property_address, ' ', 2)) >= ${MIN_TERM_LENGTH}
+    AND SPLIT_PART(property_address, ' ', 2) ~ '^[A-Za-z]'
+    GROUP BY SPLIT_PART(property_address, ' ', 2)
+    HAVING COUNT(DISTINCT property_id) >= ${MIN_PROPS_PER_TERM}
+    ORDER BY cnt DESC`;
+  for (const s of streets) candidates.push({ term: s.street, yield: s.cnt, source: "street" });
+  console.log(`    Street names mined: ${streets.length}`);
+
+  // ── Source 3: Description first-words from 2026-only properties ────
+  console.log("  Mining description keywords...");
+  const descs = await prisma.$queryRaw<Array<{ word: string; cnt: number }>>`
+    SELECT SPLIT_PART(p.description, ' ', 1) as word, COUNT(DISTINCT p.property_id)::int as cnt
+    FROM properties p
+    WHERE p.year = 2026
+    AND p.property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+    AND p.description IS NOT NULL
+    AND LENGTH(SPLIT_PART(p.description, ' ', 1)) >= ${MIN_TERM_LENGTH}
+    AND SPLIT_PART(p.description, ' ', 1) ~ '^[A-Za-z]'
+    GROUP BY SPLIT_PART(p.description, ' ', 1)
+    HAVING COUNT(DISTINCT p.property_id) >= ${MIN_PROPS_PER_TERM}
+    ORDER BY cnt DESC`;
+  for (const d of descs) candidates.push({ term: d.word, yield: d.cnt, source: "desc" });
+  console.log(`    Description keywords mined: ${descs.length}`);
+
+  // ── Source 4: Two-word owner names from 2026-only properties ───────
+  console.log("  Mining two-word owner names...");
+  const twoWords = await prisma.$queryRaw<Array<{ phrase: string; cnt: number }>>`
+    SELECT CONCAT(SPLIT_PART(p.name, ' ', 1), ' ', SPLIT_PART(p.name, ' ', 2)) as phrase,
+           COUNT(DISTINCT p.property_id)::int as cnt
+    FROM properties p
+    WHERE p.year = 2026
+    AND p.property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+    AND LENGTH(SPLIT_PART(p.name, ' ', 1)) >= ${MIN_TERM_LENGTH}
+    AND LENGTH(SPLIT_PART(p.name, ' ', 2)) >= 2
+    AND SPLIT_PART(p.name, ' ', 1) ~ '^[A-Za-z]'
+    GROUP BY phrase
+    HAVING COUNT(DISTINCT p.property_id) >= ${MIN_PROPS_PER_TERM}
+    ORDER BY cnt DESC`;
+  for (const t of twoWords) candidates.push({ term: t.phrase, yield: t.cnt, source: "two-word" });
+  console.log(`    Two-word names mined: ${twoWords.length}`);
+
+  // ── Sort all candidates globally by yield DESC ─────────────────────
+  candidates.sort((a, b) => b.yield - a.yield);
+  console.log(`\n  Total candidates mined: ${candidates.length}`);
+
+  // ── Dedupe and filter ──────────────────────────────────────────────
+  const seen = new Set<string>();
+  const result: string[] = [];
+  let skippedSearched = 0;
+  let skippedSubstring = 0;
+  let skippedDupe = 0;
+
+  for (const c of candidates) {
+    const lower = c.term.toLowerCase().trim();
+    if (lower.length < MIN_TERM_LENGTH) continue;
+    if (seen.has(lower)) { skippedDupe++; continue; }
+    if (searched.has(lower)) { skippedSearched++; continue; }
+    if (isSubstringOfSearched(lower, searched)) { skippedSubstring++; continue; }
+    seen.add(lower);
+    result.push(c.term);
+  }
+
+  console.log(`  Skipped: ${skippedSearched} already-searched, ${skippedSubstring} substring-of-searched, ${skippedDupe} dupes`);
+  console.log(`  Final novel terms: ${result.length}`);
+  return result;
+}
+
+async function waitForQueueDrain(): Promise<void> {
+  let waiting = await scraperQueue.getWaitingCount();
+  let active = await scraperQueue.getActiveCount();
+  while (waiting > 0 || active > 0) {
+    process.stdout.write(`\r  Queue: ${active} active, ${waiting} waiting...   `);
+    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+    waiting = await scraperQueue.getWaitingCount();
+    active = await scraperQueue.getActiveCount();
+  }
+  process.stdout.write("\r  Queue drained.                          \n");
+}
+
+async function enqueueBatch(terms: string[]): Promise<number> {
+  const { jobName, defaultJobOptions } = config.queue;
+  let enqueued = 0;
+  for (const term of terms) {
+    try {
+      await scraperQueue.add(
+        jobName,
+        { searchTerm: term, userId: "backfill-2025-novel", scheduled: true },
+        {
+          attempts: defaultJobOptions.attempts,
+          backoff: { type: "exponential", delay: defaultJobOptions.backoffDelay },
+          removeOnComplete: defaultJobOptions.removeOnComplete,
+          removeOnFail: defaultJobOptions.removeOnFail,
+        },
+      );
+      enqueued++;
+    } catch (error) {
+      console.error(`  Failed to enqueue "${term}": ${getErrorMessage(error)}`);
+    }
+  }
+  return enqueued;
+}
+
+async function main() {
+  if (config.scraper.tcadYear !== 2025) {
+    console.error(`ERROR: TCAD_YEAR is ${config.scraper.tcadYear}, must be 2025.`);
+    console.error("Run with: TCAD_YEAR=2025 doppler run -- npx tsx src/scripts/backfill-2025-novel.ts");
+    process.exit(1);
+  }
+
+  let current = await get2025Count();
+  console.log(`\n=== 2025 Backfill (Novel Owner Names) ===`);
+  console.log(`Current 2025 properties: ${current.toLocaleString()}`);
+  console.log(`Target: ${TARGET_2025_COUNT.toLocaleString()}`);
+  console.log(`Gap: ${(TARGET_2025_COUNT - current).toLocaleString()}\n`);
+
+  if (current >= TARGET_2025_COUNT) {
+    console.log("Already at target.");
+    return;
+  }
+
+  const allTerms = await getNovelTerms();
+  console.log(`\nTerms to backfill: ${allTerms.length}\n`);
+
+  if (allTerms.length === 0) {
+    console.log("No novel terms found.");
+    return;
+  }
+
+  let batchNum = 0;
+  let consecutiveZeroBatches = 0;
+  let totalGained = 0;
+  for (let i = 0; i < allTerms.length; i += BATCH_SIZE) {
+    current = await get2025Count();
+    if (current >= TARGET_2025_COUNT) {
+      console.log(`\nTarget reached: ${current.toLocaleString()} >= ${TARGET_2025_COUNT.toLocaleString()}`);
+      break;
+    }
+
+    batchNum++;
+    const batch = allTerms.slice(i, i + BATCH_SIZE);
+    console.log(`--- Batch ${batchNum} (${batch.length} terms) ---`);
+    console.log(`  Terms: ${batch.join(", ")}`);
+
+    const enqueued = await enqueueBatch(batch);
+    console.log(`  Enqueued: ${enqueued}`);
+
+    await waitForQueueDrain();
+
+    const newCount = await get2025Count();
+    const gained = newCount - current;
+    totalGained += gained;
+    console.log(`  2025 properties: ${newCount.toLocaleString()} (+${gained.toLocaleString()}) [session: +${totalGained.toLocaleString()}]`);
+    console.log(`  Remaining: ${Math.max(0, TARGET_2025_COUNT - newCount).toLocaleString()}`);
+
+    if (gained === 0) {
+      consecutiveZeroBatches++;
+      console.log(`  Zero-result batches: ${consecutiveZeroBatches}/${MAX_CONSECUTIVE_ZERO_BATCHES}`);
+      if (consecutiveZeroBatches >= MAX_CONSECUTIVE_ZERO_BATCHES) {
+        console.log(`\nStopping: ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive zero-result batches.`);
+        break;
+      }
+    } else {
+      consecutiveZeroBatches = 0;
+    }
+    console.log("");
+  }
+
+  const finalCount = await get2025Count();
+  console.log(`\n=== Done ===`);
+  console.log(`Final 2025 count: ${finalCount.toLocaleString()}`);
+  console.log(`Session gained: +${totalGained.toLocaleString()}`);
+  console.log(`Target met: ${finalCount >= TARGET_2025_COUNT ? "YES" : "NO"}`);
+}
+
+main()
+  .catch(err => {
+    console.error("Fatal:", getErrorMessage(err));
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+    await scraperQueue.close();
+  });

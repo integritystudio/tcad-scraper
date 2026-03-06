@@ -119,7 +119,7 @@ npx tsx --eval "import { scraperQueue } from './src/queues/scraper.queue'; (asyn
 - **Remote PostgreSQL on Render**; local container disabled
 - **Production Redis**: Render Redis via `REDIS_URL` in Doppler (`rediss://` TLS). Config auto-detects TLS from URL prefix. Local dev also uses Render Redis (IP allowlisted)
 - **Bearer tokens** expire ~5 min; `token-refresh.service.ts` auto-refreshes (see [docs/TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md))
-- **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses. Does NOT work with cities, ZIP codes, short terms (<4 chars), compound names
+- **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses. Does NOT work with cities, ZIP codes, short terms (<4 chars), compound names, or numeric-only terms (address numbers, property IDs, GEO IDs)
 - **Env vars**: `TCAD_YEAR` (default: current year), `QUEUE_BATCH_CHUNK_SIZE` (default: 500)
 
 ---
@@ -139,6 +139,7 @@ curl -s "https://api.alephatx.info/health" | jq
 
 ## Code Standards
 
+- **Prisma selects**: Only use fields from `prisma/schema.prisma`. `SearchTermAnalytics` has `totalSearches`, NOT `searchCount`
 - **No `any`**: Use `unknown` + type guards. Use `getErrorMessage()` from `utils/error-helpers.ts`
 - **No `console.*`**: Use Pino logger (`import logger from '../lib/logger'`). CLI scripts exempt via ESLint override
 - **BullMQ typing**: Use `ScraperJob`, `CompletedScraperJob`, `FailedScraperJob` from `types/queue.types.ts`
