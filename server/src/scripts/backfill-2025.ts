@@ -227,6 +227,8 @@ async function getTermsToBackfill(): Promise<string[]> {
   return result;
 }
 
+// No timeout: polls until queue is fully drained. A permanently stalled BullMQ job
+// will block indefinitely. Acceptable for CLI use — Ctrl+C to abort if needed.
 async function waitForQueueDrain(): Promise<void> {
   let waiting = await scraperQueue.getWaitingCount();
   let active = await scraperQueue.getActiveCount();

@@ -36,6 +36,10 @@ export class TCADScraper {
 		searchTerm: string,
 		maxRetries: number = this.config.retryAttempts,
 	): Promise<PropertyData[]> {
+		// Token is fetched once per call and reused across all retry attempts.
+		// TOKEN_EXPIRED errors are handled by BullMQ retrying the whole job (correct flow).
+		// Edge case: if a non-token error triggers the inner retry loop, the same stale
+		// token is reused — not a current bug since TOKEN_EXPIRED is distinct, but fragile.
 		const authToken = await tokenRefreshService.waitForToken();
 
 		let lastError: Error | null = null;
