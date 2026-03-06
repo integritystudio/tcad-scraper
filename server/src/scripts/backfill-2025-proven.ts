@@ -17,6 +17,8 @@ const TARGET_2025_COUNT = 420_000;
 const BATCH_SIZE = 20;
 const POLL_INTERVAL_MS = 15_000;
 const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
+const RECENT_JOBS_LOOKBACK_DAYS = 7;
+const RECENT_JOBS_LOOKBACK_MS = RECENT_JOBS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
 const MIN_2026_YIELD = 100;
 
 async function get2025Count(): Promise<number> {
@@ -45,7 +47,7 @@ async function getProvenTerms(): Promise<string[]> {
 
   // Also exclude terms already attempted today (scrape_jobs)
   const recentJobs = await prisma.scrapeJob.findMany({
-    where: { startedAt: { gte: new Date("2026-03-06") } },
+    where: { startedAt: { gte: new Date(Date.now() - RECENT_JOBS_LOOKBACK_MS) } },
     select: { searchTerm: true },
   });
   const attempted = new Set(recentJobs.map(j => j.searchTerm.toLowerCase()));

@@ -22,6 +22,8 @@ const DENSE_MIN_SUCCESS_RATE = 0.5;
 const DENSE_MAX_BASE_LENGTH = 6;
 const SEED_MIN_SUCCESS_RATE = 0.5;
 const SEED_MIN_AVG_RESULTS = 100;
+const RECENT_JOBS_LOOKBACK_DAYS = 7;
+const RECENT_JOBS_LOOKBACK_MS = RECENT_JOBS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
 const MIN_TERM_LENGTH = 4;
 const ALPHABET = "abcdefghijklmnopqrstuvwxyz";
 
@@ -35,14 +37,14 @@ async function getSearchedTerms(): Promise<{ searched2025: Set<string>; allSearc
   // Already-scraped 2025 search terms
   const terms2025 = await prisma.$queryRaw<Array<{ search_term: string }>>`
     SELECT DISTINCT search_term FROM properties WHERE year = 2025`;
-  const searched2025 = new Set(terms2025.map(r => r.search_term));
+  const searched2025 = new Set(terms2025.map(r => r.search_term.toLowerCase()));
 
   // Also check scrape_jobs that ran recently (even if 0 results)
   const recentJobs = await prisma.scrapeJob.findMany({
-    where: { startedAt: { gte: new Date("2026-03-05") } },
+    where: { startedAt: { gte: new Date(Date.now() - RECENT_JOBS_LOOKBACK_MS) } },
     select: { searchTerm: true },
   });
-  for (const j of recentJobs) searched2025.add(j.searchTerm);
+  for (const j of recentJobs) searched2025.add(j.searchTerm.toLowerCase());
 
   // All analytics terms (for superset checking)
   const analyticsRows = await prisma.searchTermAnalytics.findMany({
@@ -203,7 +205,7 @@ async function getTermsToBackfill(): Promise<string[]> {
 
   function addTerm(term: string): void {
     const lower = term.toLowerCase();
-    if (searched2025.has(term) || seen.has(lower)) return;
+    if (searched2025.has(lower) || seen.has(lower)) return;
     if (term.length < MIN_TERM_LENGTH) return;
     if (isSupersetOfSuccessful(lower, successful)) return;
     seen.add(lower);

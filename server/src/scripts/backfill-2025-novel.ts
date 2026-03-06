@@ -18,6 +18,8 @@ const TARGET_2025_COUNT = 420_000;
 const BATCH_SIZE = 20;
 const POLL_INTERVAL_MS = 15_000;
 const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
+const RECENT_JOBS_LOOKBACK_DAYS = 7;
+const RECENT_JOBS_LOOKBACK_MS = RECENT_JOBS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
 const MIN_TERM_LENGTH = 4;
 const MIN_PROPS_PER_TERM = 10;
 
@@ -35,7 +37,7 @@ async function getSearchedTerms(): Promise<Set<string>> {
     prisma.$queryRaw<Array<{ search_term: string }>>`
       SELECT DISTINCT search_term FROM properties WHERE year = 2026`,
     prisma.scrapeJob.findMany({
-      where: { startedAt: { gte: new Date("2026-03-05") } },
+      where: { startedAt: { gte: new Date(Date.now() - RECENT_JOBS_LOOKBACK_MS) } },
       select: { searchTerm: true },
     }),
   ]);
@@ -54,13 +56,14 @@ async function getSearchedTerms(): Promise<Set<string>> {
   return searched;
 }
 
-function isSubstringOfSearched(lower: string, searched: Set<string>): boolean {
-  // Skip if any already-searched term starts with this term (superset match)
-  // e.g. "FORT" skipped because "FORTENBERRY" was already searched
+function buildPrefixIndex(searched: Set<string>): Set<string> {
+  const prefixes = new Set<string>();
   for (const term of searched) {
-    if (term.length > lower.length && term.startsWith(lower)) return true;
+    for (let len = MIN_TERM_LENGTH; len < term.length; len++) {
+      prefixes.add(term.substring(0, len));
+    }
   }
-  return false;
+  return prefixes;
 }
 
 interface CandidateTerm {
@@ -145,11 +148,14 @@ async function getNovelTerms(): Promise<string[]> {
   candidates.sort((a, b) => b.yield - a.yield);
   console.log(`\n  Total candidates mined: ${candidates.length}`);
 
+  // ── Build prefix index for O(1) "is this a prefix of something searched?" ─
+  const searchedPrefixes = buildPrefixIndex(searched);
+
   // ── Dedupe and filter ──────────────────────────────────────────────
   const seen = new Set<string>();
   const result: string[] = [];
   let skippedSearched = 0;
-  let skippedSubstring = 0;
+  let skippedPrefix = 0;
   let skippedDupe = 0;
 
   for (const c of candidates) {
@@ -157,12 +163,14 @@ async function getNovelTerms(): Promise<string[]> {
     if (lower.length < MIN_TERM_LENGTH) continue;
     if (seen.has(lower)) { skippedDupe++; continue; }
     if (searched.has(lower)) { skippedSearched++; continue; }
-    if (isSubstringOfSearched(lower, searched)) { skippedSubstring++; continue; }
+    // Skip if this term is a prefix of an already-searched longer term
+    // e.g. "fort" skipped because "fortenberry" was already searched
+    if (searchedPrefixes.has(lower)) { skippedPrefix++; continue; }
     seen.add(lower);
     result.push(c.term);
   }
 
-  console.log(`  Skipped: ${skippedSearched} already-searched, ${skippedSubstring} substring-of-searched, ${skippedDupe} dupes`);
+  console.log(`  Skipped: ${skippedSearched} already-searched, ${skippedPrefix} prefix-of-searched, ${skippedDupe} dupes`);
   console.log(`  Final novel terms: ${result.length}`);
   return result;
 }
