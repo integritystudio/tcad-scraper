@@ -1,5 +1,16 @@
 ## Recent Updates
 
+### March 6, 2026 - Backfill Script Documentation & Test Hardening
+
+- **Documentation**: Added filtering strategy docs (CR-M2), ::int cast comments (CR-M3), fixed stale comments (CR-M5)
+- **Limitations**: Documented token-fetch-once-per-call (CR-L1 03-02) and no-timeout in drain (CR-L1 03-06)
+- **Session Tracking**: Added totalGained accumulation to backfill-2025.ts (CR-L2)
+- **Testing**: Strengthened constructor assertions from `toBeDefined()` to `toBeInstanceOf()` (TST-L1)
+
+See [changelog/2026-03-06.md](changelog/2026-03-06.md) for full details.
+
+---
+
 ### February 26, 2026 - Redis TLS Migration & Scraper Fixes
 
 - **Render Redis migration**: All environments now use Render Redis with TLS (`rediss://`); local Docker Redis no longer required
