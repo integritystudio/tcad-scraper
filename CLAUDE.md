@@ -44,8 +44,9 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 - `src/services/token-refresh.service.ts` - Auto-refresh tokens
 - `src/lib/claude.service.ts` - Natural language search
 - `src/scripts/enqueue-batch.ts` - Config-driven batch enqueue runner
-- `src/scripts/config/batch-configs.ts` - 14 batch type definitions
+- `src/scripts/config/batch-configs.ts` - 17 batch type definitions
 - `src/scripts/queue-results.ts` - Queue status + recent completed/failed jobs (`doppler run -- npx tsx src/scripts/queue-results.ts [--limit N]`)
+- See [src/scripts/README.md](server/src/scripts/README.md) for full scripts reference
 - `src/utils/` - Shared utilities (error-helpers, property-transformers, timing)
 - `prisma/schema.prisma` - Schema (properties, scrape_jobs, monitored_searches)
 
