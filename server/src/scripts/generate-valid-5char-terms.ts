@@ -1,0 +1,350 @@
+/**
+ * Generate valid 5-letter search terms restricted to real names, companies, and streets.
+ *
+ * Sources:
+ *  1. System dictionary proper nouns (capitalized 5-letter entries)
+ *  2. US Census first names (SSA top names, Hispanic/Asian names common in TX)
+ *  3. US Census last names (top 1000 + TX-heavy Hispanic/Asian surnames)
+ *  4. Street/geographic terms (Austin subdivisions, TX geography, natural features)
+ *  5. Business/entity words (common in commercial property owner names)
+ *
+ * Algorithm:
+ *  For each 4-char CVCV base, append a-z → keep only if result is in the name set.
+ *  Also directly includes all 5-letter names from the curated lists.
+ *  Filters out already-searched and blacklisted terms.
+ *
+ * Usage: doppler run -- npx tsx src/scripts/generate-valid-5char-terms.ts
+ */
+
+import { writeFileSync, mkdirSync } from 'fs';
+import { PrismaClient } from '@prisma/client';
+import { join } from 'path';
+
+const prisma = new PrismaClient();
+const OUTPUT_PATH = join(__dirname, '..', '..', 'data', 'valid-5char-terms.txt');
+
+// ── Curated name lists ─────────────────────────────────────────────────
+
+const FIRST_NAMES_FEMALE = [
+  // Top SSA names (5 letters)
+  'Abbie', 'Adela', 'Agnes', 'Aimee', 'Aisha', 'Alexa', 'Alice', 'Alina',
+  'Amber', 'Amira', 'Anaya', 'Angie', 'Anita', 'Annie', 'April', 'Ariel',
+  'Avery', 'Bella', 'Betsy', 'Betty', 'Bianca', 'Bonny', 'Callie',
+  'Candy', 'Carey', 'Carla', 'Carol', 'Casey', 'Cathy', 'Celia', 'Chloe',
+  'Cindy', 'Clara', 'Clare', 'Cora', 'Coral', 'Daisy', 'Darla', 'Darcy',
+  'Debby', 'Della', 'Delia', 'Diana', 'Diane', 'Dolly', 'Donna', 'Doris',
+  'Ebony', 'Edith', 'Elena', 'Elisa', 'Elise', 'Ellen', 'Ellie', 'Elsie',
+  'Emily', 'Erica', 'Erma', 'Essie', 'Ethel', 'Faith', 'Fanny', 'Fiona',
+  'Flora', 'Frida', 'Gayle', 'Gemma', 'Gerri', 'Ginny', 'Grace', 'Greta',
+  'Haley', 'Hanna', 'Hazel', 'Heidi', 'Helen', 'Holly', 'Ilene', 'Irene',
+  'Irma', 'Ivory', 'Janie', 'Janet', 'Janis', 'Jenna', 'Jenny', 'Jewel',
+  'Juana', 'Julia', 'Julie', 'Karen', 'Karin', 'Katie', 'Kayla', 'Kelly',
+  'Kerri', 'Kitty', 'Lacey', 'Laila', 'Latte', 'Laura', 'Leigh', 'Leila',
+  'Lilly', 'Linda', 'Lorna', 'Lucia', 'Luisa', 'Lydia', 'Lynda', 'Mabel',
+  'Macie', 'Madge', 'Mandy', 'Marge', 'Marie', 'Marla', 'Maude', 'Maura',
+  'Megan', 'Mercy', 'Merry', 'Midge', 'Miley', 'Millie', 'Mindy', 'Misty',
+  'Molly', 'Moira', 'Myrna', 'Nadia', 'Nancy', 'Naomi', 'Nelly', 'Nesta',
+  'Nicky', 'Nikki', 'Nilda', 'Norma', 'Olga', 'Olive', 'Opal', 'Paige',
+  'Pansy', 'Patsy', 'Patty', 'Paula', 'Pearl', 'Peggy', 'Penny', 'Petra',
+  'Polly', 'Queen', 'Randi', 'Raven', 'Reina', 'Renee', 'Rhoda', 'Robin',
+  'Rocio', 'Ronda', 'Rosie', 'Roxie', 'Sadie', 'Sally', 'Sandy', 'Sarah',
+  'Selma', 'Shari', 'Shana', 'Sheri', 'Sonia', 'Sonja', 'Sonya', 'Stacy',
+  'Starr', 'Susie', 'Tamra', 'Tammy', 'Tanya', 'Tasha', 'Terri', 'Terry',
+  'Tessa', 'Theda', 'Tiana', 'Tisha', 'Tonya', 'Tracy', 'Trish', 'Trudy',
+  'Vicki', 'Vikki', 'Viola', 'Wanda', 'Wendy', 'Zelda', 'Zelma',
+  // Hispanic female (TX-heavy)
+  'Alma', 'Arely', 'Belma', 'Brisa', 'Celia', 'Cielo', 'Dalia', 'Dulce',
+  'Elvia', 'Fatima', 'Gisela', 'Idalia', 'Irma', 'Jasmin',
+  'Karla', 'Lidia', 'Lucia', 'Lupita', 'Luz', 'Marta', 'Mayra',
+  'Mirna', 'Nadia', 'Nelly', 'Norma', 'Oliva', 'Perla', 'Pilar',
+  'Reina', 'Rocio', 'Rosa', 'Sonia', 'Tania', 'Ximena', 'Yanet',
+  // Asian female (TX-heavy)
+  'Anuja', 'Deepa', 'Hanna', 'Jyoti', 'Kavya', 'Meena', 'Neha',
+  'Nisha', 'Pooja', 'Priya', 'Radha', 'Reema', 'Seema', 'Swati', 'Usha',
+];
+
+const FIRST_NAMES_MALE = [
+  // Top SSA names (5 letters)
+  'Aaron', 'Abdul', 'Adam', 'Ahmed', 'Aiden', 'Alain', 'Allan', 'Allen',
+  'Alton', 'Alvin', 'Andre', 'Angel', 'Anton', 'Archie', 'Barry', 'Basil',
+  'Blake', 'Bobby', 'Boris', 'Brady', 'Brant', 'Brett', 'Brian', 'Brice',
+  'Bruce', 'Bruno', 'Bryan', 'Buddy', 'Caleb', 'Calvin', 'Casey', 'Cecil',
+  'Chase', 'Chris', 'Chuck', 'Clark', 'Cliff', 'Clint', 'Clyde', 'Coby',
+  'Cody', 'Colin', 'Corey', 'Craig', 'Curtis', 'Cyril', 'Cyrus', 'Damon',
+  'Danny', 'Dante', 'Daren', 'Daryl', 'David', 'Davis', 'Deion', 'Denis',
+  'Derek', 'Devin', 'Devon', 'Dewey', 'Diego', 'Dillon', 'Donny', 'Doyle',
+  'Drake', 'Drew', 'Duane', 'Dusty', 'Dwain', 'Dylan', 'Earle', 'Eddie',
+  'Edgar', 'Edwin', 'Eldon', 'Elias', 'Elmer', 'Elton', 'Elvis', 'Emery',
+  'Emile', 'Ernie', 'Ervin', 'Ethan', 'Felix', 'Floyd', 'Flynn', 'Frank',
+  'Fritz', 'Garry', 'Gavin', 'Glenn', 'Grant', 'Gregg', 'Grover', 'Hank',
+  'Hardy', 'Harry', 'Heath', 'Henry', 'Homer', 'Huber', 'Isaac', 'Ivan',
+  'Ivory', 'Jace', 'Jacob', 'Jaden', 'Jaime', 'Jared', 'Jason', 'Jesse',
+  'Jimmy', 'Johan', 'Jonas', 'Jones', 'Jorge', 'Josef', 'Jules', 'Keith',
+  'Kelly', 'Kenny', 'Kevin', 'Kirby', 'Klaus', 'Lance', 'Larry', 'Layne',
+  'Leigh', 'Lenny', 'Leroy', 'Lester', 'Lewis', 'Linus', 'Lloyd', 'Logan',
+  'Lonny', 'Loren', 'Louis', 'Lucas', 'Luigi', 'Manny', 'Marco', 'Mario',
+  'Mason', 'Mateo', 'Miles', 'Mitch', 'Monte', 'Monty', 'Moses', 'Myron',
+  'Nabil', 'Nigel', 'Nolan', 'Norma', 'Oscar', 'Otis', 'Owen', 'Pablo',
+  'Panch', 'Pedro', 'Percy', 'Perry', 'Peter', 'Quinn', 'Ralph', 'Ramon',
+  'Randy', 'Raoul', 'Raven', 'Reece', 'Ricky', 'Riley', 'Robin', 'Rocky',
+  'Roger', 'Roman', 'Rowan', 'Royal', 'Rufus', 'Rusty', 'Scott', 'Serge',
+  'Shane', 'Shawn', 'Simon', 'Sonny', 'Stacy', 'Steve', 'Teddy', 'Terry',
+  'Titus', 'Tommy', 'Trace', 'Travis', 'Trent', 'Trevor', 'Tyler', 'Tyson',
+  'Vance', 'Vidal', 'Vijay', 'Vince', 'Virgil', 'Wally', 'Wayne', 'Wes',
+  'Wyatt', 'Wylie',
+  // Hispanic male (TX-heavy)
+  'Abram', 'Alejo', 'Baldo', 'Belen', 'Berto', 'Chava', 'Chucho',
+  'Dario', 'Efren', 'Elias', 'Emilio', 'Fabian', 'Fidel', 'Genaro',
+  'Gilberto', 'Homero', 'Iker', 'Isael', 'Jairo', 'Jesus', 'Josue',
+  'Lazaro', 'Mateo', 'Nacho', 'Nando', 'Paco', 'Paulo', 'Rene',
+  'Saul', 'Tomas',
+  // Asian male (TX-heavy)
+  'Akash', 'Amrit', 'Arjun', 'Arun', 'Deepak', 'Gopal', 'Hari',
+  'Kumar', 'Manoj', 'Mohan', 'Nitin', 'Pavan', 'Rajiv', 'Rajan',
+  'Rakesh', 'Ramesh', 'Rishi', 'Rohit', 'Sagar', 'Sunil', 'Suraj',
+  'Varun', 'Vijay', 'Vivek',
+];
+
+const LAST_NAMES = [
+  // Top US Census (5 letters)
+  'Adams', 'Allen', 'Baker', 'Barnes', 'Black', 'Blair', 'Blake', 'Bland',
+  'Booth', 'Bowen', 'Bowie', 'Brady', 'Bragg', 'Brand', 'Brant', 'Braun',
+  'Breen', 'Brent', 'Brock', 'Brown', 'Bruce', 'Bruno', 'Bryan', 'Burke',
+  'Burns', 'Bynum', 'Byrne', 'Cable', 'Cagle', 'Cantu', 'Carey', 'Casey',
+  'Chase', 'Cheng', 'Chung', 'Clark', 'Cline', 'Close', 'Coats', 'Cohen',
+  'Combs', 'Cooke', 'Cosby', 'Costa', 'Couch', 'Craig', 'Crane', 'Cross',
+  'Crowe', 'Curry', 'Damon', 'David', 'Davis', 'Decker', 'Dietz', 'Dixon',
+  'Doyle', 'Drake', 'Duffy', 'Dunne', 'Dwyer', 'Early', 'Eaton', 'Ellis',
+  'Engel', 'Ennis', 'Ernst', 'Evans', 'Ewing', 'Faulk', 'Felix', 'Field',
+  'Finch', 'Flagg', 'Flood', 'Floyd', 'Flynn', 'Foley', 'Fritz', 'Frost',
+  'Fuchs', 'Gaines', 'Garza', 'Gibbs', 'Glass', 'Glenn', 'Gomez', 'Gould',
+  'Grace', 'Grant', 'Graff', 'Greer', 'Gregg', 'Gross', 'Gupta', 'Hagen',
+  'Hanna', 'Hardy', 'Harms', 'Hatch', 'Haven', 'Hayes', 'Heath', 'Hicks',
+  'Hobbs', 'Hodge', 'Hogan', 'Horne', 'Houck', 'Hurst', 'Irwin', 'Ivory',
+  'James', 'Johns', 'Jones', 'Joyce', 'Judge', 'Keith', 'Kelly', 'Kemp',
+  'Kline', 'Knapp', 'Knott', 'Kraft', 'Kraus', 'Lacey', 'Lance', 'Lange',
+  'Larue', 'Lauer', 'Leach', 'Leeds', 'Leigh', 'Levey', 'Lewis', 'Lloyd',
+  'Logan', 'Lopez', 'Lozano', 'Lucio', 'Lynch', 'Lyons', 'Mahan', 'Maher',
+  'Malik', 'Marsh', 'Mason', 'Matos', 'Mayes', 'Mayor', 'McCoy', 'Meyer',
+  'Miles', 'Mills', 'Minor', 'Moody', 'Moore', 'Moran', 'Morse', 'Moser',
+  'Mount', 'Moyer', 'Munoz', 'Myers', 'Nagel', 'Nance', 'Naqvi', 'Nason',
+  'Navra', 'Neill', 'Nolan', 'North', 'Novak', 'Nunez', 'Oakes', 'Ochoa',
+  'Ogden', 'Olsen', 'Ortiz', 'Owens', 'Paine', 'Pardo', 'Parks', 'Patel',
+  'Payne', 'Peace', 'Pence', 'Perez', 'Perry', 'Petty', 'Phelps', 'Piper',
+  'Pitts', 'Plant', 'Platt', 'Poole', 'Power', 'Pratt', 'Price', 'Prine',
+  'Pryor', 'Quinn', 'Rains', 'Ramos', 'Reese', 'Reeve', 'Reyes', 'Ricks',
+  'Riggs', 'Riley', 'Rivas', 'Roach', 'Roche', 'Roman', 'Roper', 'Rosen',
+  'Rouse', 'Rubio', 'Rubin', 'Russo', 'Sager', 'Salas', 'Sales', 'Sands',
+  'Sayre', 'Scott', 'Sears', 'Selby', 'Sells', 'Sharp', 'Sheen', 'Short',
+  'Silva', 'Singh', 'Sloan', 'Small', 'Smith', 'Snell', 'Solis', 'Spear',
+  'Stack', 'Starr', 'Stein', 'Stern', 'Stock', 'Stout', 'Stowe', 'Suggs',
+  'Swain', 'Sweet', 'Swift', 'Sykes', 'Tapia', 'Teague', 'Terry', 'Thiel',
+  'Tobin', 'Torre', 'Trejo', 'Tripp', 'Truax', 'Tubbs', 'Tyler', 'Urban',
+  'Usher', 'Vance', 'Varga', 'Vidal', 'Villa', 'Vogel', 'Wages', 'Walls',
+  'Walsh', 'Watts', 'Weave', 'Weber', 'Wells', 'Welsh', 'Wendt', 'White',
+  'Wiley', 'Wolfe', 'Wolff', 'Woods', 'Worth', 'Wyman', 'Yanez', 'Young',
+  'Zhang',
+  // Hispanic surnames (TX-heavy, 5 letters)
+  'Abeyta', 'Acuna', 'Adame', 'Anaya', 'Arce', 'Avila', 'Baeza',
+  'Banda', 'Bello', 'Bosco', 'Bravo', 'Bueno', 'Calvo', 'Campo',
+  'Casas', 'Cerda', 'Chapa', 'Chapa', 'Coria', 'Corzo', 'Davila',
+  'Deanda', 'Duran', 'Garza', 'Garzo', 'Lerma', 'Llano', 'Loera',
+  'Lujan', 'Mares', 'Marin', 'Mejia', 'Mendo', 'Milla', 'Monje',
+  'Nieto', 'Oliva', 'Olvera', 'Ozuna', 'Parra', 'Perez', 'Ponce',
+  'Prieto', 'Ramos', 'Reyna', 'Rocha', 'Rojas', 'Roque', 'Saenz',
+  'Serna', 'Sifuentes', 'Tamez', 'Tello', 'Tienda', 'Tovar', 'Trevino',
+  'Uribe', 'Valde', 'Valez', 'Viera',
+  // Asian surnames (TX-heavy, 5 letters)
+  'Bajaj', 'Bhatt', 'Batra', 'Dixit', 'Gupta', 'Joshi', 'Kapur',
+  'Kumar', 'Mehta', 'Mehra', 'Misra', 'Nagar', 'Naidu', 'Nanda',
+  'Pande', 'Patel', 'Reddy', 'Sethi', 'Sehga', 'Sinha', 'Sodhi',
+  'Suri', 'Tiwari', 'Verma', 'Yadav',
+  'Chang', 'Cheng', 'Chung', 'Hsiao', 'Huang', 'Hwang', 'Jiang',
+  'Liang', 'Pham', 'Trang', 'Tsang', 'Zhang',
+];
+
+const STREET_GEOGRAPHIC = [
+  // Natural features (common in TX subdivision/street names)
+  'Arbor', 'Aspen', 'Basin', 'Bayou', 'Beach', 'Berry', 'Birch', 'Bluff',
+  'Briar', 'Brook', 'Butte', 'Campo', 'Cedar', 'Chase', 'Cliff', 'Cloud',
+  'Coast', 'Coral', 'Creek', 'Crest', 'Crown', 'Curve', 'Delta', 'Dover',
+  'Eagle', 'Falls', 'Fawn', 'Fern', 'Field', 'Flame', 'Flint', 'Flora',
+  'Forge', 'Frost', 'Glade', 'Glen', 'Globe', 'Grace', 'Grand', 'Grass',
+  'Green', 'Grove', 'Haven', 'Hazel', 'Heath', 'Hedge', 'Heron', 'Hilly',
+  'Holly', 'Ivory', 'Knoll', 'Larch', 'Laurel', 'Leaf', 'Lilac', 'Lilly',
+  'Lodge', 'Lotus', 'Maple', 'Marsh', 'Misty', 'Mound', 'Oasis', 'Olive',
+  'Onion', 'Otter', 'Peach', 'Pearl', 'Pecan', 'Pines', 'Plain', 'Plant',
+  'Plaza', 'Point', 'Poppy', 'Quail', 'Ranch', 'Rapid', 'Raven', 'Ridge',
+  'River', 'Robin', 'Rocky', 'Royal', 'Sabal', 'Sandy', 'Shade', 'Shore',
+  'Shoal', 'Slate', 'Slope', 'Spice', 'Spine', 'Spray', 'Stag', 'Stone',
+  'Storm', 'Sunny', 'Swift', 'Terra', 'Thorn', 'Trace', 'Trail', 'Tulip',
+  'Valle', 'Verde', 'Vigor', 'Viola', 'Vista', 'Water', 'Wheat', 'Winds',
+  'Wolfe', 'Woods',
+  // TX cities/areas (5 letters)
+  'Alamo', 'Aledo', 'Alice', 'Allen', 'Bryan', 'Buda', 'Cisco', 'Clyde',
+  'Crane', 'Cuero', 'Donna', 'Eagle', 'Edna', 'Elgin', 'Emory', 'Ennis',
+  'Freer', 'Hondo', 'Hutto', 'Katy', 'Llano', 'Manor', 'Marfa', 'Mason',
+  'Mexia', 'Moran', 'Olney', 'Pampa', 'Pecos', 'Plano', 'Seguin', 'Snyder',
+  'Tyler', 'Waco', 'Wells',
+];
+
+const BUSINESS_ENTITY = [
+  // Words common in commercial property owner names
+  'Asset', 'Atlas', 'Build', 'Chain', 'Class', 'Coach', 'Craft', 'Crown',
+  'Depot', 'Elite', 'Equip', 'Excel', 'First', 'Fleet', 'Focus', 'Force',
+  'Globe', 'Grand', 'Haven', 'Homes', 'House', 'Ideal', 'Index', 'Inner',
+  'Lease', 'Legal', 'Level', 'Light', 'Local', 'Lodge', 'Logic', 'Major',
+  'Manor', 'Metro', 'Model', 'Motor', 'Noble', 'North', 'Oasis', 'Omega',
+  'Orbit', 'Order', 'Outer', 'Panel', 'Patio', 'Pilot', 'Pixel', 'Plaza',
+  'Point', 'Power', 'Press', 'Pride', 'Prime', 'Print', 'Probe', 'Pulse',
+  'Quest', 'Quick', 'Ranch', 'Range', 'Rapid', 'Realm', 'Reign', 'Renew',
+  'Ridge', 'Rivet', 'Roost', 'Round', 'Route', 'Royal', 'Rural', 'Scale',
+  'Scope', 'Sharp', 'Shelf', 'Shell', 'Shine', 'Shore', 'Sight', 'Sigma',
+  'Slate', 'Smart', 'Solar', 'Solid', 'South', 'Space', 'Spark', 'Spire',
+  'Stack', 'Stage', 'Stark', 'State', 'Steel', 'Stem', 'Stone', 'Storm',
+  'Suite', 'Swift', 'Terra', 'Texas', 'Titan', 'Token', 'Total', 'Tower',
+  'Trade', 'Trail', 'Trend', 'Triad', 'Trust', 'Ultra', 'Union', 'Unity',
+  'Upper', 'Urban', 'Valor', 'Vault', 'Venue', 'Verde', 'Verge', 'Vista',
+  'Vital', 'Watch', 'Wheel', 'Whole', 'Worth',
+];
+
+async function main() {
+  // 1. Build the valid name set from all sources
+  const validNames = new Set<string>();
+
+  // Dictionary proper nouns skipped for now — most are obscure historical/
+  // botanical names that don't match TCAD owners (50% failure rate in testing).
+  // TODO: Re-enable dictionary proper nouns when curated name lists are
+  // exhausted and we need to cast a wider net for diminishing-return terms.
+  //
+  // const dictRaw = readFileSync('/usr/share/dict/words', 'utf-8');
+  // for (const line of dictRaw.split('\n')) {
+  //   const w = line.trim();
+  //   if (w.length === 5 && /^[A-Z][a-z]{4}$/.test(w)) {
+  //     validNames.add(w.toLowerCase());
+  //   }
+  // }
+  const dictProperCount = 0;
+
+  // Add all curated lists
+  const allLists = [
+    FIRST_NAMES_FEMALE, FIRST_NAMES_MALE, LAST_NAMES,
+    STREET_GEOGRAPHIC, BUSINESS_ENTITY,
+  ];
+  for (const list of allLists) {
+    for (const name of list) {
+      const lower = name.toLowerCase();
+      if (lower.length === 5 && /^[a-z]{5}$/.test(lower)) {
+        validNames.add(lower);
+      }
+    }
+  }
+
+  console.error(`Valid name set: ${validNames.size} entries (${dictProperCount} from dictionary proper nouns)`);
+
+  // 2. Load already-searched terms from DB
+  const [analyticsRows, propTermRows] = await Promise.all([
+    prisma.searchTermAnalytics.findMany({ select: { searchTerm: true } }),
+    prisma.property.groupBy({
+      by: ['searchTerm'],
+      where: { year: 2025, searchTerm: { not: null } },
+    }),
+  ]);
+
+  const searched = new Set<string>();
+  for (const r of analyticsRows) searched.add(r.searchTerm.toLowerCase());
+  for (const r of propTermRows) {
+    if (r.searchTerm) searched.add(r.searchTerm.toLowerCase());
+  }
+
+  // Blacklist
+  const blacklisted = await prisma.searchTermAnalytics.findMany({
+    where: { successRate: 0, totalSearches: { gte: 3 } },
+    select: { searchTerm: true },
+  });
+  const blacklistSet = new Set(blacklisted.map(b => b.searchTerm.toLowerCase()));
+
+  console.error(`Already searched: ${searched.size} | Blacklisted: ${blacklistSet.size}`);
+
+  // 3. Generate terms: CVCV expansion + direct name inclusion
+  const results = new Set<string>();
+
+  // 3a. CVCV base expansion (append a-z, keep if valid name)
+  const vowels = 'aeiou';
+  const consonants = 'bcdfghjklmnpqrstvwxyz';
+  let expansionHits = 0;
+
+  for (const c1 of consonants) {
+    for (const v1 of vowels) {
+      for (const c2 of consonants) {
+        for (const v2 of vowels) {
+          const base = c1 + v1 + c2 + v2;
+          for (let ch = 97; ch <= 122; ch++) {
+            const candidate = base + String.fromCharCode(ch);
+            if (!validNames.has(candidate)) continue;
+            if (searched.has(candidate)) continue;
+            if (blacklistSet.has(candidate)) continue;
+            results.add(candidate);
+            expansionHits++;
+          }
+        }
+      }
+    }
+  }
+
+  // 3b. Direct inclusion of all valid 5-letter names not yet searched
+  let directHits = 0;
+  for (const name of validNames) {
+    if (searched.has(name)) continue;
+    if (blacklistSet.has(name)) continue;
+    if (!results.has(name)) {
+      results.add(name);
+      directHits++;
+    }
+  }
+
+  // Sort and capitalize for output
+  const sorted = [...results].sort().map(t => t.charAt(0).toUpperCase() + t.slice(1));
+
+  console.error(`CVCV expansions that matched names: ${expansionHits}`);
+  console.error(`Direct name inclusions: ${directHits}`);
+  console.error(`Total unique terms: ${sorted.length}`);
+
+  // 4. Write output
+  mkdirSync(join(__dirname, '..', '..', 'data'), { recursive: true });
+  writeFileSync(OUTPUT_PATH, sorted.join('\n') + '\n');
+  console.error(`Written to: ${OUTPUT_PATH}`);
+
+  // 5. Categorize for summary
+  const firstF = new Set(FIRST_NAMES_FEMALE.map(n => n.toLowerCase()).filter(n => n.length === 5));
+  const firstM = new Set(FIRST_NAMES_MALE.map(n => n.toLowerCase()).filter(n => n.length === 5));
+  const lastN = new Set(LAST_NAMES.map(n => n.toLowerCase()).filter(n => n.length === 5));
+  const geo = new Set(STREET_GEOGRAPHIC.map(n => n.toLowerCase()).filter(n => n.length === 5));
+  const biz = new Set(BUSINESS_ENTITY.map(n => n.toLowerCase()).filter(n => n.length === 5));
+
+  let catFirst = 0, catLast = 0, catGeo = 0, catBiz = 0, catDict = 0;
+  for (const term of results) {
+    if (firstF.has(term) || firstM.has(term)) catFirst++;
+    else if (lastN.has(term)) catLast++;
+    else if (geo.has(term)) catGeo++;
+    else if (biz.has(term)) catBiz++;
+    else catDict++;
+  }
+
+  console.error(`\nBy category:`);
+  console.error(`  First names: ${catFirst}`);
+  console.error(`  Last names: ${catLast}`);
+  console.error(`  Geographic/street: ${catGeo}`);
+  console.error(`  Business/entity: ${catBiz}`);
+  console.error(`  Dictionary proper nouns: ${catDict}`);
+
+  // Preview
+  console.error(`\nPreview (first 50):`);
+  for (const t of sorted.slice(0, 50)) {
+    console.error(`  ${t}`);
+  }
+
+  await prisma.$disconnect();
+}
+
+main();
