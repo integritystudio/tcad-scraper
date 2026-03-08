@@ -38,6 +38,13 @@ const PAGE_SIZES = [1000, 500, 100, 50] as const;
 const MAX_PAGES = 100;
 const RATE_LIMIT_DELAY_MS = 1000;
 
+const ResponseError = {
+  EMPTY: "EMPTY_RESPONSE",
+  HTML: "HTML_RESPONSE",
+  TRUNCATED: "TRUNCATED",
+  PARSE_FAILED: "JSON_PARSE_FAILED",
+} as const;
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -83,24 +90,24 @@ async function fetchPage(
 
   const raw = await res.text();
   const trimmed = raw.trim();
-  const contentLength = res.headers.get("content-length");
 
   if (trimmed.length === 0) {
     throw new Error(
-      `EMPTY_RESPONSE (page=${page}, pageSize=${pageSize}, content-length=${contentLength})`,
+      `${ResponseError.EMPTY} (page=${page}, pageSize=${pageSize}, rawLen=${raw.length})`,
     );
   }
 
   // Detect HTML error pages (TCAD sometimes returns HTML on server errors)
   if (trimmed.startsWith("<")) {
+    const preview = trimmed.slice(0, 100).replace(/[\r\n\t]/g, " ");
     throw new Error(
-      `HTML_RESPONSE (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, preview=${trimmed.slice(0, 100)})`,
+      `${ResponseError.HTML} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, preview=${preview})`,
     );
   }
 
   if (isTruncated(trimmed)) {
     throw new Error(
-      `TRUNCATED (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, last=${trimmed.slice(-20)})`,
+      `${ResponseError.TRUNCATED} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, last=${trimmed.slice(-20)})`,
     );
   }
 
@@ -112,7 +119,7 @@ async function fetchPage(
     return { data, raw: trimmed };
   } catch (parseErr) {
     throw new Error(
-      `JSON_PARSE_FAILED (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, ` +
+      `${ResponseError.PARSE_FAILED} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, ` +
       `last=${trimmed.slice(-30)}, err=${(parseErr as Error).message})`,
     );
   }
@@ -171,13 +178,14 @@ export async function fetchTCADProperties(
           const msg = (pageErr as Error).message;
 
           if (
-            msg.startsWith("TRUNCATED") ||
-            msg.startsWith("JSON_PARSE_FAILED") ||
-            msg.startsWith("EMPTY_RESPONSE") ||
-            msg.startsWith("HTML_RESPONSE")
+            msg.startsWith(ResponseError.TRUNCATED) ||
+            msg.startsWith(ResponseError.PARSE_FAILED) ||
+            msg.startsWith(ResponseError.EMPTY) ||
+            msg.startsWith(ResponseError.HTML)
           ) {
             logger.warn(
-              `Response error at page ${page} (pageSize=${pageSize}) for "${searchTerm}": ${msg}`,
+              { page, pageSize, searchTerm, errorMsg: msg },
+              "Response error during pagination",
             );
             downsized = true;
             truncatedAtPage = page;
@@ -211,7 +219,8 @@ export async function fetchTCADProperties(
       // discarding them and trying a smaller page size from scratch.
       if (allResults.length > 0) {
         logger.warn(
-          `Mid-pagination truncation at page ${truncatedAtPage} (pageSize=${pageSize}, collected=${allResults.length}/${totalCount}) for "${searchTerm}"`,
+          { page: truncatedAtPage, pageSize, collected: allResults.length, totalCount, searchTerm },
+          "Mid-pagination truncation, returning partial results",
         );
         return { totalCount, results: allResults, pageSize };
       }
@@ -219,13 +228,14 @@ export async function fetchTCADProperties(
       const msg = (err as Error).message;
 
       if (
-        msg.startsWith("TRUNCATED") ||
-        msg.startsWith("JSON_PARSE_FAILED") ||
-        msg.startsWith("EMPTY_RESPONSE") ||
-        msg.startsWith("HTML_RESPONSE")
+        msg.startsWith(ResponseError.TRUNCATED) ||
+        msg.startsWith(ResponseError.PARSE_FAILED) ||
+        msg.startsWith(ResponseError.EMPTY) ||
+        msg.startsWith(ResponseError.HTML)
       ) {
         logger.warn(
-          `First-page error (pageSize=${pageSize}) for "${searchTerm}": ${msg}`,
+          { pageSize, searchTerm, errorMsg: msg },
+          "First-page response error",
         );
         lastError = msg;
         continue; // try smaller page size
