@@ -197,6 +197,46 @@ describe("tcad-api-client", () => {
       ).rejects.toThrow("All page sizes failed");
     });
 
+    it("handles empty response body", async () => {
+      // First size returns empty body
+      fetchSpy.mockResolvedValueOnce(new Response("", { status: 200 }));
+      // Second size succeeds
+      const results = makeResults(2);
+      fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(2, results)));
+
+      const res = await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
+
+      expect(res.totalCount).toBe(2);
+      expect(res.pageSize).toBe(500);
+    });
+
+    it("handles HTML error page response", async () => {
+      fetchSpy.mockResolvedValueOnce(
+        new Response("<html><body>503 Service Unavailable</body></html>", { status: 200 }),
+      );
+      const results = makeResults(1);
+      fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(1, results)));
+
+      const res = await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
+
+      expect(res.totalCount).toBe(1);
+      expect(res.pageSize).toBe(500);
+    });
+
+    it("handles malformed JSON that passes truncation check", async () => {
+      // Ends with } so isTruncated returns false, but JSON.parse fails
+      fetchSpy.mockResolvedValueOnce(
+        new Response('{"totalProperty": {invalid}}', { status: 200 }),
+      );
+      const results = makeResults(3);
+      fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(3, results)));
+
+      const res = await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
+
+      expect(res.totalCount).toBe(3);
+      expect(res.pageSize).toBe(500);
+    });
+
     it("returns empty results when API returns zero properties", async () => {
       fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(0, [])));
 

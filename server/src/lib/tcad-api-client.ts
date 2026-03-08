@@ -83,16 +83,39 @@ async function fetchPage(
 
   const raw = await res.text();
   const trimmed = raw.trim();
+  const contentLength = res.headers.get("content-length");
 
-  if (trimmed.length > 0 && isTruncated(trimmed)) {
-    throw new Error("TRUNCATED");
+  if (trimmed.length === 0) {
+    throw new Error(
+      `EMPTY_RESPONSE (page=${page}, pageSize=${pageSize}, content-length=${contentLength})`,
+    );
   }
 
-  const data = JSON.parse(trimmed) as {
-    totalProperty?: { propertyCount?: number };
-    results?: TCADPropertyResult[];
-  };
-  return { data, raw: trimmed };
+  // Detect HTML error pages (TCAD sometimes returns HTML on server errors)
+  if (trimmed.startsWith("<")) {
+    throw new Error(
+      `HTML_RESPONSE (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, preview=${trimmed.slice(0, 100)})`,
+    );
+  }
+
+  if (isTruncated(trimmed)) {
+    throw new Error(
+      `TRUNCATED (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, last=${trimmed.slice(-20)})`,
+    );
+  }
+
+  try {
+    const data = JSON.parse(trimmed) as {
+      totalProperty?: { propertyCount?: number };
+      results?: TCADPropertyResult[];
+    };
+    return { data, raw: trimmed };
+  } catch (parseErr) {
+    throw new Error(
+      `JSON_PARSE_FAILED (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, ` +
+      `last=${trimmed.slice(-30)}, err=${(parseErr as Error).message})`,
+    );
+  }
 }
 
 // ── Public API ─────────────────────────────────────────────────────────
@@ -147,7 +170,15 @@ export async function fetchTCADProperties(
         } catch (pageErr) {
           const msg = (pageErr as Error).message;
 
-          if (msg === "TRUNCATED" || msg.includes("JSON")) {
+          if (
+            msg.startsWith("TRUNCATED") ||
+            msg.startsWith("JSON_PARSE_FAILED") ||
+            msg.startsWith("EMPTY_RESPONSE") ||
+            msg.startsWith("HTML_RESPONSE")
+          ) {
+            logger.warn(
+              `Response error at page ${page} (pageSize=${pageSize}) for "${searchTerm}": ${msg}`,
+            );
             downsized = true;
             truncatedAtPage = page;
             lastError = msg;
@@ -187,7 +218,15 @@ export async function fetchTCADProperties(
     } catch (err) {
       const msg = (err as Error).message;
 
-      if (msg === "TRUNCATED" || msg.includes("JSON")) {
+      if (
+        msg.startsWith("TRUNCATED") ||
+        msg.startsWith("JSON_PARSE_FAILED") ||
+        msg.startsWith("EMPTY_RESPONSE") ||
+        msg.startsWith("HTML_RESPONSE")
+      ) {
+        logger.warn(
+          `First-page error (pageSize=${pageSize}) for "${searchTerm}": ${msg}`,
+        );
         lastError = msg;
         continue; // try smaller page size
       }
