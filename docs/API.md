@@ -32,7 +32,7 @@ REST API for the TCAD Scraper backend. Base URL: `http://localhost:3000` (dev) /
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
 | `city` | string | -- | Filter by city |
-| `propType` | string | -- | Filter by property type |
+| `propType` | string | -- | Filter by property type (see [codes](#tcad-property-type-codes)) |
 | `minValue` | number | -- | Minimum appraised value |
 | `maxValue` | number | -- | Maximum appraised value |
 | `searchTerm` | string | -- | Filter by original search term |
@@ -118,6 +118,31 @@ Response: `{ data: Property[], query, parsedFilters }`
 | | |
 |-|-|
 | `GET /admin/queues` | Bull Board dashboard (BullMQ queue management UI) |
+
+---
+
+## TCAD Property Type Codes
+
+The `propType` field uses TCAD's single-letter classification:
+
+| Code | Description |
+|------|-------------|
+| A | Single Family Residential |
+| B | Multi-Family Residential |
+| C | Vacant Lots/Land |
+| D | Rural Real (Land) |
+| E | Farm & Ranch |
+| F | Commercial Real |
+| G | Oil, Gas, Minerals |
+| H | Industrial Real |
+| J | Water Systems |
+| L | Miscellaneous |
+| M | Mobile Homes |
+| N | Intangible Personal Property |
+| O | Residential Inventory |
+| P | Non-Residential Inventory |
+| S | Special Inventory |
+| X | Totally Exempt Property |
 
 ---
 

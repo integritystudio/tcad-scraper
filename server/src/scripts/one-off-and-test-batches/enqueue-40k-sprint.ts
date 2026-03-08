@@ -12,10 +12,10 @@
  *   doppler run -- npx tsx src/scripts/enqueue-40k-sprint.ts --no-wait --limit 50
  */
 
-import { prisma } from "../lib/prisma";
-import logger from "../lib/logger";
-import { scraperQueue } from "../queues/scraper.queue";
-import { getErrorMessage } from "../utils/error-helpers";
+import { prisma } from "../../lib/prisma";
+import logger from "../../lib/logger";
+import { scraperQueue } from "../../queues/scraper.queue";
+import { getErrorMessage } from "../../utils/error-helpers";
 
 const NEW_PROPERTY_TARGET = 40_000;
 const SPRINT_PRIORITY = 1;

@@ -2,10 +2,10 @@
  * Enqueue N test jobs from FALLBACK_TERMS, wait for completion, and report results.
  * Usage: doppler run -- npx tsx src/scripts/test-enqueue.ts [count]
  */
-import { config } from "../config";
-import { prisma } from "../lib/prisma";
-import { scraperQueue } from "../queues/scraper.queue";
-import { getErrorMessage } from "../utils/error-helpers";
+import { config } from "../../../config";
+import { prisma } from "../../../lib/prisma";
+import { scraperQueue } from "../../../queues/scraper.queue";
+import { getErrorMessage } from "../../../utils/error-helpers";
 
 const POLL_INTERVAL_MS = 5_000;
 const MAX_WAIT_MS = 300_000;

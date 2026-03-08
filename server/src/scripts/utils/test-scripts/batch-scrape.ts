@@ -1,7 +1,7 @@
 import winston from "winston";
-import { prisma } from "../lib/prisma";
-import { scraperQueue } from "../queues/scraper.queue";
-import { getErrorMessage } from "../utils/error-helpers";
+import { prisma } from "../../../lib/prisma";
+import { scraperQueue } from "../../../queues/scraper.queue";
+import { getErrorMessage } from "../../../utils/error-helpers";
 
 const logger = winston.createLogger({
 	level: "info",

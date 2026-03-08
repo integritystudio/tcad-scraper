@@ -7,9 +7,9 @@
  * Token is managed externally via TCAD_API_KEY env var (Doppler).
  */
 
-import { config } from "../config";
-import logger from "../lib/logger";
-import { tokenRefreshService } from "../services/token-refresh.service";
+import { config } from "../../../config";
+import logger from "../../../lib/logger";
+import { tokenRefreshService } from "../../../services/token-refresh.service";
 
 logger.info("=== TCAD Token Service Test ===\n");
 

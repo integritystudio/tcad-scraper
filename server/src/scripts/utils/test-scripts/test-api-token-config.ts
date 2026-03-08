@@ -9,10 +9,10 @@
  * 3. Token usage in API calls (without actually making requests)
  */
 
-import { config } from "../config";
-import logger from "../lib/logger";
-import { TCADScraper } from "../lib/tcad-scraper";
-import { getErrorMessage } from "../utils/error-helpers";
+import { config } from "../../../config";
+import logger from "../../../lib/logger";
+import { TCADScraper } from "../../../lib/tcad-scraper";
+import { getErrorMessage } from "../../../utils/error-helpers";
 
 logger.info("=== TCAD API Token Configuration Test ===\n");
 

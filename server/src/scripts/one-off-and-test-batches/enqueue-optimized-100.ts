@@ -12,9 +12,9 @@
  *
  * Usage: doppler run -- npx tsx src/scripts/enqueue-optimized-100.ts [--dry-run]
  */
-import { scraperQueue } from '../queues/scraper.queue';
-import { prisma } from '../lib/prisma';
-import { config } from '../config';
+import { scraperQueue } from '../../queues/scraper.queue';
+import { prisma } from '../../lib/prisma';
+import { config } from '../../config';
 
 const TERMS = [
   // ── Last names (not yet searched, 4+ chars) ──

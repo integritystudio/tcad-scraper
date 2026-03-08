@@ -38,6 +38,33 @@
 - `server/src/queues/scraper.queue.ts` — job processing
 - `server/src/scripts/requeue-all-failed-with-error-tracking.ts` — already categorizes this as "JSON Parsing Error"
 
+### Consolidate enqueue scripts and search term infrastructure (2026-03-08)
+
+**Context**: Codebase cleanup identified 3 overlapping search term systems with unique data in each. Currently the root-level script is dead code (broken imports).
+
+**Files**:
+- `scripts/enqueue-by-category.ts` — dead code (root-level, can't resolve server imports). Categorizes 5-char terms from `server/data/valid-5char-terms.txt` against 4 dictionaries
+- `server/src/scripts/enqueue-batch.ts` + `config/batch-configs.ts` — active, canonical. Config-driven CLI with 14 batch types and priority system
+- `server/src/scripts/continuous-batch-scraper.ts` — active, long-running scraper that auto-generates and enqueues terms
+
+**Unique data at risk of loss in `enqueue-by-category.ts`**:
+- ~200 curated 5-char first names (not in batch-configs)
+- 48 Hispanic surnames: Acuna, Adame, Anaya, Avila, Baeza, Banda, Bello, Bosco, Bravo, Bueno, Calvo, Campo, Casas, Cerda, Chapa, Coria, Corzo, Duran, Garzo, Lerma, Llano, Loera, Lujan, Mares, Marin, Mejia, Mendo, Milla, Monje, Nieto, Oliva, Ozuna, Parra, Ponce, Reyna, Rocha, Rojas, Roque, Saenz, Serna, Tamez, Tello, Tovar, Uribe, Valde, Valez, Viera
+- 20 Indian surnames: Bajaj, Bhatt, Batra, Dixit, Joshi, Kapur, Kumar, Mehta, Mehra, Misra, Nagar, Naidu, Nanda, Pande, Reddy, Sethi, Sinha, Sodhi, Verma, Yadav
+- 7 Asian surnames: Chang, Hsiao, Huang, Hwang, Jiang, Liang, Tsang
+- 29 Texas city names: Alamo, Aledo, Alice, Allen, Bryan, Cisco, Clyde, Crane, Cuero, Donna, Eagle, Elgin, Emory, Ennis, Freer, Hondo, Hutto, Llano, Manor, Marfa, Mason, Mexia, Moran, Olney, Pampa, Pecos, Plano, Tyler, Wells
+
+**Unique features in `batch-configs.ts`**:
+- Priority tiering (-100 ultra to 2 standard)
+- `HIGH_RESULT_TERM_SPLITS` map — splits high-volume terms (Oak→Oak Hill/Oakwood/..., Maria→Maria E/G/R/L, Estate→Estate of/Estates at/Estate Trust) to avoid truncation
+
+**Research tasks**:
+1. Extract curated name lists (Hispanic, Indian, Asian surnames + first names) into a shared data file (e.g. `server/data/curated-names.json`) usable by both `batch-configs.ts` and `continuous-batch-scraper.ts`
+2. Add new batch config categories for the extracted name lists (e.g. `hispanic-surnames`, `indian-surnames`)
+3. Determine if Texas city names yield results in TCAD search (cities historically don't work per CLAUDE.md — verify before adding)
+4. Move `scripts/enqueue-by-category.ts` to `server/src/scripts/one-off-and-test-batches/` after data extraction
+5. Consider merging `HIGH_RESULT_TERM_SPLITS` logic into `continuous-batch-scraper.ts` so auto-splitting happens at enqueue time
+
 ### Code Review 02-27-2026 of commit 66dc363
 
   Low

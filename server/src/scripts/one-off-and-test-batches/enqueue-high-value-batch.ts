@@ -15,10 +15,10 @@
  * - Property types
  */
 
-import { config } from "../config";
-import logger from "../lib/logger";
-import { scraperQueue } from "../queues/scraper.queue";
-import { tokenRefreshService } from "../services/token-refresh.service";
+import { config } from "../../config";
+import logger from "../../lib/logger";
+import { scraperQueue } from "../../queues/scraper.queue";
+import { tokenRefreshService } from "../../services/token-refresh.service";
 
 // 40 High-Value Search Terms
 const HIGH_VALUE_TERMS = [

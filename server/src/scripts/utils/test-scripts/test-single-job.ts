@@ -5,8 +5,8 @@
  * Enqueues a single test job and monitors its progress
  */
 
-import logger from "../lib/logger";
-import { scraperQueue } from "../queues/scraper.queue";
+import logger from "../../../lib/logger";
+import { scraperQueue } from "../../../queues/scraper.queue";
 
 async function testSingleJob() {
 	const searchTerm = "Development";

@@ -28,6 +28,29 @@ This document describes the comprehensive TypeScript type system designed for th
 | Agricultural | `Place` | Farms/Ranches |
 | Mixed Use | `Place` | Mixed-use buildings |
 
+### TCAD Property Type Codes
+
+The `propType` field stores TCAD's single-letter classification codes:
+
+| Code | Description |
+|------|-------------|
+| A | Single Family Residential |
+| B | Multi-Family Residential |
+| C | Vacant Lots/Land |
+| D | Rural Real (Land) |
+| E | Farm & Ranch |
+| F | Commercial Real |
+| G | Oil, Gas, Minerals |
+| H | Industrial Real |
+| J | Water Systems |
+| L | Miscellaneous |
+| M | Mobile Homes |
+| N | Intangible Personal Property |
+| O | Residential Inventory |
+| P | Non-Residential Inventory |
+| S | Special Inventory |
+| X | Totally Exempt Property |
+
 ### Property Components Schema Mapping
 
 | Component | Schema.org Type | Properties |

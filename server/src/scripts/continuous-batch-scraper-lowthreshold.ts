@@ -1,13 +1,29 @@
+/**
+ * Low-threshold variant of continuous-batch-scraper.
+ * Lowers tier thresholds to squeeze remaining properties from the long tail.
+ *
+ * Tier 1: totalSearches=1, successRate=1, avgResultsPerSearch >= 20
+ * Tier 2: totalSearches<=2, successRate>=0.5, avgResultsPerSearch >= 20
+ * Tier 3: totalSearches<=3, successRate>=0.3, avgResultsPerSearch >= 50
+ * Tier 4: Fallback pool from parent script
+ *
+ * Usage: doppler run -- npx tsx src/scripts/continuous-batch-scraper-lowthreshold.ts
+ */
+
 import winston from "winston";
 import { config } from "../config";
 import { prisma } from "../lib/prisma";
 import { SearchTermDeduplicator } from "../lib/search-term-deduplicator";
 import { scraperQueue } from "../queues/scraper.queue";
-import {
-	type SearchTermOptimizer,
-	searchTermOptimizer,
-} from "../services/search-term-optimizer";
+import { searchTermOptimizer } from "../services/search-term-optimizer";
 import { getErrorMessage } from "../utils/error-helpers";
+import { FALLBACK_TERMS } from "./continuous-batch-scraper";
+
+const STOP_AT_PROPERTIES = 420000;
+const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
+const BATCH_SIZE = 25;
+const DELAY_BETWEEN_BATCHES = 30000;
+const CHECK_INTERVAL = 60000;
 
 const logger = winston.createLogger({
 	level: "info",
@@ -17,146 +33,52 @@ const logger = winston.createLogger({
 	),
 	transports: [
 		new winston.transports.Console(),
-		new winston.transports.File({ filename: "logs/continuous-scraper.log" }),
+		new winston.transports.File({ filename: "logs/continuous-scraper-lowthreshold.log" }),
 	],
 });
 
-const TARGET_PROPERTIES = 451339;
-const STOP_AT_PROPERTIES = 420000;
-const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
-const BATCH_SIZE = 25;
-const DELAY_BETWEEN_BATCHES = 30000;
-const CHECK_INTERVAL = 60000;
-
-// Curated fallback terms for when DB candidates are exhausted.
-// 198 proven terms from first names, last names, geographic, entity, and neighborhood categories.
-export const FALLBACK_TERMS: readonly string[] = [
-	// First names (proven high-yield)
-	"Joseph", "Taylor", "Charles", "Carol", "Steven", "Juan", "James", "Mary",
-	"John", "Patricia", "Robert", "Elizabeth", "David", "Barbara", "Richard",
-	"Susan", "Thomas", "Sarah", "Daniel", "Lisa", "Matthew", "Anthony", "Mark",
-	"Donald", "Andrew", "Joshua", "Kenneth", "Kevin", "Brian", "George",
-	"Edward", "Ronald", "Timothy", "Jason", "Jeffrey", "Ryan", "Jacob", "Gary",
-	"Nicholas", "Eric", "Jonathan", "Stephen", "Larry", "Justin", "Scott",
-	"Brandon", "Benjamin", "Samuel", "Raymond", "Gregory",
-	// Last names (common Travis County, 4+ chars)
-	"Smith", "Johnson", "Williams", "Brown", "Garcia", "Miller", "Davis",
-	"Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson",
-	"Anderson", "Moore", "Jackson", "Martin", "Thompson",
-	"White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson",
-	"Walker", "Young", "Allen", "Wright", "Torres", "Nguyen",
-	"Flores", "Green", "Adams", "Nelson", "Baker", "Rivera", "Campbell",
-	"Mitchell", "Carter", "Roberts", "Gomez", "Phillips", "Evans", "Turner",
-	"Diaz", "Parker", "Cruz", "Edwards", "Collins", "Reyes", "Stewart",
-	"Morris", "Morales", "Murphy", "Cook", "Rogers", "Gutierrez", "Ortiz",
-	"Morgan", "Cooper", "Peterson", "Bailey", "Reed", "Howard", "Ramos",
-	"Watson", "Brooks", "Chavez", "Bennett", "Mendoza", "Ruiz", "Hughes",
-	"Price", "Alvarez", "Castillo", "Sanders", "Patel",
-	// Geographic / street terms
-	"Hill", "Lake", "Canyon", "Valley", "Forest", "Ranch", "Ridge", "Cave",
-	"Park", "Glen", "Dale", "Ford", "Cove", "Rock", "Wood", "Farm", "Mill",
-	"Pond", "Peak", "Creek", "Spring", "Bluff", "Meadow", "Grove", "Trail",
-	"Vista", "Harbor", "Knoll", "Prairie", "Summit",
-	// Entity terms
-	"Trustee", "Holdings", "Partners", "Group", "Realty", "LLC", "Trust",
-	"Estate of", "Foundation", "Investments", "Properties", "Association",
-	"Capital", "Development", "Inc", "Corp", "Limited", "Company",
-	"Partnership", "Charitable",
-	// Neighborhoods / subdivisions
-	"Barton", "Westlake", "Mueller", "Zilker", "Allandale", "Crestview",
-	"Rosedale", "Tarrytown", "Brentwood", "Balcones", "Cherrywood",
-	"Rollingwood", "Bouldin", "Hancock", "Windsor", "Gracywoods",
-	"Spicewood", "Eanes", "Belterra", "Falconhead",
-	// Unsearched first names (from enqueue-by-category.ts curated 5-char list)
-	"Devin", "Diego", "Dolly", "Doris", "Dulce", "Dusty", "Dwain", "Earle",
-	"Ebony", "Eddie", "Edwin", "Efren", "Eldon", "Elena", "Elisa", "Elise",
-	"Ellie", "Elsie", "Elton", "Elvis", "Emile", "Erica", "Ernie", "Essie",
-	"Ethel", "Faith", "Fanny", "Fidel", "Fiona", "Frida", "Garry", "Gavin",
-	"Gemma", "Gerri", "Ginny", "Gopal", "Greta", "Heidi", "Homer", "Ilene",
-	"Irene", "Isael", "Janie", "Jared", "Jenna", "Jenny", "Jewel", "Jimmy",
-	"Johan", "Jorge", "Juana", "Jules", "Jyoti", "Karin", "Katie", "Kavya",
-	"Kayla", "Klaus", "Laila", "Lance", "Layne", "Lenny", "Leroy", "Linus",
-	"Lonny", "Loren", "Lorna", "Lucia", "Luisa", "Luigi", "Lydia", "Lynda",
-	"Mabel", "Macie", "Madge", "Mandy", "Manny", "Marco", "Marge", "Marla",
-	"Mateo", "Maude", "Maura", "Meena", "Mercy", "Merry", "Midge", "Miley",
-	"Millie", "Mindy", "Mirna", "Misty", "Mitch", "Moira", "Molly", "Monte",
-	"Monty", "Myrna", "Nabil", "Nadia", "Naomi", "Neha", "Nelly", "Nesta",
-	"Nigel", "Nicky", "Nikki", "Nilda", "Nisha", "Nitin", "Norma", "Pablo",
-	"Paige", "Pansy", "Patsy", "Patty", "Paula", "Pavan", "Pearl", "Peggy",
-	"Penny", "Percy", "Pooja", "Polly", "Priya", "Radha", "Randi", "Raoul",
-	"Reece", "Reema", "Reina", "Renee", "Rhoda", "Ricky", "Rocio", "Rocky",
-	"Ronda", "Rosie", "Rowan", "Roxie", "Rufus", "Rusty", "Sadie", "Sagar",
-	"Sally", "Sandy", "Seema", "Selma", "Serge", "Shane", "Shana", "Shari",
-	"Sheri", "Sonia", "Sonja", "Sonya", "Sonny", "Stacy", "Sunil", "Suraj",
-	"Susie", "Swati", "Tamra", "Tanya", "Tasha", "Teddy", "Terri", "Tessa",
-	"Theda", "Tiana", "Tisha", "Tommy", "Tonya", "Trent", "Trish", "Trudy",
-	"Varun", "Vicki", "Vijay", "Vikki", "Vince", "Viola", "Vivek", "Wally",
-	"Wanda", "Wendy", "Zelda", "Zelma",
-	// Unsearched last names (from enqueue-by-category.ts curated lists)
-	"Navra", "Oakes", "Ogden", "Plant", "Platt", "Power", "Prine", "Pryor",
-	"Rains", "Reeve", "Ricks", "Roper", "Rouse", "Sales", "Sands", "Selby",
-	"Sells", "Sheen", "Small", "Stack", "Stern", "Stock", "Stowe", "Suggs",
-	"Thiel", "Tobin", "Truax", "Tubbs", "Varga", "Wages", "Wendt", "Worth",
-	"Wyman", "Ozuna", "Valde", "Valez", "Pande", "Sinha", "Sodhi", "Tsang",
-] as const;
-
-/**
- * DB-driven term selector that picks search terms by performance tiers.
- *
- * Tier 1: totalSearches=1, successRate=1, avgResultsPerSearch >= 500
- * Tier 2: totalSearches=1, successRate=1, avgResultsPerSearch >= 100
- * Tier 3: totalSearches<=2, successRate>=0.4, avgResultsPerSearch >= 1000
- * Tier 4: Fallback pool of never-searched terms from FALLBACK_TERMS
- */
-export class TermSelector {
+class LowThresholdTermSelector {
 	private enqueuedTerms = new Set<string>();
 	private deduplicator = new SearchTermDeduplicator();
-	private optimizer: SearchTermOptimizer;
 	private blacklistLoaded = false;
 	private queueSeeded = false;
 	private cachedPropertyTermSet: Set<string> | null = null;
 	private cachedAllSearchedTermSet: Set<string> | null = null;
 
-	constructor(optimizer?: SearchTermOptimizer) {
-		this.optimizer = optimizer ?? searchTermOptimizer;
-	}
-
 	async getNextBatch(size: number): Promise<string[]> {
 		await this.loadBlacklist();
 		await this.seedFromQueue();
-		// Property terms: only terms that actually produced properties (for tier dedup)
 		const propertyTerms = await this.getPropertyTermSet();
-		// All searched: includes analytics terms too (for fallback dedup)
 		const allSearched = await this.getAllSearchedTermSet();
 
 		const batch: string[] = [];
 
-		// Tier 1: single-search high-result terms (500+ avg)
+		// Tier 1: single-search terms with 20+ avg results
 		if (batch.length < size) {
 			const tier1 = await this.queryTier({
 				totalSearches: 1,
 				successRate: 1,
-				avgResultsPerSearch: { gte: 500 },
+				avgResultsPerSearch: { gte: 20 },
 			}, size - batch.length, propertyTerms);
 			batch.push(...tier1);
 		}
 
-		// Tier 2: single-search moderate-result terms (100+ avg)
+		// Tier 2: low-search terms with 20+ avg results
 		if (batch.length < size) {
 			const tier2 = await this.queryTier({
-				totalSearches: 1,
-				successRate: 1,
-				avgResultsPerSearch: { gte: 100 },
+				totalSearches: { lte: 2 },
+				successRate: { gte: 0.5 },
+				avgResultsPerSearch: { gte: 20 },
 			}, size - batch.length, propertyTerms);
 			batch.push(...tier2);
 		}
 
-		// Tier 3: low-search high-result terms (re-scrape candidates)
+		// Tier 3: broader re-scrape candidates
 		if (batch.length < size) {
 			const tier3 = await this.queryTier({
-				totalSearches: { lte: 2 },
-				successRate: { gte: 0.4 },
-				avgResultsPerSearch: { gte: 1000 },
+				totalSearches: { lte: 3 },
+				successRate: { gte: 0.3 },
+				avgResultsPerSearch: { gte: 50 },
 			}, size - batch.length, propertyTerms);
 			batch.push(...tier3);
 		}
@@ -193,7 +115,7 @@ export class TermSelector {
 			where,
 			orderBy: { avgResultsPerSearch: "desc" },
 			select: { searchTerm: true },
-			take: limit * 3, // over-fetch to account for filtering
+			take: limit * 3,
 		});
 
 		const picked: string[] = [];
@@ -268,7 +190,7 @@ export class TermSelector {
 	private async loadBlacklist(): Promise<void> {
 		if (this.blacklistLoaded) return;
 		try {
-			const blacklisted = await this.optimizer.getBlacklistedTerms(3);
+			const blacklisted = await searchTermOptimizer.getBlacklistedTerms(3);
 			for (const term of blacklisted) {
 				this.deduplicator.forceBlacklist(term);
 			}
@@ -280,7 +202,7 @@ export class TermSelector {
 		}
 
 		try {
-			const overSearched = await this.optimizer.getOverSearchedTerms(5);
+			const overSearched = await searchTermOptimizer.getOverSearchedTerms(5);
 			for (const term of overSearched) {
 				this.enqueuedTerms.add(term);
 			}
@@ -295,8 +217,8 @@ export class TermSelector {
 	}
 }
 
-class ContinuousBatchScraper {
-	private termSelector = new TermSelector();
+class LowThresholdScraper {
+	private termSelector = new LowThresholdTermSelector();
 	private stats = {
 		totalQueued: 0,
 		batchesProcessed: 0,
@@ -307,22 +229,24 @@ class ContinuousBatchScraper {
 	private consecutiveZeroBatches = 0;
 	private lastPropertyCount = 0;
 
-	async run() {
-		logger.info("========================================");
-		logger.info("  CONTINUOUS BATCH SCRAPER (DB-driven)  ");
-		logger.info("========================================\n");
+	private countProperties() {
+		return prisma.property.count({ where: { year: config.scraper.tcadYear } });
+	}
 
-		// Clear pending jobs from queue to start fresh
+	async run() {
+		logger.info("=============================================");
+		logger.info("  LOW-THRESHOLD CONTINUOUS SCRAPER (long tail)");
+		logger.info("=============================================\n");
+
 		const pendingCount = await scraperQueue.getWaitingCount();
 		if (pendingCount > 0) {
 			await scraperQueue.clean(0, "wait");
 			logger.info(`Cleared ${pendingCount} pending jobs`);
 		}
 
-		this.stats.startingPropertyCount = await prisma.property.count({ where: { year: config.scraper.tcadYear } });
+		this.stats.startingPropertyCount = await this.countProperties();
 		this.lastPropertyCount = this.stats.startingPropertyCount;
 		logger.info(`Starting: ${this.stats.startingPropertyCount.toLocaleString()}`);
-		logger.info(`Target: ${TARGET_PROPERTIES.toLocaleString()}`);
 		logger.info(`Stop at: ${STOP_AT_PROPERTIES.toLocaleString()} or ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive zero-result batches`);
 		logger.info(`Remaining: ${(STOP_AT_PROPERTIES - this.stats.startingPropertyCount).toLocaleString()}\n`);
 
@@ -332,14 +256,13 @@ class ContinuousBatchScraper {
 		this.startMonitoring();
 
 		while (this.running) {
-			const currentCount = await prisma.property.count({ where: { year: config.scraper.tcadYear } });
+			const currentCount = await this.countProperties();
 
 			if (currentCount >= STOP_AT_PROPERTIES) {
 				logger.info(`STOP TARGET REACHED! Current count: ${currentCount.toLocaleString()}`);
 				break;
 			}
 
-			// Track consecutive batches with zero new properties
 			const newSinceLastCheck = currentCount - this.lastPropertyCount;
 			if (this.stats.batchesProcessed > 0 && newSinceLastCheck === 0) {
 				this.consecutiveZeroBatches++;
@@ -383,7 +306,7 @@ class ContinuousBatchScraper {
 					"scrape-properties",
 					{
 						searchTerm,
-						userId: "continuous-batch",
+						userId: "lowthreshold-batch",
 						scheduled: true,
 					},
 					{
@@ -407,7 +330,7 @@ class ContinuousBatchScraper {
 			try {
 				const [currentCount, waiting, active, completed, failed] =
 					await Promise.all([
-						prisma.property.count({ where: { year: config.scraper.tcadYear } }),
+						this.countProperties(),
 						scraperQueue.getWaitingCount(),
 						scraperQueue.getActiveCount(),
 						scraperQueue.getCompletedCount(),
@@ -440,7 +363,7 @@ class ContinuousBatchScraper {
 	}
 
 	private async printFinalReport() {
-		const finalCount = await prisma.property.count({ where: { year: config.scraper.tcadYear } });
+		const finalCount = await this.countProperties();
 		const elapsed = Math.floor((Date.now() - this.stats.startTime) / 1000);
 		const hours = Math.floor(elapsed / 3600);
 		const minutes = Math.floor((elapsed % 3600) / 60);
@@ -455,7 +378,7 @@ class ContinuousBatchScraper {
 	}
 
 	private stop() {
-		logger.info("Stopping continuous scraper...");
+		logger.info("Stopping low-threshold scraper...");
 		this.running = false;
 	}
 
@@ -464,13 +387,12 @@ class ContinuousBatchScraper {
 	}
 }
 
-// Run when invoked directly (not when imported by tests)
 const isDirectRun =
-	process.argv[1]?.endsWith("continuous-batch-scraper.ts") ||
-	process.argv[1]?.endsWith("continuous-batch-scraper.js");
+	process.argv[1]?.endsWith("continuous-batch-scraper-lowthreshold.ts") ||
+	process.argv[1]?.endsWith("continuous-batch-scraper-lowthreshold.js");
 
 if (isDirectRun) {
-	const scraper = new ContinuousBatchScraper();
+	const scraper = new LowThresholdScraper();
 	scraper.run().catch((error) => {
 		logger.error(`Fatal error: ${getErrorMessage(error)}`);
 		process.exit(1);

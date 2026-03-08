@@ -306,7 +306,7 @@ describe.skipIf(!(await checkRedis()))("Queue Enqueuing Tests", () => {
 	});
 
 	describe("Integration with Enqueue Scripts", () => {
-		test("should enqueue jobs similar to enqueue-high-value-batch", async () => {
+		test("should enqueue jobs similar to one-off-and-test-batches/enqueue-high-value-batch", async () => {
 			const highValueTerms = ["Trust", "Investment", "LLC"];
 			const jobs: Bull.Job<ScrapeJobData>[] = [];
 

@@ -168,6 +168,29 @@ docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT property_i
 
 ## Troubleshooting
 
+### Requeue Scripts
+
+Recovery scripts for failed jobs live in `src/scripts/requeue/`:
+
+| Script | When to Use |
+|--------|-------------|
+| `requeue-all-failed-with-error-tracking.ts` | General recovery: categorizes all failed jobs by error type, saves a JSON error report, refreshes token, re-enqueues all. Stays running for auto-refresh. |
+| `requeue-analytics-failed-jobs.ts` | Targeted: re-enqueues only jobs that failed due to missing `search_term_analytics` table. One-shot (exits after enqueue). |
+| `requeue-with-fresh-tokens.ts` | Token expiry recovery: collects failed 401s + pending jobs, clears queue, refreshes token, re-enqueues all. Stays running for auto-refresh. |
+
+```bash
+cd server
+
+# General requeue (analyzes errors, saves report, re-enqueues all failed)
+doppler run -- npx tsx src/scripts/requeue/requeue-all-failed-with-error-tracking.ts
+
+# Requeue only analytics-related failures
+doppler run -- npx tsx src/scripts/requeue/requeue-analytics-failed-jobs.ts
+
+# Requeue after token expiry (clears queue, refreshes, re-enqueues)
+doppler run -- npx tsx src/scripts/requeue/requeue-with-fresh-tokens.ts
+```
+
 ### Scraper Not Running
 ```bash
 # Check if process exists
@@ -245,6 +268,36 @@ docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT search_ter
 # - "Timeout waiting for text input" -> Fixed in commit a8812a4
 # - "Element is not visible" (pagination) -> Known limitation, not a bug
 ```
+
+## Debugging Scripts
+
+Ad-hoc debugging and manual testing scripts live in `src/scripts/utils/test-scripts/`:
+
+| Script | Purpose |
+|--------|---------|
+| `test-api-direct.ts` | Test TCAD API calls directly |
+| `test-api-scraper.ts` | Test scraper against TCAD API |
+| `test-api-token-config.ts` | Verify token configuration (`npm run test:token-config`) |
+| `test-enqueue.ts` | Manually enqueue test jobs |
+| `test-queue-job-flow.ts` | Trace a job through the queue lifecycle (`npm run test:queue-flow`) |
+| `test-single-job.ts` | Run a single scrape job end-to-end |
+| `test-token-refresh.ts` | Verify token refresh cycle (`npm run test:token-refresh`) |
+| `batch-scrape.ts` | Legacy batch scraper with configurable strategy (cities/zips/types) |
+| `batch-scrape-100.ts` | Legacy one-shot batch with 100 hardcoded search terms |
+| `batch-scrape-comprehensive.ts` | Legacy comprehensive scraper with toggleable categories |
+
+```bash
+cd server
+doppler run -- npx tsx src/scripts/utils/test-scripts/test-api-direct.ts
+```
+
+One-off campaign and batch enqueue scripts live in `src/scripts/one-off-and-test-batches/`:
+
+| Script | Purpose |
+|--------|---------|
+| `enqueue-40k-sprint.ts` | Bulk enqueue targeting 40K property milestone |
+| `enqueue-high-value-batch.ts` | Enqueue high-value entity terms (Trust, LLC, etc.) |
+| `enqueue-optimized-100.ts` | Enqueue 100 optimized terms with deduplication |
 
 ## Architecture
 

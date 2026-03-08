@@ -5,10 +5,10 @@
  * Shows exactly what happens when a scrape job is created
  */
 
-import { config } from "../config";
-import logger from "../lib/logger";
-import { TCADScraper } from "../lib/tcad-scraper";
-import { getErrorMessage } from "../utils/error-helpers";
+import { config } from "../../../config";
+import logger from "../../../lib/logger";
+import { TCADScraper } from "../../../lib/tcad-scraper";
+import { getErrorMessage } from "../../../utils/error-helpers";
 
 logger.info("=== Queue Job Flow Simulation ===\n");
 logger.info(

@@ -11,7 +11,7 @@ model Property {
   id              String   @id @default(uuid())
   propertyId      String   @map("property_id")
   name            String
-  propType        String   @map("prop_type")
+  propType        String   @map("prop_type") /// TCAD code: A=SFR, B=MFR, C=Vacant, D=Rural, E=Farm, F=Commercial, G=Minerals, H=Industrial, J=Water, L=Misc, M=Mobile, N=Intangible, O=Res Inv, P=Non-Res Inv, S=Special Inv, X=Exempt
   city            String?
   propertyAddress String   @map("property_address")
   assessedValue   Float?   @map("assessed_value")

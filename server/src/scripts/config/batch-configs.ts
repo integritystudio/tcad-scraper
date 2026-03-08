@@ -237,6 +237,41 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 		userId: "ultra-high-priority-batch-enqueue",
 		priority: -100,
 	},
+
+	"hispanic-surnames": {
+		batchName: "Hispanic Surnames",
+		emoji: "🌎",
+		terms: [
+			"Acuna", "Adame", "Anaya", "Avila", "Baeza", "Banda", "Bello",
+			"Bosco", "Bravo", "Bueno", "Calvo", "Campo", "Casas", "Cerda",
+			"Chapa", "Coria", "Corzo", "Duran", "Garzo", "Lerma", "Llano",
+			"Loera", "Lujan", "Mares", "Marin", "Mejia", "Mendo", "Milla",
+			"Monje", "Nieto", "Oliva", "Ozuna", "Parra", "Ponce", "Reyna",
+			"Rocha", "Rojas", "Roque", "Saenz", "Serna", "Tamez", "Tello",
+			"Tovar", "Uribe", "Valde", "Valez", "Viera",
+		],
+		userId: "hispanic-surnames-batch-enqueue",
+	},
+
+	"indian-surnames": {
+		batchName: "Indian Surnames",
+		emoji: "🌏",
+		terms: [
+			"Bajaj", "Bhatt", "Batra", "Dixit", "Joshi", "Kapur", "Kumar",
+			"Mehta", "Mehra", "Misra", "Nagar", "Naidu", "Nanda", "Pande",
+			"Reddy", "Sethi", "Sinha", "Sodhi", "Verma", "Yadav",
+		],
+		userId: "indian-surnames-batch-enqueue",
+	},
+
+	"asian-surnames": {
+		batchName: "Asian Surnames",
+		emoji: "🌏",
+		terms: [
+			"Chang", "Hsiao", "Huang", "Hwang", "Jiang", "Liang", "Tsang",
+		],
+		userId: "asian-surnames-batch-enqueue",
+	},
 };
 
 /**

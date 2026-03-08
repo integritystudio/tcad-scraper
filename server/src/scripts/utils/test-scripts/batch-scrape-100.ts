@@ -1,6 +1,6 @@
 import winston from "winston";
-import { scraperQueue } from "../queues/scraper.queue";
-import { getErrorMessage } from "../utils/error-helpers";
+import { scraperQueue } from "../../../queues/scraper.queue";
+import { getErrorMessage } from "../../../utils/error-helpers";
 
 const logger = winston.createLogger({
 	level: "info",

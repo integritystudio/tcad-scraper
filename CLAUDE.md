@@ -153,8 +153,9 @@ curl -s "https://api.alephatx.info/health" | jq
 | Problem | Steps |
 |---------|-------|
 | DB connection failed | Check Render dashboard → verify DATABASE_URL in Doppler |
-| TCAD API auth failed | Token expired (5 min lifetime); check server logs for "Token refreshed" |
+| TCAD API auth failed | Token expired (5 min lifetime); check server logs for "Token refreshed". See [Requeue Scripts](server/README.md#requeue-scripts) |
 | Queue not processing | `npm run queue:status` → check Render Redis dashboard or server logs |
+| Mass job failures | Use requeue scripts in `server/src/scripts/requeue/`. See [Requeue Scripts](server/README.md#requeue-scripts) |
 | Rate limiting error | Ensure `app.set('trust proxy', 1)` in `server/src/index.ts` |
 | API 522/unreachable | Check Render dashboard → service logs |
 | DNS not resolving | Flush: `sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder` |

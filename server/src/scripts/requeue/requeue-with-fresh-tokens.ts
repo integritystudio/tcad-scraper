@@ -11,11 +11,11 @@
  * 5. Sets up auto-refresh every 3 minutes
  */
 
-import logger from "../lib/logger";
-import { prisma } from "../lib/prisma";
-import { scraperQueue } from "../queues/scraper.queue";
-import { tokenRefreshService } from "../services/token-refresh.service";
-import { getErrorMessage } from "../utils/error-helpers";
+import logger from "../../lib/logger";
+import { prisma } from "../../lib/prisma";
+import { scraperQueue } from "../../queues/scraper.queue";
+import { tokenRefreshService } from "../../services/token-refresh.service";
+import { getErrorMessage } from "../../utils/error-helpers";
 
 const THREE_MINUTES_MS = 3 * 60 * 1000; // 3 minutes in milliseconds
 
