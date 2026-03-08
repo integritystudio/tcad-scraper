@@ -6,6 +6,7 @@
  */
 
 import logger from "./logger";
+import { getErrorMessage } from "../utils/error-helpers";
 import type { PropertyData } from "../types";
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -38,12 +39,16 @@ const PAGE_SIZES = [1000, 500, 100, 50] as const;
 const MAX_PAGES = 100;
 const RATE_LIMIT_DELAY_MS = 1000;
 
-const ResponseError = {
+const RESPONSE_ERROR = {
   EMPTY: "EMPTY_RESPONSE",
   HTML: "HTML_RESPONSE",
   TRUNCATED: "TRUNCATED",
   PARSE_FAILED: "JSON_PARSE_FAILED",
 } as const;
+
+function sanitizeLogField(value: string, maxLen = 200): string {
+  return value.slice(0, maxLen).replace(/[\r\n\t]/g, " ");
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -93,7 +98,7 @@ async function fetchPage(
 
   if (trimmed.length === 0) {
     throw new Error(
-      `${ResponseError.EMPTY} (page=${page}, pageSize=${pageSize}, rawLen=${raw.length})`,
+      `${RESPONSE_ERROR.EMPTY} (page=${page}, pageSize=${pageSize}, rawLen=${raw.length})`,
     );
   }
 
@@ -101,13 +106,13 @@ async function fetchPage(
   if (trimmed.startsWith("<")) {
     const preview = trimmed.slice(0, 100).replace(/[\r\n\t]/g, " ");
     throw new Error(
-      `${ResponseError.HTML} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, preview=${preview})`,
+      `${RESPONSE_ERROR.HTML} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, preview=${preview})`,
     );
   }
 
   if (isTruncated(trimmed)) {
     throw new Error(
-      `${ResponseError.TRUNCATED} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, last=${trimmed.slice(-20)})`,
+      `${RESPONSE_ERROR.TRUNCATED} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, last=${trimmed.slice(-20)})`,
     );
   }
 
@@ -119,7 +124,7 @@ async function fetchPage(
     return { data, raw: trimmed };
   } catch (parseErr) {
     throw new Error(
-      `${ResponseError.PARSE_FAILED} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, ` +
+      `${RESPONSE_ERROR.PARSE_FAILED} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, ` +
       `last=${trimmed.slice(-30)}, err=${(parseErr as Error).message})`,
     );
   }
@@ -175,16 +180,16 @@ export async function fetchTCADProperties(
             break;
           }
         } catch (pageErr) {
-          const msg = (pageErr as Error).message;
+          const msg = getErrorMessage(pageErr);
 
           if (
-            msg.startsWith(ResponseError.TRUNCATED) ||
-            msg.startsWith(ResponseError.PARSE_FAILED) ||
-            msg.startsWith(ResponseError.EMPTY) ||
-            msg.startsWith(ResponseError.HTML)
+            msg.startsWith(RESPONSE_ERROR.TRUNCATED) ||
+            msg.startsWith(RESPONSE_ERROR.PARSE_FAILED) ||
+            msg.startsWith(RESPONSE_ERROR.EMPTY) ||
+            msg.startsWith(RESPONSE_ERROR.HTML)
           ) {
             logger.warn(
-              { page, pageSize, searchTerm, errorMsg: msg },
+              { page, pageSize, searchTerm: sanitizeLogField(searchTerm), errorMsg: sanitizeLogField(msg) },
               "Response error during pagination",
             );
             downsized = true;
@@ -219,22 +224,22 @@ export async function fetchTCADProperties(
       // discarding them and trying a smaller page size from scratch.
       if (allResults.length > 0) {
         logger.warn(
-          { page: truncatedAtPage, pageSize, collected: allResults.length, totalCount, searchTerm },
+          { page: truncatedAtPage, pageSize, collected: allResults.length, totalCount, searchTerm: sanitizeLogField(searchTerm) },
           "Mid-pagination truncation, returning partial results",
         );
         return { totalCount, results: allResults, pageSize };
       }
     } catch (err) {
-      const msg = (err as Error).message;
+      const msg = getErrorMessage(err);
 
       if (
-        msg.startsWith(ResponseError.TRUNCATED) ||
-        msg.startsWith(ResponseError.PARSE_FAILED) ||
-        msg.startsWith(ResponseError.EMPTY) ||
-        msg.startsWith(ResponseError.HTML)
+        msg.startsWith(RESPONSE_ERROR.TRUNCATED) ||
+        msg.startsWith(RESPONSE_ERROR.PARSE_FAILED) ||
+        msg.startsWith(RESPONSE_ERROR.EMPTY) ||
+        msg.startsWith(RESPONSE_ERROR.HTML)
       ) {
         logger.warn(
-          { pageSize, searchTerm, errorMsg: msg },
+          { pageSize, searchTerm: sanitizeLogField(searchTerm), errorMsg: sanitizeLogField(msg) },
           "First-page response error",
         );
         lastError = msg;
