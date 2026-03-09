@@ -48,6 +48,7 @@ class LowThresholdScraper {
 		startingPropertyCount: 0,
 	};
 	private running = true;
+	private monitorInterval: ReturnType<typeof setInterval> | null = null;
 	private consecutiveZeroBatches = 0;
 	private lastPropertyCount = 0;
 
@@ -148,7 +149,7 @@ class LowThresholdScraper {
 	}
 
 	private startMonitoring() {
-		setInterval(async () => {
+		this.monitorInterval = setInterval(async () => {
 			try {
 				const [currentCount, waiting, active, completed, failed] =
 					await Promise.all([
@@ -202,6 +203,10 @@ class LowThresholdScraper {
 	private stop() {
 		logger.info("Stopping low-threshold scraper...");
 		this.running = false;
+		if (this.monitorInterval !== null) {
+			clearInterval(this.monitorInterval);
+			this.monitorInterval = null;
+		}
 	}
 
 	private delay(ms: number): Promise<void> {
