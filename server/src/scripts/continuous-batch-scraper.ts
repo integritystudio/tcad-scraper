@@ -133,6 +133,8 @@ export const LOW_THRESHOLD_TIER_CONFIG: TermSelectorConfig = {
  *
  * Pass LOW_THRESHOLD_TIER_CONFIG to lower thresholds for long-tail scraping.
  */
+const CACHE_REFRESH_INTERVAL_BATCHES = 20;
+
 export class TermSelector {
 	private enqueuedTerms = new Set<string>();
 	private deduplicator = new SearchTermDeduplicator();
@@ -142,6 +144,7 @@ export class TermSelector {
 	private queueSeeded = false;
 	private cachedPropertyTermSet: Set<string> | null = null;
 	private cachedAllSearchedTermSet: Set<string> | null = null;
+	private batchCount = 0;
 
 	constructor(config?: TermSelectorConfig, optimizer?: SearchTermOptimizer) {
 		this.config = config ?? STANDARD_TIER_CONFIG;
@@ -149,6 +152,12 @@ export class TermSelector {
 	}
 
 	async getNextBatch(size: number): Promise<string[]> {
+		this.batchCount++;
+		if (this.batchCount % CACHE_REFRESH_INTERVAL_BATCHES === 0) {
+			this.cachedPropertyTermSet = null;
+			this.cachedAllSearchedTermSet = null;
+			logger.info(`Cache invalidated after ${this.batchCount} batches`);
+		}
 		await this.loadBlacklist();
 		await this.seedFromQueue();
 		// Property terms: only terms that actually produced properties (for tier dedup)
