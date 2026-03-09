@@ -65,7 +65,7 @@
 
   Low
   1. ~~`list-all-search-terms.ts` direct-run detection is fragile~~ Done — replaced `endsWith()` with `require.main === module` across 3 scripts (cc361d9) -- `server/src/scripts/utils/list-all-search-terms.ts:87`
-  2. `continuous-batch-scraper-lowthreshold.ts` duplicates ~400 lines with only 3 threshold constants changed. Extract thresholds into a config object passed to a shared class when the lowthreshold variant becomes permanent. -- `server/src/scripts/continuous-batch-scraper-lowthreshold.ts`
+  2. ~~`continuous-batch-scraper-lowthreshold.ts` duplicates ~400 lines with only 3 threshold constants changed. Extract thresholds into a config object passed to a shared class when the lowthreshold variant becomes permanent.~~ Done — `TermSelectorConfig` + `LOW_THRESHOLD_TIER_CONFIG` exported; lowthreshold script removed 180-line duplicate class (ce344a7) -- `server/src/scripts/continuous-batch-scraper.ts`
   3. ~~`enqueue-40k-sprint.ts` includes numeric-only terms (`"1000"`, `"1100"`, etc.) which TCAD rejects. Add `NUMERIC_ONLY` regex filter before enqueue.~~ Done (already implemented at line 224) -- `server/src/scripts/one-off-and-test-batches/enqueue-40k-sprint.ts`
 
 ### Code Review 02-27-2026 of commit 66dc363
@@ -77,7 +77,7 @@
 ### Code Review 2026-03-09 of commits 0e3dede–fcc0fe1
 
   Low
-  7. `TermSelector` cache never invalidated in long-running continuous-batch-scraper. `cachedPropertyTermSet` and `cachedAllSearchedTermSet` are populated once per TermSelector lifetime and never refreshed. During multi-hour runs, terms that become searched (and written to DB) mid-session are not reflected in future `getNextBatch()` calls. Can cause re-enqueuing of already-known terms. `enqueuedTerms` provides in-process dedup (mitigates) but is a defense-in-depth gap. Consider: add a cache invalidation interval (e.g., every N batches) or max TTL. -- `server/src/scripts/continuous-batch-scraper.ts:118–119, 269–296`
+  7. ~~`TermSelector` cache never invalidated in long-running continuous-batch-scraper. `cachedPropertyTermSet` and `cachedAllSearchedTermSet` are populated once per TermSelector lifetime and never refreshed. During multi-hour runs, terms that become searched (and written to DB) mid-session are not reflected in future `getNextBatch()` calls. Can cause re-enqueuing of already-known terms. `enqueuedTerms` provides in-process dedup (mitigates) but is a defense-in-depth gap.~~ Done — caches invalidated every 20 batches via `CACHE_REFRESH_INTERVAL_BATCHES` (ff833c2) -- `server/src/scripts/continuous-batch-scraper.ts`
 
 ---
 
