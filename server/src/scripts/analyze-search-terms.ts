@@ -12,6 +12,10 @@
 
 import { prisma } from "../lib/prisma";
 
+// Approximate total TCAD property count — update periodically from https://tcad.org/
+// Used for coverage percentage and threshold checks only; staleness won't affect scraping.
+const TCAD_TOTAL_PROPERTIES = 451_339;
+
 async function analyzeSearchTerms(): Promise<void> {
 	console.log("\n=== Search Term Analysis ===\n");
 
@@ -185,9 +189,9 @@ async function analyzeSearchTerms(): Promise<void> {
 	console.log("\n📊 Property Coverage:");
 	const propertyCount = await prisma.property.count();
 	console.log(`   Total properties in DB: ${propertyCount.toLocaleString()}`);
-	console.log(`   Target (TCAD total): 451,339`);
-	console.log(`   Coverage: ${((propertyCount / 451339) * 100).toFixed(1)}%`);
-	console.log(`   Remaining: ${(451339 - propertyCount).toLocaleString()}`);
+	console.log(`   Target (TCAD total): ${TCAD_TOTAL_PROPERTIES.toLocaleString()}`);
+	console.log(`   Coverage: ${((propertyCount / TCAD_TOTAL_PROPERTIES) * 100).toFixed(1)}%`);
+	console.log(`   Remaining: ${(TCAD_TOTAL_PROPERTIES - propertyCount).toLocaleString()}`);
 
 	// 8. Recommendations
 	console.log("\n💡 Recommendations:");
@@ -202,7 +206,7 @@ async function analyzeSearchTerms(): Promise<void> {
 	if (uniqueTerms < 1000) {
 		console.log("   📝 Consider adding more search terms to pattern generator");
 	}
-	if (propertyCount / 451339 > 0.9) {
+	if (propertyCount / TCAD_TOTAL_PROPERTIES > 0.9) {
 		console.log(
 			"   ✅ High coverage achieved - focus on entity/trust searches for remaining properties",
 		);
