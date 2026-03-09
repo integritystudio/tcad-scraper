@@ -151,19 +151,19 @@ export class TermSelector {
 	}
 
 	async getNextBatch(size: number): Promise<string[]> {
-		this.batchCount++;
-		if (this.batchCount > 0 && this.batchCount % CACHE_REFRESH_INTERVAL_BATCHES === 0) {
+		this.batchCount++; // always >= 1 by the time the modulo check fires
+		if (this.batchCount % CACHE_REFRESH_INTERVAL_BATCHES === 0) {
 			this.cachedPropertyTermSet = null;
 			this.cachedAllSearchedTermSet = null;
 			logger.info(`Cache invalidated after ${this.batchCount} batches`);
 		}
 		await this.loadBlacklist();
 		await this.seedFromQueue();
-		// Both sets are fetched explicitly here even though getAllSearchedTermSet() calls
-		// getPropertyTermSet() internally. The direct call to getPropertyTermSet() (line below)
-		// ensures the property cache is warm before tier queries use it for dedup, while
-		// getAllSearchedTermSet() also needs the property set to build its union. Both calls
-		// are cheap on repeat invocations because each uses its own cache guard.
+		// Both sets are fetched explicitly even though getAllSearchedTermSet() calls
+		// getPropertyTermSet() internally. The direct call to getPropertyTermSet() ensures the
+		// property cache is warm before tier queries use it for dedup, while getAllSearchedTermSet()
+		// also needs the property set to build its union. Both are cheap on repeat invocations
+		// because each uses its own cache guard.
 		const propertyTerms = await this.getPropertyTermSet();
 		const allSearched = await this.getAllSearchedTermSet();
 
