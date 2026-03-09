@@ -93,6 +93,7 @@ async function fetchPage(
     throw new Error(`HTTP ${res.status}`);
   }
 
+  const contentLength = res.headers.get("content-length") ?? "unknown";
   const raw = await res.text();
   const trimmed = raw.trim();
 
@@ -123,9 +124,22 @@ async function fetchPage(
     };
     return { data, raw: trimmed };
   } catch (parseErr) {
+    logger.warn(
+      {
+        page,
+        pageSize,
+        searchTerm: sanitizeLogField(searchTerm),
+        bodyLen: trimmed.length,
+        contentLength,
+        bodyFirst: sanitizeLogField(trimmed.slice(0, 100)),
+        bodyLast: sanitizeLogField(trimmed.slice(-30)),
+        parseError: (parseErr as Error).message,
+      },
+      "JSON parse failed",
+    );
     throw new Error(
       `${RESPONSE_ERROR.PARSE_FAILED} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, ` +
-      `last=${trimmed.slice(-30)}, err=${(parseErr as Error).message})`,
+      `contentLength=${contentLength}, first=${sanitizeLogField(trimmed.slice(0, 100))}, last=${trimmed.slice(-30)}, err=${(parseErr as Error).message})`,
     );
   }
 }
