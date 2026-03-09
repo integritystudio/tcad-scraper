@@ -45,7 +45,7 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 - `src/lib/claude.service.ts` - Natural language search
 - `src/lib/tcad-api-client.ts` - TCAD API client with structured diagnostics for JSON parse failures
 - `src/scripts/enqueue-batch.ts` - Config-driven batch enqueue runner
-- `src/scripts/config/batch-configs.ts` - 17 batch type definitions
+- `src/scripts/config/batch-configs.ts` - 18 batch type definitions
 - `src/scripts/queue-results.ts` - Queue status + recent completed/failed jobs (`doppler run -- npx tsx src/scripts/queue-results.ts [--limit N]`)
 - See [src/scripts/README.md](server/src/scripts/README.md) for full scripts reference
 - `src/utils/` - Shared utilities (error-helpers, property-transformers, timing)

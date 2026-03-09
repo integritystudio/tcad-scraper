@@ -1,6 +1,6 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-08
+**Last Updated**: 2026-03-09
 **Status**: 626/627 tests passing (1 flaky scheduler test) | TypeScript clean | Lint clean | Biome clean
 
 ---
@@ -30,7 +30,7 @@
 3. Determine if this is a TCAD server-side issue (terms with no results return malformed JSON) or a network issue (response cut off)
 4. Check HTTP status code — `fetchPage()` only throws on `!res.ok`, so these are HTTP 200 responses with bad bodies
 5. Consider: should terms with 0 TCAD results be pre-filtered before enqueue? The API may not handle certain search patterns gracefully
-6. Add structured error logging with response metadata (status, content-length header, body length, body preview) to `fetchPage()` catch path
+6. ~~Add structured error logging with response metadata (status, content-length header, body length, body preview) to `fetchPage()` catch path~~ Done (a3b838e, 688c034)
 
 **Related files**:
 - `server/src/lib/tcad-api-client.ts` — core fetch + parse logic
@@ -43,8 +43,8 @@
 **Context**: Codebase cleanup identified 3 overlapping search term systems with unique data in each. Currently the root-level script is dead code (broken imports).
 
 **Files**:
-- `scripts/enqueue-by-category.ts` — dead code (root-level, can't resolve server imports). Categorizes 5-char terms from `server/data/valid-5char-terms.txt` against 4 dictionaries
-- `server/src/scripts/enqueue-batch.ts` + `config/batch-configs.ts` — active, canonical. Config-driven CLI with 14 batch types and priority system
+- `server/src/scripts/one-off-and-test-batches/enqueue-by-category.ts` — dead code (broken `__dirname`, direct `PrismaClient`). Categorizes 5-char terms against 4 dictionaries
+- `server/src/scripts/enqueue-batch.ts` + `config/batch-configs.ts` — active, canonical. Config-driven CLI with 18 batch types and priority system
 - `server/src/scripts/continuous-batch-scraper.ts` — active, long-running scraper that auto-generates and enqueues terms
 
 **Unique data at risk of loss in `enqueue-by-category.ts`**:
@@ -59,10 +59,10 @@
 - `HIGH_RESULT_TERM_SPLITS` map — splits high-volume terms (Oak→Oak Hill/Oakwood/..., Maria→Maria E/G/R/L, Estate→Estate of/Estates at/Estate Trust) to avoid truncation
 
 **Research tasks**:
-1. Extract curated name lists (Hispanic, Indian, Asian surnames + first names) into a shared data file (e.g. `server/data/curated-names.json`) usable by both `batch-configs.ts` and `continuous-batch-scraper.ts`
-2. Add new batch config categories for the extracted name lists (e.g. `hispanic-surnames`, `indian-surnames`)
+1. ~~Extract curated first names (~200) from `enqueue-by-category.ts` into batch-configs~~ Done (added `curated-first-names` batch config with 199 names)
+2. ~~Add new batch config categories for the extracted name lists (e.g. `hispanic-surnames`, `indian-surnames`)~~ Done (hispanic-surnames, indian-surnames, asian-surnames already in batch-configs.ts)
 3. Determine if Texas city names yield results in TCAD search (cities historically don't work per CLAUDE.md — verify before adding)
-4. Move `scripts/enqueue-by-category.ts` to `server/src/scripts/one-off-and-test-batches/` after data extraction
+4. ~~Move `scripts/enqueue-by-category.ts` to `server/src/scripts/one-off-and-test-batches/` after data extraction~~ Done (already moved)
 5. Consider merging `HIGH_RESULT_TERM_SPLITS` logic into `continuous-batch-scraper.ts` so auto-splitting happens at enqueue time
 
 ### Code Review 2026-03-08 of commit c7aabe6
@@ -70,12 +70,12 @@
   Low
   1. `list-all-search-terms.ts` direct-run detection is fragile — `process.argv[1]?.endsWith(...)` can mismatch with some tsx runners. Use `import.meta.url === pathToFileURL(process.argv[1]).href` (blocked by CommonJS tsconfig; fix requires module change). -- `server/src/scripts/utils/list-all-search-terms.ts:87`
   2. `continuous-batch-scraper-lowthreshold.ts` duplicates ~400 lines with only 3 threshold constants changed. Extract thresholds into a config object passed to a shared class when the lowthreshold variant becomes permanent. -- `server/src/scripts/continuous-batch-scraper-lowthreshold.ts`
-  3. `enqueue-40k-sprint.ts` includes numeric-only terms (`"1000"`, `"1100"`, etc.) which TCAD rejects. Add `NUMERIC_ONLY` regex filter before enqueue. -- `server/src/scripts/one-off-and-test-batches/enqueue-40k-sprint.ts`
+  3. ~~`enqueue-40k-sprint.ts` includes numeric-only terms (`"1000"`, `"1100"`, etc.) which TCAD rejects. Add `NUMERIC_ONLY` regex filter before enqueue.~~ Done (already implemented at line 224) -- `server/src/scripts/one-off-and-test-batches/enqueue-40k-sprint.ts`
 
 ### Code Review 02-27-2026 of commit 66dc363
 
   Low
-  4. getJwtLifetime should guard exp > iat — STALE: function not found in current codebase; may have been removed in refactor
+  4. ~~getJwtLifetime should guard exp > iat~~ Resolved: function removed in prior refactor
   6. Test vi.resetModules() could leak — DEFERRED: vi.resetModules() in afterEach is load-bearing for await import() pattern; removal breaks 4 tests. Needs per-test vi.isolateModules() refactor. -- `src/__tests__/App.test.tsx:59`
 
 ---
