@@ -123,7 +123,7 @@ class LowThresholdScraper {
 
 		logger.info(`Batch #${this.stats.batchesProcessed} (${searchTerms.length} terms)`);
 
-		const enqueued = await enqueueBatch(searchTerms, "lowthreshold-batch");
+		const enqueued = await enqueueBatch(searchTerms, "lowthreshold-batch", logger);
 		this.stats.totalQueued += enqueued;
 
 		logger.info(`Queued ${enqueued} jobs (Total: ${this.stats.totalQueued})`);

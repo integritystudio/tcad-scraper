@@ -21,7 +21,15 @@ export async function waitForQueueDrain(): Promise<void> {
   process.stdout.write("\r  Queue drained.                          \n");
 }
 
-export async function enqueueBatch(terms: string[], userId: string): Promise<number> {
+export interface EnqueueLogger {
+  error: (msg: string) => void;
+}
+
+export async function enqueueBatch(
+  terms: string[],
+  userId: string,
+  logger: EnqueueLogger = console,
+): Promise<number> {
   const { jobName, defaultJobOptions } = config.queue;
   let enqueued = 0;
   for (const term of terms) {
@@ -38,7 +46,7 @@ export async function enqueueBatch(terms: string[], userId: string): Promise<num
       );
       enqueued++;
     } catch (error) {
-      console.error(`  Failed to enqueue "${term}": ${getErrorMessage(error)}`);
+      logger.error(`  Failed to enqueue "${term}": ${getErrorMessage(error)}`);
     }
   }
   return enqueued;
