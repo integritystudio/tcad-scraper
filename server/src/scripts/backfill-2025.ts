@@ -14,10 +14,9 @@ import {
   DENSE_MIN_SUCCESS_RATE, DENSE_MAX_BASE_LENGTH,
   SEED_MIN_SUCCESS_RATE, SEED_MIN_AVG_RESULTS,
   RECENT_JOBS_LOOKBACK_MS, MIN_TERM_LENGTH, ALPHABET,
+  TARGET_2025_PROPERTY_COUNT as TARGET_2025_COUNT,
 } from "./lib/backfill-constants";
 import { enqueueBatch, waitForQueueDrain, BATCH_SIZE } from "./lib/queue-utils";
-
-const TARGET_2025_COUNT = 420_000;
 const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
 
 async function get2025Count(): Promise<number> {

@@ -1,5 +1,10 @@
 /** Shared constants for backfill and search-term generation scripts. */
 
+// ── Property count targets ──────────────────────────────────────────
+// Approximate 2025 TCAD property count used as halt threshold by backfill
+// and lowthreshold scripts. See CLAUDE.md "Scale: 418K+ properties".
+export const TARGET_2025_PROPERTY_COUNT = 420_000;
+
 // ── Recent jobs lookback ─────────────────────────────────────────────
 export const RECENT_JOBS_LOOKBACK_DAYS = 7;
 export const RECENT_JOBS_LOOKBACK_MS = RECENT_JOBS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;

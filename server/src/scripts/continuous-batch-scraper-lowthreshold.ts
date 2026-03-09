@@ -21,8 +21,7 @@ import { scraperQueue } from "../queues/scraper.queue";
 import { getErrorMessage } from "../utils/error-helpers";
 import { LOW_THRESHOLD_TIER_CONFIG, TermSelector } from "./continuous-batch-scraper";
 import { enqueueBatch } from "./lib/queue-utils";
-
-const STOP_AT_PROPERTIES = 420000;
+import { TARGET_2025_PROPERTY_COUNT as STOP_AT_PROPERTIES } from "./lib/backfill-constants";
 const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
 const BATCH_SIZE = 25;
 const DELAY_BETWEEN_BATCHES = 30000;

@@ -13,10 +13,8 @@ import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import { config } from "../config";
 import { getErrorMessage } from "../utils/error-helpers";
-import { RECENT_JOBS_LOOKBACK_MS, MIN_TERM_LENGTH } from "./lib/backfill-constants";
+import { RECENT_JOBS_LOOKBACK_MS, MIN_TERM_LENGTH, TARGET_2025_PROPERTY_COUNT as TARGET_2025_COUNT } from "./lib/backfill-constants";
 import { enqueueBatch, waitForQueueDrain, BATCH_SIZE } from "./lib/queue-utils";
-
-const TARGET_2025_COUNT = 420_000;
 const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
 
 async function get2025Count(): Promise<number> {
