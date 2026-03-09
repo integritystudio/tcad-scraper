@@ -13,10 +13,9 @@ import { scraperQueue } from "../queues/scraper.queue";
 import { config } from "../config";
 import { getErrorMessage } from "../utils/error-helpers";
 import { RECENT_JOBS_LOOKBACK_DAYS, RECENT_JOBS_LOOKBACK_MS } from "./lib/backfill-constants";
+import { enqueueBatch, waitForQueueDrain, BATCH_SIZE } from "./lib/queue-utils";
 
 const TARGET_2025_COUNT = 420_000;
-const BATCH_SIZE = 20;
-const POLL_INTERVAL_MS = 15_000;
 const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
 const MIN_2026_YIELD = 100;
 
@@ -66,43 +65,6 @@ async function getProvenTerms(): Promise<string[]> {
   return result;
 }
 
-// No timeout: polls until queue is fully drained. A permanently stalled BullMQ job
-// will block indefinitely. Acceptable for CLI use — Ctrl+C to abort if needed.
-async function waitForQueueDrain(): Promise<void> {
-  let waiting = await scraperQueue.getWaitingCount();
-  let active = await scraperQueue.getActiveCount();
-  while (waiting > 0 || active > 0) {
-    process.stdout.write(`\r  Queue: ${active} active, ${waiting} waiting...   `);
-    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
-    waiting = await scraperQueue.getWaitingCount();
-    active = await scraperQueue.getActiveCount();
-  }
-  process.stdout.write("\r  Queue drained.                          \n");
-}
-
-async function enqueueBatch(terms: string[]): Promise<number> {
-  const { jobName, defaultJobOptions } = config.queue;
-  let enqueued = 0;
-  for (const term of terms) {
-    try {
-      await scraperQueue.add(
-        jobName,
-        { searchTerm: term, userId: "backfill-2025-proven", scheduled: true },
-        {
-          attempts: defaultJobOptions.attempts,
-          backoff: { type: "exponential", delay: defaultJobOptions.backoffDelay },
-          removeOnComplete: defaultJobOptions.removeOnComplete,
-          removeOnFail: defaultJobOptions.removeOnFail,
-        },
-      );
-      enqueued++;
-    } catch (error) {
-      console.error(`  Failed to enqueue "${term}": ${getErrorMessage(error)}`);
-    }
-  }
-  return enqueued;
-}
-
 async function main() {
   if (config.scraper.tcadYear !== 2025) {
     console.error(`ERROR: TCAD_YEAR is ${config.scraper.tcadYear}, must be 2025.`);
@@ -144,7 +106,7 @@ async function main() {
     console.log(`--- Batch ${batchNum} (${batch.length} terms) ---`);
     console.log(`  Terms: ${batch.join(", ")}`);
 
-    const enqueued = await enqueueBatch(batch);
+    const enqueued = await enqueueBatch(batch, "backfill-2025-proven");
     console.log(`  Enqueued: ${enqueued}`);
 
     await waitForQueueDrain();
