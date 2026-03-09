@@ -9,7 +9,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-function migrateFile(filePath: string): void {
+function migrateFile(filePath: string, dryRun = false): void {
 	const content = fs.readFileSync(filePath, "utf-8");
 	const lines = content.split("\n");
 
@@ -67,18 +67,24 @@ function migrateFile(filePath: string): void {
 
 	// Write back if changed
 	if (modified !== content) {
-		fs.writeFileSync(filePath, modified, "utf-8");
-		console.log(`✅ Migrated: ${filePath}`);
+		if (dryRun) {
+			console.log(`[dry-run] Would migrate: ${filePath}`);
+		} else {
+			fs.writeFileSync(filePath, modified, "utf-8");
+			console.log(`✅ Migrated: ${filePath}`);
+		}
 	} else {
 		console.log(`⏭️  No changes: ${filePath}`);
 	}
 }
 
 // Get file path from command line
-const filePath = process.argv[2];
+const args = process.argv.slice(2);
+const dryRun = args.includes("--dry-run");
+const filePath = args.find((a) => !a.startsWith("--"));
 
 if (!filePath) {
-	console.error("Usage: tsx migrate-to-logger.ts <file-path>");
+	console.error("Usage: tsx migrate-to-logger.ts <file-path> [--dry-run]");
 	process.exit(1);
 }
 
@@ -88,7 +94,7 @@ if (!fs.existsSync(filePath)) {
 }
 
 try {
-	migrateFile(filePath);
+	migrateFile(filePath, dryRun);
 } catch (error) {
 	console.error("Migration failed:", error);
 	process.exit(1);
