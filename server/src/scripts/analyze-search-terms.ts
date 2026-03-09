@@ -10,9 +10,7 @@
  * Run: doppler run -- npx tsx src/scripts/analyze-search-terms.ts
  */
 
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../lib/prisma";
 
 async function analyzeSearchTerms(): Promise<void> {
 	console.log("\n=== Search Term Analysis ===\n");
@@ -210,18 +208,16 @@ async function analyzeSearchTerms(): Promise<void> {
 		);
 	}
 
-	await prisma.$disconnect();
 }
 
 async function countTermsMatching(patterns: string[]): Promise<number> {
-	const conditions = patterns
-		.map((p) => `search_term ILIKE '%${p}%'`)
-		.join(" OR ");
-	const result = await prisma.$queryRawUnsafe<{ count: bigint }[]>(`
+	// Use parameterized query to avoid SQL injection
+	const likePatterns = patterns.map((p) => `%${p}%`);
+	const result = await prisma.$queryRaw<{ count: bigint }[]>`
     SELECT COUNT(DISTINCT search_term) as count
     FROM scrape_jobs
-    WHERE ${conditions}
-  `);
+    WHERE search_term ILIKE ANY(${likePatterns})
+  `;
 	return Number(result[0].count);
 }
 

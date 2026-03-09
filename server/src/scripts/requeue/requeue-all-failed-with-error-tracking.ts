@@ -38,6 +38,7 @@ async function categorizeErrors(): Promise<Map<string, ErrorStats>> {
 			error: true,
 			searchTerm: true,
 		},
+		take: 10000,
 	});
 
 	const errorMap = new Map<string, ErrorStats>();
@@ -287,7 +288,7 @@ async function main() {
 		// Keep process alive
 		await new Promise(() => {});
 	} catch (error) {
-		logger.error(error as Error, "\n❌ Script failed");
+		logger.error(`\n❌ Script failed: ${getErrorMessage(error)}`);
 		await cleanup();
 		process.exit(1);
 	}

@@ -46,6 +46,22 @@
   Low
   14. [x] `STOP_AT_PROPERTIES = 420000` missing context — added comment in c9427d6
 
+### Code Review 2026-03-09 of `server/src/scripts/` (code-reviewer agent)
+
+  Medium
+  15. Deduplicate `enqueueBatch` / `waitForQueueDrain` logic across 4 backfill scripts (backfill-2025.ts, backfill-2025-novel.ts, backfill-2025-proven.ts, backfill-2025-unsearched.ts) — extract to shared util in `server/src/scripts/lib/`
+  16. Replace `winston` logger with Pino in production-runnable scripts: `continuous-batch-scraper.ts` (line 13), `continuous-batch-scraper-lowthreshold.ts` (line 14), and remove hardcoded `logs/continuous-scraper.log` file path
+  17. Fix `__dirname` usage in `enqueue-by-category.ts:107` — not available in ESM; use `import.meta.url` + `fileURLToPath` instead -- `server/src/scripts/one-off-and-test-batches/enqueue-by-category.ts:107`
+  18. Remove dead priority branch in `enqueue-high-value-batch.ts:73-79` — first two conditions both assign `priority = 1`, making second branch unreachable
+  19. Fix deterministic "shuffle" in `generate-next-200-terms.ts:6213-6216` — uses fixed hash `(i * 2654435761) % (i + 1)` instead of actual randomization; should use `Math.random()` or seeded PRNG
+  20. Store and clear `setInterval` handle in `continuous-batch-scraper-lowthreshold.ts:5316` — allow clean shutdown via `clearInterval` instead of running indefinitely
+
+  Low
+  21. Replace `require.main === module` CMS pattern with `import.meta.url === process.argv[1]` in 3 scripts: `continuous-batch-scraper.ts:5804`, `continuous-batch-scraper-lowthreshold.ts:5369`, `utils/list-all-search-terms.ts:3504` (ESM idiom)
+  22. Remove always-filtered numeric-only terms from `TERM_POOL` in `enqueue-40k-sprint.ts:137-152` — ~150 numeric strings added then immediately filtered out by `NUMERIC_ONLY.test(t)` at line 883; eliminate the noise
+  23. Remove hardcoded TCAD total `451,339` in `analyze-search-terms.ts:3865` or make it configurable / sourced from API — value becomes silently stale as TCAD property count changes
+  24. Add safeguards to `migrate-to-logger.ts` (dry-run flag, confirmation prompt) or delete if migration is complete — currently rewrites files in-place with no backup or safety checks
+
 ---
 
 ## Completed

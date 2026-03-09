@@ -153,7 +153,6 @@ async function main() {
 		logger.info(
 			`   ✅ Token refreshed successfully (length: ${newToken.length})`,
 		);
-		logger.info(`   Preview: ${newToken.substring(0, 50)}...`);
 
 		// Step 6: Start auto-refresh every 3 minutes
 		logger.info("\n⏰ Step 6: Starting auto-refresh (every 3 minutes)...");
@@ -230,7 +229,7 @@ async function main() {
 		// Keep process alive
 		await new Promise(() => {});
 	} catch (error) {
-		logger.error(error as Error, "\n❌ Script failed");
+		logger.error(`\n❌ Script failed: ${getErrorMessage(error)}`);
 		await cleanup();
 		process.exit(1);
 	}

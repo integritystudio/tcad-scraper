@@ -17,10 +17,8 @@
  */
 
 import { writeFileSync, mkdirSync } from 'fs';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { join } from 'path';
-
-const prisma = new PrismaClient();
 const OUTPUT_PATH = join(__dirname, '..', '..', 'data', 'valid-5char-terms.txt');
 
 // ── Curated name lists ─────────────────────────────────────────────────
@@ -344,7 +342,6 @@ async function main() {
     console.error(`  ${t}`);
   }
 
-  await prisma.$disconnect();
 }
 
 main();

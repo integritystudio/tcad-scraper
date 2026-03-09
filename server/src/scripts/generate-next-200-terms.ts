@@ -19,10 +19,8 @@
  *   doppler run -- npx tsx src/scripts/generate-next-200-terms.ts --enqueue
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { SearchTermDeduplicator } from '../lib/search-term-deduplicator';
-
-const prisma = new PrismaClient();
 
 const TARGET_TERM_COUNT = 500;
 const ENQUEUE_MODE = process.argv.includes('--enqueue');
@@ -332,7 +330,6 @@ async function main() {
     await scraperQueue.close();
   }
 
-  await prisma.$disconnect();
 }
 
 main();

@@ -78,19 +78,21 @@ async function enqueueAll(): Promise<Map<string, string>> {
   return jobMap;
 }
 
+const MAX_MONITOR_MS = 2 * 60 * 60 * 1000; // 2 hour deadline
+
 async function monitor(jobMap: Map<string, string>) {
   const startCount = await prisma.property.count();
   const startTime = Date.now();
+  const deadline = startTime + MAX_MONITOR_MS;
   const totalJobs = jobMap.size;
 
   logger.info(`Starting property count: ${startCount.toLocaleString()}`);
-  logger.info(`Monitoring ${totalJobs} jobs (polling every ${POLL_INTERVAL_MS / 1000}s)...\n`);
+  logger.info(`Monitoring ${totalJobs} jobs (polling every ${POLL_INTERVAL_MS / 1000}s, deadline ${MAX_MONITOR_MS / 60_000}m)...\n`);
 
   let lastCompleted = 0;
   let lastFailed = 0;
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
+  while (Date.now() < deadline) {
     await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
 
     const [waiting, active, completed, failed] = await Promise.all([
@@ -127,9 +129,11 @@ async function monitor(jobMap: Map<string, string>) {
       logger.info(`Terms: ${totalJobs} (${completed} completed, ${failed} failed)`);
       logger.info(`Properties: ${startCount.toLocaleString()} -> ${finalCount.toLocaleString()} (+${totalNew.toLocaleString()})`);
       logger.info(`Categories: ${NAMES.length} names, ${ENTITIES.length} entities, ${STREETS.length} streets, ${NUMBERS.length} numbers`);
-      break;
+      return;
     }
   }
+
+  logger.warn(`Monitor deadline reached (${MAX_MONITOR_MS / 60_000}m). Jobs may still be processing.`);
 }
 
 async function run() {

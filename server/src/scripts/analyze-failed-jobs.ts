@@ -50,7 +50,7 @@ async function analyzeFailedJobs(): Promise<FailureAnalysis> {
 	logger.info(`Failed jobs: ${failedJobs} (${failureRate.toFixed(2)}%)`);
 	logger.info(`Completed jobs: ${completedJobs}`);
 
-	// Get all failed jobs with error messages
+	// Get failed jobs with error messages (capped to avoid OOM)
 	const failedJobsData = await prisma.scrapeJob.findMany({
 		where: { status: "failed" },
 		select: {
@@ -59,6 +59,7 @@ async function analyzeFailedJobs(): Promise<FailureAnalysis> {
 			completedAt: true,
 		},
 		orderBy: { completedAt: "desc" },
+		take: 5000,
 	});
 
 	// Group errors by message

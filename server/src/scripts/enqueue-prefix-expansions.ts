@@ -7,11 +7,9 @@
  * Usage: doppler run -- npx tsx src/scripts/enqueue-prefix-expansions.ts
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { scraperQueue } from '../queues/scraper.queue';
 import { config } from '../config';
-
-const prisma = new PrismaClient();
 
 const MAX_CONSECUTIVE_ZEROS = 3;
 const POLL_INTERVAL_MS = 5000;
@@ -141,7 +139,6 @@ async function main() {
   console.log(`Final DB count: ${(await getPropertyCount()).toLocaleString()}`);
 
   await scraperQueue.close();
-  await prisma.$disconnect();
 }
 
 main().catch(err => {

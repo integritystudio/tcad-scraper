@@ -13,9 +13,7 @@
  *   doppler run -- npx tsx src/scripts/enqueue-uncommon-names.ts --limit 50 # cap count
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 const ENQUEUE = process.argv.includes('--enqueue');
 const LIMIT = (() => {
@@ -279,7 +277,6 @@ async function main() {
     await scraperQueue.close();
   }
 
-  await prisma.$disconnect();
 }
 
 main().catch(err => {

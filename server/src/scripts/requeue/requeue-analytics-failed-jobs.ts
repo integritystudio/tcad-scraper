@@ -143,7 +143,7 @@ async function main() {
 
 		await cleanup();
 	} catch (error) {
-		logger.error(error as Error, "\n❌ Script failed");
+		logger.error(`\n❌ Script failed: ${getErrorMessage(error)}`);
 		await cleanup();
 		process.exit(1);
 	}

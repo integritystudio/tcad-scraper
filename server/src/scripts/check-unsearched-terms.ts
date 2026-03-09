@@ -3,10 +3,8 @@
  * Uses batched EXISTS queries to avoid full table scans.
  * Usage: doppler run -- npx tsx src/scripts/check-unsearched-terms.ts
  */
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { getAllSearchTerms } from './utils/list-all-search-terms';
-
-const prisma = new PrismaClient();
 
 async function check() {
   const allTerms = getAllSearchTerms().all;
@@ -46,7 +44,6 @@ async function check() {
     console.log('\nAll inventory terms have been searched for 2025.');
   }
 
-  await prisma.$disconnect();
 }
 
 check().catch(console.error);
