@@ -46,7 +46,7 @@ The TCAD Scraper application implements comprehensive analytics tracking using b
 | Tracking Scripts | ✅ Complete | GA4 + Meta Pixel |
 | PropertySearchContainer | ✅ Complete | search, search_results, error |
 | PropertyCard | ✅ Complete | property_view |
-| ExampleQueries | ✅ Complete | example_query_click |
+| ExampleQueries (if present) | ✅ Complete | example_query_click |
 | App (Root) | ✅ Complete | page_view |
 | ErrorBoundary | ✅ Complete | error |
 
@@ -99,7 +99,7 @@ tcad-scraper/
   ],
   "development": [
     "TypeScript",
-    "React 18+",
+    "React 19",
     "Vite"
   ]
 }
@@ -276,7 +276,7 @@ The core analytics library provides type-safe, environment-aware tracking functi
 // Generic event tracking
 export const trackEvent = (
   eventName: string,
-  parameters?: Record<string, any>
+  parameters?: Record<string, unknown>
 ): void
 
 // Specialized tracking functions
@@ -298,7 +298,7 @@ export const trackError = (
   severity: 'low' | 'medium' | 'high'
 ): void
 export const trackEngagement = (
-  parameters: Record<string, any>
+  parameters: Record<string, unknown>
 ): void
 ```
 
@@ -639,7 +639,7 @@ Analytics automatically detects development environment and enables console logg
 # Start dev server
 npm run dev
 
-# Open http://localhost:5173
+# Open http://localhost:5174
 # Open DevTools Console (F12)
 # Perform actions and verify console logs
 ```
@@ -707,9 +707,9 @@ Currently, analytics are **not** unit tested to avoid polluting test analytics d
 
 ```typescript
 // Mock analytics in tests
-jest.mock('@/lib/analytics', () => ({
-  trackSearch: jest.fn(),
-  trackSearchResults: jest.fn(),
+vi.mock('@/lib/analytics', () => ({
+  trackSearch: vi.fn(),
+  trackSearchResults: vi.fn(),
   // ... other functions
 }));
 
@@ -1031,9 +1031,7 @@ const logShare = useCallback(
 
 ### Internal Documentation
 
-- **Implementation Context:** `dev/active/analytics-implementation-context.md`
-- **Task Breakdown:** `dev/active/analytics-implementation-tasks.md`
-- **Handoff Notes:** `dev/HANDOFF.md`
+See git history for implementation context and decisions.
 
 ---
 
@@ -1092,7 +1090,7 @@ import { HeaderBadge, AttributionCard, Footer } from "@/components/layout";
 For questions about this implementation:
 
 1. Review this documentation
-2. Check `dev/active/analytics-implementation-context.md` for detailed context
+2. Review git history for detailed implementation context
 3. Review git history for commit messages explaining decisions
 4. Consult official GA4/Meta documentation links above
 
