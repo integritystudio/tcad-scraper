@@ -1,10 +1,11 @@
 ## Recent Updates
 
-### March 9, 2026 - TCAD API Diagnostics & Enqueue Infrastructure Consolidation
+### March 9, 2026 - TCAD API Diagnostics & Enqueue Infrastructure Consolidation + Code Review Cleanup
 
 - **TCAD API JSON parse diagnostics** (`a3b838e`, `688c034`): Added content-length header capture, body preview (first/last 100 chars) logging, and structured `logger.warn` at JSON parse failure point for better troubleshooting of truncated/malformed responses
 - **Enqueue infrastructure consolidation**: Extracted 199 curated 5-char first names into canonical `curated-first-names` batch config (ref: commit `0427d30`). Hispanic, Indian, Asian surnames already consolidated. Updated batch config count: 17 → 18
-- **Backlog migration**: Consolidated C1 diagnostics task (task 6/6) and M1 data consolidation (tasks 1-2, 4/5); remaining: city name verification, term splits logic
+- **Code Review Cleanup** (B1–B11): TermSelector cache invalidation (20-batch refresh), docstring clarity, dead code removal, config extraction, script utilities, test coverage expansion (631/632 tests passing)
+- **Backlog migration**: Consolidated C1 diagnostics task (task 6/6) and M1 data consolidation (tasks 1-2, 4/5); migrated 9 code review items to changelog; remaining: city name verification, term splits logic, 3 Medium/Low advisory findings
 
 See [changelog/2026-03-09.md](changelog/2026-03-09.md) for full details.
 
