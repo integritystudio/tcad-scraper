@@ -20,6 +20,7 @@ import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import { getErrorMessage } from "../utils/error-helpers";
 import { LOW_THRESHOLD_TIER_CONFIG, TermSelector } from "./continuous-batch-scraper";
+import { enqueueBatch } from "./lib/queue-utils";
 
 const STOP_AT_PROPERTIES = 420000;
 const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
@@ -123,29 +124,10 @@ class LowThresholdScraper {
 
 		logger.info(`Batch #${this.stats.batchesProcessed} (${searchTerms.length} terms)`);
 
-		for (const searchTerm of searchTerms) {
-			try {
-				await scraperQueue.add(
-					"scrape-properties",
-					{
-						searchTerm,
-						userId: "lowthreshold-batch",
-						scheduled: true,
-					},
-					{
-						attempts: 3,
-						backoff: { type: "exponential", delay: 2000 },
-						removeOnComplete: 100,
-						removeOnFail: 50,
-					},
-				);
-				this.stats.totalQueued++;
-			} catch (error) {
-				logger.error(`Failed to queue ${searchTerm}: ${getErrorMessage(error)}`);
-			}
-		}
+		const enqueued = await enqueueBatch(searchTerms, "lowthreshold-batch");
+		this.stats.totalQueued += enqueued;
 
-		logger.info(`Queued ${searchTerms.length} jobs (Total: ${this.stats.totalQueued})`);
+		logger.info(`Queued ${enqueued} jobs (Total: ${this.stats.totalQueued})`);
 	}
 
 	private startMonitoring() {
