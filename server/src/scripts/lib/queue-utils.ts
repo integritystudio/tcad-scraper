@@ -22,7 +22,7 @@ export async function waitForQueueDrain(): Promise<void> {
 }
 
 export interface EnqueueLogger {
-  error: (msg: string) => void;
+  error: (msg: string, ...meta: unknown[]) => unknown;
 }
 
 export async function enqueueBatch(
