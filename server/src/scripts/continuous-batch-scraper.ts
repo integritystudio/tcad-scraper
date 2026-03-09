@@ -178,6 +178,7 @@ export class TermSelector {
 
 		// Expand high-result terms to narrower sub-queries to prevent truncation.
 		// e.g. "Oak" (7210 avg results) → ["Oak Hill", "Oakwood", "Oak Run", ...]
+		// Keys must match DB casing exactly (Map lookup is case-sensitive).
 		const expanded: string[] = [];
 		for (const term of batch) {
 			const splits = HIGH_RESULT_TERM_SPLITS.get(term);
@@ -192,6 +193,8 @@ export class TermSelector {
 				}
 				if (added > 0) {
 					logger.info(`Expanded high-result term "${term}" → ${added} sub-queries`);
+				} else {
+					logger.debug(`High-result term "${term}" has no unsearched splits; slot dropped`);
 				}
 				// Parent term stays in enqueuedTerms to prevent future re-selection
 			} else {
@@ -199,13 +202,17 @@ export class TermSelector {
 			}
 		}
 
-		if (expanded.length > 0) {
-			logger.info(`Selected ${expanded.length} terms: ${expanded.slice(0, 5).join(", ")}${expanded.length > 5 ? "..." : ""}`);
+		// Trim to requested size — expansion can produce more terms than size when
+		// multiple high-result terms are selected in the same batch.
+		const result = expanded.slice(0, size);
+
+		if (result.length > 0) {
+			logger.info(`Selected ${result.length} terms: ${result.slice(0, 5).join(", ")}${result.length > 5 ? "..." : ""}`);
 		} else {
 			logger.warn("No candidate terms available from any tier or fallback");
 		}
 
-		return expanded;
+		return result;
 	}
 
 	private async queryTier(
