@@ -143,7 +143,7 @@ See [changelog/2026-02-26.md](changelog/2026-02-26.md) for full details.
 - Analysis findings: 1,444 console.log statements, 113 error handlers, 0 TODOs
 - Consolidated error handling and logging using pino and pino-pretty
 
-### November 5, 2024
+### November 5, 2025
 - Added AI-powered natural language search using Claude AI (Anthropic)
 - Implemented `POST /api/properties/search` endpoint for plain English queries
 - Added `GET /api/properties/search/test` endpoint to verify Claude API connection
@@ -152,14 +152,14 @@ See [changelog/2026-02-26.md](changelog/2026-02-26.md) for full details.
 - Fixed logger import and error handling in Claude service
 - Updated environment configuration for `ANTHROPIC_API_KEY`
 
-### November 3, 2024
+### November 3, 2025
 - Comprehensive README overhaul with current architecture
 - Added API endpoint documentation
 - Added monitoring and metrics section
 - Updated Docker services documentation
 - Added troubleshooting guide
 
-### November 2, 2024
+### November 2, 2025
 - Implemented optimized search term generation with weighted strategies
 - Added 30 Austin neighborhoods, expanded to 150+ street names
 - Expanded name database to 200+ first names, 500+ last names
@@ -167,7 +167,7 @@ See [changelog/2026-02-26.md](changelog/2026-02-26.md) for full details.
 - Successfully running on remote Linux environment
 - Database grew to 150,000+ properties
 
-### November 1, 2024
+### November 1, 2025
 - Implemented dual scraping methods (API + browser-based)
 - Fixed race condition in browser initialization (commit a8812a4)
 - Added batch scraping capabilities

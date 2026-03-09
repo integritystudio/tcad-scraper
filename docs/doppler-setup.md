@@ -46,9 +46,8 @@ doppler setup
 doppler secrets set DATABASE_URL="postgresql://user:pass@host/tcad_scraper"
 
 # Redis (Render Redis with TLS — get URL from Render dashboard)
+# REDIS_URL is the primary config; rediss:// prefix enables TLS automatically
 doppler secrets set REDIS_URL="rediss://user:pass@oregon-keyvalue.render.com:6379"
-doppler secrets set REDIS_HOST="oregon-keyvalue.render.com"
-doppler secrets set REDIS_PORT="6379"
 
 # Server
 doppler secrets set NODE_ENV="development"
