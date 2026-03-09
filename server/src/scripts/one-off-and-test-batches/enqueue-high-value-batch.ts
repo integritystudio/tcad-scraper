@@ -106,10 +106,8 @@ async function enqueueHighValueBatch() {
 			try {
 				// Determine priority based on category
 				let priority = 3; // Default
-				if (i < 10) {
-					priority = 1; // Trust & Estate - highest priority
-				} else if (i < 20) {
-					priority = 1; // Investment - high priority
+				if (i < 20) {
+					priority = 1; // Trust & Estate (0-9) / Investment (10-19) - highest priority
 				} else if (i < 30) {
 					priority = 2; // Corporate - medium-high priority
 				}
