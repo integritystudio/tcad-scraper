@@ -24,13 +24,12 @@
 - Page size fallback loop (line 116): tries PAGE_SIZES `[1000, 500, 100, 50]`
 - Error aggregation (line 211): throws final error with last message only
 
-**Investigation tasks**:
+**Investigation tasks** (6/6 diagnostics complete; remaining tasks support future analysis):
 1. Log raw response body length and first/last 100 chars when JSON parse fails — currently only the error message is preserved, not the response content
 2. Check if TCAD API returns empty body (length 0) vs truncated body vs HTML error page for these terms
 3. Determine if this is a TCAD server-side issue (terms with no results return malformed JSON) or a network issue (response cut off)
 4. Check HTTP status code — `fetchPage()` only throws on `!res.ok`, so these are HTTP 200 responses with bad bodies
 5. Consider: should terms with 0 TCAD results be pre-filtered before enqueue? The API may not handle certain search patterns gracefully
-6. ~~Add structured error logging with response metadata (status, content-length header, body length, body preview) to `fetchPage()` catch path~~ Done (a3b838e, 688c034)
 
 **Related files**:
 - `server/src/lib/tcad-api-client.ts` — core fetch + parse logic
@@ -58,12 +57,9 @@
 - Priority tiering (-100 ultra to 2 standard)
 - `HIGH_RESULT_TERM_SPLITS` map — splits high-volume terms (Oak→Oak Hill/Oakwood/..., Maria→Maria E/G/R/L, Estate→Estate of/Estates at/Estate Trust) to avoid truncation
 
-**Research tasks**:
-1. ~~Extract curated first names (~200) from `enqueue-by-category.ts` into batch-configs~~ Done (added `curated-first-names` batch config with 199 names)
-2. ~~Add new batch config categories for the extracted name lists (e.g. `hispanic-surnames`, `indian-surnames`)~~ Done (hispanic-surnames, indian-surnames, asian-surnames already in batch-configs.ts)
-3. Determine if Texas city names yield results in TCAD search (cities historically don't work per CLAUDE.md — verify before adding)
-4. ~~Move `scripts/enqueue-by-category.ts` to `server/src/scripts/one-off-and-test-batches/` after data extraction~~ Done (already moved)
-5. Consider merging `HIGH_RESULT_TERM_SPLITS` logic into `continuous-batch-scraper.ts` so auto-splitting happens at enqueue time
+**Research tasks** (4/5 data consolidation complete; remaining: city verification + term splits):
+1. Determine if Texas city names yield results in TCAD search (cities historically don't work per CLAUDE.md — verify before adding)
+2. Consider merging `HIGH_RESULT_TERM_SPLITS` logic into `continuous-batch-scraper.ts` so auto-splitting happens at enqueue time
 
 ### Code Review 2026-03-08 of commit c7aabe6
 
