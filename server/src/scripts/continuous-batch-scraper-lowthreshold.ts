@@ -387,11 +387,7 @@ class LowThresholdScraper {
 	}
 }
 
-const isDirectRun =
-	process.argv[1]?.endsWith("continuous-batch-scraper-lowthreshold.ts") ||
-	process.argv[1]?.endsWith("continuous-batch-scraper-lowthreshold.js");
-
-if (isDirectRun) {
+if (require.main === module) {
 	const scraper = new LowThresholdScraper();
 	scraper.run().catch((error) => {
 		logger.error(`Fatal error: ${getErrorMessage(error)}`);

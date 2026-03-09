@@ -84,11 +84,7 @@ function printRows(terms: string[], indent = "  ", perRow = 10): void {
 	}
 }
 
-const isDirectRun =
-	process.argv[1]?.endsWith("list-all-search-terms.ts") ||
-	process.argv[1]?.endsWith("list-all-search-terms.js");
-
-if (isDirectRun) {
+if (require.main === module) {
 	const { all, batchOnly, fallbackOnly, duplicated } = getAllSearchTerms();
 
 	console.log("=== SEARCH TERM INVENTORY (DEDUPED) ===\n");

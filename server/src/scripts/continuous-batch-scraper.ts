@@ -465,11 +465,7 @@ class ContinuousBatchScraper {
 }
 
 // Run when invoked directly (not when imported by tests)
-const isDirectRun =
-	process.argv[1]?.endsWith("continuous-batch-scraper.ts") ||
-	process.argv[1]?.endsWith("continuous-batch-scraper.js");
-
-if (isDirectRun) {
+if (require.main === module) {
 	const scraper = new ContinuousBatchScraper();
 	scraper.run().catch((error) => {
 		logger.error(`Fatal error: ${getErrorMessage(error)}`);
