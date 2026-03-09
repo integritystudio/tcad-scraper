@@ -40,11 +40,11 @@
 ### Code Review 2026-03-09 of commits b24e059, 13d4360, e70920f (backlog-implementer session follow-up)
 
   Medium
-  12. Test call-order comment (lines 44-49) is inconsistent with actual code flow — comment says "getSearchedTermSet → findMany + groupBy" but code calls getPropertyTermSet() explicitly first (groupBy), then getAllSearchedTermSet() (findMany). Labels in TermSelectorConfig and cache invalidation test setups also use imprecise terminology. Fix for clarity. -- `server/src/scripts/__tests__/continuous-batch-scraper.test.ts:44–49, 149–153, 163–167`
-  13. Cache invalidation test suite only asserts `mockGroupBy` call counts; does not verify `mockFindMany` call count. A regression where analytics caching broke (re-fetching every batch) would not be caught. Add `toHaveBeenCalledTimes` check on `mockFindMany` to verify analytics set is cached across batches. -- `server/src/scripts/__tests__/continuous-batch-scraper.test.ts:188–206`
+  12. [x] Test call-order comment (lines 44-49) is inconsistent with actual code flow — fixed in c9427d6
+  13. [x] Cache invalidation test suite only asserts `mockGroupBy` call counts — added `mockFindMany.toHaveBeenCalledTimes` assertions in c9427d6
 
   Low
-  14. `STOP_AT_PROPERTIES = 420000` is the operational stop threshold, but the distinction from aspirational dataset size (~451K) was lost when `TARGET_PROPERTIES` constant was removed. Add comment to STOP_AT_PROPERTIES explaining this is an operational target (not the full dataset ceiling) and why. -- `server/src/scripts/continuous-batch-scraper.ts:26`
+  14. [x] `STOP_AT_PROPERTIES = 420000` missing context — added comment in c9427d6
 
 ---
 
