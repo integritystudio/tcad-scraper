@@ -79,6 +79,16 @@
   Low
   7. ~~`TermSelector` cache never invalidated in long-running continuous-batch-scraper. `cachedPropertyTermSet` and `cachedAllSearchedTermSet` are populated once per TermSelector lifetime and never refreshed. During multi-hour runs, terms that become searched (and written to DB) mid-session are not reflected in future `getNextBatch()` calls. Can cause re-enqueuing of already-known terms. `enqueuedTerms` provides in-process dedup (mitigates) but is a defense-in-depth gap.~~ Done — caches invalidated every 20 batches via `CACHE_REFRESH_INTERVAL_BATCHES` (ff833c2) -- `server/src/scripts/continuous-batch-scraper.ts`
 
+### Code Review 2026-03-09 of commits ce344a7–a6aa962 (backlog-implementer session)
+
+  Medium
+  8. `batchCount % CACHE_REFRESH_INTERVAL_BATCHES === 0` check on line 156 is unclear — modulo at 20 fires at batchCount 20, 40, 60 (correct), but the boundary behavior is subtle and could break if batchCount is ever reset. Add `batchCount > 0 &&` guard for clarity. -- `server/src/scripts/continuous-batch-scraper.ts:156`
+  9. `getNextBatch()` calls both `getPropertyTermSet()` (line 164) and `getAllSearchedTermSet()` (line 165), but `getAllSearchedTermSet` calls `getPropertyTermSet()` internally (line 308). When both caches are warm, this is a no-op double-call, but the structure is misleading. Add docstring explaining why both are needed, or refactor `getAllSearchedTermSet` to use the inner set directly. -- `server/src/scripts/continuous-batch-scraper.ts:164–165, 308`
+
+  Low
+  10. `TARGET_PROPERTIES = 451339` constant is dead code — appears only in startup log (line 373), never used for logic. The actual stop threshold is `STOP_AT_PROPERTIES = 420000`. Either remove `TARGET_PROPERTIES` or rename both for clarity (`ASPIRATIONAL_TARGET` / `OPERATIONAL_STOP`). -- `server/src/scripts/continuous-batch-scraper.ts:26, 373`
+  11. Missing test coverage for new `TermSelectorConfig` interface and `LOW_THRESHOLD_TIER_CONFIG`. All tests use default `new TermSelector()`. No coverage for custom tier where-clauses, `applyHighResultSplits: false` path, or cache invalidation at batch 20. New paths introduced by commits ce344a7 and ff833c2. -- `server/src/scripts/__tests__/continuous-batch-scraper.test.ts`
+
 ---
 
 ## Completed
