@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-09
-**Status**: 626/627 tests passing (1 flaky scheduler test) | TypeScript clean | Lint clean | Biome clean
+**Last Updated**: 2026-03-09 (session: backlog-implementer)
+**Status**: 631/632 tests passing (1 flaky scheduler test) | TypeScript clean | Lint clean | Biome clean
 
 ---
 ## Open Items
@@ -88,6 +88,15 @@
   Low
   10. ~~`TARGET_PROPERTIES = 451339` constant is dead code — appears only in startup log (line 373), never used for logic. The actual stop threshold is `STOP_AT_PROPERTIES = 420000`. Either remove `TARGET_PROPERTIES` or rename both for clarity (`ASPIRATIONAL_TARGET` / `OPERATIONAL_STOP`).~~ Done — removed constant and startup log line (b24e059) -- `server/src/scripts/continuous-batch-scraper.ts`
   11. ~~Missing test coverage for new `TermSelectorConfig` interface and `LOW_THRESHOLD_TIER_CONFIG`. All tests use default `new TermSelector()`. No coverage for custom tier where-clauses, `applyHighResultSplits: false` path, or cache invalidation at batch 20. New paths introduced by commits ce344a7 and ff833c2.~~ Done — added 5 tests: custom tier via LOW_THRESHOLD_TIER_CONFIG, applyHighResultSplits false/true (Estate splits), cache invalidation at batch 20 and not-before-20 (13d4360) -- `server/src/scripts/__tests__/continuous-batch-scraper.test.ts`
+
+### Code Review 2026-03-09 of commits b24e059, 13d4360, e70920f (backlog-implementer session follow-up)
+
+  Medium
+  12. Test call-order comment (lines 44-49) is inconsistent with actual code flow — comment says "getSearchedTermSet → findMany + groupBy" but code calls getPropertyTermSet() explicitly first (groupBy), then getAllSearchedTermSet() (findMany). Labels in TermSelectorConfig and cache invalidation test setups also use imprecise terminology. Fix for clarity. -- `server/src/scripts/__tests__/continuous-batch-scraper.test.ts:44–49, 149–153, 163–167`
+  13. Cache invalidation test suite only asserts `mockGroupBy` call counts; does not verify `mockFindMany` call count. A regression where analytics caching broke (re-fetching every batch) would not be caught. Add `toHaveBeenCalledTimes` check on `mockFindMany` to verify analytics set is cached across batches. -- `server/src/scripts/__tests__/continuous-batch-scraper.test.ts:188–206`
+
+  Low
+  14. `STOP_AT_PROPERTIES = 420000` is the operational stop threshold, but the distinction from aspirational dataset size (~451K) was lost when `TARGET_PROPERTIES` constant was removed. Add comment to STOP_AT_PROPERTIES explaining this is an operational target (not the full dataset ceiling) and why. -- `server/src/scripts/continuous-batch-scraper.ts:26`
 
 ---
 
