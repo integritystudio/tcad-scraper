@@ -121,6 +121,17 @@
 - November entries show "2024" but should be "2025" (project started Oct 2023, bulk dev in late 2025)
 - **Fix**: Correct year in November 2024 entries to 2025
 
+### Documentation Staleness Follow-up — Playwright refs in 3 docs not audited (2026-03-09)
+
+Found during final review of Documentation Staleness Audit. Not in scope for that session.
+
+- `docs/SETUP.md` line 10: `Playwright (npx playwright install chromium)` listed as setup prereq — Playwright removed Feb 2026
+- `docs/DOCKER.md` line 38: Dockerfile description says "includes Playwright/Chromium" — stale
+- `docs/truncated-response-terms.md` line 11: suggests "Playwright fallback" as scraping strategy — no longer available
+- `docs/MONITORING.md` line 27: `http://localhost:3000/metrics` should be `localhost:3001/metrics`
+
+**Fix**: Remove Playwright prereq from SETUP.md; update DOCKER.md Dockerfile description; remove Playwright fallback option from truncated-response-terms.md; fix port in MONITORING.md.
+
 ---
 
 ### Code Review 02-27-2026 of commit 66dc363
