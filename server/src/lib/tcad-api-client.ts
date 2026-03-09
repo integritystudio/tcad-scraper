@@ -46,6 +46,9 @@ const RESPONSE_ERROR = {
   PARSE_FAILED: "JSON_PARSE_FAILED",
 } as const;
 
+const BODY_PREVIEW_HEAD = 100;
+const BODY_PREVIEW_TAIL = 30;
+
 function sanitizeLogField(value: string, maxLen = 200): string {
   return value.slice(0, maxLen).replace(/[\r\n\t]/g, " ");
 }
@@ -105,7 +108,7 @@ async function fetchPage(
 
   // Detect HTML error pages (TCAD sometimes returns HTML on server errors)
   if (trimmed.startsWith("<")) {
-    const preview = trimmed.slice(0, 100).replace(/[\r\n\t]/g, " ");
+    const preview = trimmed.slice(0, BODY_PREVIEW_HEAD).replace(/[\r\n\t]/g, " ");
     throw new Error(
       `${RESPONSE_ERROR.HTML} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, preview=${preview})`,
     );
@@ -113,7 +116,7 @@ async function fetchPage(
 
   if (isTruncated(trimmed)) {
     throw new Error(
-      `${RESPONSE_ERROR.TRUNCATED} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, last=${trimmed.slice(-20)})`,
+      `${RESPONSE_ERROR.TRUNCATED} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, last=${trimmed.slice(-BODY_PREVIEW_TAIL)})`,
     );
   }
 
@@ -131,15 +134,15 @@ async function fetchPage(
         searchTerm: sanitizeLogField(searchTerm),
         bodyLen: trimmed.length,
         contentLength,
-        bodyFirst: sanitizeLogField(trimmed.slice(0, 100)),
-        bodyLast: sanitizeLogField(trimmed.slice(-30)),
+        bodyFirst: sanitizeLogField(trimmed.slice(0, BODY_PREVIEW_HEAD)),
+        bodyLast: sanitizeLogField(trimmed.slice(-BODY_PREVIEW_TAIL)),
         parseError: (parseErr as Error).message,
       },
       "JSON parse failed",
     );
     throw new Error(
       `${RESPONSE_ERROR.PARSE_FAILED} (page=${page}, pageSize=${pageSize}, len=${trimmed.length}, ` +
-      `contentLength=${contentLength}, first=${sanitizeLogField(trimmed.slice(0, 100))}, last=${trimmed.slice(-30)}, err=${(parseErr as Error).message})`,
+      `contentLength=${contentLength}, first=${sanitizeLogField(trimmed.slice(0, BODY_PREVIEW_HEAD))}, last=${sanitizeLogField(trimmed.slice(-BODY_PREVIEW_TAIL))}, err=${(parseErr as Error).message})`,
     );
   }
 }
