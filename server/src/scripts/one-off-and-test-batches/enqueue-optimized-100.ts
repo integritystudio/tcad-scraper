@@ -62,14 +62,10 @@ async function main() {
     if (j.data.searchTerm) searched.add(j.data.searchTerm.toLowerCase());
   }
 
-  // Filter: no duplicates, no superstrings of existing terms
+  // Filter: no duplicates
   const candidates = TERMS.filter(term => {
     const lower = term.toLowerCase();
-    if (searched.has(lower)) return false;
-    for (const existing of searched) {
-      if (lower.startsWith(existing) && lower.length > existing.length) return false;
-    }
-    return true;
+    return !searched.has(lower);
   });
 
   // Deduplicate within our own list
@@ -81,7 +77,7 @@ async function main() {
     return true;
   });
 
-  console.log(`Terms: ${TERMS.length} total, ${TERMS.length - unique.length} filtered (dupes/superstrings), ${unique.length} to enqueue`);
+  console.log(`Terms: ${TERMS.length} total, ${TERMS.length - unique.length} filtered (dupes), ${unique.length} to enqueue`);
 
   if (dryRun) {
     console.log('\n[DRY RUN] Would enqueue:');

@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { scraperQueue } from '../queues/scraper.queue';
+import { scraperQueue } from '../../queues/scraper.queue';
 
 const prisma = new PrismaClient();
 

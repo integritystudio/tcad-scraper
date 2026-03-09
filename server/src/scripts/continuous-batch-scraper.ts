@@ -97,7 +97,7 @@ export const FALLBACK_TERMS: readonly string[] = [
 	"Rains", "Reeve", "Ricks", "Roper", "Rouse", "Sales", "Sands", "Selby",
 	"Sells", "Sheen", "Small", "Stack", "Stern", "Stock", "Stowe", "Suggs",
 	"Thiel", "Tobin", "Truax", "Tubbs", "Varga", "Wages", "Wendt", "Worth",
-	"Wyman", "Ozuna", "Valde", "Valez", "Pande", "Sinha", "Sodhi", "Tsang",
+	"Wyman",
 ] as const;
 
 /**

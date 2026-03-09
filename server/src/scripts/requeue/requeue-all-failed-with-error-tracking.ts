@@ -106,14 +106,9 @@ async function saveErrorReport(
 		),
 	};
 
-	const reportPath = path.join(
-		process.cwd(),
-		"data",
-		`error-report-${Date.now()}.json`,
-	);
-
-	// Ensure data directory exists
+	// Scripts run from server/ directory, so go up 3 levels from requeue/ to reach server/data/
 	const dataDir = path.join(process.cwd(), "data");
+	const reportPath = path.join(dataDir, `error-report-${Date.now()}.json`);
 	if (!fs.existsSync(dataDir)) {
 		fs.mkdirSync(dataDir, { recursive: true });
 	}
