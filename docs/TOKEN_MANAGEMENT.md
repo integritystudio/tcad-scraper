@@ -7,22 +7,23 @@ TCAD API tokens expire every ~5 minutes. The auto-refresh service handles this a
 ```
 Server Start → Token Refresh Service (every 4.5 min)
                     ↓
-              Launch headless browser → TCAD search page → Capture Authorization header
+              HTTP POST → Cloudflare Worker (TOKEN_WORKER_URL)
                     ↓
-              Update in-memory token → Scraper uses refreshed token
+              Worker returns { token, expiresIn } → Stored in memory
+                    ↓
+              Scraper uses refreshed token via tcad-api-client.ts
 ```
 
 **Token priority** (highest first):
 1. Auto-refresh service (`tokenRefreshService.getCurrentToken()`)
 2. Environment variable (`TCAD_API_KEY` via Doppler)
-3. Browser capture (fallback, ~7-11s vs 2-4s with token)
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `src/services/token-refresh.service.ts` | Core auto-refresh logic |
-| `src/lib/tcad-scraper.ts` | Token consumption in scraper |
+| `src/lib/tcad-api-client.ts` | Token consumption in scraper |
 | `src/config/index.ts` | `tcadApiKey`, refresh interval config |
 | `src/index.ts` | Service initialization on server start |
 
@@ -30,9 +31,10 @@ Server Start → Token Refresh Service (every 4.5 min)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `TOKEN_WORKER_URL` | required | Cloudflare Worker endpoint URL |
+| `TOKEN_WORKER_SECRET` | required | Bearer secret for Worker auth |
 | `TCAD_AUTO_REFRESH_TOKEN` | `true` | Enable auto-refresh |
 | `TCAD_TOKEN_REFRESH_INTERVAL` | `270000` (4.5 min) | Refresh interval in ms |
-| `TCAD_TOKEN_REFRESH_CRON` | unset | Cron schedule (overrides interval) |
 | `TCAD_API_KEY` | unset | Manual token fallback |
 
 ## Monitoring
@@ -52,7 +54,7 @@ curl -s https://api.alephatx.info/health | jq '.tokenRefresh'
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `No TCAD_API_KEY found, capturing...` | Auto-refresh disabled or failed | Check `TCAD_AUTO_REFRESH_TOKEN=true` |
+| `No TCAD_API_KEY found` | Auto-refresh disabled or failed | Check `TCAD_AUTO_REFRESH_TOKEN=true` in Doppler |
 | 401 auth errors | Token expired between refreshes | Reduce `TCAD_TOKEN_REFRESH_INTERVAL` |
-| `Browser not found` | Playwright not installed | `npx playwright install chromium` |
-| Refresh taking >10s | Slow network or TCAD down | Check https://travis.prodigycad.com accessibility |
+| `Token refresh failed` | Worker unreachable or secret mismatch | Check `TOKEN_WORKER_URL` and `TOKEN_WORKER_SECRET` in Doppler |
+| Refresh taking >10s | Slow network or Worker down | Check Cloudflare Worker logs in dashboard |
