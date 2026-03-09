@@ -35,7 +35,7 @@ vi.mock("../../services/search-term-optimizer", () => ({
 	},
 }));
 
-import { TermSelector } from "../continuous-batch-scraper";
+import { TermSelector, LOW_THRESHOLD_TIER_CONFIG } from "../continuous-batch-scraper";
 
 function makeTierRow(searchTerm: string) {
 	return { searchTerm };
@@ -139,6 +139,69 @@ describe("TermSelector", () => {
 			// Now request more — should be empty
 			const emptyBatch = await selector.getNextBatch(5);
 			expect(emptyBatch).toEqual([]);
+		});
+	});
+
+	describe("TermSelectorConfig", () => {
+		it("uses custom tier where-clauses from LOW_THRESHOLD_TIER_CONFIG", async () => {
+			const lowSelector = new TermSelector(LOW_THRESHOLD_TIER_CONFIG);
+
+			mockFindMany
+				.mockResolvedValueOnce([]) // getAllSearchedTermSet (analytics)
+				.mockResolvedValueOnce([makeTierRow("LowYield")]) // tier 1
+				.mockResolvedValueOnce([]) // tier 2
+				.mockResolvedValueOnce([]); // tier 3
+
+			const batch = await lowSelector.getNextBatch(1);
+			expect(batch).toEqual(["LowYield"]);
+		});
+
+		it("does not expand high-result terms when applyHighResultSplits is false", async () => {
+			const lowSelector = new TermSelector(LOW_THRESHOLD_TIER_CONFIG);
+
+			// "Estate" is a key in HIGH_RESULT_TERM_SPLITS — with default config it expands to sub-queries
+			mockFindMany
+				.mockResolvedValueOnce([]) // getAllSearchedTermSet (analytics)
+				.mockResolvedValueOnce([makeTierRow("Estate")]) // tier 1
+				.mockResolvedValueOnce([]) // tier 2
+				.mockResolvedValueOnce([]); // tier 3
+
+			const batch = await lowSelector.getNextBatch(5);
+			expect(batch).toContain("Estate");
+			expect(batch).not.toContain("Estate of");
+			expect(batch).not.toContain("Estate Trust");
+		});
+
+		it("expands high-result terms when applyHighResultSplits is true (default)", async () => {
+			mockFindMany
+				.mockResolvedValueOnce([]) // getAllSearchedTermSet (analytics)
+				.mockResolvedValueOnce([makeTierRow("Estate")]) // tier 1
+				.mockResolvedValueOnce([]) // tier 2
+				.mockResolvedValueOnce([]); // tier 3
+
+			const batch = await selector.getNextBatch(5);
+			expect(batch).not.toContain("Estate");
+			expect(batch).toContain("Estate of");
+		});
+	});
+
+	describe("cache invalidation", () => {
+		it("re-fetches property term set every 20 batches", async () => {
+			// Each getNextBatch call triggers: findMany (analytics) + groupBy (propertyTerms)
+			// Only on first call and on multiples of 20 (cache invalidated)
+			for (let i = 0; i < 20; i++) {
+				await selector.getNextBatch(1);
+			}
+			// groupBy called on batch 1 (cold cache) + batch 20 (after invalidation)
+			expect(mockGroupBy).toHaveBeenCalledTimes(2);
+		});
+
+		it("does not re-fetch before batch 20", async () => {
+			for (let i = 0; i < 19; i++) {
+				await selector.getNextBatch(1);
+			}
+			// groupBy called only on batch 1; batches 2-19 use the cache
+			expect(mockGroupBy).toHaveBeenCalledTimes(1);
 		});
 	});
 
