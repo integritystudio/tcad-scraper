@@ -24,7 +24,7 @@ docker-compose -f config/docker-compose.monitoring.yml up -d
 |---------|-----|-------------|
 | Prometheus | http://localhost:9090 | -- |
 | Grafana | http://localhost:3001 | admin/admin |
-| App Metrics | http://localhost:3000/metrics | -- |
+| App Metrics | http://localhost:3001/metrics | -- |
 | BullMQ Metrics | http://localhost:4000/metrics | -- |
 
 ## Metrics Collected

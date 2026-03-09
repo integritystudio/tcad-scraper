@@ -35,7 +35,7 @@ docker run -d --name tcad-redis -p 6379:6379 redis:7-alpine
 | File | Description |
 |------|-------------|
 | `Dockerfile` | Frontend: multi-stage (Vite dev + Nginx prod), Node 20 Alpine |
-| `server/Dockerfile` | Backend: multi-stage (tsx dev + compiled prod), includes Playwright/Chromium |
+| `server/Dockerfile` | Backend: multi-stage (tsx dev + compiled prod) |
 | `bullmq-exporter/Dockerfile` | BullMQ metrics exporter, Node 20 Alpine |
 
 ## Management Scripts

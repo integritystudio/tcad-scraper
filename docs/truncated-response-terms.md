@@ -8,9 +8,9 @@ The TCAD API itself returns malformed/truncated responses for these prefixes reg
 of specificity. Likely a server-side issue (e.g., timeout, encoding bug, or corrupt
 data in matched records).
 
-**Action**: These terms need a different scraping strategy — either Playwright fallback,
-response-stream buffering, or skipping until the TCAD API is fixed. Prefix expansion
-alone does NOT resolve the issue.
+**Action**: These terms need a different scraping strategy — either response-stream
+buffering or skipping until the TCAD API is fixed. Prefix expansion alone does NOT
+resolve the issue.
 
 **Last updated**: 2026-03-02
 

@@ -7,7 +7,6 @@ Getting the TCAD Scraper running locally.
 - **Node.js** 20+ and npm
 - **Docker** (optional — only needed if running Redis locally instead of Render)
 - **Doppler CLI** (for secrets)
-- **Playwright** (`npx playwright install chromium`)
 
 ## 1. Install Dependencies
 
