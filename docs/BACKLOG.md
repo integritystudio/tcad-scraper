@@ -57,14 +57,14 @@
 - Priority tiering (-100 ultra to 2 standard)
 - `HIGH_RESULT_TERM_SPLITS` map — splits high-volume terms (Oak→Oak Hill/Oakwood/..., Maria→Maria E/G/R/L, Estate→Estate of/Estates at/Estate Trust) to avoid truncation
 
-**Research tasks** (4/5 data consolidation complete; remaining: city verification + term splits):
+**Research tasks** (4/5 data consolidation complete; remaining: city verification):
 1. Determine if Texas city names yield results in TCAD search (cities historically don't work per CLAUDE.md — verify before adding)
-2. Consider merging `HIGH_RESULT_TERM_SPLITS` logic into `continuous-batch-scraper.ts` so auto-splitting happens at enqueue time
+2. ~~Consider merging `HIGH_RESULT_TERM_SPLITS` logic into `continuous-batch-scraper.ts`~~ Done — expansion applied in `TermSelector.getNextBatch()` (0e3dede, ea22e48)
 
 ### Code Review 2026-03-08 of commit c7aabe6
 
   Low
-  1. `list-all-search-terms.ts` direct-run detection is fragile — `process.argv[1]?.endsWith(...)` can mismatch with some tsx runners. Use `import.meta.url === pathToFileURL(process.argv[1]).href` (blocked by CommonJS tsconfig; fix requires module change). -- `server/src/scripts/utils/list-all-search-terms.ts:87`
+  1. ~~`list-all-search-terms.ts` direct-run detection is fragile~~ Done — replaced `endsWith()` with `require.main === module` across 3 scripts (cc361d9) -- `server/src/scripts/utils/list-all-search-terms.ts:87`
   2. `continuous-batch-scraper-lowthreshold.ts` duplicates ~400 lines with only 3 threshold constants changed. Extract thresholds into a config object passed to a shared class when the lowthreshold variant becomes permanent. -- `server/src/scripts/continuous-batch-scraper-lowthreshold.ts`
   3. ~~`enqueue-40k-sprint.ts` includes numeric-only terms (`"1000"`, `"1100"`, etc.) which TCAD rejects. Add `NUMERIC_ONLY` regex filter before enqueue.~~ Done (already implemented at line 224) -- `server/src/scripts/one-off-and-test-batches/enqueue-40k-sprint.ts`
 
