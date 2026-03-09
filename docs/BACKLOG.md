@@ -121,7 +121,7 @@
 - November entries show "2024" but should be "2025" (project started Oct 2023, bulk dev in late 2025)
 - **Fix**: Correct year in November 2024 entries to 2025
 
-### Documentation Staleness Follow-up — Playwright refs in 3 docs not audited (2026-03-09)
+### ~~Documentation Staleness Follow-up — Playwright refs in 3 docs not audited (2026-03-09)~~ — DONE (2026-03-09, commit 109bd90)
 
 Found during final review of Documentation Staleness Audit. Not in scope for that session.
 
