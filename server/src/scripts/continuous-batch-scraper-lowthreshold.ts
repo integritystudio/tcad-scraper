@@ -7,6 +7,10 @@
  * Tier 3: totalSearches<=3, successRate>=0.3, avgResultsPerSearch >= 50
  * Tier 4: Fallback pool from parent script
  *
+ * Note: Does NOT apply HIGH_RESULT_TERM_SPLITS expansion. At low-threshold
+ * thresholds (>=20 avg results), high-result terms like Oak/Maria/Estate are
+ * unlikely to surface, and if they do they will be re-scraped as-is.
+ *
  * Usage: doppler run -- npx tsx src/scripts/continuous-batch-scraper-lowthreshold.ts
  */
 

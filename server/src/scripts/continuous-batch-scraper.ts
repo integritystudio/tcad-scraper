@@ -187,14 +187,15 @@ export class TermSelector {
 				for (const split of splits) {
 					if (this.enqueuedTerms.has(split)) continue;
 					if (allSearched.has(split.toLowerCase())) continue;
-					this.enqueuedTerms.add(split);
+					// Do NOT add to enqueuedTerms yet — defer until after slice to avoid
+					// marking trimmed splits as used when expansion overshoots size.
 					expanded.push(split);
 					added++;
 				}
 				if (added > 0) {
 					logger.info(`Expanded high-result term "${term}" → ${added} sub-queries`);
 				} else {
-					logger.debug(`High-result term "${term}" has no unsearched splits; slot dropped`);
+					logger.info(`High-result term "${term}" all splits already searched; slot dropped`);
 				}
 				// Parent term stays in enqueuedTerms to prevent future re-selection
 			} else {
@@ -204,7 +205,12 @@ export class TermSelector {
 
 		// Trim to requested size — expansion can produce more terms than size when
 		// multiple high-result terms are selected in the same batch.
+		// Mark splits as enqueued only after trimming so overshoots don't block future batches.
+		// Non-split terms are already in enqueuedTerms from queryTier/fallback; re-adding is a no-op.
 		const result = expanded.slice(0, size);
+		for (const term of result) {
+			this.enqueuedTerms.add(term);
+		}
 
 		if (result.length > 0) {
 			logger.info(`Selected ${result.length} terms: ${result.slice(0, 5).join(", ")}${result.length > 5 ? "..." : ""}`);
