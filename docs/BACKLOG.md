@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
 **Last Updated**: 2026-03-09
-**Status**: 640/640 tests passing | TypeScript clean | Lint clean | Biome clean
+**Status**: 124/124 tests passing | TypeScript clean | Lint clean
 
 ---
 ## Open Items
@@ -49,18 +49,18 @@
 ### Code Review 2026-03-09 of `server/src/scripts/` (code-reviewer agent)
 
   Medium
-  15. Deduplicate `enqueueBatch` / `waitForQueueDrain` logic across 4 backfill scripts (backfill-2025.ts, backfill-2025-novel.ts, backfill-2025-proven.ts, backfill-2025-unsearched.ts) — extract to shared util in `server/src/scripts/lib/`
+  15. [x] Deduplicate `enqueueBatch` / `waitForQueueDrain` logic across 4 backfill scripts — extracted to `server/src/scripts/lib/queue-utils.ts` (6c88a86)
   16. Replace `winston` logger with Pino in production-runnable scripts: `continuous-batch-scraper.ts` (line 13), `continuous-batch-scraper-lowthreshold.ts` (line 14), and remove hardcoded `logs/continuous-scraper.log` file path
-  17. Fix `__dirname` usage in `enqueue-by-category.ts:107` — not available in ESM; use `import.meta.url` + `fileURLToPath` instead -- `server/src/scripts/one-off-and-test-batches/enqueue-by-category.ts:107`
-  18. Remove dead priority branch in `enqueue-high-value-batch.ts:73-79` — first two conditions both assign `priority = 1`, making second branch unreachable
-  19. Fix deterministic "shuffle" in `generate-next-200-terms.ts:6213-6216` — uses fixed hash `(i * 2654435761) % (i + 1)` instead of actual randomization; should use `Math.random()` or seeded PRNG
-  20. Store and clear `setInterval` handle in `continuous-batch-scraper-lowthreshold.ts:5316` — allow clean shutdown via `clearInterval` instead of running indefinitely
+  17. N/A — `__dirname` is valid in this CommonJS project (`"module": "commonjs"` in tsconfig, no `"type": "module"`)
+  18. [x] Remove dead priority branch in `enqueue-high-value-batch.ts` — merged i<10 and i<20 branches (b4eeb85)
+  19. [x] Fix deterministic "shuffle" in `generate-next-200-terms.ts` — replaced fixed hash with `Math.random()` Fisher-Yates (63c6f07)
+  20. [x] Store and clear `setInterval` handle in `continuous-batch-scraper-lowthreshold.ts` — added `monitorInterval` field, clears in `stop()` (6990044)
 
   Low
-  21. Replace `require.main === module` CMS pattern with `import.meta.url === process.argv[1]` in 3 scripts: `continuous-batch-scraper.ts:5804`, `continuous-batch-scraper-lowthreshold.ts:5369`, `utils/list-all-search-terms.ts:3504` (ESM idiom)
-  22. Remove always-filtered numeric-only terms from `TERM_POOL` in `enqueue-40k-sprint.ts:137-152` — ~150 numeric strings added then immediately filtered out by `NUMERIC_ONLY.test(t)` at line 883; eliminate the noise
-  23. Remove hardcoded TCAD total `451,339` in `analyze-search-terms.ts:3865` or make it configurable / sourced from API — value becomes silently stale as TCAD property count changes
-  24. Add safeguards to `migrate-to-logger.ts` (dry-run flag, confirmation prompt) or delete if migration is complete — currently rewrites files in-place with no backup or safety checks
+  21. N/A — `require.main === module` is correct for this CommonJS project
+  22. [x] Remove always-filtered numeric-only terms from `TERM_POOL` in `enqueue-40k-sprint.ts` — deleted ~150 numeric strings (2fc0c60)
+  23. [x] Extract hardcoded TCAD total `451,339` in `analyze-search-terms.ts` — named `TCAD_TOTAL_PROPERTIES` constant with update comment (1514129)
+  24. [x] Add `--dry-run` flag to `migrate-to-logger.ts` — previews changes without writing (684b1e1)
 
 ---
 
