@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: March 8, 2026 | **Version**: 4.4
+**Last Updated**: March 9, 2026 | **Version**: 4.5
 
 ## Project Overview
 
@@ -11,7 +11,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Database**: PostgreSQL (Render) + Prisma ORM
 - **Queue**: BullMQ + Redis (Render, TLS)
 - **Logging**: Pino (structured JSON)
-- **Testing**: Vitest (627 tests)
+- **Testing**: Vitest (631+ tests)
 - **Scale**: 418K+ properties
 
 ```
@@ -19,7 +19,7 @@ React (5174) → Express (3001) → PostgreSQL (Render)
                     ↓
                 BullMQ Queue (Render Redis / TLS)
                     ↓
-                Scraper Workers → TCAD API/Website
+                Scraper Workers → TCAD API
 ```
 
 ---
@@ -39,9 +39,9 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 
 ### Backend (`server/`)
 - `src/index.ts` - Express + Sentry + Bull Board
-- `src/lib/tcad-scraper.ts` - Dual scraping (API + Playwright)
+- `src/lib/tcad-scraper.ts` - Scraper entry point (API-direct mode; Playwright removed Feb 2026)
 - `src/queues/scraper.queue.ts` - BullMQ job processing
-- `src/services/token-refresh.service.ts` - Auto-refresh tokens
+- `src/services/token-refresh.service.ts` - Auto-refresh tokens via Cloudflare Worker
 - `src/lib/claude.service.ts` - Natural language search
 - `src/lib/tcad-api-client.ts` - TCAD API client with structured diagnostics for JSON parse failures
 - `src/scripts/enqueue-batch.ts` - Config-driven batch enqueue runner
@@ -101,7 +101,7 @@ npx prisma generate
 doppler run -- npx prisma migrate dev
 
 # Testing
-npm test                     # Unit tests (627 tests, <5 sec)
+npm test                     # Unit tests (631+ tests, <5 sec)
 npm run test:integration     # Integration tests
 npm run test:all:coverage    # Full coverage report
 
