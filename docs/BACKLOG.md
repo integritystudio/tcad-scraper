@@ -74,6 +74,11 @@
   4. ~~getJwtLifetime should guard exp > iat~~ Resolved: function removed in prior refactor
   6. Test vi.resetModules() could leak — DEFERRED: vi.resetModules() in afterEach is load-bearing for await import() pattern; removal breaks 4 tests. Needs per-test vi.isolateModules() refactor. -- `src/__tests__/App.test.tsx:59`
 
+### Code Review 2026-03-09 of commits 0e3dede–fcc0fe1
+
+  Low
+  7. `TermSelector` cache never invalidated in long-running continuous-batch-scraper. `cachedPropertyTermSet` and `cachedAllSearchedTermSet` are populated once per TermSelector lifetime and never refreshed. During multi-hour runs, terms that become searched (and written to DB) mid-session are not reflected in future `getNextBatch()` calls. Can cause re-enqueuing of already-known terms. `enqueuedTerms` provides in-process dedup (mitigates) but is a defense-in-depth gap. Consider: add a cache invalidation interval (e.g., every N batches) or max TTL. -- `server/src/scripts/continuous-batch-scraper.ts:118–119, 269–296`
+
 ---
 
 ## Completed
