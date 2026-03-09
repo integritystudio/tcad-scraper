@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import winston from "winston";
 import { config } from "../config";
 import { prisma } from "../lib/prisma";
@@ -101,24 +102,49 @@ export const FALLBACK_TERMS: readonly string[] = [
 	"Wyman",
 ] as const;
 
+export interface TermSelectorConfig {
+	tiers: Prisma.SearchTermAnalyticsWhereInput[];
+	applyHighResultSplits: boolean;
+}
+
+const STANDARD_TIER_CONFIG: TermSelectorConfig = {
+	tiers: [
+		{ totalSearches: 1, successRate: 1, avgResultsPerSearch: { gte: 500 } },
+		{ totalSearches: 1, successRate: 1, avgResultsPerSearch: { gte: 100 } },
+		{ totalSearches: { lte: 2 }, successRate: { gte: 0.4 }, avgResultsPerSearch: { gte: 1000 } },
+	],
+	applyHighResultSplits: true,
+};
+
+export const LOW_THRESHOLD_TIER_CONFIG: TermSelectorConfig = {
+	tiers: [
+		{ totalSearches: 1, successRate: 1, avgResultsPerSearch: { gte: 20 } },
+		{ totalSearches: { lte: 2 }, successRate: { gte: 0.5 }, avgResultsPerSearch: { gte: 20 } },
+		{ totalSearches: { lte: 3 }, successRate: { gte: 0.3 }, avgResultsPerSearch: { gte: 50 } },
+	],
+	applyHighResultSplits: false,
+};
+
 /**
  * DB-driven term selector that picks search terms by performance tiers.
  *
- * Tier 1: totalSearches=1, successRate=1, avgResultsPerSearch >= 500
- * Tier 2: totalSearches=1, successRate=1, avgResultsPerSearch >= 100
- * Tier 3: totalSearches<=2, successRate>=0.4, avgResultsPerSearch >= 1000
+ * Tier 1–3: configurable where-clauses (defaults to STANDARD_TIER_CONFIG)
  * Tier 4: Fallback pool of never-searched terms from FALLBACK_TERMS
+ *
+ * Pass LOW_THRESHOLD_TIER_CONFIG to lower thresholds for long-tail scraping.
  */
 export class TermSelector {
 	private enqueuedTerms = new Set<string>();
 	private deduplicator = new SearchTermDeduplicator();
 	private optimizer: SearchTermOptimizer;
+	private config: TermSelectorConfig;
 	private blacklistLoaded = false;
 	private queueSeeded = false;
 	private cachedPropertyTermSet: Set<string> | null = null;
 	private cachedAllSearchedTermSet: Set<string> | null = null;
 
-	constructor(optimizer?: SearchTermOptimizer) {
+	constructor(config?: TermSelectorConfig, optimizer?: SearchTermOptimizer) {
+		this.config = config ?? STANDARD_TIER_CONFIG;
 		this.optimizer = optimizer ?? searchTermOptimizer;
 	}
 
@@ -132,34 +158,10 @@ export class TermSelector {
 
 		const batch: string[] = [];
 
-		// Tier 1: single-search high-result terms (500+ avg)
-		if (batch.length < size) {
-			const tier1 = await this.queryTier({
-				totalSearches: 1,
-				successRate: 1,
-				avgResultsPerSearch: { gte: 500 },
-			}, size - batch.length, propertyTerms);
-			batch.push(...tier1);
-		}
-
-		// Tier 2: single-search moderate-result terms (100+ avg)
-		if (batch.length < size) {
-			const tier2 = await this.queryTier({
-				totalSearches: 1,
-				successRate: 1,
-				avgResultsPerSearch: { gte: 100 },
-			}, size - batch.length, propertyTerms);
-			batch.push(...tier2);
-		}
-
-		// Tier 3: low-search high-result terms (re-scrape candidates)
-		if (batch.length < size) {
-			const tier3 = await this.queryTier({
-				totalSearches: { lte: 2 },
-				successRate: { gte: 0.4 },
-				avgResultsPerSearch: { gte: 1000 },
-			}, size - batch.length, propertyTerms);
-			batch.push(...tier3);
+		for (const tierWhere of this.config.tiers) {
+			if (batch.length >= size) break;
+			const tierResults = await this.queryTier(tierWhere, size - batch.length, propertyTerms);
+			batch.push(...tierResults);
 		}
 
 		// Tier 4: fallback — never-searched terms from curated list
@@ -181,7 +183,7 @@ export class TermSelector {
 		// Keys must match DB casing exactly (Map lookup is case-sensitive).
 		const expanded: string[] = [];
 		for (const term of batch) {
-			const splits = HIGH_RESULT_TERM_SPLITS.get(term);
+			const splits = this.config.applyHighResultSplits ? HIGH_RESULT_TERM_SPLITS.get(term) : undefined;
 			if (splits) {
 				let added = 0;
 				for (const split of splits) {
@@ -222,7 +224,7 @@ export class TermSelector {
 	}
 
 	private async queryTier(
-		where: Record<string, unknown>,
+		where: Prisma.SearchTermAnalyticsWhereInput,
 		limit: number,
 		searched: Set<string>,
 	): Promise<string[]> {
