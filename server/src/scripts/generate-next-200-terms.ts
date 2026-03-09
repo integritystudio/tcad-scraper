@@ -287,9 +287,9 @@ async function main() {
       }
     }
   }
-  // Deterministic shuffle to avoid alphabetical bias
+  // Fisher-Yates shuffle to avoid alphabetical bias
   for (let i = prefixes.length - 1; i > 0; i--) {
-    const j = (i * 2654435761) % (i + 1);
+    const j = Math.floor(Math.random() * (i + 1));
     [prefixes[i], prefixes[j]] = [prefixes[j], prefixes[i]];
   }
 
