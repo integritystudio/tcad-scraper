@@ -61,6 +61,68 @@
 1. Determine if Texas city names yield results in TCAD search (cities historically don't work per CLAUDE.md — verify before adding)
 2. ~~Consider merging `HIGH_RESULT_TERM_SPLITS` logic into `continuous-batch-scraper.ts`~~ Done — expansion applied in `TermSelector.getNextBatch()` (0e3dede, ea22e48)
 
+### ~~Documentation Staleness Audit (2026-03-09)~~ — DONE (2026-03-09, commits d3c2895..719bb22)
+
+**Context**: Repomix docs index + gitlog analysis identified stale references across 8 doc files. CLAUDE.md fixed in this session; remaining items below.
+
+#### HIGH: `docs/TOKEN_MANAGEMENT.md` — describes deleted Playwright flow
+- Entire "How It Works" section describes headless browser token capture — Playwright removed in `934e22e` (2026-02-26)
+- Token refresh now uses Cloudflare Worker endpoint (`247dc05`)
+- Key files table references `tcad-scraper.ts` for "token consumption" — actual client is `tcad-api-client.ts`
+- Troubleshooting row "Browser not found" is moot
+- **Fix**: Rewrite to describe Cloudflare Worker flow, update key files table, remove Playwright troubleshooting
+
+#### HIGH: `docs/CI-CD.md` — phantom workflows, wrong test framework
+- References `ci.yml`, `pr-checks.yml`, `security.yml` workflows — actual `.github/workflows/` contains only `deploy.yml`, `integration-tests.yml`, `README.md`
+- References Jest throughout — project uses Vitest
+- References `develop` branch — only `main` used
+- Pull request process says "create feature branch from `develop`" — stale
+- Resources section links to Jest docs
+- **Fix**: Remove phantom workflow sections, replace Jest refs with Vitest, update branching model
+
+#### HIGH: `docs/ANALYTICS.md` — wrong port, wrong framework, stale component refs
+- Last reviewed 2025-11-08
+- References `React 18+` — project is React 19
+- References `ExampleQueries.tsx` — component not in current tree
+- References `localhost:5173` — frontend is on 5174
+- References `dev/active/`, `dev/HANDOFF.md` — paths don't exist
+- Analytics test examples use `jest.mock()` — should be `vi.mock()`
+- Uses `Record<string, any>` — project standard is `unknown`
+- **Fix**: Update React version, port, test framework refs; verify/remove stale component and path refs
+
+#### MEDIUM: `docs/CODE_REVIEW_DRY.md` — multiple resolved/moot findings unmarked
+- Browser launch config duplication (DRY MEDIUM) — moot, Playwright removed
+- Browser context leaks (CRITICAL robustness) — moot, Playwright removed
+- Token refresh timeout finding — architecture changed to Cloudflare Worker
+- Stats "493/560 tests passing (88%)" — now 631+
+- Enqueue consolidation (CRITICAL DRY) — completed (18 batch types)
+- `getErrorMessage()` extraction (HIGH DRY) — completed
+- **Fix**: Mark resolved items, remove/archive moot Playwright findings, update stats
+
+#### MEDIUM: `docs/API.md` — wrong dev port
+- Base URL shows `http://localhost:3000` for dev — backend is on port 3001
+- Health endpoint response may have additional fields (e.g. `tokenRefresh`) not documented
+- **Fix**: Update port, verify response shapes against current routes
+
+#### MEDIUM: `docs/archive/RENDER-MIGRATION.md` — status still "Draft"
+- Migration is complete — status should be "Complete"
+- Section "Playwright on Render" is moot (Playwright removed)
+- **Fix**: Update status, mark Playwright section as N/A
+
+#### MEDIUM: `docs/SECURITY.md` — stale Cloudflare Tunnel reference
+- Rate limiting note says "Cloudflare Tunnel" — API is on Render (no tunnel)
+- **Fix**: Update to reflect Render reverse proxy
+
+#### LOW: `docs/doppler-setup.md` — stale Redis config vars
+- References `REDIS_HOST`/`REDIS_PORT` separately — actual config uses `REDIS_URL` with TLS
+- **Fix**: Update to show `REDIS_URL=rediss://...` as primary config
+
+#### LOW: `docs/CHANGELOG.md` — date typos
+- November entries show "2024" but should be "2025" (project started Oct 2023, bulk dev in late 2025)
+- **Fix**: Correct year in November 2024 entries to 2025
+
+---
+
 ### Code Review 02-27-2026 of commit 66dc363
 
   Low
