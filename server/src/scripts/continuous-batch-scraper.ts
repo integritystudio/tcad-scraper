@@ -23,7 +23,6 @@ const logger = winston.createLogger({
 	],
 });
 
-const TARGET_PROPERTIES = 451339;
 const STOP_AT_PROPERTIES = 420000;
 const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
 const BATCH_SIZE = 25;
@@ -153,16 +152,19 @@ export class TermSelector {
 
 	async getNextBatch(size: number): Promise<string[]> {
 		this.batchCount++;
-		if (this.batchCount % CACHE_REFRESH_INTERVAL_BATCHES === 0) {
+		if (this.batchCount > 0 && this.batchCount % CACHE_REFRESH_INTERVAL_BATCHES === 0) {
 			this.cachedPropertyTermSet = null;
 			this.cachedAllSearchedTermSet = null;
 			logger.info(`Cache invalidated after ${this.batchCount} batches`);
 		}
 		await this.loadBlacklist();
 		await this.seedFromQueue();
-		// Property terms: only terms that actually produced properties (for tier dedup)
+		// Both sets are fetched explicitly here even though getAllSearchedTermSet() calls
+		// getPropertyTermSet() internally. The direct call to getPropertyTermSet() (line below)
+		// ensures the property cache is warm before tier queries use it for dedup, while
+		// getAllSearchedTermSet() also needs the property set to build its union. Both calls
+		// are cheap on repeat invocations because each uses its own cache guard.
 		const propertyTerms = await this.getPropertyTermSet();
-		// All searched: includes analytics terms too (for fallback dedup)
 		const allSearched = await this.getAllSearchedTermSet();
 
 		const batch: string[] = [];
@@ -370,7 +372,6 @@ class ContinuousBatchScraper {
 		this.stats.startingPropertyCount = await prisma.property.count({ where: { year: config.scraper.tcadYear } });
 		this.lastPropertyCount = this.stats.startingPropertyCount;
 		logger.info(`Starting: ${this.stats.startingPropertyCount.toLocaleString()}`);
-		logger.info(`Target: ${TARGET_PROPERTIES.toLocaleString()}`);
 		logger.info(`Stop at: ${STOP_AT_PROPERTIES.toLocaleString()} or ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive zero-result batches`);
 		logger.info(`Remaining: ${(STOP_AT_PROPERTIES - this.stats.startingPropertyCount).toLocaleString()}\n`);
 
