@@ -8,6 +8,7 @@ import {
 	searchTermOptimizer,
 } from "../services/search-term-optimizer";
 import { getErrorMessage } from "../utils/error-helpers";
+import { HIGH_RESULT_TERM_SPLITS } from "./config/batch-configs";
 
 const logger = winston.createLogger({
 	level: "info",
@@ -175,13 +176,36 @@ export class TermSelector {
 			}
 		}
 
-		if (batch.length > 0) {
-			logger.info(`Selected ${batch.length} terms: ${batch.slice(0, 5).join(", ")}${batch.length > 5 ? "..." : ""}`);
+		// Expand high-result terms to narrower sub-queries to prevent truncation.
+		// e.g. "Oak" (7210 avg results) → ["Oak Hill", "Oakwood", "Oak Run", ...]
+		const expanded: string[] = [];
+		for (const term of batch) {
+			const splits = HIGH_RESULT_TERM_SPLITS.get(term);
+			if (splits) {
+				let added = 0;
+				for (const split of splits) {
+					if (this.enqueuedTerms.has(split)) continue;
+					if (allSearched.has(split.toLowerCase())) continue;
+					this.enqueuedTerms.add(split);
+					expanded.push(split);
+					added++;
+				}
+				if (added > 0) {
+					logger.info(`Expanded high-result term "${term}" → ${added} sub-queries`);
+				}
+				// Parent term stays in enqueuedTerms to prevent future re-selection
+			} else {
+				expanded.push(term);
+			}
+		}
+
+		if (expanded.length > 0) {
+			logger.info(`Selected ${expanded.length} terms: ${expanded.slice(0, 5).join(", ")}${expanded.length > 5 ? "..." : ""}`);
 		} else {
 			logger.warn("No candidate terms available from any tier or fallback");
 		}
 
-		return batch;
+		return expanded;
 	}
 
 	private async queryTier(
