@@ -65,6 +65,13 @@
 4. Move `scripts/enqueue-by-category.ts` to `server/src/scripts/one-off-and-test-batches/` after data extraction
 5. Consider merging `HIGH_RESULT_TERM_SPLITS` logic into `continuous-batch-scraper.ts` so auto-splitting happens at enqueue time
 
+### Code Review 2026-03-08 of commit c7aabe6
+
+  Low
+  1. `list-all-search-terms.ts` direct-run detection is fragile — `process.argv[1]?.endsWith(...)` can mismatch with some tsx runners. Use `import.meta.url === pathToFileURL(process.argv[1]).href` (blocked by CommonJS tsconfig; fix requires module change). -- `server/src/scripts/utils/list-all-search-terms.ts:87`
+  2. `continuous-batch-scraper-lowthreshold.ts` duplicates ~400 lines with only 3 threshold constants changed. Extract thresholds into a config object passed to a shared class when the lowthreshold variant becomes permanent. -- `server/src/scripts/continuous-batch-scraper-lowthreshold.ts`
+  3. `enqueue-40k-sprint.ts` includes numeric-only terms (`"1000"`, `"1100"`, etc.) which TCAD rejects. Add `NUMERIC_ONLY` regex filter before enqueue. -- `server/src/scripts/one-off-and-test-batches/enqueue-40k-sprint.ts`
+
 ### Code Review 02-27-2026 of commit 66dc363
 
   Low
