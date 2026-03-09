@@ -61,33 +61,10 @@
 1. Determine if Texas city names yield results in TCAD search (cities historically don't work per CLAUDE.md — verify before adding)
 2. ~~Consider merging `HIGH_RESULT_TERM_SPLITS` logic into `continuous-batch-scraper.ts`~~ Done — expansion applied in `TermSelector.getNextBatch()` (0e3dede, ea22e48)
 
-### Code Review 2026-03-08 of commit c7aabe6
-
-  Low
-  1. ~~`list-all-search-terms.ts` direct-run detection is fragile~~ Done — replaced `endsWith()` with `require.main === module` across 3 scripts (cc361d9) -- `server/src/scripts/utils/list-all-search-terms.ts:87`
-  2. ~~`continuous-batch-scraper-lowthreshold.ts` duplicates ~400 lines with only 3 threshold constants changed. Extract thresholds into a config object passed to a shared class when the lowthreshold variant becomes permanent.~~ Done — `TermSelectorConfig` + `LOW_THRESHOLD_TIER_CONFIG` exported; lowthreshold script removed 180-line duplicate class (ce344a7) -- `server/src/scripts/continuous-batch-scraper.ts`
-  3. ~~`enqueue-40k-sprint.ts` includes numeric-only terms (`"1000"`, `"1100"`, etc.) which TCAD rejects. Add `NUMERIC_ONLY` regex filter before enqueue.~~ Done (already implemented at line 224) -- `server/src/scripts/one-off-and-test-batches/enqueue-40k-sprint.ts`
-
 ### Code Review 02-27-2026 of commit 66dc363
 
   Low
-  4. ~~getJwtLifetime should guard exp > iat~~ Resolved: function removed in prior refactor
   6. Test vi.resetModules() could leak — DEFERRED: vi.resetModules() in afterEach is load-bearing for await import() pattern; removal breaks 4 tests. Needs per-test vi.isolateModules() refactor. -- `src/__tests__/App.test.tsx:59`
-
-### Code Review 2026-03-09 of commits 0e3dede–fcc0fe1
-
-  Low
-  7. ~~`TermSelector` cache never invalidated in long-running continuous-batch-scraper. `cachedPropertyTermSet` and `cachedAllSearchedTermSet` are populated once per TermSelector lifetime and never refreshed. During multi-hour runs, terms that become searched (and written to DB) mid-session are not reflected in future `getNextBatch()` calls. Can cause re-enqueuing of already-known terms. `enqueuedTerms` provides in-process dedup (mitigates) but is a defense-in-depth gap.~~ Done — caches invalidated every 20 batches via `CACHE_REFRESH_INTERVAL_BATCHES` (ff833c2) -- `server/src/scripts/continuous-batch-scraper.ts`
-
-### Code Review 2026-03-09 of commits ce344a7–a6aa962 (backlog-implementer session)
-
-  Medium
-  8. ~~`batchCount % CACHE_REFRESH_INTERVAL_BATCHES === 0` check on line 156 is unclear — modulo at 20 fires at batchCount 20, 40, 60 (correct), but the boundary behavior is subtle and could break if batchCount is ever reset. Add `batchCount > 0 &&` guard for clarity.~~ Done — added inline comment stating invariant (batchCount always >= 1 at check site; guard was vacuous, removed per code review) (b24e059, e70920f) -- `server/src/scripts/continuous-batch-scraper.ts`
-  9. ~~`getNextBatch()` calls both `getPropertyTermSet()` (line 164) and `getAllSearchedTermSet()` (line 165), but `getAllSearchedTermSet` calls `getPropertyTermSet()` internally (line 308). When both caches are warm, this is a no-op double-call, but the structure is misleading. Add docstring explaining why both are needed, or refactor `getAllSearchedTermSet` to use the inner set directly.~~ Done — added docstring explaining cache primacy + union build rationale (b24e059) -- `server/src/scripts/continuous-batch-scraper.ts`
-
-  Low
-  10. ~~`TARGET_PROPERTIES = 451339` constant is dead code — appears only in startup log (line 373), never used for logic. The actual stop threshold is `STOP_AT_PROPERTIES = 420000`. Either remove `TARGET_PROPERTIES` or rename both for clarity (`ASPIRATIONAL_TARGET` / `OPERATIONAL_STOP`).~~ Done — removed constant and startup log line (b24e059) -- `server/src/scripts/continuous-batch-scraper.ts`
-  11. ~~Missing test coverage for new `TermSelectorConfig` interface and `LOW_THRESHOLD_TIER_CONFIG`. All tests use default `new TermSelector()`. No coverage for custom tier where-clauses, `applyHighResultSplits: false` path, or cache invalidation at batch 20. New paths introduced by commits ce344a7 and ff833c2.~~ Done — added 5 tests: custom tier via LOW_THRESHOLD_TIER_CONFIG, applyHighResultSplits false/true (Estate splits), cache invalidation at batch 20 and not-before-20 (13d4360) -- `server/src/scripts/__tests__/continuous-batch-scraper.test.ts`
 
 ### Code Review 2026-03-09 of commits b24e059, 13d4360, e70920f (backlog-implementer session follow-up)
 
