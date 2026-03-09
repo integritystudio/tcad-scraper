@@ -34,7 +34,7 @@ Server Start → Token Refresh Service (every 4.5 min)
 | `TOKEN_WORKER_URL` | required | Cloudflare Worker endpoint URL |
 | `TOKEN_WORKER_SECRET` | required | Bearer secret for Worker auth |
 | `TCAD_AUTO_REFRESH_TOKEN` | `true` | Enable auto-refresh |
-| `TCAD_TOKEN_REFRESH_INTERVAL` | `270000` (4.5 min) | Refresh interval in ms |
+| `TCAD_TOKEN_REFRESH_INTERVAL` | `240000` (4 min) | Refresh interval in ms |
 | `TCAD_API_KEY` | unset | Manual token fallback |
 
 ## Monitoring
@@ -44,11 +44,11 @@ Server Start → Token Refresh Service (every 4.5 min)
 # Check Render service logs in dashboard
 
 # Health endpoint
-curl -s https://api.alephatx.info/health | jq '.tokenRefresh'
+curl -s https://api.alephatx.info/health/token | jq '.tokenRefresh'
 ```
 
-**Healthy**: `Token refreshed successfully in 3245ms (refresh #42)`
-**Failing**: `Token refresh failed after 15234ms` (keeps existing token, retries next cycle)
+**Healthy**: `Token refreshed (expiresIn=295s, count=42)`
+**Failing**: `Token refresh failed (failures=3): <error message>` (keeps existing token, retries next cycle)
 
 ## Troubleshooting
 
