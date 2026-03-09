@@ -1,6 +1,6 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-09
+**Last Updated**: 2026-03-09 (backlog-implementer + full-stack review)
 **Status**: 124/124 tests passing | TypeScript clean | Lint clean
 
 ---
@@ -50,7 +50,7 @@
 
   Medium
   15. [x] Deduplicate `enqueueBatch` / `waitForQueueDrain` logic across 4 backfill scripts — extracted to `server/src/scripts/lib/queue-utils.ts` (6c88a86)
-  16. Replace `winston` logger with Pino in production-runnable scripts: `continuous-batch-scraper.ts` (line 13), `continuous-batch-scraper-lowthreshold.ts` (line 14), and remove hardcoded `logs/continuous-scraper.log` file path
+  16. DEFERRED: Replace `winston` logger with Pino in production-runnable scripts: `continuous-batch-scraper.ts` (line 13), `continuous-batch-scraper-lowthreshold.ts` (line 14), and remove hardcoded `logs/continuous-scraper.log` file path — larger infrastructure change; deferred to next session
   17. N/A — `__dirname` is valid in this CommonJS project (`"module": "commonjs"` in tsconfig, no `"type": "module"`)
   18. [x] Remove dead priority branch in `enqueue-high-value-batch.ts` — merged i<10 and i<20 branches (b4eeb85)
   19. [x] Fix deterministic "shuffle" in `generate-next-200-terms.ts` — replaced fixed hash with `Math.random()` Fisher-Yates (63c6f07)
@@ -61,6 +61,19 @@
   22. [x] Remove always-filtered numeric-only terms from `TERM_POOL` in `enqueue-40k-sprint.ts` — deleted ~150 numeric strings (2fc0c60)
   23. [x] Extract hardcoded TCAD total `451,339` in `analyze-search-terms.ts` — named `TCAD_TOTAL_PROPERTIES` constant with update comment (1514129)
   24. [x] Add `--dry-run` flag to `migrate-to-logger.ts` — previews changes without writing (684b1e1)
+
+### Code Review 2026-03-09: Full-Stack Review of 10-commit session (backlog-implementer)
+
+  High
+  25. `queue-utils.ts` uses `console.error` for enqueue failures — inconsistent with callers using `winston` logger; library should accept logger param or re-throw (c8a8d10, 9461f93)
+
+  Medium
+  26. `migrate-to-logger.ts` --dry-run flag shows no diff, only "[dry-run] Would migrate: <file>" — usability gap; should print replacement count or side-by-side diff for verification (684b1e1)
+  27. `generate-next-200-terms.ts` line 318 hardcodes `'scrape-properties'` instead of `config.queue.jobName` — creates divergence risk if config value changes; other scripts use config (63c6f07, shared with backfill via queue-utils)
+  28. `analyze-search-terms.ts` TCAD_TOTAL_PROPERTIES has no staleness signal — coverage >100% printed silently if DB count exceeds constant; should add runtime guard (1514129)
+
+  Low
+  29. `continuous-batch-scraper-lowthreshold.ts` does not `await prisma.$disconnect()` before `process.exit(0)` — leaves open Postgres connections; backfill scripts do this in `.finally()` (6990044, 9461f93)
 
 ---
 
