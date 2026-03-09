@@ -42,11 +42,13 @@ function makeTierRow(searchTerm: string) {
 }
 
 // Call order per getNextBatch:
-// 1. getSearchedTermSet → searchTermAnalytics.findMany (searched set) + property.groupBy
-// 2. queryTier(tier1) → searchTermAnalytics.findMany
-// 3. queryTier(tier2) → searchTermAnalytics.findMany
-// 4. queryTier(tier3) → searchTermAnalytics.findMany
-// 5. Tier 4 fallback (no findMany, uses cached searched set)
+// 1. getPropertyTermSet() → property.groupBy
+// 2. getAllSearchedTermSet() → searchTermAnalytics.findMany (getPropertyTermSet uses cache)
+// 3. queryTier(tier1) → searchTermAnalytics.findMany
+// 4. queryTier(tier2) → searchTermAnalytics.findMany
+// 5. queryTier(tier3) → searchTermAnalytics.findMany
+// 6. Tier 4 fallback (no findMany, uses cached searched set)
+// Both sets are cached; only re-fetched on cold start or cache invalidation (every 20 batches).
 
 describe("TermSelector", () => {
 	let selector: TermSelector;
@@ -187,13 +189,14 @@ describe("TermSelector", () => {
 
 	describe("cache invalidation", () => {
 		it("re-fetches property term set every 20 batches", async () => {
-			// Each getNextBatch call triggers: findMany (analytics) + groupBy (propertyTerms)
-			// Only on first call and on multiples of 20 (cache invalidated)
+			// groupBy and analytics findMany only fire on cold start and cache invalidation
 			for (let i = 0; i < 20; i++) {
 				await selector.getNextBatch(1);
 			}
 			// groupBy called on batch 1 (cold cache) + batch 20 (after invalidation)
 			expect(mockGroupBy).toHaveBeenCalledTimes(2);
+			// analytics findMany: 2 (batch 1 + batch 20) + 60 tier queries (3/batch × 20)
+			expect(mockFindMany).toHaveBeenCalledTimes(62);
 		});
 
 		it("does not re-fetch before batch 20", async () => {
@@ -202,6 +205,8 @@ describe("TermSelector", () => {
 			}
 			// groupBy called only on batch 1; batches 2-19 use the cache
 			expect(mockGroupBy).toHaveBeenCalledTimes(1);
+			// analytics findMany: 1 (batch 1 only) + 57 tier queries (3/batch × 19)
+			expect(mockFindMany).toHaveBeenCalledTimes(58);
 		});
 	});
 

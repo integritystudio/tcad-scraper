@@ -23,6 +23,9 @@ const logger = winston.createLogger({
 	],
 });
 
+// Operational stop threshold — scraper halts when DB reaches this count.
+// Not the full dataset ceiling (~451K total Travis County parcels); set lower
+// to leave headroom for duplicate records and future growth.
 const STOP_AT_PROPERTIES = 420000;
 const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
 const BATCH_SIZE = 25;
