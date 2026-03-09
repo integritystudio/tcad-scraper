@@ -46,6 +46,7 @@ All scripts run from `server/` with `doppler run -- npx tsx src/scripts/<script>
 | `generate-search-terms.ts` | Generate candidate search terms for enqueue. |
 | `generate-next-200-terms.ts` | Generate the next 200 unsearched terms. |
 | `generate-valid-5char-terms.ts` | Generate valid 5-char terms from dictionary, filtering known failures. |
+| `check-unsearched-terms.ts` | Find inventory terms (593 total) not yet searched for current year. Uses batched EXISTS queries. |
 
 ## Queue Management
 

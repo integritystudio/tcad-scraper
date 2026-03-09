@@ -28,6 +28,7 @@ dist/
 out/
 **/repomix-output.xml
 *-output.xml
+docs/repomix/
 
 # IDE
 .vscode/

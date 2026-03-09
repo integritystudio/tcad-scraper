@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd server && DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx -e "
+cd server && doppler run -- npx tsx -e "
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();

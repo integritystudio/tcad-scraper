@@ -1,5 +1,18 @@
 ## Recent Updates
 
+### March 8, 2026 - Scripts Reorganization, TCAD API Diagnostics & Search Term Consolidation
+
+- **Scripts reorganization** (`c7aabe6`): Moved scripts into `requeue/`, `utils/test-scripts/`, `one-off-and-test-batches/` subdirectories. Added `server/src/scripts/README.md` with full inventory.
+- **Search term consolidation**: Created `utils/list-all-search-terms.ts` — deduplicated inventory of 593 non-numeric terms across `batch-configs.ts` and `continuous-batch-scraper.ts`. Importable or CLI.
+- **TCAD API diagnostics** (`1436048`, `f972353`, `43227ac`): Added structured logging for JSON parse failures in `tcad-api-client.ts` — captures response status, content-length, body length, and body preview on failure.
+- **Batch configs expanded**: 14 → 17 batch type definitions in `config/batch-configs.ts`
+- **New scripts**: `enqueue-uncommon-names.ts`, `enqueue-by-category.ts`, `enqueue-prefix-expansions.ts`, `enqueue-08-08-search.ts`, `continuous-batch-scraper-lowthreshold.ts`
+- **Backfill utilities**: `generate-next-200-terms.ts`, `generate-valid-5char-terms.ts`
+- **Code review fixes** (`904b8d5`): Addressed findings from c7aabe6 — ESLint config cleanup, import path fixes
+- **Test count**: 627 tests (626 passing, 1 flaky scheduler test)
+
+---
+
 ### March 6, 2026 - Backfill Script Documentation & Test Hardening
 
 - **Documentation**: Added filtering strategy docs (CR-M2), ::int cast comments (CR-M3), fixed stale comments (CR-M5)

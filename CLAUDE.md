@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: February 26, 2026 | **Version**: 4.3
+**Last Updated**: March 8, 2026 | **Version**: 4.4
 
 ## Project Overview
 
@@ -11,7 +11,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Database**: PostgreSQL (Render) + Prisma ORM
 - **Queue**: BullMQ + Redis (Render, TLS)
 - **Logging**: Pino (structured JSON)
-- **Testing**: Vitest (582 tests, 0 skipped)
+- **Testing**: Vitest (627 tests)
 - **Scale**: 418K+ properties
 
 ```
@@ -43,6 +43,7 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 - `src/queues/scraper.queue.ts` - BullMQ job processing
 - `src/services/token-refresh.service.ts` - Auto-refresh tokens
 - `src/lib/claude.service.ts` - Natural language search
+- `src/lib/tcad-api-client.ts` - TCAD API client with structured diagnostics for JSON parse failures
 - `src/scripts/enqueue-batch.ts` - Config-driven batch enqueue runner
 - `src/scripts/config/batch-configs.ts` - 17 batch type definitions
 - `src/scripts/queue-results.ts` - Queue status + recent completed/failed jobs (`doppler run -- npx tsx src/scripts/queue-results.ts [--limit N]`)
@@ -100,7 +101,7 @@ npx prisma generate
 doppler run -- npx prisma migrate dev
 
 # Testing
-npm test                     # Unit tests (617 tests, <5 sec)
+npm test                     # Unit tests (627 tests, <5 sec)
 npm run test:integration     # Integration tests
 npm run test:all:coverage    # Full coverage report
 
@@ -108,10 +109,20 @@ npm run test:all:coverage    # Full coverage report
 doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts
 npm run queue:status
 
+# Backfill Discovery
+doppler run -- npx tsx src/scripts/generate-next-200-terms.ts          # Generate next 500 candidate terms (dry run)
+doppler run -- npx tsx src/scripts/generate-next-200-terms.ts --enqueue # Generate and enqueue
+doppler run -- npx tsx src/scripts/check-unsearched-terms.ts            # Find inventory terms not yet searched for current year
+# Pipe unsearched terms to enqueue:
+#   doppler run -- npx tsx src/scripts/check-unsearched-terms.ts | grep '^ ' | sed 's/^  //' | doppler run -- npx tsx src/scripts/enqueue-terms.ts
+bash scripts/search-terms-summary.sh                                    # Recent search terms table (from repo root)
+
 # Queue Management
 ## Dequeue all waiting/failed jobs
-# ⚠️ Use --eval flag (NOT heredoc) for tsx inline module imports
-npx tsx --eval "import { scraperQueue } from './src/queues/scraper.queue'; (async () => { const waiting = await scraperQueue.getWaitingCount(); const failed = await scraperQueue.getFailedCount(); if (waiting > 0) { await scraperQueue.clean(0, 'wait'); } if (failed > 0) { await scraperQueue.clean(0, 'failed'); } await scraperQueue.close(); })();"
+# ⚠️ Bull (not BullMQ) API: clean() and drain() have different signatures or don't exist
+# ⚠️ Must pause queue first — active workers grab waiting jobs during removal
+# ⚠️ Use try/catch on job.remove() — already-active jobs throw "Could not remove"
+npx tsx --eval "import { scraperQueue } from './src/queues/scraper.queue'; (async () => { await scraperQueue.pause(); const waiting = await scraperQueue.getWaiting(0, 500); for (const j of waiting) { try { await j.remove(); } catch(e) {} } const failed = await scraperQueue.getFailed(0, 500); for (const j of failed) { try { await j.remove(); } catch(e) {} } await scraperQueue.resume(); console.log('Cleared', waiting.length, 'waiting +', failed.length, 'failed'); await scraperQueue.close(); process.exit(0); })();"
 ```
 
 ---

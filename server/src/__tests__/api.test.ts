@@ -11,6 +11,7 @@ import type { PrismaClient } from "@prisma/client";
 import type { Express } from "express";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { DISPLAY_YEAR } from "../controllers/property.controller";
 import { isDatabaseAvailable, isRedisAvailable } from "./test-utils";
 
 // Check infrastructure availability before running
@@ -109,7 +110,7 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 						assessedValue: 280000,
 						searchTerm: "test",
 						scrapedAt: new Date(),
-						year: 2026,
+						year: DISPLAY_YEAR,
 					},
 					{
 						propertyId: "TEST002",
@@ -121,7 +122,7 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 						assessedValue: 480000,
 						searchTerm: "test",
 						scrapedAt: new Date(),
-						year: 2026,
+						year: DISPLAY_YEAR,
 					},
 				],
 			});

@@ -4,11 +4,10 @@ Production web scraper for Travis Central Appraisal District property data. Uses
 
 ## Current Status
 
-- **Properties Collected**: 282,125+
+- **Properties Collected**: 401,600+
 - **Peak Processing Rate**: 3,346 properties/minute
 - **Average Rate**: 700-1,000 properties/minute (when token is valid)
 - **Cities Covered**: Multiple cities across Travis County
-- **Queue Status**: 100+ jobs in queue
 - **Scraper**: Running 24/7 with optimized search term generation
 
 ## Important Database Notes
@@ -328,10 +327,10 @@ One-off campaign and batch enqueue scripts live in `src/scripts/one-off-and-test
                │
                ▼
 ┌──────────────────────────────────┐
-│  PostgreSQL Database             │
-│  - properties (17,352 records)   │
-│  - scrape_jobs (13,380 records)  │
-│  - Unique constraint on PID      │
+│  PostgreSQL Database (Render)     │
+│  - properties (401,600+ records) │
+│  - scrape_jobs                   │
+│  - Unique constraint on PID+year │
 └──────────────────────────────────┘
 ```
 
@@ -350,14 +349,14 @@ The scraper uses weighted random search to maximize property discovery:
 
 ## Known Limitations
 
-1. **20 Results Per Search**: TCAD's AG Grid pagination is hidden and inaccessible
-2. **No API Access**: Direct scraping only, no official API available
+1. **20 Results Per Search** (browser method): TCAD's AG Grid pagination is hidden and inaccessible
+2. **API JSON Parse Failures**: ~17% of jobs may fail with truncated/empty TCAD API responses (see BACKLOG.md)
 3. **Rate Limiting**: Compensated by diverse search term generation
 4. **Search Misses**: ~40-50% of searches return 0 results (expected with random terms)
 
 ## Project Goals
 
-- **Target**: 400,000 properties (estimated total for Travis County)
-- **Current Progress**: 17,352 properties (4.3%)
+- **Target**: 420,000 properties (estimated total for Travis County)
+- **Current Progress**: 401,600+ properties (~96%)
 - **Strategy**: Exhaustive search term generation with intelligent pattern weighting
-- **Completion**: Ongoing (depends on term diversity and result overlap)
+- **Completion**: Approaching saturation; diminishing returns on new term discovery

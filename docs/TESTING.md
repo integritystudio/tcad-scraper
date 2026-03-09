@@ -425,11 +425,10 @@ npm test -- --forceExit
 - [Testing Library](https://testing-library.com/)
 - [Supertest](https://github.com/visionmedia/supertest)
 - [CI/CD Docs](docs/CI-CD.md)
-- [Test Status Report](docs/TEST-STATUS.md)
 
 ## Getting Help
 
-1. Check [TEST-STATUS.md](docs/TEST-STATUS.md) for known issues
+1. Check CI logs for known issues
 2. Review test logs in CI
 3. Run tests locally with `--verbose`
 4. Check environment configuration

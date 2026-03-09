@@ -220,9 +220,12 @@ async function run() {
 	}
 	logger.info(`Term pool size: ${TERM_POOL.length}`);
 
-	// Filter out already-searched terms
+	// Filter out already-searched terms and numeric-only terms (TCAD rejects them)
+	const NUMERIC_ONLY = /^\d+$/;
 	const searched = await getSearchedTerms();
-	const candidates = TERM_POOL.filter((t) => !searched.has(t.toLowerCase()));
+	const candidates = TERM_POOL.filter(
+		(t) => !searched.has(t.toLowerCase()) && !NUMERIC_ONLY.test(t),
+	);
 	logger.info(`Already searched: ${searched.size} terms`);
 	logger.info(`Unsearched candidates: ${candidates.length}`);
 
