@@ -1,7 +1,7 @@
 # Render Migration Plan
 
 **Created**: February 20, 2026
-**Status**: Draft
+**Status**: Complete (migrated 2026-02-26)
 **Goal**: Migrate backend from Hobbes (self-hosted) to Render (cloud-hosted)
 
 ---
@@ -267,16 +267,9 @@ redis: {
 
 **Recommendation**: Option A for initial migration. No code changes needed.
 
-### 3. Playwright on Render
+### 3. Playwright on Render — N/A (Playwright removed 2026-02-26)
 
-The scraper uses Playwright for browser-based fallback. On Render's native Node runtime, Playwright's Chromium may not work out of the box (missing system dependencies).
-
-**Options**:
-- **Docker deploy**: Use a Dockerfile with Playwright deps pre-installed. Changes `runtime: node` to `runtime: docker` in render.yaml.
-- **API-only mode**: If TCAD API token is always available, browser fallback is rarely needed. Set `TCAD_AUTO_REFRESH_TOKEN=true` and rely on API scraping.
-- **Separate worker**: Deploy scraper as a Docker-based Background Worker with Playwright deps.
-
-**Recommendation**: Start with API-only mode. Add Docker-based worker later if browser fallback is needed.
+~~The scraper uses Playwright for browser-based fallback.~~ Playwright was removed in commit `934e22e`. Scraping is now API-direct only via `tcad-api-client.ts`. Token refresh uses a Cloudflare Worker endpoint. No browser dependencies required.
 
 ### 4. Log file writes
 

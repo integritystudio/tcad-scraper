@@ -51,4 +51,4 @@ Secrets managed via Doppler (`JWT_SECRET`, `API_KEY`).
 ## Rate Limiting
 
 - `app.set('trust proxy', 1)` required for Render reverse proxy
-- Rate limiter uses `X-Forwarded-For` from Cloudflare Tunnel
+- Rate limiter uses `X-Forwarded-For` from Render reverse proxy

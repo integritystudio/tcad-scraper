@@ -16,11 +16,11 @@
 
 ## 1. DRY Findings
 
-### CRITICAL: Enqueue Script Duplication (~2,400 lines)
+### ~~CRITICAL: Enqueue Script Duplication (~2,400 lines)~~ — **RESOLVED** (2026-02-08)
 
-**Files**: `server/src/scripts/enqueue-*.ts` (16 files)
+**Files**: ~~`server/src/scripts/enqueue-*.ts` (16 files)~~
 
-16 nearly identical enqueue scripts with 90-95% duplicate code. Each follows the same pattern: import logger, define terms array, call `enqueueBatchGeneric`, handle errors.
+~~16 nearly identical enqueue scripts~~ Consolidated into `enqueue-batch.ts` + `batch-configs.ts` with 18 batch types. See changelog/2026-02-08.
 
 ```typescript
 // enqueue-llc-batch.ts
@@ -59,7 +59,7 @@ enqueueBatchGeneric(BATCH_CONFIGS[batchType])
 
 ---
 
-### HIGH: Error Message Formatting Duplication (25+ files)
+### ~~HIGH: Error Message Formatting Duplication (25+ files)~~ — **RESOLVED** (2026-02-08)
 
 **Files**: Throughout `server/src/` (25+ occurrences)
 
@@ -84,30 +84,10 @@ export function getErrorMessage(error: unknown): string {
 
 ---
 
-### MEDIUM: Browser Launch Config Duplication
+### ~~MEDIUM: Browser Launch Config Duplication~~ — **MOOT** (Playwright removed 2026-02-26)
 
-**Files**:
-- `server/src/lib/tcad-scraper.ts:72-108`
-- `server/src/services/token-refresh.service.ts:129-145`
-
-Nearly identical Playwright launch options in both files:
-
-```typescript
-// Both files contain:
-{
-  headless: config.scraper.headless,
-  executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-  args: [
-    "--disable-blink-features=AutomationControlled",
-    "--disable-web-security",
-    "--disable-features=IsolateOrigins,site-per-process",
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-  ],
-}
-```
-
-**Recommendation**: Extract to `lib/browser-factory.ts` with a `createTCADBrowser()` function.
+~~Playwright launch options duplication in `tcad-scraper.ts` and `token-refresh.service.ts`.~~
+Playwright removed in commit `934e22e`. Scraping is now API-direct. Token refresh uses Cloudflare Worker.
 
 ---
 
@@ -174,28 +154,10 @@ No retry logic, health checks, or auto-reconnect for Prisma. If database connect
 
 ---
 
-### CRITICAL: Browser Context Leaks
+### ~~CRITICAL: Browser Context Leaks~~ — **MOOT** (Playwright removed 2026-02-26)
 
-**Files**:
-- `server/src/lib/tcad-scraper.ts:149-454`
-- `server/src/services/token-refresh.service.ts`
-
-Browser contexts created in retry loops without guaranteed cleanup. If `newContext()` or `newPage()` throws, the context leaks.
-
-```typescript
-// Current: context may leak if error during creation
-for (let attempt = 1; attempt <= maxRetries; attempt++) {
-  try {
-    const context = await this.browser.newContext({...});
-    const page = await context.newPage(); // throws? context leaks
-    try { /* scraping */ } finally { await context.close(); }
-  } catch (error) { /* no cleanup of partially-created context */ }
-}
-```
-
-**Recommendation**: Track contexts, close in `finally` blocks with try-catch around `.close()`.
-
-**Impact**: Prevents memory leaks in long-running scraper workers.
+~~Browser contexts created in retry loops without guaranteed cleanup.~~
+Playwright removed in commit `934e22e`. No browser contexts in codebase.
 
 ---
 
@@ -222,23 +184,10 @@ params.push(
 
 ---
 
-### HIGH: Token Refresh Timeout Doesn't Cancel Operations
+### HIGH: Token Refresh Timeout Doesn't Cancel Operations — **ARCHITECTURE CHANGED**
 
-**Files**: `server/src/services/token-refresh.service.ts:85-100`
-
-`Promise.race` rejects on timeout, but `_performTokenRefresh()` keeps running — browser context stays open, Playwright operations continue consuming resources.
-
-```typescript
-// Current: timeout rejects but refresh continues in background
-return await Promise.race([
-  this._performTokenRefresh(startTime),
-  timeoutPromise,  // rejects, but doesn't cancel the other promise
-]);
-```
-
-**Recommendation**: Use `AbortController` — pass signal to `_performTokenRefresh()`, check `signal.aborted` before expensive operations, close context in `finally`.
-
-**Impact**: Prevents resource leaks on timeout.
+~~`Promise.race` rejects on timeout, but Playwright operations continue.~~
+Token refresh now uses a simple `fetch()` to the Cloudflare Worker. No `Promise.race` or browser context. The timeout concern is now a network timeout on the fetch call, which is bounded by the OS TCP timeout. No code change needed.
 
 ---
 
@@ -303,24 +252,24 @@ No global request timeout configured. Long-running requests (natural language se
 ## 3. Priority Action Plan
 
 ### Phase 1: Critical (immediate)
-1. Add Prisma connection resilience (`lib/prisma.ts`)
-2. Fix browser context lifecycle (`tcad-scraper.ts`, `token-refresh.service.ts`)
-3. Consolidate 16 enqueue scripts -> 2 files
+1. Add Prisma connection resilience (`lib/prisma.ts`) — open
+2. ~~Fix browser context lifecycle~~ — MOOT (Playwright removed 2026-02-26)
+3. ~~Consolidate 16 enqueue scripts -> 2 files~~ — DONE (2026-02-08)
 
 ### Phase 2: High (next sprint)
-4. Extract `getErrorMessage()` utility (25+ files)
-5. Add property data validation before DB insert
-6. Fix token refresh timeout cancellation with AbortController
+4. ~~Extract `getErrorMessage()` utility~~ — DONE (2026-02-08)
+5. Add property data validation before DB insert — open
+6. ~~Fix token refresh timeout cancellation~~ — MOOT (architecture changed, now fetch-based)
 
 ### Phase 3: Medium (backlog)
-7. Extract browser factory, property transformer, humanDelay utilities
-8. Add Redis circuit breaker
-9. Add immediate retry on token refresh after 401
-10. Fix Prisma groupBy `_count` access
+7. ~~Extract browser factory~~ — MOOT | ~~property transformer, humanDelay~~ — DONE (2026-02-08)
+8. Add Redis circuit breaker — open
+9. Add immediate retry on token refresh after 401 — open
+10. Fix Prisma groupBy `_count` access — open
 
 ### Phase 4: Low (when convenient)
-11. Replace 39 console statements with logger
-12. Add Express request timeout middleware
+11. Replace remaining console statements with logger — open
+12. Add Express request timeout middleware — open
 
 ---
 
@@ -328,6 +277,6 @@ No global request timeout configured. Long-running requests (natural language se
 
 - Consistent use of `unknown` error typing (not `any`)
 - Nov 2025 bug fixes demonstrate solid error handling improvements
-- 493/560 tests passing (88%), 12,444 lines of test code
-- Only 4 documented/justified `any` usages
+- 631/632 tests passing (as of 2026-03-09), 0 `any` in production code
+- All `any` usages eliminated (see changelog/2026-02-08)
 - Good separation of concerns (controllers, services, queues, routes)

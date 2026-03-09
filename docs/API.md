@@ -1,6 +1,6 @@
 # API Reference
 
-REST API for the TCAD Scraper backend. Base URL: `http://localhost:3000` (dev) / `https://api.alephatx.info` (prod).
+REST API for the TCAD Scraper backend. Base URL: `http://localhost:3001` (dev) / `https://api.alephatx.info` (prod).
 
 ## Authentication
 
