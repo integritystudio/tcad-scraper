@@ -10,6 +10,7 @@ vi.mock("../logger", () => ({
   },
 }));
 
+import logger from "../logger";
 import {
   fetchTCADProperties,
   mapTCADResultToPropertyData,
@@ -21,12 +22,13 @@ import {
 const TOKEN = "eyJhbGciOiJIUzI1NiJ9.test-token-long-enough-to-be-valid-placeholder";
 const YEAR = 2026;
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, headers?: Record<string, string>): Response {
   const text = JSON.stringify(body);
-  return new Response(text, {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+  const allHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...headers,
+  };
+  return new Response(text, { status, headers: allHeaders });
 }
 
 function apiBody(totalCount: number, results: TCADPropertyResult[]) {
@@ -121,6 +123,12 @@ describe("tcad-api-client", () => {
           status: 200,
         }),
       );
+      // Retry at 1000 also truncated
+      fetchSpy.mockResolvedValueOnce(
+        new Response('{"totalProperty":{"propertyCount":5},"results":[{"pid":1', {
+          status: 200,
+        }),
+      );
 
       // Second size (500) succeeds
       const results = makeResults(5);
@@ -176,6 +184,12 @@ describe("tcad-api-client", () => {
           status: 200,
         }),
       );
+      // Retry at same page also truncated
+      fetchSpy.mockResolvedValueOnce(
+        new Response('{"totalProperty":{"propertyCount":2000},"results":[{"pid":1001', {
+          status: 200,
+        }),
+      );
 
       const res = await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
 
@@ -186,7 +200,8 @@ describe("tcad-api-client", () => {
     });
 
     it("throws when all page sizes are exhausted", async () => {
-      for (let i = 0; i < 4; i++) {
+      // Each page size gets 1 attempt + 1 retry = 8 total fetches
+      for (let i = 0; i < 8; i++) {
         fetchSpy.mockResolvedValueOnce(
           new Response('{"truncated', { status: 200 }),
         );
@@ -200,6 +215,8 @@ describe("tcad-api-client", () => {
     it("handles empty response body", async () => {
       // First size returns empty body
       fetchSpy.mockResolvedValueOnce(new Response("", { status: 200 }));
+      // Retry at 1000 also empty
+      fetchSpy.mockResolvedValueOnce(new Response("", { status: 200 }));
       // Second size succeeds
       const results = makeResults(2);
       fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(2, results)));
@@ -211,6 +228,7 @@ describe("tcad-api-client", () => {
     });
 
     it("handles HTML error page response", async () => {
+      // HTML is NOT retried — goes straight to next page size
       fetchSpy.mockResolvedValueOnce(
         new Response("<html><body>503 Service Unavailable</body></html>", { status: 200 }),
       );
@@ -225,6 +243,10 @@ describe("tcad-api-client", () => {
 
     it("handles malformed JSON that passes truncation check", async () => {
       // Ends with } so isTruncated returns false, but JSON.parse fails
+      fetchSpy.mockResolvedValueOnce(
+        new Response('{"totalProperty": {invalid}}', { status: 200 }),
+      );
+      // Retry at 1000 also malformed
       fetchSpy.mockResolvedValueOnce(
         new Response('{"totalProperty": {invalid}}', { status: 200 }),
       );
@@ -283,8 +305,153 @@ describe("tcad-api-client", () => {
             pYear: { operator: "=", value: "2025" },
             fullTextSearch: { operator: "match", value: "Smith Trust" },
           }),
+          signal: expect.any(AbortSignal),
         }),
       );
+    });
+
+    // ── New tests: retry, Content-Length, aggregation, network errors ──
+
+    it("retries same page size before falling back", async () => {
+      // First attempt at 1000: truncated
+      fetchSpy.mockResolvedValueOnce(
+        new Response('{"truncated', { status: 200 }),
+      );
+      // Retry at 1000: also truncated
+      fetchSpy.mockResolvedValueOnce(
+        new Response('{"truncated', { status: 200 }),
+      );
+      // Falls back to 500: succeeds
+      const results = makeResults(2);
+      fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(2, results)));
+
+      const res = await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
+
+      expect(res.pageSize).toBe(500);
+      // Verify fetch was called twice at pageSize=1000 before falling back
+      expect(fetchSpy).toHaveBeenCalledTimes(3);
+      const urls = fetchSpy.mock.calls.map((c: unknown[]) => c[0] as string);
+      expect(urls[0]).toContain("pageSize=1000");
+      expect(urls[1]).toContain("pageSize=1000");
+      expect(urls[2]).toContain("pageSize=500");
+    });
+
+    it("detects Content-Length mismatch", async () => {
+      // Response declares 5000 bytes but body is much shorter
+      const shortBody = '{"small": true}';
+      fetchSpy.mockResolvedValueOnce(
+        new Response(shortBody, {
+          status: 200,
+          headers: { "Content-Length": "5000" },
+        }),
+      );
+      // Retry also mismatched
+      fetchSpy.mockResolvedValueOnce(
+        new Response(shortBody, {
+          status: 200,
+          headers: { "Content-Length": "5000" },
+        }),
+      );
+      // Fallback to 500 succeeds
+      const results = makeResults(1);
+      fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(1, results)));
+
+      const res = await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
+
+      expect(res.pageSize).toBe(500);
+    });
+
+    it("Content-Length check uses byte length not string length", async () => {
+      // Body with multi-byte UTF-8 characters (accented names)
+      const body = JSON.stringify({
+        totalProperty: { propertyCount: 1 },
+        results: [{ pid: 1, displayName: "García Muñoz López" }],
+      });
+      const byteLen = Buffer.byteLength(body, "utf-8");
+      // Content-Length matches byte length (as a real server would send)
+      fetchSpy.mockResolvedValueOnce(
+        new Response(body, {
+          status: 200,
+          headers: { "Content-Length": String(byteLen) },
+        }),
+      );
+
+      const res = await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
+
+      // Should NOT be flagged as truncated
+      expect(res.totalCount).toBe(1);
+      expect(res.results).toHaveLength(1);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("error message includes all page size failures", async () => {
+      // 4 page sizes x 2 attempts each = 8 fetches
+      for (let i = 0; i < 8; i++) {
+        fetchSpy.mockResolvedValueOnce(
+          new Response('{"truncated', { status: 200 }),
+        );
+      }
+
+      await expect(
+        runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR)),
+      ).rejects.toThrow(/pageSize=1000.*pageSize=500.*pageSize=100.*pageSize=50/);
+    });
+
+    it("does not retry HTML responses", async () => {
+      // HTML at 1000 — should NOT retry, go straight to 500
+      fetchSpy.mockResolvedValueOnce(
+        new Response("<html>503</html>", { status: 200 }),
+      );
+      const results = makeResults(1);
+      fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(1, results)));
+
+      const res = await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
+
+      expect(res.pageSize).toBe(500);
+      // Only 2 calls: HTML at 1000 (no retry) + success at 500
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("retries on network errors (ECONNRESET)", async () => {
+      const networkErr = new TypeError("fetch failed");
+      (networkErr as TypeError & { cause: Error }).cause = new Error("ECONNRESET");
+
+      // First attempt: network error
+      fetchSpy.mockRejectedValueOnce(networkErr);
+      // Retry succeeds
+      const results = makeResults(1);
+      fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(1, results)));
+
+      const res = await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
+
+      expect(res.totalCount).toBe(1);
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("logs when same-size retry succeeds", async () => {
+      // First attempt: truncated
+      fetchSpy.mockResolvedValueOnce(
+        new Response('{"truncated', { status: 200 }),
+      );
+      // Retry succeeds
+      const results = makeResults(1);
+      fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(1, results)));
+
+      await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
+
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ attempt: 1 }),
+        "Fetch retry succeeded",
+      );
+    });
+
+    it("passes AbortSignal.timeout to fetch", async () => {
+      fetchSpy.mockResolvedValueOnce(jsonResponse(apiBody(0, [])));
+
+      await runWithTimers(fetchTCADProperties(TOKEN, "search", YEAR));
+
+      const fetchOptions = fetchSpy.mock.calls[0][1] as RequestInit;
+      expect(fetchOptions.signal).toBeInstanceOf(AbortSignal);
     });
   });
 

@@ -53,7 +53,7 @@ vi.mock("../../lib/logger", () => ({
 import cron from "node-cron";
 import { prisma } from "../../lib/prisma";
 import { scraperQueue } from "../../queues/scraper.queue";
-import { scheduledJobs } from "../scrape-scheduler";
+import { QUEUE_RETENTION_DAYS, SCRAPE_JOB_RETENTION_DAYS, scheduledJobs } from "../scrape-scheduler";
 
 // Get mock instances for testing
 const mockScraperQueue = scraperQueue as unknown as {
@@ -337,7 +337,7 @@ describe("ScheduledJobs", () => {
 			mockScraperQueue.clean.mockResolvedValue(undefined);
 		});
 
-		it("should delete scrape jobs older than 30 days", async () => {
+		it(`should delete scrape jobs older than ${SCRAPE_JOB_RETENTION_DAYS} days`, async () => {
 			scheduledJobs.initialize();
 
 			const cleanupCallback = (cron.schedule as Mock).mock.calls[3][1];
@@ -352,40 +352,41 @@ describe("ScheduledJobs", () => {
 				},
 			});
 
-			// Verify the date is approximately 30 days ago
+			// Verify the date is approximately SCRAPE_JOB_RETENTION_DAYS ago
 			const deleteCall = mockPrisma.scrapeJob.deleteMany.mock.calls[0][0];
-			const thirtyDaysAgo = deleteCall.where.completedAt.lt;
+			const cutoffDate = deleteCall.where.completedAt.lt;
 			const now = new Date();
-			const daysDiff = Math.floor(
-				(now.getTime() - thirtyDaysAgo.getTime()) / (1000 * 60 * 60 * 24),
+			const MS_PER_DAY = 24 * 60 * 60 * 1000;
+			const daysDiff = Math.round(
+				(now.getTime() - cutoffDate.getTime()) / MS_PER_DAY,
 			);
-			expect(daysDiff).toBe(30);
+			expect(daysDiff).toBe(SCRAPE_JOB_RETENTION_DAYS);
 		});
 
-		it("should clean Bull queue completed jobs older than 7 days", async () => {
+		it(`should clean Bull queue completed jobs older than ${QUEUE_RETENTION_DAYS} days`, async () => {
 			scheduledJobs.initialize();
 
 			const cleanupCallback = (cron.schedule as Mock).mock.calls[3][1];
 
 			await cleanupCallback();
 
-			const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+			const queueRetentionMs = QUEUE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 			expect(mockScraperQueue.clean).toHaveBeenCalledWith(
-				sevenDaysInMs,
+				queueRetentionMs,
 				"completed",
 			);
 		});
 
-		it("should clean Bull queue failed jobs older than 7 days", async () => {
+		it(`should clean Bull queue failed jobs older than ${QUEUE_RETENTION_DAYS} days`, async () => {
 			scheduledJobs.initialize();
 
 			const cleanupCallback = (cron.schedule as Mock).mock.calls[3][1];
 
 			await cleanupCallback();
 
-			const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+			const queueRetentionMs = QUEUE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 			expect(mockScraperQueue.clean).toHaveBeenCalledWith(
-				sevenDaysInMs,
+				queueRetentionMs,
 				"failed",
 			);
 		});

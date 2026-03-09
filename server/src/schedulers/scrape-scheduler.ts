@@ -4,6 +4,13 @@ import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import { getErrorMessage } from "../utils/error-helpers";
 
+export const SCRAPE_JOB_RETENTION_DAYS = 30;
+export const QUEUE_RETENTION_DAYS = 7;
+const SCRAPE_JITTER_MAX_MS = 60_000;
+const SCRAPE_JOB_ATTEMPTS = 5;
+const SCRAPE_BACKOFF_DELAY_MS = 5000;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 class ScheduledJobs {
 	private tasks: cron.ScheduledTask[] = [];
 
@@ -82,7 +89,7 @@ class ScheduledJobs {
 
 			for (const search of monitoredSearches) {
 				// Add random delay to avoid overwhelming the target site
-				const delay = Math.floor(Math.random() * 60000); // 0-60 seconds
+				const delay = Math.floor(Math.random() * SCRAPE_JITTER_MAX_MS);
 
 				await scraperQueue.add(
 					"scrape-properties",
@@ -92,10 +99,10 @@ class ScheduledJobs {
 					},
 					{
 						delay,
-						attempts: 5,
+						attempts: SCRAPE_JOB_ATTEMPTS,
 						backoff: {
 							type: "exponential",
-							delay: 5000,
+							delay: SCRAPE_BACKOFF_DELAY_MS,
 						},
 					},
 				);
@@ -122,22 +129,22 @@ class ScheduledJobs {
 		try {
 			logger.info("Cleaning up old jobs...");
 
-			// Delete scrape jobs older than 30 days
-			const thirtyDaysAgo = new Date();
-			thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+			// Delete scrape jobs older than retention period
+			const cutoffDate = new Date();
+			cutoffDate.setDate(cutoffDate.getDate() - SCRAPE_JOB_RETENTION_DAYS);
 
 			const deletedJobs = await prisma.scrapeJob.deleteMany({
 				where: {
 					completedAt: {
-						lt: thirtyDaysAgo,
+						lt: cutoffDate,
 					},
 				},
 			});
 
-			// Clean Bull queue completed/failed jobs older than 7 days
-			const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-			await scraperQueue.clean(sevenDaysInMs, "completed");
-			await scraperQueue.clean(sevenDaysInMs, "failed");
+			// Clean Bull queue completed/failed jobs older than queue retention period
+			const queueRetentionMs = QUEUE_RETENTION_DAYS * MS_PER_DAY;
+			await scraperQueue.clean(queueRetentionMs, "completed");
+			await scraperQueue.clean(queueRetentionMs, "failed");
 
 			logger.info(`Cleaned up ${deletedJobs.count} old database jobs`);
 		} catch (error) {
