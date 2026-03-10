@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-10 (dead code cleanup + new backlog items from repomix analysis)
-**Status**: 124/124 tests passing | TypeScript clean | Lint clean
+**Last Updated**: 2026-03-10 (L25–L35 backlog items implemented + test coverage gaps documented)
+**Status**: 678/678 tests passing | TypeScript clean | Lint clean
 
 ---
 ## Open Items
@@ -189,6 +189,35 @@ Done — changed `isDevelopment: process.env.NODE_ENV === "development"` (exclus
 
 ### ~~L35: CommonJS require.main === module idiom in ESM project~~
 Done — `tsconfig.json` has `"module": "commonjs"`; `require.main === module` is the correct pattern for this project. No change needed.
+
+---
+
+## Test Coverage Gaps (2026-03-10, L25–L35 session)
+
+### TC-10: naturalLanguageSearch DB failure path untested
+**Priority**: P3 | **Source**: L27 implementation + code review
+
+The `naturalLanguageSearch` method now returns 503 on both Claude API failure and DB failure, but only the Claude failure path is tested (via `property.routes.claude.test.ts` "should handle errors gracefully"). No test exercises the DB try/catch branch (`"Database query failed"` response). Mock `prismaReadOnly.property.findMany` to throw and assert 503 with `error: "Database query failed"`. -- `server/src/controllers/property.controller.ts`
+
+### TC-11: scrapeProperties job.id guard untested
+**Priority**: P4 | **Source**: L28 implementation
+
+The `if (!job.id)` guard returns 500 when BullMQ produces a job without an ID. No test covers this path. Mock `scraperQueue.add()` to return `{ id: undefined }` and assert 500 response. -- `server/src/controllers/property.controller.ts`
+
+### TC-12: canScheduleJob TOCTOU race condition untested
+**Priority**: P4 | **Source**: L29 code review (low finding)
+
+The get-then-set pattern in `canScheduleJob` has a TOCTOU window where concurrent requests for the same term can both observe `null` from `cacheService.get()` and both return `true`. No test covers this scenario. Consider using Redis `SET NX PX` (atomic set-if-not-exists with TTL) or add a test documenting the limitation. -- `server/src/queues/scraper.queue.ts`
+
+### TC-13: api-usage.controller has no unit tests
+**Priority**: P3 | **Source**: L32 implementation
+
+`ApiUsageController` has no dedicated test file. The `typeof` guards on `days`, `environment`, `limit`, and `offset` are untested. The `$queryRaw` parameterization via `Prisma.sql` is also untested. Additionally, `day.total_cost.toFixed(6)` (line ~146) has a potential null-dereference if `SUM(query_cost)` returns null — a test should cover this edge case. -- `server/src/controllers/api-usage.controller.ts`
+
+### TC-14: optionalAuth debug log emission untested
+**Priority**: P4 | **Source**: L31 implementation
+
+`optionalAuth` now calls `logger.debug()` on JWT verification failure, but no test asserts the log message is emitted. Add a test that passes an invalid token and verifies `logger.debug` was called with the error context. -- `server/src/middleware/auth.ts`
 
 ---
 

@@ -29,6 +29,9 @@ out/
 **/repomix-output.xml
 *-output.xml
 docs/repomix/
+scripts/repomix-scripts.xml
+summary.xml
+summary.json
 
 # IDE
 .vscode/
