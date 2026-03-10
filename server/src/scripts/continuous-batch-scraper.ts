@@ -10,6 +10,8 @@ import {
 } from "../services/search-term-optimizer";
 import { getErrorMessage } from "../utils/error-helpers";
 import { HIGH_RESULT_TERM_SPLITS } from "./config/batch-configs";
+import { enqueueBatch } from "./lib/queue-utils";
+import { TARGET_2025_PROPERTY_COUNT } from "./lib/backfill-constants";
 
 const logger = winston.createLogger({
 	level: "info",
@@ -349,7 +351,10 @@ export class TermSelector {
 }
 
 class ContinuousBatchScraper {
-	private termSelector = new TermSelector();
+	private readonly lowThreshold: boolean;
+	private readonly stopAtProperties: number;
+	private readonly userId: string;
+	private termSelector: TermSelector;
 	private stats = {
 		totalQueued: 0,
 		batchesProcessed: 0,
@@ -357,13 +362,27 @@ class ContinuousBatchScraper {
 		startingPropertyCount: 0,
 	};
 	private running = true;
+	private monitorInterval: ReturnType<typeof setInterval> | null = null;
 	private consecutiveZeroBatches = 0;
 	private lastPropertyCount = 0;
 
+	constructor(lowThreshold = false) {
+		this.lowThreshold = lowThreshold;
+		this.stopAtProperties = lowThreshold ? TARGET_2025_PROPERTY_COUNT : STOP_AT_PROPERTIES;
+		this.userId = lowThreshold ? "lowthreshold-batch" : "continuous-batch";
+		this.termSelector = new TermSelector(lowThreshold ? LOW_THRESHOLD_TIER_CONFIG : undefined);
+	}
+
 	async run() {
-		logger.info("========================================");
-		logger.info("  CONTINUOUS BATCH SCRAPER (DB-driven)  ");
-		logger.info("========================================\n");
+		if (this.lowThreshold) {
+			logger.info("=============================================");
+			logger.info("  LOW-THRESHOLD CONTINUOUS SCRAPER (long tail)");
+			logger.info("=============================================\n");
+		} else {
+			logger.info("========================================");
+			logger.info("  CONTINUOUS BATCH SCRAPER (DB-driven)  ");
+			logger.info("========================================\n");
+		}
 
 		// Clear pending jobs from queue to start fresh
 		const pendingCount = await scraperQueue.getWaitingCount();
@@ -375,8 +394,8 @@ class ContinuousBatchScraper {
 		this.stats.startingPropertyCount = await prisma.property.count({ where: { year: config.scraper.tcadYear } });
 		this.lastPropertyCount = this.stats.startingPropertyCount;
 		logger.info(`Starting: ${this.stats.startingPropertyCount.toLocaleString()}`);
-		logger.info(`Stop at: ${STOP_AT_PROPERTIES.toLocaleString()} or ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive zero-result batches`);
-		logger.info(`Remaining: ${(STOP_AT_PROPERTIES - this.stats.startingPropertyCount).toLocaleString()}\n`);
+		logger.info(`Stop at: ${this.stopAtProperties.toLocaleString()} or ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive zero-result batches`);
+		logger.info(`Remaining: ${(this.stopAtProperties - this.stats.startingPropertyCount).toLocaleString()}\n`);
 
 		process.on("SIGINT", () => this.stop());
 		process.on("SIGTERM", () => this.stop());
@@ -386,7 +405,7 @@ class ContinuousBatchScraper {
 		while (this.running) {
 			const currentCount = await prisma.property.count({ where: { year: config.scraper.tcadYear } });
 
-			if (currentCount >= STOP_AT_PROPERTIES) {
+			if (currentCount >= this.stopAtProperties) {
 				logger.info(`STOP TARGET REACHED! Current count: ${currentCount.toLocaleString()}`);
 				break;
 			}
@@ -429,33 +448,14 @@ class ContinuousBatchScraper {
 
 		logger.info(`Batch #${this.stats.batchesProcessed} (${searchTerms.length} terms)`);
 
-		for (const searchTerm of searchTerms) {
-			try {
-				await scraperQueue.add(
-					"scrape-properties",
-					{
-						searchTerm,
-						userId: "continuous-batch",
-						scheduled: true,
-					},
-					{
-						attempts: 3,
-						backoff: { type: "exponential", delay: 2000 },
-						removeOnComplete: 100,
-						removeOnFail: 50,
-					},
-				);
-				this.stats.totalQueued++;
-			} catch (error) {
-				logger.error(`Failed to queue ${searchTerm}: ${getErrorMessage(error)}`);
-			}
-		}
+		const enqueued = await enqueueBatch(searchTerms, this.userId, logger);
+		this.stats.totalQueued += enqueued;
 
-		logger.info(`Queued ${searchTerms.length} jobs (Total: ${this.stats.totalQueued})`);
+		logger.info(`Queued ${enqueued} jobs (Total: ${this.stats.totalQueued})`);
 	}
 
 	private startMonitoring() {
-		setInterval(async () => {
+		this.monitorInterval = setInterval(async () => {
 			try {
 				const [currentCount, waiting, active, completed, failed] =
 					await Promise.all([
@@ -467,7 +467,7 @@ class ContinuousBatchScraper {
 					]);
 
 				const newProperties = currentCount - this.stats.startingPropertyCount;
-				const progress = (currentCount / STOP_AT_PROPERTIES) * 100;
+				const progress = (currentCount / this.stopAtProperties) * 100;
 				const elapsed = Math.floor((Date.now() - this.stats.startTime) / 1000);
 				const hours = Math.floor(elapsed / 3600);
 				const minutes = Math.floor((elapsed % 3600) / 60);
@@ -481,7 +481,7 @@ class ContinuousBatchScraper {
 				);
 
 				if (rate > 0) {
-					const remaining = STOP_AT_PROPERTIES - currentCount;
+					const remaining = this.stopAtProperties - currentCount;
 					const hoursRemaining = remaining / rate / 60;
 					logger.info(`ETA: ${hoursRemaining.toFixed(1)} hours`);
 				}
@@ -509,6 +509,10 @@ class ContinuousBatchScraper {
 	private stop() {
 		logger.info("Stopping continuous scraper...");
 		this.running = false;
+		if (this.monitorInterval !== null) {
+			clearInterval(this.monitorInterval);
+			this.monitorInterval = null;
+		}
 	}
 
 	private delay(ms: number): Promise<void> {
@@ -518,7 +522,8 @@ class ContinuousBatchScraper {
 
 // Run when invoked directly (not when imported by tests)
 if (require.main === module) {
-	const scraper = new ContinuousBatchScraper();
+	const lowThreshold = process.argv.includes("--low-threshold");
+	const scraper = new ContinuousBatchScraper(lowThreshold);
 	scraper.run().catch((error) => {
 		logger.error(`Fatal error: ${getErrorMessage(error)}`);
 		process.exit(1);
