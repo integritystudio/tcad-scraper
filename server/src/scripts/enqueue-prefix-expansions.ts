@@ -10,24 +10,13 @@
 import { prisma } from '../lib/prisma';
 import { scraperQueue } from '../queues/scraper.queue';
 import { config } from '../config';
+import { enqueueBatch, waitForQueueDrain } from './lib/queue-utils';
 
 const MAX_CONSECUTIVE_ZEROS = 3;
-const POLL_INTERVAL_MS = 5000;
 const BATCH_SIZE = 5; // enqueue 5 at a time for faster throughput
 
 async function getPropertyCount(): Promise<number> {
   return prisma.property.count({ where: { year: config.scraper.tcadYear } });
-}
-
-async function waitForQueueDrain(): Promise<void> {
-  while (true) {
-    const [waiting, active] = await Promise.all([
-      scraperQueue.getWaitingCount(),
-      scraperQueue.getActiveCount(),
-    ]);
-    if (waiting === 0 && active === 0) return;
-    await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
-  }
 }
 
 async function main() {
@@ -95,21 +84,9 @@ async function main() {
     const beforeCount = await getPropertyCount();
 
     // Enqueue batch
-    for (const searchTerm of batch) {
-      await scraperQueue.add(
-        'scrape-properties',
-        { searchTerm, userId: 'prefix-expansion', scheduled: true },
-        {
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 2000 },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-      );
-    }
-
+    const enqueued = await enqueueBatch(batch, 'prefix-expansion');
     console.log(`Enqueued batch ${Math.ceil(idx / BATCH_SIZE)}: ${batch.join(', ')}`);
-    totalEnqueued += batch.length;
+    totalEnqueued += enqueued;
 
     // Wait for batch to complete
     await waitForQueueDrain();
