@@ -68,7 +68,18 @@ function migrateFile(filePath: string, dryRun = false): void {
 	// Write back if changed
 	if (modified !== content) {
 		if (dryRun) {
-			console.log(`[dry-run] Would migrate: ${filePath}`);
+			// Count replacements per type
+			const counts: string[] = [];
+			for (const { pattern, replacement } of replacements) {
+				const matches = (content.match(pattern) ?? []).length;
+				if (matches > 0) {
+					const from = pattern.source.replace(/\\\(/g, "(");
+					counts.push(`  ${matches}x ${from} → ${replacement}`);
+				}
+			}
+			const total = counts.reduce((sum, line) => sum + parseInt(line.trim().split("x")[0], 10), 0);
+			console.log(`[dry-run] Would migrate: ${filePath} (${total} replacement${total !== 1 ? "s" : ""})`);
+			counts.forEach(line => console.log(line));
 		} else {
 			fs.writeFileSync(filePath, modified, "utf-8");
 			console.log(`✅ Migrated: ${filePath}`);
