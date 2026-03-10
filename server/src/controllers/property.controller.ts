@@ -174,8 +174,21 @@ export class PropertyController {
 		}
 
 		// Use Claude to parse the natural language query
-		const { whereClause, orderBy, explanation, answer, answerType } =
-			await claudeSearchService.parseNaturalLanguageQuery(query);
+		let whereClause: Awaited<ReturnType<typeof claudeSearchService.parseNaturalLanguageQuery>>["whereClause"];
+		let orderBy: Awaited<ReturnType<typeof claudeSearchService.parseNaturalLanguageQuery>>["orderBy"];
+		let explanation: string | undefined;
+		let answer: string | undefined;
+		let answerType: string | undefined;
+
+		try {
+			({ whereClause, orderBy, explanation, answer, answerType } =
+				await claudeSearchService.parseNaturalLanguageQuery(query));
+		} catch (_claudeError) {
+			return res.status(503).json({
+				error: "AI service unavailable",
+				message: "Unable to process natural language query. Please try again.",
+			});
+		}
 
 		// Query the database with the generated filters
 		const yearFilteredClause = { ...whereClause, year: DISPLAY_YEAR };

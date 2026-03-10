@@ -341,8 +341,8 @@ describe("Property Routes - Claude Search", () => {
 				.post("/api/properties/search")
 				.send({ query: "test query" });
 
-			expect(response.status).toBe(500);
-			expect(response.body).toHaveProperty("error", "Internal server error");
+			expect(response.status).toBe(503);
+			expect(response.body).toHaveProperty("error", "AI service unavailable");
 			expect(response.body).toHaveProperty("message");
 		});
 

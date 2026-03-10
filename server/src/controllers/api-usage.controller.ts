@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { prismaReadOnly } from "../lib/prisma";
 
@@ -74,7 +74,7 @@ export class ApiUsageController {
             COUNT(CASE WHEN success THEN 1 END)::bigint as success_count
           FROM api_usage_logs
           WHERE timestamp >= ${startDate}
-            ${envFilter ? `AND environment = ${envFilter}` : ""}
+            ${envFilter ? Prisma.sql`AND environment = ${envFilter}` : Prisma.empty}
           GROUP BY DATE(timestamp)
           ORDER BY date DESC
         `,
@@ -165,9 +165,15 @@ export class ApiUsageController {
 	async getUsageLogs(req: Request, res: Response) {
 		const { limit = 50, offset = 0, environment, success } = req.query;
 
+		const limitStr = typeof limit === "string" ? limit : "50";
+		const offsetStr = typeof offset === "string" ? offset : "0";
+		const envFilter = typeof environment === "string" ? environment : undefined;
+		const limitNum = Math.min(parseInt(limitStr, 10) || 50, 1000);
+		const offsetNum = parseInt(offsetStr, 10) || 0;
+
 		const where: Prisma.ApiUsageLogWhereInput = {};
-		if (environment) {
-			where.environment = environment as string;
+		if (envFilter) {
+			where.environment = envFilter;
 		}
 		if (success !== undefined) {
 			where.success = success === "true";
@@ -177,8 +183,8 @@ export class ApiUsageController {
 			prismaReadOnly.apiUsageLog.findMany({
 				where,
 				orderBy: { timestamp: "desc" },
-				take: Math.min(parseInt(limit as string, 10) || 50, 1000),
-				skip: parseInt(offset as string, 10) || 0,
+				take: limitNum,
+				skip: offsetNum,
 			}),
 			prismaReadOnly.apiUsageLog.count({ where }),
 		]);
@@ -187,9 +193,9 @@ export class ApiUsageController {
 			data: logs,
 			pagination: {
 				total,
-				limit: parseInt(limit as string, 10) || 50,
-				offset: parseInt(offset as string, 10) || 0,
-				hasMore: (parseInt(offset as string, 10) || 0) + logs.length < total,
+				limit: limitNum,
+				offset: offsetNum,
+				hasMore: offsetNum + logs.length < total,
 			},
 		});
 	}
