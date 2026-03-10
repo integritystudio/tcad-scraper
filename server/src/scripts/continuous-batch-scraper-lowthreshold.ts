@@ -114,6 +114,7 @@ class LowThresholdScraper {
 		}
 
 		await this.printFinalReport();
+		await prisma.$disconnect();
 		process.exit(0);
 	}
 
@@ -197,8 +198,9 @@ class LowThresholdScraper {
 
 if (require.main === module) {
 	const scraper = new LowThresholdScraper();
-	scraper.run().catch((error) => {
+	scraper.run().catch(async (error) => {
 		logger.error(`Fatal error: ${getErrorMessage(error)}`);
+		await prisma.$disconnect();
 		process.exit(1);
 	});
 }
