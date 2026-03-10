@@ -8,7 +8,7 @@
  * - Accessibility features
  */
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Property } from "../../types";
 import { PropertyCard } from "../features/PropertySearch/PropertyCard";
@@ -103,13 +103,14 @@ describe("PropertyCard", () => {
 			const expandButton = screen.getByRole("button", {
 				name: /show details/i,
 			});
-			fireEvent.click(expandButton);
 
-			await waitFor(() => {
-				expect(
-					screen.getByRole("button", { name: /hide details/i }),
-				).toBeInTheDocument();
+			await act(async () => {
+				fireEvent.click(expandButton);
 			});
+
+			expect(
+				screen.getByRole("button", { name: /hide details/i }),
+			).toBeInTheDocument();
 		});
 
 		it("shows Hide Details button when expanded", async () => {

@@ -9,7 +9,8 @@
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import React from "react";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the analytics hook
 vi.mock("../hooks", () => ({
@@ -51,6 +52,14 @@ vi.mock("../components/ErrorBoundary", () => ({
 }));
 
 describe("App", () => {
+	// Import App once per suite to avoid repeated slow dynamic imports.
+	// The Analytics test that needs a fresh mock still uses its own import() inside the test.
+	let App: React.ComponentType;
+
+	beforeAll(async () => {
+		({ default: App } = await import("../App"));
+	});
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
@@ -61,8 +70,6 @@ describe("App", () => {
 
 	describe("Code Splitting", () => {
 		it("should render PropertySearchContainer after suspense resolves", async () => {
-			const { default: App } = await import("../App");
-
 			render(<App />);
 
 			await waitFor(() => {
@@ -75,8 +82,6 @@ describe("App", () => {
 
 	describe("Error Boundary", () => {
 		it("should wrap app content in error boundary", async () => {
-			const { default: App } = await import("../App");
-
 			render(<App />);
 
 			await waitFor(() => {
@@ -87,8 +92,6 @@ describe("App", () => {
 
 	describe("Layout", () => {
 		it("should render Footer component", async () => {
-			const { default: App } = await import("../App");
-
 			render(<App />);
 
 			await waitFor(() => {
