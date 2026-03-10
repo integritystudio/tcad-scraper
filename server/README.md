@@ -25,11 +25,7 @@ PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d tcad_scraper -c "SE
 ```
 
 ### Token Expiration
-The TCAD API token expires every 5 minutes. The scraper needs the token refreshed regularly:
-```bash
-/home/aledlie/tcad-scraper/scripts/refresh-tcad-token.sh
-```
-When the token expires, jobs fail with HTTP 401 errors and the processing rate drops to near 0.
+The TCAD API token expires every 5 minutes. The `token-refresh.service.ts` auto-refreshes tokens via Cloudflare Worker. When the token expires, jobs fail with HTTP 401 errors and the processing rate drops to near 0.
 
 ## Prerequisites
 
@@ -56,12 +52,10 @@ npx playwright install-deps chromium
 
 ```bash
 # From project root
-cd /home/aledlie/tcad-scraper
-docker-compose up -d
+docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d
 
 # Verify services are running
 docker ps
-# Should see: tcad-postgres and bullmq-redis
 ```
 
 ### 3. Initialize Database

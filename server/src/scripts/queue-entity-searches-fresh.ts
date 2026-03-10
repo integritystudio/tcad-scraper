@@ -166,7 +166,7 @@ async function clearAndQueueSearches() {
 
 			logger.info("⚠️  Note: Token expires in 5 minutes!");
 			logger.info(
-				"   Run scripts/refresh-tcad-token.sh every 4 minutes to keep scraping active\n",
+				"   token-refresh.service.ts handles auto-refresh via Cloudflare Worker\n",
 			);
 		}
 

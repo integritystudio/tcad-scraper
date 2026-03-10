@@ -235,9 +235,6 @@ tcad-scraper/
 │   ├── search.spec.ts (481 tokens)
 │   └── pages/ (403 tokens)
 ├── scripts/ (18,926 tokens)
-│   ├── docker-build.sh (1,281 tokens)
-│   ├── docker-dev.sh (1,395 tokens)
-│   ├── docker-prod.sh (1,931 tokens)
 │   ├── generate-build-constants.ts (875 tokens)
 │   ├── search-terms-summary.sh (599 tokens)
 │   ├── test-import-paths.ts (1,963 tokens)
@@ -708,41 +705,7 @@ By default, authentication is optional in development. Configure `JWT_SECRET` an
 
 ### Continuous Production Scraper
 
-#### Using PM2 (Recommended)
-
-The preferred way to run the scraper in production with PM2 process management:
-
-```bash
-cd server
-
-# Start with PM2 using ecosystem config
-pm2 start ecosystem.config.js
-
-# Or start just the continuous-enqueue process
-pm2 start continuous-enqueue
-
-# Monitor processes
-pm2 list
-pm2 status continuous-enqueue
-
-# View logs
-pm2 logs continuous-enqueue
-pm2 logs continuous-enqueue --lines 100
-
-# Restart process
-pm2 restart continuous-enqueue
-
-# Stop process
-pm2 stop continuous-enqueue
-
-# Save PM2 configuration (persists across reboots)
-pm2 save
-pm2 startup  # Follow instructions to enable auto-start on boot
-```
-
-#### Using Direct Process
-
-Alternative method without PM2:
+#### Running Directly
 
 ```bash
 cd server
@@ -779,23 +742,7 @@ kill $(cat continuous-scraper.pid)
 
 #### TCAD API Token Management
 
-The TCAD API requires token refresh every ~5 minutes. An automated cron job handles this:
-
-```bash
-# View current cron jobs
-crontab -l
-
-# The cron job (already configured):
-# */4 * * * * /home/aledlie/tcad-scraper/scripts/refresh-tcad-token.sh >> /home/aledlie/tcad-scraper/logs/token-refresh-cron.log 2>&1
-
-# Monitor token refresh logs
-tail -f /home/aledlie/tcad-scraper/logs/token-refresh-cron.log
-
-# Manually refresh token if needed
-/home/aledlie/tcad-scraper/scripts/refresh-tcad-token.sh
-```
-
-**Token refresh runs every 4 minutes automatically**, preventing HTTP 401 errors during continuous scraping.
+The TCAD API requires token refresh every ~5 minutes. The `token-refresh.service.ts` handles this automatically. See [TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md) for details.
 
 ### Priority Search Terms
 
@@ -1305,8 +1252,7 @@ When using browser-based scraping, TCAD's AG Grid pagination controls are hidden
 The API-based scraping method requires token refresh every ~5 minutes. The scraper handles this automatically, but rapid scraping may occasionally hit rate limits.
 
 **Solution Implemented**:
-- Automated cron job refreshes token every 4 minutes
-- Cron logs to `/home/aledlie/tcad-scraper/logs/token-refresh-cron.log`
+- `token-refresh.service.ts` auto-refreshes tokens via Cloudflare Worker
 - Provides 1-minute buffer before expiration
 - Prevents HTTP 401 errors during continuous scraping
 

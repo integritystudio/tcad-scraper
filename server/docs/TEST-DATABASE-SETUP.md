@@ -5,7 +5,7 @@ This guide explains how to set up and manage the test database for local develop
 ## Quick Start
 
 ```bash
-cd /home/aledlie/tcad-scraper/server
+cd server
 
 # Create test database and run migrations
 ./scripts/setup-test-db.sh
@@ -89,7 +89,7 @@ PGPASSWORD=postgres psql -h localhost -U postgres -d postgres \
   -c "CREATE DATABASE tcad_scraper_test;"
 
 # 2. Run migrations
-cd /home/aledlie/tcad-scraper/server
+cd server
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper_test" \
   npx prisma migrate deploy
 

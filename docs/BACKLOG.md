@@ -116,6 +116,30 @@
 **Likely causes**: heavy `@testing-library/react` `waitFor` timeouts, JSDOM resource contention, or missing `act()` wrappers
 **Impact**: Flakes erode trust in CI; the `vi.resetModules()` leak (item 6) may contribute
 
+### Code Review 2026-03-09 of `server/src/scripts/` - Script Consolidation Issues
+
+**Context**: repomix-explorer:explorer analysis identified 5 consolidation opportunities in scripts directory: 2 duplicated scripts (entity searches), 4-file duplication of utility functions, 1 near-duplicate scraper variant, 1 reimplemented shared utility, and 3 scripts with hardcoded options.
+
+#### M25: Consolidate queue-entity-searches.ts and queue-entity-searches-fresh.ts
+**Priority**: P2 | **Source**: repomix-explorer session 2026-03-09
+Both files share identical 52-term `ENTITY_TERMS` array. The only behavioral difference is that `-fresh.ts` cleans up failed jobs before enqueueing. Merge into single script with `--fresh` flag to eliminate ~150 LOC duplication. -- `server/src/scripts/queue-entity-searches*.ts`
+
+#### M26: Extract get2025Count() and related helpers to lib/backfill-utils.ts
+**Priority**: P2 | **Source**: repomix-explorer session 2026-03-09
+`get2025Count()` function is copy-pasted identically across 4 backfill scripts (backfill-2025.ts, backfill-2025-proven.ts, backfill-2025-unsearched.ts, backfill-2025-novel.ts). Also duplicates `MAX_CONSECUTIVE_ZERO_BATCHES` and `getSearchedTerms()` variants. Extract to shared `lib/backfill-utils.ts` and import across all 4 scripts. -- `server/src/scripts/backfill-2025*.ts`
+
+#### M27: Replace continuous-batch-scraper-lowthreshold.ts with --low-threshold flag
+**Priority**: P2 | **Source**: repomix-explorer session 2026-03-09
+`continuous-batch-scraper-lowthreshold.ts` is a near-duplicate of main scraper (~160 LOC) with only threshold constants changed. Reimplements entire run loop instead of composing from shared logic. Add `--low-threshold` CLI flag to main scraper and delete duplicate file. -- `server/src/scripts/continuous-batch-scraper*.ts`
+
+#### L25: Fix enqueue-prefix-expansions.ts to use shared waitForQueueDrain
+**Priority**: P3 | **Source**: repomix-explorer session 2026-03-09
+`enqueue-prefix-expansions.ts` reimplements its own `waitForQueueDrain` (lines 10-18) instead of importing from `../lib/queue-utils.ts` where it's shared across 6+ scripts. Replace local implementation with shared import. -- `server/src/scripts/enqueue-prefix-expansions.ts:10-18`
+
+#### L26: Consolidate hardcoded job options to use config.queue.defaultJobOptions
+**Priority**: P3 | **Source**: repomix-explorer session 2026-03-09
+3 scripts (`queue-entity-searches.ts`, `queue-entity-searches-fresh.ts`, `enqueue-terms.ts`) hardcode job options `{ attempts: 3, backoff: { type: 'exponential', delay: 2000 }, removeOnComplete: 100, removeOnFail: 50 }` instead of using shared config. Centralize to shared config like `lib/queue-utils.ts` does. -- `server/src/scripts/{queue-entity-searches*.ts,enqueue-terms.ts}`
+
 ---
 
 ## Completed

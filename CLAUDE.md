@@ -30,7 +30,6 @@ All secrets via Doppler. **Project**: `integrity-studio` | **Config**: `dev` / `
 
 ```bash
 doppler run -- npm run dev
-doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d
 ```
 
 ---
@@ -57,8 +56,7 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 
 ### Infrastructure
 - **Hosting**: GitHub Pages (frontend via `alephatx.info`), Render (API)
-- Docker Compose: `config/docker-compose.base.yml` + `dev.yml`
-- Monitoring: `config/monitoring/` (Grafana dashboards, Prometheus configs)
+- Monitoring: `config/monitoring/` (Grafana dashboards, Prometheus configs, Docker Compose)
 - Ports: Frontend 5174, Backend 3001, Redis 6379 (Render TLS), PostgreSQL (Render)
 
 ### Project Layout
@@ -67,8 +65,8 @@ doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker
 ├── server/               # Backend (Express + BullMQ + Prisma)
 │   ├── src/scripts/      # CLI tools, batch scripts, test utilities
 │   └── prisma/           # Schema + migrations (canonical location)
-├── config/               # Docker Compose, monitoring, GTM configs
-│   └── monitoring/       # Grafana dashboards, Prometheus rules + Alloy
+├── config/               # Monitoring, GTM configs
+│   └── monitoring/       # Grafana dashboards, Prometheus rules + Docker Compose
 ├── scripts/              # Shell + Python utility scripts
 ├── shared/               # Shared types between frontend/backend
 └── docs/                 # All documentation
@@ -93,9 +91,6 @@ npm install && doppler run -- npm run dev
 
 # Backend
 cd server && npm install && doppler run -- npm run dev
-
-# Docker
-doppler run -- docker-compose -f config/docker-compose.base.yml -f config/docker-compose.dev.yml up -d
 
 # Database
 npx prisma generate
