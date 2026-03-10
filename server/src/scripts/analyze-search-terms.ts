@@ -190,8 +190,13 @@ async function analyzeSearchTerms(): Promise<void> {
 	const propertyCount = await prisma.property.count();
 	console.log(`   Total properties in DB: ${propertyCount.toLocaleString()}`);
 	console.log(`   Target (TCAD total): ${TCAD_TOTAL_PROPERTIES.toLocaleString()}`);
+	if (propertyCount > TCAD_TOTAL_PROPERTIES) {
+		console.warn(
+			`   ⚠️  DB count (${propertyCount.toLocaleString()}) exceeds TCAD_TOTAL_PROPERTIES (${TCAD_TOTAL_PROPERTIES.toLocaleString()}) — constant may be stale; update line 17`,
+		);
+	}
 	console.log(`   Coverage: ${((propertyCount / TCAD_TOTAL_PROPERTIES) * 100).toFixed(1)}%`);
-	console.log(`   Remaining: ${(TCAD_TOTAL_PROPERTIES - propertyCount).toLocaleString()}`);
+	console.log(`   Remaining: ${Math.max(0, TCAD_TOTAL_PROPERTIES - propertyCount).toLocaleString()}`);
 
 	// 8. Recommendations
 	console.log("\n💡 Recommendations:");
