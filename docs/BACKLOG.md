@@ -118,13 +118,95 @@ Both files share identical 52-term `ENTITY_TERMS` array. The only behavioral dif
 ### ~~M27: Replace continuous-batch-scraper-lowthreshold.ts with --low-threshold flag~~
 Done — `LOW_THRESHOLD_TIER_CONFIG` extracted, duplicate file deleted (ce344a7)
 
-### L25: Fix enqueue-prefix-expansions.ts to use shared waitForQueueDrain
-**Priority**: P3 | **Source**: repomix-explorer session 2026-03-09
-`enqueue-prefix-expansions.ts` already imports `waitForQueueDrain` from `lib/queue-utils.ts` (line 13). ~~Reimplements its own version.~~ Resolved — verified import at line 13.
+### ~~L25: Fix enqueue-prefix-expansions.ts to use shared waitForQueueDrain~~
+Done — already imports `waitForQueueDrain` from `lib/queue-utils.ts` at line 13; no duplicate implementation exists.
 
-### L26: Consolidate hardcoded job options to use config.queue.defaultJobOptions
-**Priority**: P3 | **Source**: repomix-explorer session 2026-03-09
-`enqueue-terms.ts` hardcodes job options `{ attempts: 3, backoff: { type: 'exponential', delay: 2000 }, removeOnComplete: 100, removeOnFail: 50 }` instead of using shared config. Consolidate to `lib/queue-utils.ts` pattern. -- `server/src/scripts/enqueue-terms.ts`
+### ~~L26: Consolidate hardcoded job options to use config.queue.defaultJobOptions~~
+Done — `enqueue-terms.ts` already delegates entirely to `enqueueBatch()` in `lib/queue-utils.ts`, which uses `config.queue.defaultJobOptions`; no hardcoded job options remain.
+
+---
+
+## Security Findings from Code Review (2026-03-10)
+
+### C1: SQL Injection in api-usage.controller.ts
+**Priority**: P1 | **Source**: code-reviewer 2026-03-10
+
+`$queryRaw` template literal embeds conditional string interpolation that bypasses Prisma parameterization. Attackers can inject SQL via the `environment` query parameter. Use `Prisma.sql` helper or refactor to Prisma client methods. -- `server/src/controllers/api-usage.controller.ts:50-60`
+
+---
+
+### M31: Bull Dashboard lacks authentication
+**Priority**: P2 | **Source**: code-reviewer 2026-03-10
+
+`/admin/queues` endpoint is fully public and exposes job payloads, queue history, and drain controls. Add `apiKeyAuth` middleware before `serverAdapter.getRouter()`. -- `server/src/index.ts:91-99`
+
+### M32: Hardcoded JWT fallback secret in config
+**Priority**: P2 | **Source**: code-reviewer 2026-03-10
+
+`config/index.ts` line 146 uses `process.env.JWT_SECRET || "fallback-secret-change-in-production"`. While guarded in production by `validateConfig()`, the fallback is evaluated and usable in dev/test environments. Replace with `?? ""` and guard generation. -- `server/src/config/index.ts:146`
+
+### M33: Redis TLS certificate verification disabled
+**Priority**: P2 | **Source**: code-reviewer 2026-03-10
+
+Both `scraper.queue.ts:44` and `redis-cache.service.ts:26` set `rejectUnauthorized: false`, disabling TLS certificate verification. Render-managed Redis uses valid CA-signed certs. Remove the flag or set to `true`. -- `server/src/queues/scraper.queue.ts:44`, `server/src/lib/redis-cache.service.ts:26`
+
+### M34: Blocking execSync in config initialization
+**Priority**: P2 | **Source**: code-reviewer 2026-03-10
+
+`config/index.ts:181-187` calls `execSync()` synchronously at module load time to fetch `ANTHROPIC_API_KEY` via doppler CLI. Blocks event loop 100-500ms on cold start. Refactor to async config initialization or rely exclusively on Doppler env injection. -- `server/src/config/index.ts:181-187`
+
+### ~~M35: Hardcoded DISPLAY_YEAR = 2025 hides 2026 data~~
+**Status**: Intentional — DISPLAY_YEAR is deliberately pinned to 2025; not a bug.
+
+### M36: Unprotected write endpoints allow mass job enqueueing
+**Priority**: P2 | **Source**: code-reviewer 2026-03-10
+
+`POST /api/properties/scrape` and `POST /api/properties/monitor` use `optionalAuth` only. Public clients can enqueue unlimited scrape jobs via distinct terms (in-process rate limiter only blocks same term twice per 5 sec). Add `apiKeyAuth` to write endpoints. -- `server/src/index.ts:281`, `server/src/routes/property.routes.ts`
+
+---
+
+### L27: Missing try/catch in naturalLanguageSearch database calls
+**Priority**: P3 | **Source**: code-reviewer 2026-03-10
+
+`property.controller.ts:130-196` has no error boundary around three `prismaReadOnly` calls. Prisma errors propagate as unhandled promise rejections, leaking `err.message` in responses. Wrap DB block in try/catch. -- `server/src/controllers/property.controller.ts:130-196`
+
+### L28: Unsafe job.id.toString() with undefined guard
+**Priority**: P3 | **Source**: code-reviewer 2026-03-10
+
+`property.controller.ts:37` calls `job.id.toString()` without null check. If `job.id` is `undefined`, returns string `"undefined"` as job ID, which clients then poll. Add guard: `if (!job.id) throw new Error("Queue returned job without ID")`. -- `server/src/controllers/property.controller.ts:37`
+
+### L29: In-memory rate limiter ineffective across replicas
+**Priority**: P3 | **Source**: code-reviewer 2026-03-10
+
+`canScheduleJob()` uses process-local `Map` to rate-limit scrape requests. With multiple Render replicas, each gets a fresh Map and rate limit resets on restart. Use Redis TTL key instead. -- `server/src/queues/scraper.queue.ts:263-278`
+
+### L30: No length cap on natural language query sent to Claude
+**Priority**: P3 | **Source**: code-reviewer 2026-03-10
+
+`claude.service.ts:156` passes raw `query` to Claude prompt without max length validation. Risk of prompt inflation and token burn. Verify Zod schema enforces `max()` length or add `.max(500)`. -- `server/src/lib/claude.service.ts:156`
+
+### L31: Silent error swallowing in optionalAuth middleware
+**Priority**: P3 | **Source**: code-reviewer 2026-03-10
+
+`auth.ts:66-67` catches JWT verification errors and silently discards with no log entry, making auth debugging invisible. Add `logger.debug()` on error. -- `server/src/middleware/auth.ts:66-67`
+
+### L32: Unvalidated as string casts on query parameters
+**Priority**: P3 | **Source**: code-reviewer 2026-03-10
+
+`api-usage.controller.ts:7,16` use `as string` casts on `req.query` params without validation. If client sends array `?days[]=5&days[]=10`, `days as string` produces `NaN`. Add `validateQuery` schema. -- `server/src/controllers/api-usage.controller.ts:7,16`
+
+### L33: process.env.NODE_ENV read directly instead of config object
+**Priority**: P4 | **Source**: code-reviewer 2026-03-10
+
+`error.middleware.ts:48,51` reads `process.env.NODE_ENV` directly instead of using `config.env.isDevelopment`. Bypasses centralized config. Replace with `import { config }` and use `config.env.isDevelopment`. -- `server/src/middleware/error.middleware.ts:48,51`
+
+### L34: isDevelopment=true during test leaks error messages
+**Priority**: P4 | **Source**: code-reviewer 2026-03-10
+
+`config/index.ts` sets `isDevelopment: NODE_ENV !== "production"`, which is true in test environment (`NODE_ENV=test`). Integration tests with actual server leak error messages in 500 responses. Add exclusive `isTest`, `isProduction`, `isDevelopment` flags. -- `server/src/config/index.ts`
+
+### ~~L35: CommonJS require.main === module idiom in ESM project~~
+Done — `tsconfig.json` has `"module": "commonjs"`; `require.main === module` is the correct pattern for this project. No change needed.
 
 ---
 
