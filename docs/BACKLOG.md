@@ -65,15 +65,15 @@
 ### Code Review 2026-03-09: Full-Stack Review of 10-commit session (backlog-implementer)
 
   High
-  25. `queue-utils.ts` uses `console.error` for enqueue failures — inconsistent with callers using `winston` logger; library should accept logger param or re-throw (c8a8d10, 9461f93)
+  25. [x] `queue-utils.ts` uses `console.error` for enqueue failures — added `EnqueueLogger` interface, lowthreshold scraper passes winston logger (1e74962, 2a97e19)
 
   Medium
-  26. `migrate-to-logger.ts` --dry-run flag shows no diff, only "[dry-run] Would migrate: <file>" — usability gap; should print replacement count or side-by-side diff for verification (684b1e1)
-  27. `generate-next-200-terms.ts` line 318 hardcodes `'scrape-properties'` instead of `config.queue.jobName` — creates divergence risk if config value changes; other scripts use config (63c6f07, shared with backfill via queue-utils)
-  28. `analyze-search-terms.ts` TCAD_TOTAL_PROPERTIES has no staleness signal — coverage >100% printed silently if DB count exceeds constant; should add runtime guard (1514129)
+  26. [x] `migrate-to-logger.ts` --dry-run flag shows no diff — now prints total + per-type replacement breakdown (c175bb4, 49f639e)
+  27. [x] `generate-next-200-terms.ts` line 318 hardcodes `'scrape-properties'` — replaced with `config.queue.jobName` (ca06eda)
+  28. [x] `analyze-search-terms.ts` TCAD_TOTAL_PROPERTIES has no staleness signal — added runtime guard + Math.max(0,...) clamp (7f194f5)
 
   Low
-  29. `continuous-batch-scraper-lowthreshold.ts` does not `await prisma.$disconnect()` before `process.exit(0)` — leaves open Postgres connections; backfill scripts do this in `.finally()` (6990044, 9461f93)
+  29. [x] `continuous-batch-scraper-lowthreshold.ts` does not `await prisma.$disconnect()` before `process.exit(0)` — added on both normal and error exit paths (dfbd71f)
 
 ---
 
