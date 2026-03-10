@@ -25,10 +25,26 @@ export interface EnqueueLogger {
   error: (msg: string, ...meta: unknown[]) => unknown;
 }
 
+export interface BatchEnqueueConfig {
+  /** Display name for the batch (e.g., "Corporation", "Residential") */
+  batchName: string;
+  /** Emoji to display in logs (e.g., "🏛️", "🏠") */
+  emoji: string;
+  /** Array of search terms to enqueue */
+  terms: string[];
+  /** User ID for job attribution */
+  userId: string;
+  /** Job priority (default: undefined) */
+  priority?: number;
+  /** Additional log messages to display after initial logs */
+  extraLogs?: () => void;
+}
+
 export async function enqueueBatch(
   terms: string[],
   userId: string,
   logger: EnqueueLogger = console,
+  priority?: number,
 ): Promise<number> {
   const { jobName, defaultJobOptions } = config.queue;
   let enqueued = 0;
@@ -42,6 +58,7 @@ export async function enqueueBatch(
           backoff: { type: "exponential", delay: defaultJobOptions.backoffDelay },
           removeOnComplete: defaultJobOptions.removeOnComplete,
           removeOnFail: defaultJobOptions.removeOnFail,
+          ...(priority !== undefined && { priority }),
         },
       );
       enqueued++;

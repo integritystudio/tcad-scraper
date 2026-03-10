@@ -12,7 +12,7 @@
 
 import logger from "../lib/logger";
 import { BATCH_CONFIGS, getAvailableBatchTypes } from "./config/batch-configs";
-import { enqueueBatchGeneric } from "./utils/batch-enqueue";
+import { enqueueBatch } from "./lib/queue-utils";
 
 const args = process.argv.slice(2);
 
@@ -40,15 +40,21 @@ async function run() {
 	const batchTypes = args.includes("--all") ? getAvailableBatchTypes() : args;
 
 	for (const batchType of batchTypes) {
-		const config = BATCH_CONFIGS[batchType];
-		if (!config) {
+		const batchCfg = BATCH_CONFIGS[batchType];
+		if (!batchCfg) {
 			logger.error(
 				`Unknown batch type: "${batchType}". Use --list to see available types.`,
 			);
 			process.exit(1);
 		}
 
-		await enqueueBatchGeneric(config);
+		const { batchName, emoji, terms, userId, priority, extraLogs } = batchCfg;
+		logger.info(`${emoji} Starting ${batchName} Batch Enqueue`);
+		if (extraLogs) extraLogs();
+		const successCount = await enqueueBatch(terms, userId, logger, priority);
+		const failCount = terms.length - successCount;
+		logger.info(`📊 Summary: ${successCount} queued, ${failCount} failed`);
+		logger.info(`✨ ${batchName} batch enqueue completed!`);
 	}
 }
 

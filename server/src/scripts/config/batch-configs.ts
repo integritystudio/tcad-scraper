@@ -12,7 +12,7 @@
  * Example: npx tsx src/scripts/enqueue-batch.ts llc
  */
 
-import type { BatchEnqueueConfig } from "../utils/batch-enqueue";
+import type { BatchEnqueueConfig } from "../lib/queue-utils";
 
 type BatchConfigEntry = Omit<BatchEnqueueConfig, "extraLogs">;
 
