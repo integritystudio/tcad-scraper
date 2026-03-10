@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { config } from "../config";
+import logger from "../lib/logger";
 
 export interface AuthRequest extends Request {
 	user?: {
@@ -79,8 +80,8 @@ export const optionalAuth = (
 				email?: string;
 			};
 			req.user = decoded;
-		} catch (_error) {
-			// Invalid token, but we continue anyway
+		} catch (error) {
+			logger.debug({ err: error }, "optionalAuth: invalid JWT token, continuing unauthenticated");
 		}
 	}
 

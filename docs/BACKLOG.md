@@ -183,10 +183,8 @@ Done — added `if (!job.id)` guard returning 500 before `.toString()` call. -- 
 
 `claude.service.ts:156` passes raw `query` to Claude prompt without max length validation. Risk of prompt inflation and token burn. Verify Zod schema enforces `max()` length or add `.max(500)`. -- `server/src/lib/claude.service.ts:156`
 
-### L31: Silent error swallowing in optionalAuth middleware
-**Priority**: P3 | **Source**: code-reviewer 2026-03-10
-
-`auth.ts:66-67` catches JWT verification errors and silently discards with no log entry, making auth debugging invisible. Add `logger.debug()` on error. -- `server/src/middleware/auth.ts:66-67`
+### ~~L31: Silent error swallowing in optionalAuth middleware~~
+Done — added `logger.debug()` on JWT verify errors in `optionalAuth` catch block. -- `server/src/middleware/auth.ts`
 
 ### L32: Unvalidated as string casts on query parameters
 **Priority**: P3 | **Source**: code-reviewer 2026-03-10
