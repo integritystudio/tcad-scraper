@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-09 (backlog-implementer + full-stack review)
-**Status**: 124/124 tests passing | TypeScript clean | Lint clean
+**Last Updated**: 2026-03-09 (backlog-implementer session 2 — items 25–29 + test gaps)
+**Status**: 124/124 tests passing (4-5 flaky) | TypeScript clean | Lint clean
 
 ---
 ## Open Items
@@ -74,6 +74,59 @@
 
   Low
   29. [x] `continuous-batch-scraper-lowthreshold.ts` does not `await prisma.$disconnect()` before `process.exit(0)` — added on both normal and error exit paths (dfbd71f)
+
+### Test Coverage Gaps — backlog-implementer session 2026-03-09
+
+**Context**: 5 script files were modified (items 25–29) with zero unit test coverage. The only test file under `server/src/scripts/` is `config/__tests__/batch-configs.test.ts`. Additionally, 4–5 React component tests are flaky due to timeouts.
+
+#### TC-05: `queue-utils.ts` — no unit tests (Medium)
+**File**: `server/src/scripts/lib/queue-utils.ts`
+**What to test**:
+- `enqueueBatch` returns count of successfully enqueued terms
+- `enqueueBatch` calls `logger.error` (not `console.error`) when a term fails, using the injected logger
+- `enqueueBatch` with default logger (console) for backward compat
+- `waitForQueueDrain` resolves when both active and waiting counts reach 0
+**Mocking needed**: `scraperQueue.add`, `scraperQueue.getWaitingCount`, `scraperQueue.getActiveCount`, `config.queue`
+**Why**: Shared library used by 6+ scripts; logger injection (item 25) and config-driven job options are untested
+
+#### TC-06: `migrate-to-logger.ts` dry-run output — no unit tests (Medium)
+**File**: `server/src/scripts/migrate-to-logger.ts`
+**What to test**:
+- `migrateFile(path, dryRun=true)` prints per-type replacement counts and does NOT write to disk
+- `migrateFile(path, dryRun=false)` writes modified content
+- Files with no `console.*` calls produce "No changes" output
+- Regex label output is human-readable (no escaped backslashes in `from` labels)
+**Mocking needed**: `fs.readFileSync`, `fs.writeFileSync`, `console.log`
+**Why**: Item 26 added replacement-count breakdown with no test; fragile `from` label escaping (item 26 follow-up) needs regression guard
+
+#### TC-07: `analyze-search-terms.ts` staleness guard — no unit tests (Low)
+**File**: `server/src/scripts/analyze-search-terms.ts`
+**What to test**:
+- `console.warn` fires when `propertyCount > TCAD_TOTAL_PROPERTIES`
+- `Remaining` clamps to 0 (never negative) when DB count exceeds constant
+- Division by zero when `totalJobs === 0` (pre-existing gap flagged by full-stack reviewer)
+**Mocking needed**: `prisma.property.count`, `prisma.scrapeJob.count`, `console.warn`
+**Why**: Item 28 added guard but the script has no test coverage at all; the division-by-zero edge case was flagged as MEDIUM by the full-stack reviewer
+
+#### TC-08: `generate-next-200-terms.ts` enqueue path — no unit tests (Low)
+**File**: `server/src/scripts/generate-next-200-terms.ts`
+**What to test**:
+- `--enqueue` flag triggers `enqueueBatch` with selected terms and `'next-200-gen'` userId
+- `scraperQueue.close()` is called after enqueue completes
+- `prisma.$disconnect()` is called in `.finally()` on both success and error paths
+**Mocking needed**: `prisma.*`, `scraperQueue`, `enqueueBatch`
+**Why**: Item 27 switched to `enqueueBatch` helper; item 1548030 added prisma disconnect — both untested
+
+#### TC-09: Flaky React component tests — intermittent timeout failures (Medium)
+**Files**: `src/__tests__/App.test.tsx`, `src/components/__tests__/LoadingSkeleton.test.tsx`, `src/components/__tests__/PropertyCard.test.tsx`, `src/components/__tests__/SearchBox.test.tsx`
+**Symptoms**: 4–5 tests fail intermittently with 5–11 second timeouts. Confirmed by running baseline (no code changes) — same failures. Tests that fail:
+- "should render PropertySearchContainer after suspense resolves" (App.test.tsx)
+- "should wrap app content in error boundary" (App.test.tsx)
+- "should have role='status' for screen readers" (LoadingSkeleton.test.tsx)
+- "expands when expand button is clicked" (PropertyCard.test.tsx)
+- "should have accessible label for search input" (SearchBox.test.tsx)
+**Likely causes**: heavy `@testing-library/react` `waitFor` timeouts, JSDOM resource contention, or missing `act()` wrappers
+**Impact**: Flakes erode trust in CI; the `vi.resetModules()` leak (item 6) may contribute
 
 ---
 
