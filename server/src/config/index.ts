@@ -197,7 +197,7 @@ export const config = {
 	auth: {
 		apiKey: process.env.API_KEY,
 		jwt: {
-			secret: process.env.JWT_SECRET || "fallback-secret-change-in-production",
+			secret: process.env.JWT_SECRET ?? "",
 			expiresIn: process.env.JWT_EXPIRES_IN || "7d",
 		},
 		skipInDevelopment: parseBoolEnv("AUTH_SKIP_IN_DEVELOPMENT", true),

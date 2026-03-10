@@ -128,10 +128,8 @@ Done — `enqueue-terms.ts` already delegates entirely to `enqueueBatch()` in `l
 
 ## Security Findings from Code Review (2026-03-10)
 
-### C1: SQL Injection in api-usage.controller.ts
-**Priority**: P1 | **Source**: code-reviewer 2026-03-10
-
-`$queryRaw` template literal embeds conditional string interpolation that bypasses Prisma parameterization. Attackers can inject SQL via the `environment` query parameter. Use `Prisma.sql` helper or refactor to Prisma client methods. -- `server/src/controllers/api-usage.controller.ts:50-60`
+### ~~C1: SQL Injection in api-usage.controller.ts~~
+Done — already resolved by L32: `$queryRaw` uses `Prisma.sql\`AND environment = ${envFilter}\`` with proper parameterization; no string interpolation bypasses Prisma. -- `server/src/controllers/api-usage.controller.ts:77`
 
 ---
 
