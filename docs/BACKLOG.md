@@ -191,15 +191,11 @@ Done — added `logger.debug()` on JWT verify errors in `optionalAuth` catch blo
 
 `api-usage.controller.ts:7,16` use `as string` casts on `req.query` params without validation. If client sends array `?days[]=5&days[]=10`, `days as string` produces `NaN`. Add `validateQuery` schema. -- `server/src/controllers/api-usage.controller.ts:7,16`
 
-### L33: process.env.NODE_ENV read directly instead of config object
-**Priority**: P4 | **Source**: code-reviewer 2026-03-10
+### ~~L33: process.env.NODE_ENV read directly instead of config object~~
+Done — replaced `process.env.NODE_ENV === "development"` with `config.env.isDevelopment` in error handler. -- `server/src/middleware/error.middleware.ts`
 
-`error.middleware.ts:48,51` reads `process.env.NODE_ENV` directly instead of using `config.env.isDevelopment`. Bypasses centralized config. Replace with `import { config }` and use `config.env.isDevelopment`. -- `server/src/middleware/error.middleware.ts:48,51`
-
-### L34: isDevelopment=true during test leaks error messages
-**Priority**: P4 | **Source**: code-reviewer 2026-03-10
-
-`config/index.ts` sets `isDevelopment: NODE_ENV !== "production"`, which is true in test environment (`NODE_ENV=test`). Integration tests with actual server leak error messages in 500 responses. Add exclusive `isTest`, `isProduction`, `isDevelopment` flags. -- `server/src/config/index.ts`
+### ~~L34: isDevelopment=true during test leaks error messages~~
+Done — changed `isDevelopment: process.env.NODE_ENV === "development"` (exclusive, not `!== "production"`). Auth middleware updated to also skip in `isTest`. error.middleware test updated to mock config instead of mutating `process.env.NODE_ENV`. -- `server/src/config/index.ts`, `server/src/middleware/auth.ts`
 
 ### ~~L35: CommonJS require.main === module idiom in ESM project~~
 Done — `tsconfig.json` has `"module": "commonjs"`; `require.main === module` is the correct pattern for this project. No change needed.

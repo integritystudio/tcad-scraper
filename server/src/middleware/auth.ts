@@ -14,9 +14,9 @@ export interface AuthRequest extends Request {
 export const apiKeyAuth = (req: Request, res: Response, next: NextFunction) => {
 	const apiKey = req.headers["x-api-key"] as string;
 
-	// Skip auth in development if no API key is set and skip is enabled
+	// Skip auth in development/test if no API key is set and skip is enabled
 	if (
-		config.env.isDevelopment &&
+		(config.env.isDevelopment || config.env.isTest) &&
 		config.auth.skipInDevelopment &&
 		!config.auth.apiKey
 	) {
@@ -39,9 +39,9 @@ export const jwtAuth = (
 	const authHeader = req.headers.authorization;
 	const token = authHeader?.split(" ")[1]; // Bearer TOKEN
 
-	// Skip auth in development if no JWT secret is set and skip is enabled
+	// Skip auth in development/test if no JWT secret is set and skip is enabled
 	if (
-		config.env.isDevelopment &&
+		(config.env.isDevelopment || config.env.isTest) &&
 		config.auth.skipInDevelopment &&
 		!config.auth.jwt.secret
 	) {

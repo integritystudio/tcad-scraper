@@ -25,6 +25,17 @@ vi.mock("../../lib/logger", () => ({
 	},
 }));
 
+// Mock config so tests can control isDevelopment without mutating process.env
+vi.mock("../../config", () => ({
+	config: {
+		env: {
+			isDevelopment: false,
+			isProduction: false,
+			isTest: true,
+		},
+	},
+}));
+
 describe("Error Middleware", () => {
 	let mockReq: Partial<Request>;
 	let mockRes: Partial<Response>;
@@ -103,12 +114,6 @@ describe("Error Middleware", () => {
 	});
 
 	describe("errorHandler", () => {
-		const originalEnv = process.env.NODE_ENV;
-
-		afterEach(() => {
-			process.env.NODE_ENV = originalEnv;
-		});
-
 		it("should handle generic errors with 500 status", () => {
 			const error = new Error("Generic error");
 
@@ -124,8 +129,10 @@ describe("Error Middleware", () => {
 			});
 		});
 
-		it("should include error message and stack in development mode", () => {
-			process.env.NODE_ENV = "development";
+		it("should include error message and stack in development mode", async () => {
+			const { config } = await import("../../config");
+			(config.env as { isDevelopment: boolean }).isDevelopment = true;
+
 			const error = new Error("Dev error");
 			error.stack = "Error stack trace";
 
@@ -136,6 +143,8 @@ describe("Error Middleware", () => {
 				message: "Dev error",
 				stack: "Error stack trace",
 			});
+
+			(config.env as { isDevelopment: boolean }).isDevelopment = false;
 		});
 
 		it("should handle ValidationError with 400 status", () => {
@@ -175,7 +184,7 @@ describe("Error Middleware", () => {
 		});
 
 		it("should hide error details in production", () => {
-			process.env.NODE_ENV = "production";
+			// isDevelopment is false by default in the mock config — production-like behavior
 			const error = new Error("Sensitive error information");
 
 			errorHandler(error, mockReq as Request, mockRes as Response, mockNext);

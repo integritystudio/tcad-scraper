@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import type qs from "qs";
+import { config } from "../config";
 import logger from "../lib/logger";
 
 /**
@@ -57,11 +58,10 @@ export const errorHandler = (
 	// Default to 500 server error
 	res.status(500).json({
 		error: "Internal server error",
-		message:
-			process.env.NODE_ENV === "development"
-				? error.message
-				: "An unexpected error occurred",
-		...(process.env.NODE_ENV === "development" && { stack: error.stack }),
+		message: config.env.isDevelopment
+			? error.message
+			: "An unexpected error occurred",
+		...(config.env.isDevelopment && { stack: error.stack }),
 	});
 };
 
