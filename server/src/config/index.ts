@@ -282,10 +282,7 @@ export function validateConfig(): void {
 	}
 
 	if (config.env.isProduction) {
-		if (
-			!config.auth.jwt.secret ||
-			config.auth.jwt.secret === "fallback-secret-change-in-production"
-		) {
+		if (!config.auth.jwt.secret) {
 			errors.push("JWT_SECRET must be set in production");
 		}
 		if (!config.claude.apiKey) {
