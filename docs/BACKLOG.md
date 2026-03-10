@@ -1,6 +1,6 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-10 (L25–L35 backlog items implemented + test coverage gaps documented)
+**Last Updated**: 2026-03-10 (L25–L35 backlog items migrated to changelog/2026-03-10.md)
 **Status**: 678/678 tests passing | TypeScript clean | Lint clean
 
 ---
@@ -115,70 +115,13 @@ Both files share identical 52-term `ENTITY_TERMS` array. The only behavioral dif
 **Priority**: P2 | **Source**: repomix-explorer session 2026-03-09
 `get2025Count()` function is copy-pasted identically across 4 backfill scripts (backfill-2025.ts, backfill-2025-proven.ts, backfill-2025-unsearched.ts, backfill-2025-novel.ts). Also duplicates `MAX_CONSECUTIVE_ZERO_BATCHES` and `getSearchedTerms()` variants. Extract to shared `lib/backfill-utils.ts` and import across all 4 scripts. -- `server/src/scripts/backfill-2025*.ts`
 
-### ~~M27: Replace continuous-batch-scraper-lowthreshold.ts with --low-threshold flag~~
-Done — `LOW_THRESHOLD_TIER_CONFIG` extracted, duplicate file deleted (ce344a7)
-
-### ~~L25: Fix enqueue-prefix-expansions.ts to use shared waitForQueueDrain~~
-Done — already imports `waitForQueueDrain` from `lib/queue-utils.ts` at line 13; no duplicate implementation exists.
-
-### ~~L26: Consolidate hardcoded job options to use config.queue.defaultJobOptions~~
-Done — `enqueue-terms.ts` already delegates entirely to `enqueueBatch()` in `lib/queue-utils.ts`, which uses `config.queue.defaultJobOptions`; no hardcoded job options remain.
 
 ---
 
-## Security Findings from Code Review (2026-03-10)
+## Intentional Design Decisions
 
-### ~~C1: SQL Injection in api-usage.controller.ts~~
-Done — already resolved by L32: `$queryRaw` uses `Prisma.sql\`AND environment = ${envFilter}\`` with proper parameterization; no string interpolation bypasses Prisma. -- `server/src/controllers/api-usage.controller.ts:77`
-
----
-
-### ~~M31: Bull Dashboard lacks authentication~~
-Done — added `apiKeyAuth` before `serverAdapter.getRouter()` at `server/src/index.ts`. (commit 0da93ab)
-
-### ~~M32: Hardcoded JWT fallback secret in config~~
-Done — replaced `|| "fallback-secret-change-in-production"` with `?? ""`. (commit e3dc189)
-
-### ~~M33: Redis TLS certificate verification disabled~~
-Done — removed `rejectUnauthorized: false` from both Redis configs. (commit 364585e)
-
-### ~~M34: Blocking execSync in config initialization~~
-Done — removed IIFE that called doppler CLI via execSync(). (commit 5a0cca1)
-
-### ~~M35: Hardcoded DISPLAY_YEAR = 2025 hides 2026 data~~
-**Status**: Intentional — DISPLAY_YEAR is deliberately pinned to 2025; not a bug.
-
-### ~~M36: Unprotected write endpoints allow mass job enqueueing~~
-Done — added `apiKeyAuth` to `POST /scrape` and `POST /monitor` in `property.routes.ts`. Updated tests. (commit 5472f00)
-
----
-
-### ~~L27: Missing try/catch in naturalLanguageSearch database calls~~
-Done — wrapped all three `prismaReadOnly` calls in `naturalLanguageSearch` in a single try/catch returning 503 on DB errors. -- `server/src/controllers/property.controller.ts`
-
-### ~~L28: Unsafe job.id.toString() with undefined guard~~
-Done — added `if (!job.id)` guard returning 500 before `.toString()` call. -- `server/src/controllers/property.controller.ts`
-
-### ~~L29: In-memory rate limiter ineffective across replicas~~
-Done — replaced in-memory `Map` with `cacheService.get/set` using Redis TTL. Rate limits now apply across all Render replicas and survive restarts. -- `server/src/queues/scraper.queue.ts`
-
-### ~~L30: No length cap on natural language query sent to Claude~~
-Done — added `.max(500)` to `naturalLanguageSearchSchema.query` in property.types.ts; Zod validation rejects oversized queries at the route level before Claude is called. -- `server/src/types/property.types.ts`
-
-### ~~L31: Silent error swallowing in optionalAuth middleware~~
-Done — added `logger.debug()` on JWT verify errors in `optionalAuth` catch block. -- `server/src/middleware/auth.ts`
-
-### ~~L32: Unvalidated as string casts on query parameters~~
-Done — replaced `as string` casts with `typeof x === "string"` guards for both `days` and `environment` params. `$queryRaw` now uses the validated `envFilter` variable. -- `server/src/controllers/api-usage.controller.ts`
-
-### ~~L33: process.env.NODE_ENV read directly instead of config object~~
-Done — replaced `process.env.NODE_ENV === "development"` with `config.env.isDevelopment` in error handler. -- `server/src/middleware/error.middleware.ts`
-
-### ~~L34: isDevelopment=true during test leaks error messages~~
-Done — changed `isDevelopment: process.env.NODE_ENV === "development"` (exclusive, not `!== "production"`). Auth middleware updated to also skip in `isTest`. error.middleware test updated to mock config instead of mutating `process.env.NODE_ENV`. -- `server/src/config/index.ts`, `server/src/middleware/auth.ts`
-
-### ~~L35: CommonJS require.main === module idiom in ESM project~~
-Done — `tsconfig.json` has `"module": "commonjs"`; `require.main === module` is the correct pattern for this project. No change needed.
+### M35: Hardcoded DISPLAY_YEAR = 2025 hides 2026 data
+**Status**: Intentional — DISPLAY_YEAR is deliberately pinned to 2025; not a bug. TCAD appraised values for 2026 are marked as "N/A" until published (expected April/May 2026).
 
 ---
 
@@ -215,4 +158,4 @@ The get-then-set pattern in `canScheduleJob` has a TOCTOU window where concurren
 
 All completed items migrated to `docs/changelog/` (per-date files).
 
-**Latest migration**: 3 items migrated to [changelog/2026-03-09.md](../changelog/2026-03-09.md) (TCAD API JSON failures, Documentation Staleness Audit, Documentation Staleness Follow-up)
+**Latest migration**: 18 items migrated to [changelog/2026-03-10.md](../changelog/2026-03-10.md) (L25–L35 backlog batch + M31–M36 security hardening)
