@@ -9,7 +9,6 @@
  *   const port = config.server.port;
  */
 
-import { execSync } from "node:child_process";
 import dotenv from "dotenv";
 import logger from "../lib/logger";
 
@@ -218,29 +217,7 @@ export const config = {
 
 	// Claude AI Configuration
 	claude: {
-		apiKey:
-			process.env.ANTHROPIC_API_KEY ||
-			(() => {
-				// Fallback: Try to fetch from Doppler personal-info/dev if not in current env
-				try {
-					const key = execSync(
-						"doppler secrets get ANTHROPIC_API_KEY -p personal-info -c dev --plain",
-						{
-							encoding: "utf-8",
-							stdio: ["pipe", "pipe", "pipe"],
-						},
-					).trim();
-					if (key?.startsWith("sk-ant-")) {
-						logger.info(
-							"Using ANTHROPIC_API_KEY from Doppler personal-info/dev",
-						);
-						return key;
-					}
-				} catch (_error) {
-					// Doppler fetch failed, will return undefined
-				}
-				return undefined;
-			})(),
+		apiKey: process.env.ANTHROPIC_API_KEY,
 		model: process.env.CLAUDE_MODEL || "claude-3-haiku-20240307",
 		maxTokens: parseIntEnv("CLAUDE_MAX_TOKENS", 1024),
 		timeout: parseIntEnv("CLAUDE_TIMEOUT", 30000),
