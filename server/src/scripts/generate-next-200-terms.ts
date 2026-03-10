@@ -24,7 +24,6 @@ import { SearchTermDeduplicator } from '../lib/search-term-deduplicator';
 import { enqueueBatch } from './lib/queue-utils';
 
 const TARGET_TERM_COUNT = 500;
-const ENQUEUE_MODE = process.argv.includes('--enqueue');
 
 // Terms that cause TCAD API timeouts or truncated responses — hard skip
 const BLOCKED_TERMS = new Set([
@@ -106,7 +105,7 @@ const CANDIDATE_ENTITY = [
   'Mortgage', 'Title', 'Brokerage', 'Auction',
 ];
 
-async function main() {
+export async function main(enqueueMode = false) {
   // 1. Load all already-searched terms (analytics + property searchTerm)
   const [analyticsRows, propTermRows] = await Promise.all([
     prisma.searchTermAnalytics.findMany({
@@ -309,7 +308,7 @@ async function main() {
     console.log(term);
   }
 
-  if (ENQUEUE_MODE && selected.length > 0) {
+  if (enqueueMode && selected.length > 0) {
     const { scraperQueue } = await import('../queues/scraper.queue');
     console.error(`\nEnqueuing ${selected.length} terms to BullMQ...`);
     const queued = await enqueueBatch(selected, 'next-200-gen');
@@ -319,6 +318,8 @@ async function main() {
 
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+if (require.main === module) {
+  main(process.argv.includes('--enqueue'))
+    .catch(console.error)
+    .finally(() => prisma.$disconnect());
+}

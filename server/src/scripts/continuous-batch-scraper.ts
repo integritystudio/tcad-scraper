@@ -439,6 +439,7 @@ class ContinuousBatchScraper {
 		}
 
 		await this.printFinalReport();
+		await prisma.$disconnect();
 		process.exit(0);
 	}
 

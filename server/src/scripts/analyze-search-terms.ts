@@ -16,7 +16,7 @@ import { prisma } from "../lib/prisma";
 // Used for coverage percentage and threshold checks only; staleness won't affect scraping.
 const TCAD_TOTAL_PROPERTIES = 451_339;
 
-async function analyzeSearchTerms(): Promise<void> {
+export async function analyzeSearchTerms(): Promise<void> {
 	console.log("\n=== Search Term Analysis ===\n");
 
 	// 1. Overall stats
@@ -230,6 +230,8 @@ async function countTermsMatching(patterns: string[]): Promise<number> {
 	return Number(result[0].count);
 }
 
-analyzeSearchTerms()
-	.catch(console.error)
-	.finally(() => process.exit(0));
+if (require.main === module) {
+	analyzeSearchTerms()
+		.catch(console.error)
+		.finally(() => process.exit(0));
+}
