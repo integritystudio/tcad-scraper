@@ -9,7 +9,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-function migrateFile(filePath: string, dryRun = false): void {
+export function migrateFile(filePath: string, dryRun = false): void {
 	const content = fs.readFileSync(filePath, "utf-8");
 	const lines = content.split("\n");
 
@@ -90,6 +90,8 @@ function migrateFile(filePath: string, dryRun = false): void {
 	}
 }
 
+// Run when invoked directly (not when imported by tests)
+if (require.main === module) {
 // Get file path from command line
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
@@ -110,4 +112,5 @@ try {
 } catch (error) {
 	console.error("Migration failed:", error);
 	process.exit(1);
+}
 }
