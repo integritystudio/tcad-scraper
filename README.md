@@ -1,6 +1,6 @@
 # TCAD Scraper
 
-A production-grade web scraping system for automated collection of property tax information from the Travis Central Appraisal District (TCAD) website. Built with TypeScript, Express, Playwright, Prisma, and PostgreSQL with a distributed queue-based architecture for scalable data collection.
+A production-grade web scraping system for automated collection of property tax information from the Travis Central Appraisal District (TCAD) website. Built with TypeScript, Express, Prisma, and PostgreSQL with a distributed queue-based architecture for scalable data collection.
 
 ## Table of Contents
 
@@ -13,7 +13,6 @@ A production-grade web scraping system for automated collection of property tax 
 - [Getting Started](#getting-started)
 - [API Endpoints](#api-endpoints)
 - [Running the Scraper](#running-the-scraper)
-- [Docker Services](#docker-services)
 - [Monitoring & Metrics](#monitoring--metrics)
 - [Analytics](#analytics)
 - [Troubleshooting](#troubleshooting)
@@ -25,14 +24,12 @@ A production-grade web scraping system for automated collection of property tax 
 
 TCAD Scraper is a production application that automates the collection and storage of property tax data from travis.prodigycad.com. The system provides both a REST API and a React frontend for accessing property data, with continuous batch scraping using intelligent search term generation to discover and catalog properties across Travis County.
 
-The application supports two scraping methods:
-1. **API-based scraping** (Recommended): Direct API calls bypassing the UI limitation, supporting 1000+ results per search
-2. **Browser-based scraping** (Fallback): Playwright automation extracting data from AG Grid UI (limited to 20 results per search)
+The application uses **API-direct scraping**: direct HTTP calls to the TCAD backend API, supporting 1000+ results per search with automatic token refresh via a Cloudflare Worker.
 
 ## Key Features
 
 ### Data Collection
-- **Dual Scraping Methods**: API-based (high-volume) and browser-based (fallback) scraping
+- **API-Direct Scraping**: High-volume scraping via TCAD API with automatic token refresh
 - **Continuous Batch Scraping**: Automated 24/7 scraping with intelligent, weighted search term generation
 - **Background Job Processing**: BullMQ queue system with Redis managing distributed scraping jobs
 - **Persistent Storage**: PostgreSQL database with Prisma ORM for type-safe data access
@@ -65,30 +62,28 @@ The application supports two scraping methods:
 - **Health Monitoring**: Endpoints for application and queue health checks
 
 ### Infrastructure
-- **Playwright-based Automation**: Headless browser with anti-detection features
-- **Docker Compose**: Orchestration for Redis, Prometheus, and BullMQ metrics
+- **Render Hosting**: API server, PostgreSQL, and Redis (TLS) on Render
+- **GitHub Pages**: Frontend deployed at `alephatx.info`
 - **Doppler Integration**: Secure secrets management for environment variables
 - **Pino Logging**: Structured JSON logging for debugging and monitoring
-- **Prometheus Metrics**: Queue performance and system metrics collection
+- **Prometheus Metrics**: Queue performance and system metrics collection (optional Docker Compose stack)
 
 ## Technology Stack
 
 ### Core Application
-- **Node.js 18+** with **TypeScript 5.3** for type safety
-- **Express 4.18** for REST API server
-- **Playwright 1.41+** for headless browser automation
-- **Prisma ORM 5.8** for type-safe database access
+- **Node.js 20+** with **TypeScript** for type safety
+- **Express** for REST API server
+- **Prisma ORM** for type-safe database access
 - **BullMQ** for distributed job queue management
 - **Bull Board** for queue monitoring dashboard
 - **Zod** for runtime type validation
 - **Anthropic Claude AI** for natural language search parsing
 
 ### Infrastructure & DevOps
-- **PostgreSQL 15+** - Primary database
+- **PostgreSQL 15+** — Render-hosted (remote)
 - **Redis 7** — Render Redis with TLS (`rediss://`) for production and local dev; Docker fallback for offline dev
-- **Prometheus** (Docker container `prometheus`) - Metrics collection and monitoring
-- **BullMQ Metrics Exporter** - Custom metrics exporter for queue statistics
-- **Docker Compose** for service orchestration
+- **Render** — API hosting with auto-deploy from `main`
+- **Prometheus** — Optional metrics collection and monitoring (Docker Compose stack)
 - **Doppler** for environment variable and secrets management
 
 ### Frontend (React Application)
@@ -105,8 +100,8 @@ The application supports two scraping methods:
 - **API Key** authentication support
 
 ### Deployment Environment
-- **Ubuntu Linux** (remote server)
-- **PM2** for process management
+- **Render** (API server, PostgreSQL, Redis)
+- **GitHub Pages** (frontend at `alephatx.info`)
 ## Architecture
 
 ### System Overview
@@ -114,26 +109,27 @@ The application supports two scraping methods:
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │  React Frontend │────▶│  Express API     │────▶│  PostgreSQL     │
-│  (Port 5174)    │     │  (Port 3001)     │     │  Database       │
+│  (Port 5174)    │     │  (Port 3001)     │     │  (Render)       │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
                                │
                                │ BullMQ Jobs
                                ▼
                         ┌──────────────────┐
                         │  Redis Queue     │
-                        │  (Port 6379)     │
+                        │  (Render TLS)    │
                         └──────────────────┘
                                │
                                │ Process Jobs
                                ▼
                         ┌──────────────────┐
                         │  Scraper Workers │
-                        │  (Playwright)    │
+                        │  (API-direct)    │
                         └──────────────────┘
                                │
-                        ┌──────┴──────┐
-                        ▼             ▼
-                  API Method     Browser Method
+                               ▼
+                        ┌──────────────────┐
+                        │    TCAD API      │
+                        └──────────────────┘
 ```
 
 ### Data Flow
@@ -155,18 +151,11 @@ The application supports two scraping methods:
    - Tracks job state (waiting, active, completed, failed)
    - Provides metrics to Prometheus for monitoring
 
-3. **Scraper Workers** (`tcad-scraper.ts` via queue)
-   - **API Method** (Primary):
-     - Direct HTTP calls to TCAD backend API
-     - Fetches 1000+ results per search
-     - Parses JSON responses directly
-     - Handles token refresh every ~5 minutes
-   - **Browser Method** (Fallback):
-     - Launch Playwright headless browsers
-     - Navigate to travis.prodigycad.com
-     - Search for properties using generated terms
-     - Parse AG Grid DOM elements (limited to 20 results)
-     - Handle "no results" gracefully
+3. **Scraper Workers** (`tcad-api-client.ts` via queue)
+   - Direct HTTP calls to TCAD backend API
+   - Fetches 1000+ results per search with pagination
+   - Parses JSON responses directly
+   - Handles token refresh every ~5 minutes via Cloudflare Worker
 
 4. **Data Processing**
    - Extract property data from API/browser responses
@@ -183,150 +172,56 @@ The application supports two scraping methods:
 
 ## Project Structure
 
-Token counts generated by [Repomix](https://github.com/yamadashy/repomix).
+Token counts generated by [Repomix](https://github.com/yamadashy/repomix). Regenerate with `bash scripts/repomix/token-tree.sh`.
 
 ```
 tcad-scraper/
-├── .claude/ (5,304 tokens)
-│   ├── settings.local.json (3,712 tokens)
-│   └── agents/ (1,592 tokens)
-│       ├── typescript-type-validator.md (547 tokens)
-│       └── webscraper-research-agent.md (1,045 tokens)
-├── .github/ (4,218 tokens)
-│   └── workflows/ (4,218 tokens)
-│       ├── deploy.yml (725 tokens)
-│       ├── integration-tests.yml (2,089 tokens)
-│       └── README.md (1,404 tokens)
-├── bullmq-exporter/ (1,428 tokens)
-│   ├── index.ts (675 tokens)
-│   ├── package.json (151 tokens)
-│   └── tsconfig.json (116 tokens)
-├── config/ (24,038 tokens)
-│   ├── docker-compose.base.yml (888 tokens)
-│   ├── docker-compose.dev.yml (1,441 tokens)
-│   ├── docker-compose.monitoring.yml (1,143 tokens)
-│   ├── docker-compose.prod.yml (1,765 tokens)
-│   ├── gtm-container-triggers.json (3,103 tokens)
-│   └── monitoring/ (15,522 tokens)
-│       ├── grafana/ (10,229 tokens)
-│       │   ├── dashboards/ (9,902 tokens)
-│       │   │   ├── bullmq-dashboard.json (2,017 tokens)
-│       │   │   ├── code-complexity.json (3,795 tokens)
-│       │   │   └── tcad-overview.json (4,010 tokens)
-│       │   └── provisioning/ (261 tokens)
-│       └── prometheus/ (3,694 tokens)
-│           ├── prometheus.rules.yml (2,438 tokens)
-│           └── prometheus.yml (774 tokens)
-├── docs/ (35,264 tokens)
-│   ├── ANALYTICS.md (6,873 tokens)
-│   ├── API.md (1,264 tokens)
-│   ├── BACKLOG.md (1,830 tokens)
-│   ├── CHANGELOG.md (2,421 tokens)
-│   ├── CI-CD.md (3,882 tokens)
-│   ├── CODE_REVIEW_DRY.md (2,517 tokens)
-│   ├── TOKEN_MANAGEMENT.md (513 tokens)
-│   ├── archive/ (6,067 tokens)
-│   ├── changelog/ (3,405 tokens)
-│   └── examples/ (1,879 tokens)
-├── e2e/ (2,228 tokens)
-│   ├── accessibility.spec.ts (308 tokens)
-│   ├── error-handling.spec.ts (335 tokens)
-│   ├── property-card.spec.ts (371 tokens)
-│   ├── search.spec.ts (481 tokens)
-│   └── pages/ (403 tokens)
-├── scripts/ (18,926 tokens)
-│   ├── generate-build-constants.ts (875 tokens)
-│   ├── search-terms-summary.sh (599 tokens)
-│   ├── test-import-paths.ts (1,963 tokens)
-│   └── repomix/ (4,457 tokens)
-├── server/ (198,569 tokens)
-│   ├── prisma/ (2,754 tokens)
-│   │   ├── schema.prisma (1,211 tokens)
-│   │   └── migrations/ (1,543 tokens)
-│   ├── scripts/ (8,847 tokens)
-│   │   ├── setup-test-db.sh (1,643 tokens)
-│   │   ├── setup-test-db.ts (2,184 tokens)
-│   │   └── verify-setup.sh (1,929 tokens)
-│   └── src/ (174,674 tokens)
-│       ├── index.ts (3,814 tokens)
-│       ├── cli/ (16,522 tokens)
-│       │   ├── data-cleaner.ts (3,707 tokens)
-│       │   ├── db-stats.ts (3,723 tokens)
-│       │   ├── queue-analyzer.ts (4,254 tokens)
-│       │   └── queue-manager.ts (4,014 tokens)
-│       ├── config/ (4,741 tokens)
-│       │   ├── index.ts (3,271 tokens)
-│       │   └── swagger.ts (1,470 tokens)
-│       ├── controllers/ (5,267 tokens)
-│       │   ├── api-usage.controller.ts (2,278 tokens)
-│       │   └── property.controller.ts (2,989 tokens)
-│       ├── lib/ (17,233 tokens)
-│       │   ├── claude.service.ts (3,509 tokens)
-│       │   ├── metrics.service.ts (3,520 tokens)
-│       │   ├── redis-cache.service.ts (2,075 tokens)
-│       │   ├── search-term-deduplicator.ts (1,751 tokens)
-│       │   ├── sentry.service.ts (2,063 tokens)
-│       │   ├── tcad-api-client.ts (2,257 tokens)
-│       │   └── tcad-scraper.ts (651 tokens)
-│       ├── middleware/ (2,716 tokens)
-│       │   ├── auth.ts (564 tokens)
-│       │   ├── error.middleware.ts (449 tokens)
-│       │   └── xcontroller.middleware.ts (1,161 tokens)
-│       ├── queues/ (2,711 tokens)
-│       │   └── scraper.queue.ts (2,711 tokens)
-│       ├── routes/ (4,421 tokens)
-│       │   ├── api-usage.routes.ts (1,010 tokens)
-│       │   └── property.routes.ts (3,105 tokens)
-│       ├── scripts/ (92,300 tokens)
-│       │   ├── continuous-batch-scraper.ts (5,223 tokens)
-│       │   ├── enqueue-batch.ts (464 tokens)
-│       │   ├── enqueue-terms.ts (265 tokens)
-│       │   ├── generate-next-200-terms.ts (3,820 tokens)
-│       │   ├── generate-search-terms.ts (4,251 tokens)
-│       │   ├── generate-valid-5char-terms.ts (6,389 tokens)
-│       │   ├── queue-results.ts (656 tokens)
-│       │   ├── check-unsearched-terms.ts (422 tokens)
-│       │   ├── README.md (1,480 tokens)
-│       │   ├── config/ (2,103 tokens)
-│       │   │   └── batch-configs.ts (2,103 tokens)
-│       │   ├── lib/ (186 tokens)
-│       │   │   └── backfill-constants.ts (186 tokens)
-│       │   ├── one-off-and-test-batches/ (11,525 tokens)
-│       │   ├── requeue/ (5,522 tokens)
-│       │   └── utils/ (13,528 tokens)
-│       ├── services/ (8,043 tokens)
-│       │   ├── code-complexity.service.ts (2,903 tokens)
-│       │   ├── search-term-optimizer.ts (3,344 tokens)
-│       │   └── token-refresh.service.ts (1,796 tokens)
-│       ├── types/ (6,862 tokens)
-│       │   ├── property.types.ts (3,424 tokens)
-│       │   ├── queue.types.ts (853 tokens)
-│       │   └── SCHEMA-DOCUMENTATION.md (2,326 tokens)
-│       └── utils/ (6,004 tokens)
-│           ├── deduplication.ts (1,549 tokens)
-│           ├── error-helpers.ts (50 tokens)
-│           ├── json-ld.utils.ts (3,753 tokens)
-│           ├── property-transformers.ts (498 tokens)
-│           └── timing.ts (154 tokens)
-├── shared/ (6,890 tokens)
-│   └── types/ (6,671 tokens)
-│       ├── json-ld.utils.ts (3,382 tokens)
-│       └── property.types.ts (3,172 tokens)
-├── src/ (58,972 tokens)
-│   ├── App.tsx (232 tokens)
-│   ├── components/ (43,314 tokens)
-│   │   ├── features/ (18,180 tokens)
-│   │   │   └── PropertySearch/ (18,180 tokens)
-│   │   ├── layout/ (3,435 tokens)
-│   │   └── ui/ (5,483 tokens)
-│   ├── hooks/ (2,589 tokens)
-│   ├── lib/ (4,436 tokens)
-│   ├── services/ (1,967 tokens)
-│   ├── types/ (377 tokens)
-│   └── utils/ (1,138 tokens)
-└── workers/ (1,577 tokens)
-    └── tcad-token/ (1,577 tokens)
-        └── src/index.ts (772 tokens)
+├── .github/workflows/          # CI/CD (ci, deploy, integration-tests, pr-checks, security)
+├── bullmq-exporter/            # BullMQ Prometheus metrics exporter
+├── config/
+│   ├── docker-compose.monitoring.yml  # Prometheus + Grafana stack
+│   ├── docker-compose.yml             # Local Redis fallback
+│   └── monitoring/                    # Grafana dashboards, Prometheus rules
+├── docs/                       # All documentation
+│   ├── API.md, ANALYTICS.md, CI-CD.md, TOKEN_MANAGEMENT.md, SETUP.md
+│   ├── BACKLOG.md, CHANGELOG.md, CODE_REVIEW_DRY.md
+│   ├── archive/                # RELIABILITY_AUDIT.md, RENDER-MIGRATION.md
+│   ├── changelog/              # Per-session changelogs
+│   └── examples/               # Search algorithm examples
+├── e2e/                        # Playwright E2E tests (accessibility, search, visual)
+├── scripts/                    # Shell + Python utility scripts, repomix tooling
+├── server/                     # Backend (Express + BullMQ + Prisma)
+│   ├── prisma/                 # Schema + migrations (canonical location)
+│   ├── scripts/                # DB setup, test infra, verification
+│   └── src/
+│       ├── index.ts            # Express + Sentry + Bull Board
+│       ├── cli/                # Interactive CLI tools (data-cleaner, db-stats, queue-*)
+│       ├── config/             # App config + Swagger
+│       ├── controllers/        # Route handlers (property, api-usage)
+│       ├── lib/                # Core services (tcad-api-client, claude, redis-cache, metrics)
+│       ├── middleware/         # Auth, error, validation, xcontroller
+│       ├── queues/             # BullMQ scraper queue
+│       ├── routes/             # Express routes
+│       ├── scripts/            # CLI tools, batch scripts (see scripts/README.md)
+│       │   ├── config/         # 18 batch type definitions
+│       │   ├── lib/            # queue-utils, backfill-constants
+│       │   ├── one-off-and-test-batches/
+│       │   ├── requeue/        # Failed job requeue scripts
+│       │   └── utils/          # batch-enqueue, test-scripts
+│       ├── services/           # code-complexity, search-term-optimizer, token-refresh
+│       ├── types/              # TypeScript types (property, queue)
+│       └── utils/              # error-helpers, deduplication, json-ld, timing
+├── shared/                     # Shared types between frontend/backend
+├── src/                        # Frontend (React 19 + Vite)
+│   ├── components/
+│   │   ├── features/PropertySearch/  # Search UI, PropertyCard, AnswerBox
+│   │   ├── layout/                   # HeaderBadge, AttributionCard, Footer
+│   │   └── ui/                       # Badge, Button, Card, Icon, Input, LoadingSkeleton
+│   ├── hooks/                  # usePropertySearch, useAnalytics, usePagination
+│   ├── lib/                    # analytics, api-config, sentry, xcontroller
+│   ├── services/               # api.service
+│   └── utils/                  # constants, formatters, helpers
+└── workers/tcad-token/         # Cloudflare Worker for token refresh
 ```
 
 ## Database Schema
@@ -405,7 +300,7 @@ model MonitoredSearch {
 ```
 
 **Database Statistics** (as of March 2026):
-- Properties: 401,600+ unique records
+- Properties: 418,000+ unique records
 - Scraping Rate: ~42,000 properties/hour (API method)
 - Success Rate: ~80%
 - Peak Single Scrape: 6,174 properties ("Ridge")
@@ -414,11 +309,9 @@ model MonitoredSearch {
 
 ### Prerequisites
 
-- **Node.js 18+** and npm
-- **Docker and Docker Compose** (for Redis, Prometheus)
-- **PostgreSQL 15+** (local or remote instance)
-- **Doppler CLI** (optional, for secrets management)
-- **Playwright** with Chromium browser
+- **Node.js 20+** and npm
+- **Doppler CLI** (for secrets management — all DB/Redis credentials are remote)
+- **Docker** (optional — only needed for local Redis fallback or Prometheus/Grafana monitoring)
 
 ### Installation
 
@@ -437,8 +330,6 @@ npm install
 ```bash
 cd server
 npm install
-npx playwright install chromium
-npx playwright install-deps chromium  # Install system dependencies
 ```
 
 ### Database Configuration
@@ -465,8 +356,7 @@ doppler setup  # Select project and config
 
 # Set required secrets
 doppler secrets set DATABASE_URL="postgresql://user:password@host:5432/tcad_scraper"
-doppler secrets set REDIS_HOST="localhost"
-doppler secrets set REDIS_PORT="6379"
+doppler secrets set REDIS_URL="rediss://user:pass@oregon-keyvalue.render.com:6379"
 doppler secrets set JWT_SECRET="your-secure-random-secret"
 doppler secrets set API_KEY="your-api-key"
 doppler secrets set FRONTEND_URL="http://localhost:5174"
@@ -476,8 +366,7 @@ doppler secrets set ANTHROPIC_API_KEY="sk-ant-api03-xxxxx"  # For Claude AI sear
 **Alternative**: Create `.env` file in `server/` directory:
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/tcad_scraper"
-REDIS_HOST=localhost
-REDIS_PORT=6379
+REDIS_URL=redis://localhost:6379
 JWT_SECRET=your-secure-random-secret
 API_KEY=your-api-key
 FRONTEND_URL=http://localhost:5174
@@ -489,16 +378,7 @@ HOST=localhost
 LOG_LEVEL=info
 ```
 
-5. **Start infrastructure services:**
-```bash
-# From project root
-docker-compose up -d
-
-# Verify services are running
-docker-compose ps
-```
-
-6. **Initialize database:**
+5. **Initialize database:**
 ```bash
 cd server
 doppler run -- npx prisma db push
@@ -523,13 +403,10 @@ npm run dev
 ### Access Points
 
 - **Frontend UI**: http://localhost:5174
-- **Backend API**: http://localhost:5050/api
-- **Health Check**: http://localhost:5050/health
-- **Queue Health**: http://localhost:5050/health/queue
-- **Bull Dashboard**: http://localhost:5050/admin/queues
+- **Backend API**: http://localhost:3001/api
+- **Health Check**: http://localhost:3001/health
+- **Bull Dashboard**: http://localhost:3001/admin/queues
 - **Prisma Studio**: Run `npx prisma studio` from server/ (opens on port 5555)
-- **Prometheus**: http://localhost:9090 (if enabled)
-- **BullMQ Metrics**: http://localhost:3000 (if enabled)
 
 ## API Endpoints
 
@@ -548,7 +425,7 @@ Retrieve all properties with optional filtering and pagination.
 
 **Example:**
 ```bash
-curl http://localhost:5050/api/properties?city=Austin&limit=25
+curl http://localhost:3001/api/properties?city=Austin&limit=25
 ```
 
 #### GET /api/properties/:id
@@ -556,7 +433,7 @@ Retrieve a specific property by ID.
 
 **Example:**
 ```bash
-curl http://localhost:5050/api/properties/abc-123-def
+curl http://localhost:3001/api/properties/abc-123-def
 ```
 
 #### POST /api/properties/search
@@ -590,7 +467,7 @@ curl http://localhost:5050/api/properties/abc-123-def
 
 **Example:**
 ```bash
-curl -X POST http://localhost:5050/api/properties/search \
+curl -X POST http://localhost:3001/api/properties/search \
   -H "Content-Type: application/json" \
   -d '{"query": "properties in Austin worth over 1 million"}'
 ```
@@ -619,7 +496,7 @@ Test Claude AI API connection and configuration.
 
 **Example:**
 ```bash
-curl http://localhost:5050/api/properties/search/test
+curl http://localhost:3001/api/properties/search/test
 ```
 
 #### POST /api/properties/scrape/:propertyId
@@ -629,7 +506,7 @@ Trigger a scrape for a specific property ID.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:5050/api/properties/scrape/123456
+curl -X POST http://localhost:3001/api/properties/scrape/123456
 ```
 
 #### POST /api/properties/scrape/batch
@@ -646,7 +523,7 @@ Queue multiple search terms for scraping.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:5050/api/properties/scrape/batch \
+curl -X POST http://localhost:3001/api/properties/scrape/batch \
   -H "Content-Type: application/json" \
   -d '{"searchTerms": ["Smith", "123 Oak St"]}'
 ```
@@ -690,13 +567,13 @@ The API supports optional authentication via:
 1. **JWT Bearer Token:**
 ```bash
 curl -H "Authorization: Bearer your-jwt-token" \
-  http://localhost:5050/api/properties
+  http://localhost:3001/api/properties
 ```
 
 2. **API Key:**
 ```bash
 curl -H "X-API-Key: your-api-key" \
-  http://localhost:5050/api/properties
+  http://localhost:3001/api/properties
 ```
 
 By default, authentication is optional in development. Configure `JWT_SECRET` and `API_KEY` in Doppler for production use.
@@ -744,44 +621,21 @@ kill $(cat continuous-scraper.pid)
 
 The TCAD API requires token refresh every ~5 minutes. The `token-refresh.service.ts` handles this automatically. See [TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md) for details.
 
-### Priority Search Terms
+### Batch Enqueue
 
-Add high-value search terms to the front of the queue with priority 1:
-
-```bash
-cd server
-
-# Use the priority enqueue script (edit terms in the file)
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" \
-  doppler run -- npx tsx src/scripts/enqueue-priority-terms.ts
-
-# The script adds terms like "Real", "Estate", "Trust", "Part", "Hill"
-# These process before other pending jobs
-```
-
-**Performance Notes:**
-- Priority 1 jobs process first
-- High-value terms like "Real", "Estate" return 3,000-6,000 properties each
-- Typical scraping rate: ~3,000 properties/minute
-- Peak performance: 10,000-15,000 properties/minute during large job completions
-
-### Manual Batch Scraping
-
-Run one-time batch scrapes with specific strategies:
+Use the config-driven batch enqueue runner:
 
 ```bash
 cd server
 
-# Scrape using city names
-npm run scrape:batch:cities
+# Enqueue a specific batch type (see src/scripts/config/batch-configs.ts for 18 types)
+doppler run -- npx tsx src/scripts/enqueue-batch.ts <batch-type>
 
-# Scrape using ZIP codes
-npm run scrape:batch:zipcodes
+# Generate and enqueue backfill terms
+doppler run -- npx tsx src/scripts/generate-next-200-terms.ts --enqueue
 
-# Comprehensive scrape with custom parameters
-npm run scrape:batch:comprehensive
-# Or manually:
-doppler run -- tsx src/scripts/batch-scrape.ts comprehensive 10 5000
+# Enqueue terms from stdin
+echo "Smith\nJohnson" | doppler run -- npx tsx src/scripts/enqueue-terms.ts
 ```
 
 ### Worker Process
@@ -801,98 +655,29 @@ From `server/` directory:
 npm run dev                        # Start Express API in development mode
 npm run build                      # Compile TypeScript to JavaScript
 npm run start                      # Run compiled production build
-npm run scrape:batch               # Run batch scraper
-npm run scrape:batch:cities        # Scrape with city names
-npm run scrape:batch:zipcodes      # Scrape with ZIP codes
-npm run scrape:batch:comprehensive # Comprehensive scraping
 npm run prisma:generate            # Generate Prisma client
 npm run prisma:migrate             # Run database migrations
 npm run prisma:studio              # Open Prisma Studio
-npm test                           # Run unit tests (Vitest, 627 tests)
+npm test                           # Run unit tests (Vitest, 631+ tests)
 npm run test:integration           # Run integration tests
 npm run lint                       # Run ESLint
+npm run queue:status               # Check queue status
 ```
 
-## Docker Services
+## Docker Services (Optional)
 
-The application uses Docker Compose for infrastructure services defined in `docker-compose.yml`:
+Docker is **not required** for normal development — PostgreSQL and Redis are hosted on Render and accessed via Doppler credentials.
 
-### Services
-
-#### Redis (bullmq-redis) — Dev Only
-- **Image**: redis:7-alpine
-- **Port**: 6379
-- **Purpose**: Local dev fallback for BullMQ job queue
-- **Volume**: `redis-data`
-- **Features**: AOF persistence enabled
-- **Note**: Production and primary local dev use **Render Redis** with TLS (`rediss://` via Doppler `REDIS_URL`)
-
-#### BullMQ Metrics Exporter (bullmq-metrics)
-- **Build**: `./bullmq-exporter`
-- **Port**: 3000
-- **Purpose**: Export BullMQ metrics to Prometheus
-- **Environment**:
-  - `REDIS_HOST=redis`
-  - `REDIS_PORT=6379`
-  - `PORT=3000`
-- **Dependencies**: redis
-
-### Service Management
+Docker Compose files are available for optional local services:
+- `config/docker-compose.yml` — Local Redis fallback (for offline dev)
+- `config/docker-compose.monitoring.yml` — Prometheus + Grafana monitoring stack
 
 ```bash
-# Start all services
-docker-compose up -d
+# Local Redis fallback (if Render Redis is unavailable)
+docker-compose -f config/docker-compose.yml up -d
 
-# Check service status
-docker-compose ps
-
-# View logs
-docker-compose logs redis
-docker-compose logs prometheus
-docker-compose logs bullmq-metrics
-
-# View live logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-
-# Stop and remove volumes (WARNING: deletes all data)
-docker-compose down -v
-
-# Restart a single service
-docker-compose restart redis
-```
-
-### Volume Management
-
-```bash
-# List volumes
-docker volume ls
-
-# Inspect a volume
-docker volume inspect tcad-scraper_redis-data
-
-# Backup Redis data
-docker run --rm -v tcad-scraper_redis-data:/data -v $(pwd):/backup \
-  alpine tar czf /backup/redis-backup.tar.gz /data
-```
-
-### PostgreSQL Note
-
-PostgreSQL is **not** included in docker-compose.yml. The application expects a PostgreSQL instance configured via `DATABASE_URL` environment variable. This can be:
-- Local PostgreSQL installation
-- Remote hosted database (RDS, DigitalOcean, etc.)
-- Docker container managed separately
-
-To run PostgreSQL in Docker manually:
-```bash
-docker run --name tcad-postgres -d \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=tcad_scraper \
-  -p 5432:5432 \
-  -v postgres_data:/var/lib/postgresql/data \
-  postgres:15-alpine
+# Monitoring stack (optional)
+docker-compose -f config/docker-compose.monitoring.yml up -d
 ```
 
 ## Deployment
@@ -914,7 +699,7 @@ The API runs on **Render** at `api.alephatx.info`.
 
 ### Bull Dashboard
 
-Access the BullMQ dashboard at http://localhost:5050/admin/queues to monitor:
+Access the BullMQ dashboard at http://localhost:3001/admin/queues to monitor:
 - Queue status (waiting, active, completed, failed jobs)
 - Job processing times
 - Error rates and failed jobs
@@ -941,16 +726,8 @@ bull_queue_active
 ```
 
 **View logs:**
-```bash
-# Tail all logs
-tail -f server/logs/combined.log
 
-# Search for errors
-grep -i error server/logs/combined.log
-
-# View recent scraper activity
-tail -100 server/continuous-scraper.log
-```
+Logs use Pino structured JSON to stdout. For production, check the Render service logs dashboard. For local dev, logs appear in the terminal running the server.
 
 ### Database Queries
 
@@ -1102,26 +879,11 @@ doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts > continuous-scra
 **No properties being scraped:**
 ```bash
 # Check queue status
-curl http://localhost:5050/health/queue
+curl http://localhost:3001/health/queue
 
-# Check Redis connection
-docker exec bullmq-redis redis-cli PING
-# Should return: PONG
-
-# Check queue lengths
-docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:wait"
-docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:active"
-```
-
-**Browser/Playwright errors:**
-```bash
-# Reinstall Playwright
+# Check queue details
 cd server
-npx playwright install chromium
-npx playwright install-deps chromium
-
-# Check for system dependencies (Linux)
-npx playwright install-deps
+doppler run -- npx tsx src/scripts/queue-results.ts
 ```
 
 ### Database Issues
@@ -1156,27 +918,22 @@ psql $DATABASE_URL -c "ANALYZE properties;"
 
 **Queue stuck:**
 ```bash
-# Check Redis container
-docker ps | grep bullmq-redis
-docker logs bullmq-redis
+# Check queue status
+cd server
+doppler run -- npx tsx src/scripts/queue-results.ts
 
-# Clear completed jobs (older than 1 day)
-docker exec bullmq-redis redis-cli --scan --pattern "bull:scraper-queue:*" | \
-  xargs docker exec -i bullmq-redis redis-cli DEL
-
-# Restart Redis
-docker-compose restart redis
+# View Bull Dashboard
+open http://localhost:3001/admin/queues
 ```
 
 **Failed jobs accumulating:**
 ```bash
-# View failed jobs in Bull Dashboard
-open http://localhost:5050/admin/queues
+# View in Bull Dashboard
+open http://localhost:3001/admin/queues
 
-# Or query Redis directly
-docker exec bullmq-redis redis-cli LLEN "bull:scraper-queue:failed"
-
-# Retry all failed jobs (via Bull Dashboard UI)
+# Or use requeue scripts
+cd server
+doppler run -- npx tsx src/scripts/requeue/requeue-all-failed-with-error-tracking.ts
 ```
 
 ### API Server Issues
@@ -1190,8 +947,8 @@ lsof -i :3001
 cd server
 doppler run -- env | grep -E "(DATABASE_URL|REDIS)"
 
-# Check server logs
-tail -50 server/logs/error.log
+# Check server logs (Pino structured JSON to stdout)
+# View Render service logs in dashboard for production
 ```
 
 **High memory usage:**
@@ -1203,51 +960,9 @@ node --inspect server/dist/index.js
 htop -p $(pgrep -f "node.*index.js")
 ```
 
-### Docker Issues
-
-**Services not starting:**
-```bash
-# Check Docker daemon
-docker info
-
-# View service logs
-docker-compose logs
-
-# Restart all services
-docker-compose restart
-
-# Rebuild services
-docker-compose down
-docker-compose up -d --build
-```
-
-**Volume permission issues:**
-```bash
-# Fix volume permissions (Linux)
-sudo chown -R $(whoami):$(whoami) ./redis-data
-
-# Or recreate volumes
-docker-compose down -v
-docker-compose up -d
-```
-
 ## Known Issues and Limitations
 
-### 1. TCAD Website Pagination Limitation (Browser Method)
-
-When using browser-based scraping, TCAD's AG Grid pagination controls are hidden (CSS class `ag-hidden`), limiting each search to **20 results maximum**.
-
-**Workaround**: The system uses two strategies:
-- **Primary**: API-based scraping (1000+ results per search) - **RECOMMENDED**
-- **Fallback**: Diverse search term generation to maximize unique property discovery
-
-**Attempted Solutions** (all unsuccessful for browser method):
-- AG Grid API access (gridOptions not exposed to page context)
-- Page size input manipulation (pagination panel hidden via CSS)
-- Pagination button clicking (buttons not accessible in DOM)
-- JavaScript injection to modify grid state
-
-### 2. API Token Expiration
+### 1. API Token Expiration
 
 The API-based scraping method requires token refresh every ~5 minutes. The scraper handles this automatically, but rapid scraping may occasionally hit rate limits.
 
@@ -1258,32 +973,28 @@ The API-based scraping method requires token refresh every ~5 minutes. The scrap
 
 **Mitigation**: The system implements exponential backoff and automatic retry logic.
 
-### 3. Search Result Variability
+### 2. Search Result Variability
 
 Many random search terms return 0 results (expected behavior). The system:
 - Tracks used search terms to avoid repetition
 - Weights search strategies toward successful patterns
-- Saves screenshots of empty results for debugging
+- Blacklists terms with repeated failures
 
-### 4. Rate Limiting
+### 3. Rate Limiting
 
 Aggressive scraping may trigger TCAD rate limiting. The system:
 - Uses human-like delays between requests
-- Distributes jobs across time
-- Rotates user agents and viewports
-- (Optional) Bright Data proxy support (currently disabled)
+- Distributes jobs across time via BullMQ queue
 
-### 5. Memory Usage
+### 4. Truncated API Responses
 
-Long-running scraper processes can accumulate memory. Recommended:
-- Restart scraper process daily via cron
-- Use systemd service with restart policies
+Some TCAD search terms return malformed/truncated JSON responses regardless of specificity. See [docs/truncated-response-terms.md](docs/truncated-response-terms.md) for affected terms and status.
 
 ## Recent Updates
 
 See [docs/CHANGELOG.md](docs/CHANGELOG.md) for complete version history.
 
-**Latest** (March 8, 2026): Scripts reorganized into `requeue/`, `utils/`, `one-off-and-test-batches/` subdirectories. Search terms consolidated with 593-term inventory utility (`list-all-search-terms.ts`). TCAD API client enhanced with structured JSON parse failure diagnostics. Batch configs expanded to 17 types. 627 tests.
+**Latest** (March 9, 2026): TCAD API JSON parse diagnostics, enqueue infrastructure consolidation (18 batch types), TermSelector cache invalidation, code review cleanup (B1–B11). 631+ tests passing.
 
 ## Documentation
 
