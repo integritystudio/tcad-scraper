@@ -73,7 +73,7 @@ export const FALLBACK_TERMS: readonly string[] = [
 	"Rosedale", "Tarrytown", "Brentwood", "Balcones", "Cherrywood",
 	"Rollingwood", "Bouldin", "Hancock", "Windsor", "Gracywoods",
 	"Spicewood", "Eanes", "Belterra", "Falconhead",
-	// Unsearched first names (from enqueue-by-category.ts curated 5-char list)
+	// Unsearched first names (curated 5-char list)
 	"Devin", "Diego", "Dolly", "Doris", "Dulce", "Dusty", "Dwain", "Earle",
 	"Ebony", "Eddie", "Edwin", "Efren", "Eldon", "Elena", "Elisa", "Elise",
 	"Ellie", "Elsie", "Elton", "Elvis", "Emile", "Erica", "Ernie", "Essie",
@@ -98,7 +98,7 @@ export const FALLBACK_TERMS: readonly string[] = [
 	"Theda", "Tiana", "Tisha", "Tommy", "Tonya", "Trent", "Trish", "Trudy",
 	"Varun", "Vicki", "Vijay", "Vikki", "Vince", "Viola", "Vivek", "Wally",
 	"Wanda", "Wendy", "Zelda", "Zelma",
-	// Unsearched last names (from enqueue-by-category.ts curated lists)
+	// Unsearched last names (curated lists)
 	"Navra", "Oakes", "Ogden", "Plant", "Platt", "Power", "Prine", "Pryor",
 	"Rains", "Reeve", "Ricks", "Roper", "Rouse", "Sales", "Sands", "Selby",
 	"Sells", "Sheen", "Small", "Stack", "Stern", "Stock", "Stowe", "Suggs",

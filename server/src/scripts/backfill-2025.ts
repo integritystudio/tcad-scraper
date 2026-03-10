@@ -6,19 +6,14 @@
  */
 
 import { prisma } from "../lib/prisma";
-import { scraperQueue } from "../queues/scraper.queue";
-import { config } from "../config";
-import { getErrorMessage } from "../utils/error-helpers";
 import {
   DENSE_MAX_RESULTS_THRESHOLD, DENSE_AVG_RESULTS_THRESHOLD,
   DENSE_MIN_SUCCESS_RATE, DENSE_MAX_BASE_LENGTH,
   SEED_MIN_SUCCESS_RATE, SEED_MIN_AVG_RESULTS,
   RECENT_JOBS_LOOKBACK_MS, MIN_TERM_LENGTH, ALPHABET,
-  TARGET_2025_PROPERTY_COUNT as TARGET_2025_COUNT,
 } from "./lib/backfill-constants";
-import { enqueueBatch, waitForQueueDrain, BATCH_SIZE } from "./lib/queue-utils";
-import { get2025Count } from "./lib/backfill-utils";
-const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
+import { isSupersetOfSuccessful } from "./lib/backfill-utils";
+import { runBackfillMain } from "./lib/backfill-runner";
 
 async function getSearchedTerms(): Promise<{ searched2025: Set<string>; allSearched: Set<string>; successful: Set<string> }> {
   // Already-scraped 2025 search terms
@@ -46,18 +41,6 @@ async function getSearchedTerms(): Promise<{ searched2025: Set<string>; allSearc
   }
 
   return { searched2025, allSearched, successful };
-}
-
-// Extension filter: skip candidates that extend an already-successful shorter term.
-// Example: skip "JOHNSONVIL" if "JOHNSON" yielded results — the TCAD full-text search
-// returns all properties matching the shorter prefix, so it already captured this set.
-// Contrast with backfill-2025-novel.ts which uses the OPPOSITE strategy: skip terms
-// that are themselves prefixes of longer already-searched terms.
-function isSupersetOfSuccessful(lower: string, successful: Set<string>): boolean {
-  for (let len = MIN_TERM_LENGTH; len < lower.length; len++) {
-    if (successful.has(lower.substring(0, len))) return true;
-  }
-  return false;
 }
 
 async function getDenseExpansions(allSearched: Set<string>): Promise<string[]> {
@@ -218,79 +201,8 @@ async function getTermsToBackfill(): Promise<string[]> {
   return result;
 }
 
-async function main() {
-  if (config.scraper.tcadYear !== 2025) {
-    console.error(`ERROR: TCAD_YEAR is ${config.scraper.tcadYear}, must be 2025.`);
-    console.error("Run with: TCAD_YEAR=2025 doppler run -- npx tsx src/scripts/backfill-2025.ts");
-    process.exit(1);
-  }
-
-  let current = await get2025Count();
-  console.log(`\n=== 2025 Backfill ===`);
-  console.log(`Current 2025 properties: ${current.toLocaleString()}`);
-  console.log(`Target: ${TARGET_2025_COUNT.toLocaleString()}`);
-  console.log(`Gap: ${(TARGET_2025_COUNT - current).toLocaleString()}\n`);
-
-  if (current >= TARGET_2025_COUNT) {
-    console.log("Already at target.");
-    return;
-  }
-
-  const allTerms = await getTermsToBackfill();
-  console.log(`Terms to backfill: ${allTerms.length}\n`);
-
-  let batchNum = 0;
-  let consecutiveZeroBatches = 0;
-  let totalGained = 0;
-  for (let i = 0; i < allTerms.length; i += BATCH_SIZE) {
-    current = await get2025Count();
-    if (current >= TARGET_2025_COUNT) {
-      console.log(`\nTarget reached: ${current.toLocaleString()} >= ${TARGET_2025_COUNT.toLocaleString()}`);
-      break;
-    }
-
-    batchNum++;
-    const batch = allTerms.slice(i, i + BATCH_SIZE);
-    console.log(`--- Batch ${batchNum} (${batch.length} terms) ---`);
-    console.log(`  Terms: ${batch.join(", ")}`);
-
-    const enqueued = await enqueueBatch(batch, "backfill-2025");
-    console.log(`  Enqueued: ${enqueued}`);
-
-    await waitForQueueDrain();
-
-    const newCount = await get2025Count();
-    const gained = newCount - current;
-    totalGained += gained;
-    console.log(`  2025 properties: ${newCount.toLocaleString()} (+${gained.toLocaleString()}) [session: +${totalGained.toLocaleString()}]`);
-    console.log(`  Remaining: ${Math.max(0, TARGET_2025_COUNT - newCount).toLocaleString()}`);
-
-    if (gained === 0) {
-      consecutiveZeroBatches++;
-      console.log(`  Zero-result batches in a row: ${consecutiveZeroBatches}/${MAX_CONSECUTIVE_ZERO_BATCHES}`);
-      if (consecutiveZeroBatches >= MAX_CONSECUTIVE_ZERO_BATCHES) {
-        console.log(`\nStopping: ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive zero-result batches.`);
-        break;
-      }
-    } else {
-      consecutiveZeroBatches = 0;
-    }
-    console.log("");
-  }
-
-  const finalCount = await get2025Count();
-  console.log(`\n=== Done ===`);
-  console.log(`Final 2025 count: ${finalCount.toLocaleString()}`);
-  console.log(`Session gained: +${totalGained.toLocaleString()}`);
-  console.log(`Target met: ${finalCount >= TARGET_2025_COUNT ? "YES" : "NO"}`);
-}
-
-main()
-  .catch(err => {
-    console.error("Fatal:", getErrorMessage(err));
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-    await scraperQueue.close();
-  });
+runBackfillMain({
+  getTerms: getTermsToBackfill,
+  userId: "backfill-2025",
+  label: "High-Yield Terms",
+});
