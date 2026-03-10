@@ -44,7 +44,7 @@ async function generateBuildConstants() {
 		console.log("📊 Fetching property count from database...");
 
 		// Fetch total property count
-		const totalProperties = await prisma.property.count();
+		const totalProperties = await prisma!.property.count();
 
 		console.log(`✓ Found ${totalProperties.toLocaleString()} properties`);
 
