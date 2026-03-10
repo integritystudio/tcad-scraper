@@ -536,22 +536,14 @@ describe("Property Routes - Claude Search", () => {
 			expect(response.status).toBe(400);
 		});
 
-		test("should handle very long queries", async () => {
-			const longQuery = "properties ".repeat(100);
-			const mockResult = {
-				whereClause: { city: "Austin" },
-				explanation: "Test",
-			};
-
-			(claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(
-				mockResult,
-			);
+		test("should reject queries exceeding 500 character limit", async () => {
+			const longQuery = "properties ".repeat(100); // 1100 chars, over max(500)
 
 			const response = await request(app)
 				.post("/api/properties/search")
 				.send({ query: longQuery });
 
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(400);
 		});
 
 		test("should handle special characters", async () => {

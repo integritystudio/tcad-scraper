@@ -224,7 +224,7 @@ export const propertyFilterSchema = z.object({
 });
 
 export const naturalLanguageSearchSchema = z.object({
-	query: z.string().min(1),
+	query: z.string().min(1).max(500),
 	limit: z.number().min(1).max(1000).optional(),
 	offset: z.number().min(0).optional(),
 });

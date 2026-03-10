@@ -178,10 +178,8 @@ Done — added `if (!job.id)` guard returning 500 before `.toString()` call. -- 
 
 `canScheduleJob()` uses process-local `Map` to rate-limit scrape requests. With multiple Render replicas, each gets a fresh Map and rate limit resets on restart. Use Redis TTL key instead. -- `server/src/queues/scraper.queue.ts:263-278`
 
-### L30: No length cap on natural language query sent to Claude
-**Priority**: P3 | **Source**: code-reviewer 2026-03-10
-
-`claude.service.ts:156` passes raw `query` to Claude prompt without max length validation. Risk of prompt inflation and token burn. Verify Zod schema enforces `max()` length or add `.max(500)`. -- `server/src/lib/claude.service.ts:156`
+### ~~L30: No length cap on natural language query sent to Claude~~
+Done — added `.max(500)` to `naturalLanguageSearchSchema.query` in property.types.ts; Zod validation rejects oversized queries at the route level before Claude is called. -- `server/src/types/property.types.ts`
 
 ### ~~L31: Silent error swallowing in optionalAuth middleware~~
 Done — added `logger.debug()` on JWT verify errors in `optionalAuth` catch block. -- `server/src/middleware/auth.ts`
