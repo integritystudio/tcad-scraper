@@ -10,7 +10,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the analytics hook
 vi.mock("../hooks", () => ({
@@ -62,10 +62,6 @@ describe("App", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-	});
-
-	afterEach(() => {
-		vi.resetModules();
 	});
 
 	describe("Code Splitting", () => {
