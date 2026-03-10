@@ -165,10 +165,8 @@ Both `scraper.queue.ts:44` and `redis-cache.service.ts:26` set `rejectUnauthoriz
 
 ---
 
-### L27: Missing try/catch in naturalLanguageSearch database calls
-**Priority**: P3 | **Source**: code-reviewer 2026-03-10
-
-`property.controller.ts:130-196` has no error boundary around three `prismaReadOnly` calls. Prisma errors propagate as unhandled promise rejections, leaking `err.message` in responses. Wrap DB block in try/catch. -- `server/src/controllers/property.controller.ts:130-196`
+### ~~L27: Missing try/catch in naturalLanguageSearch database calls~~
+Done — wrapped all three `prismaReadOnly` calls in `naturalLanguageSearch` in a single try/catch returning 503 on DB errors. -- `server/src/controllers/property.controller.ts`
 
 ### ~~L28: Unsafe job.id.toString() with undefined guard~~
 Done — added `if (!job.id)` guard returning 500 before `.toString()` call. -- `server/src/controllers/property.controller.ts`

@@ -179,80 +179,89 @@ export class PropertyController {
 
 		// Query the database with the generated filters
 		const yearFilteredClause = { ...whereClause, year: DISPLAY_YEAR };
-		const [properties, total] = await Promise.all([
-			prismaReadOnly.property.findMany({
-				where: yearFilteredClause,
-				orderBy: orderBy || { scrapedAt: "desc" },
-				skip: offset,
-				take: Math.min(limit, 1000),
-			}),
-			prismaReadOnly.property.count({ where: yearFilteredClause }),
-		]);
-
-		// Calculate statistics if an answer is requested
+		let properties: Awaited<ReturnType<typeof prismaReadOnly.property.findMany>>;
+		let total: number;
 		let statistics: AnswerStatistics | undefined;
 		let formattedAnswer: string | undefined;
 
-		if (answer) {
-			// Calculate aggregate statistics
-			const [aggregates, cityStats, typeStats] = await Promise.all([
-				prismaReadOnly.property.aggregate({
+		try {
+			[properties, total] = await Promise.all([
+				prismaReadOnly.property.findMany({
 					where: yearFilteredClause,
-					_avg: { appraisedValue: true },
-					_sum: { appraisedValue: true },
-					_min: { appraisedValue: true },
-					_max: { appraisedValue: true },
+					orderBy: orderBy || { scrapedAt: "desc" },
+					skip: offset,
+					take: Math.min(limit, 1000),
 				}),
-				prismaReadOnly.property.groupBy({
-					by: ["city"],
-					where: { ...yearFilteredClause, city: { not: null } },
-					_count: true,
-					orderBy: { _count: { city: "desc" } },
-					take: 1,
-				}),
-				prismaReadOnly.property.groupBy({
-					by: ["propType"],
-					where: yearFilteredClause,
-					_count: true,
-					orderBy: { _count: { propType: "desc" } },
-					take: 5,
-				}),
+				prismaReadOnly.property.count({ where: yearFilteredClause }),
 			]);
 
-			statistics = {
-				avgValue: aggregates._avg.appraisedValue ?? undefined,
-				totalValue: aggregates._sum.appraisedValue ?? undefined,
-				priceRange:
-					aggregates._min.appraisedValue !== null &&
-					aggregates._max.appraisedValue !== null
-						? {
-								min: aggregates._min.appraisedValue,
-								max: aggregates._max.appraisedValue,
-							}
-						: undefined,
-				topCity:
-					cityStats.length > 0 && cityStats[0].city
-						? { name: cityStats[0].city, count: cityStats[0]._count }
-						: undefined,
-				propertyTypes: typeStats.map((t) => ({
-					type: t.propType,
-					count: t._count,
-				})),
-			};
+			// Calculate statistics if an answer is requested
+			if (answer) {
+				// Calculate aggregate statistics
+				const [aggregates, cityStats, typeStats] = await Promise.all([
+					prismaReadOnly.property.aggregate({
+						where: yearFilteredClause,
+						_avg: { appraisedValue: true },
+						_sum: { appraisedValue: true },
+						_min: { appraisedValue: true },
+						_max: { appraisedValue: true },
+					}),
+					prismaReadOnly.property.groupBy({
+						by: ["city"],
+						where: { ...yearFilteredClause, city: { not: null } },
+						_count: true,
+						orderBy: { _count: { city: "desc" } },
+						take: 1,
+					}),
+					prismaReadOnly.property.groupBy({
+						by: ["propType"],
+						where: yearFilteredClause,
+						_count: true,
+						orderBy: { _count: { propType: "desc" } },
+						take: 5,
+					}),
+				]);
 
-			// Format the answer by replacing placeholders
-			formattedAnswer = answer
-				.replace("{count}", total.toLocaleString())
-				.replace(
-					"{totalValue}",
-					statistics.totalValue
-						? new Intl.NumberFormat("en-US", {
-								style: "currency",
-								currency: "USD",
-								maximumFractionDigits: 0,
-							}).format(statistics.totalValue)
-						: "$0",
-				);
+				statistics = {
+					avgValue: aggregates._avg.appraisedValue ?? undefined,
+					totalValue: aggregates._sum.appraisedValue ?? undefined,
+					priceRange:
+						aggregates._min.appraisedValue !== null &&
+						aggregates._max.appraisedValue !== null
+							? {
+									min: aggregates._min.appraisedValue,
+									max: aggregates._max.appraisedValue,
+								}
+							: undefined,
+					topCity:
+						cityStats.length > 0 && cityStats[0].city
+							? { name: cityStats[0].city, count: cityStats[0]._count }
+							: undefined,
+					propertyTypes: typeStats.map((t) => ({
+						type: t.propType,
+						count: t._count,
+					})),
+				};
+
+				// Format the answer by replacing placeholders
+				formattedAnswer = answer
+					.replace("{count}", total.toLocaleString())
+					.replace(
+						"{totalValue}",
+						statistics.totalValue
+							? new Intl.NumberFormat("en-US", {
+									style: "currency",
+									currency: "USD",
+									maximumFractionDigits: 0,
+								}).format(statistics.totalValue)
+							: "$0",
+					);
+			}
+		} catch (dbError) {
+			return res.status(503).json({
+				error: "Database query failed",
+				message: "Unable to retrieve property data. Please try again.",
+			});
 		}
 
 		return res.json({
