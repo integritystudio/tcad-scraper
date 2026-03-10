@@ -133,33 +133,23 @@ Done — already resolved by L32: `$queryRaw` uses `Prisma.sql\`AND environment 
 
 ---
 
-### M31: Bull Dashboard lacks authentication
-**Priority**: P2 | **Source**: code-reviewer 2026-03-10
+### ~~M31: Bull Dashboard lacks authentication~~
+Done — added `apiKeyAuth` before `serverAdapter.getRouter()` at `server/src/index.ts`. (commit 0da93ab)
 
-`/admin/queues` endpoint is fully public and exposes job payloads, queue history, and drain controls. Add `apiKeyAuth` middleware before `serverAdapter.getRouter()`. -- `server/src/index.ts:91-99`
+### ~~M32: Hardcoded JWT fallback secret in config~~
+Done — replaced `|| "fallback-secret-change-in-production"` with `?? ""`. (commit e3dc189)
 
-### M32: Hardcoded JWT fallback secret in config
-**Priority**: P2 | **Source**: code-reviewer 2026-03-10
+### ~~M33: Redis TLS certificate verification disabled~~
+Done — removed `rejectUnauthorized: false` from both Redis configs. (commit 364585e)
 
-`config/index.ts` line 146 uses `process.env.JWT_SECRET || "fallback-secret-change-in-production"`. While guarded in production by `validateConfig()`, the fallback is evaluated and usable in dev/test environments. Replace with `?? ""` and guard generation. -- `server/src/config/index.ts:146`
-
-### M33: Redis TLS certificate verification disabled
-**Priority**: P2 | **Source**: code-reviewer 2026-03-10
-
-Both `scraper.queue.ts:44` and `redis-cache.service.ts:26` set `rejectUnauthorized: false`, disabling TLS certificate verification. Render-managed Redis uses valid CA-signed certs. Remove the flag or set to `true`. -- `server/src/queues/scraper.queue.ts:44`, `server/src/lib/redis-cache.service.ts:26`
-
-### M34: Blocking execSync in config initialization
-**Priority**: P2 | **Source**: code-reviewer 2026-03-10
-
-`config/index.ts:181-187` calls `execSync()` synchronously at module load time to fetch `ANTHROPIC_API_KEY` via doppler CLI. Blocks event loop 100-500ms on cold start. Refactor to async config initialization or rely exclusively on Doppler env injection. -- `server/src/config/index.ts:181-187`
+### ~~M34: Blocking execSync in config initialization~~
+Done — removed IIFE that called doppler CLI via execSync(). (commit 5a0cca1)
 
 ### ~~M35: Hardcoded DISPLAY_YEAR = 2025 hides 2026 data~~
 **Status**: Intentional — DISPLAY_YEAR is deliberately pinned to 2025; not a bug.
 
-### M36: Unprotected write endpoints allow mass job enqueueing
-**Priority**: P2 | **Source**: code-reviewer 2026-03-10
-
-`POST /api/properties/scrape` and `POST /api/properties/monitor` use `optionalAuth` only. Public clients can enqueue unlimited scrape jobs via distinct terms (in-process rate limiter only blocks same term twice per 5 sec). Add `apiKeyAuth` to write endpoints. -- `server/src/index.ts:281`, `server/src/routes/property.routes.ts`
+### ~~M36: Unprotected write endpoints allow mass job enqueueing~~
+Done — added `apiKeyAuth` to `POST /scrape` and `POST /monitor` in `property.routes.ts`. Updated tests. (commit 5472f00)
 
 ---
 
