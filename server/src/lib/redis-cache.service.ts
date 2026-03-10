@@ -39,7 +39,7 @@ export class RedisCacheService {
 						url: config.redis.url,
 						socket: {
 							connectTimeout: config.redis.connectionTimeout,
-							...(config.redis.tls ? { tls: true, rejectUnauthorized: false } : {}),
+							...(config.redis.tls ? { tls: true } : {}),
 						},
 					})
 				: createClient({

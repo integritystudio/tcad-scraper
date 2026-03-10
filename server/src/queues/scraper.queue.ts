@@ -48,7 +48,7 @@ function buildRedisConfig(): Bull.QueueOptions["redis"] {
 			port: parseInt(parsed.port || "6379"),
 			password: parsed.password,
 			username: parsed.username,
-			tls: { rejectUnauthorized: false },
+			tls: {},
 		};
 	}
 	return config.redis.url;
