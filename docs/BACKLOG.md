@@ -182,10 +182,8 @@ Done — added `.max(500)` to `naturalLanguageSearchSchema.query` in property.ty
 ### ~~L31: Silent error swallowing in optionalAuth middleware~~
 Done — added `logger.debug()` on JWT verify errors in `optionalAuth` catch block. -- `server/src/middleware/auth.ts`
 
-### L32: Unvalidated as string casts on query parameters
-**Priority**: P3 | **Source**: code-reviewer 2026-03-10
-
-`api-usage.controller.ts:7,16` use `as string` casts on `req.query` params without validation. If client sends array `?days[]=5&days[]=10`, `days as string` produces `NaN`. Add `validateQuery` schema. -- `server/src/controllers/api-usage.controller.ts:7,16`
+### ~~L32: Unvalidated as string casts on query parameters~~
+Done — replaced `as string` casts with `typeof x === "string"` guards for both `days` and `environment` params. `$queryRaw` now uses the validated `envFilter` variable. -- `server/src/controllers/api-usage.controller.ts`
 
 ### ~~L33: process.env.NODE_ENV read directly instead of config object~~
 Done — replaced `process.env.NODE_ENV === "development"` with `config.env.isDevelopment` in error handler. -- `server/src/middleware/error.middleware.ts`

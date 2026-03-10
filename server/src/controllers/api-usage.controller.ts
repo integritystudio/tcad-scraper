@@ -9,9 +9,12 @@ export class ApiUsageController {
 	async getUsageStats(req: Request, res: Response) {
 		const { days = 7, environment } = req.query;
 
-		const daysNum = Math.min(parseInt(days as string, 10) || 7, 90); // Max 90 days
+		const daysStr = typeof days === "string" ? days : "7";
+		const daysNum = Math.min(parseInt(daysStr, 10) || 7, 90); // Max 90 days
 		const startDate = new Date();
 		startDate.setDate(startDate.getDate() - daysNum);
+
+		const envFilter = typeof environment === "string" ? environment : undefined;
 
 		// Build where clause
 		const where: Prisma.ApiUsageLogWhereInput = {
@@ -20,8 +23,8 @@ export class ApiUsageController {
 			},
 		};
 
-		if (environment) {
-			where.environment = environment as string;
+		if (envFilter) {
+			where.environment = envFilter;
 		}
 
 		// Get usage statistics
@@ -71,7 +74,7 @@ export class ApiUsageController {
             COUNT(CASE WHEN success THEN 1 END)::bigint as success_count
           FROM api_usage_logs
           WHERE timestamp >= ${startDate}
-            ${environment ? `AND environment = ${environment}` : ""}
+            ${envFilter ? `AND environment = ${envFilter}` : ""}
           GROUP BY DATE(timestamp)
           ORDER BY date DESC
         `,
@@ -134,7 +137,7 @@ export class ApiUsageController {
 					? `${Math.round(totalCost._avg.responseTime)}ms`
 					: "N/A",
 				period: `Last ${daysNum} days`,
-				environment: environment || "all",
+				environment: envFilter ?? "all",
 			},
 			byDay: usageByDay.map((day) => ({
 				date: day.date,
