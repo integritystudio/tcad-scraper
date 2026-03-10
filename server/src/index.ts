@@ -19,7 +19,7 @@ import {
 	sentryRequestHandler,
 	sentryTracingHandler,
 } from "./lib/sentry.service";
-import { optionalAuth } from "./middleware/auth";
+import { apiKeyAuth, optionalAuth } from "./middleware/auth";
 import { metricsMiddleware } from "./middleware/metrics.middleware";
 import { nonceMiddleware } from "./middleware/xcontroller.middleware";
 import { scraperQueue } from "./queues/scraper.queue";
@@ -135,7 +135,7 @@ if (config.queue.dashboard.enabled) {
 		serverAdapter,
 	});
 
-	app.use(config.queue.dashboard.basePath, serverAdapter.getRouter());
+	app.use(config.queue.dashboard.basePath, apiKeyAuth, serverAdapter.getRouter());
 	logger.info(`Bull Dashboard enabled at ${config.queue.dashboard.basePath}`);
 }
 
