@@ -1,11 +1,5 @@
-import winston from "winston";
+import logger from "../lib/logger";
 import { scraperQueue } from "../queues/scraper.queue";
-
-const logger = winston.createLogger({
-	level: "info",
-	format: winston.format.simple(),
-	transports: [new winston.transports.Console()],
-});
 
 async function clearAllJobs() {
 	try {
@@ -13,7 +7,7 @@ async function clearAllJobs() {
 
 		// Get counts before clearing
 		const counts = await scraperQueue.getJobCounts();
-		logger.info("Current job counts:", counts);
+		logger.info({ counts }, "Current job counts");
 
 		// Clear all jobs by status
 		await scraperQueue.empty(); // Removes waiting and delayed jobs
@@ -35,12 +29,12 @@ async function clearAllJobs() {
 
 		// Verify all jobs are removed
 		const finalCounts = await scraperQueue.getJobCounts();
-		logger.info("Final job counts:", finalCounts);
+		logger.info({ counts: finalCounts }, "Final job counts");
 
 		logger.info("Successfully cleared all jobs from the queue");
 		process.exit(0);
 	} catch (error) {
-		logger.error("Error clearing jobs:", error);
+		logger.error({ err: error }, "Error clearing jobs");
 		process.exit(1);
 	}
 }

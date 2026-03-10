@@ -89,7 +89,6 @@
 		"redis": "^4.6.0",
 		"swagger-jsdoc": "^6.2.8",
 		"swagger-ui-express": "^5.0.1",
-		"winston": "^3.11.0",
 		"zod": "^3.22.0",
 		"@types/bull": "^4.10.0",
 		"@types/cors": "^2.8.17",

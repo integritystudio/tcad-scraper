@@ -1,5 +1,4 @@
 import type { Prisma } from "@prisma/client";
-import winston from "winston";
 import { config } from "../config";
 import { prisma } from "../lib/prisma";
 import { SearchTermDeduplicator } from "../lib/search-term-deduplicator";
@@ -8,22 +7,11 @@ import {
 	type SearchTermOptimizer,
 	searchTermOptimizer,
 } from "../services/search-term-optimizer";
+import logger from "../lib/logger";
 import { getErrorMessage } from "../utils/error-helpers";
 import { HIGH_RESULT_TERM_SPLITS } from "./config/batch-configs";
 import { enqueueBatch } from "./lib/queue-utils";
 import { TARGET_2025_PROPERTY_COUNT } from "./lib/backfill-constants";
-
-const logger = winston.createLogger({
-	level: "info",
-	format: winston.format.combine(
-		winston.format.timestamp(),
-		winston.format.simple(),
-	),
-	transports: [
-		new winston.transports.Console(),
-		new winston.transports.File({ filename: "logs/continuous-scraper.log" }),
-	],
-});
 
 // Operational stop threshold — scraper halts when DB reaches this count.
 // Not the full dataset ceiling (~451K total Travis County parcels); set lower
