@@ -21,7 +21,7 @@
 
 import { prisma } from '../lib/prisma';
 import { SearchTermDeduplicator } from '../lib/search-term-deduplicator';
-import { config } from '../config';
+import { enqueueBatch } from './lib/queue-utils';
 
 const TARGET_TERM_COUNT = 500;
 const ENQUEUE_MODE = process.argv.includes('--enqueue');
@@ -312,25 +312,13 @@ async function main() {
   if (ENQUEUE_MODE && selected.length > 0) {
     const { scraperQueue } = await import('../queues/scraper.queue');
     console.error(`\nEnqueuing ${selected.length} terms to BullMQ...`);
-
-    let queued = 0;
-    for (const searchTerm of selected) {
-      await scraperQueue.add(
-        config.queue.jobName,
-        { searchTerm, userId: 'next-200-gen', scheduled: true },
-        {
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 2000 },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-      );
-      queued++;
-    }
+    const queued = await enqueueBatch(selected, 'next-200-gen');
     console.error(`Enqueued ${queued} jobs`);
     await scraperQueue.close();
   }
 
 }
 
-main();
+main()
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());
