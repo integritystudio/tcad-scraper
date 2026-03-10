@@ -83,6 +83,7 @@ describe("Property Routes", () => {
 		it("should accept valid scrape request", async () => {
 			const response = await request(app)
 				.post("/api/properties/scrape")
+				.set("x-api-key", "test-api-key")
 				.send({ searchTerm: "Smith" })
 				.expect(202);
 
@@ -94,6 +95,7 @@ describe("Property Routes", () => {
 		it("should reject request without searchTerm", async () => {
 			const response = await request(app)
 				.post("/api/properties/scrape")
+				.set("x-api-key", "test-api-key")
 				.send({})
 				.expect(400);
 
@@ -105,6 +107,7 @@ describe("Property Routes", () => {
 		it("should reject request with invalid searchTerm type", async () => {
 			const response = await request(app)
 				.post("/api/properties/scrape")
+				.set("x-api-key", "test-api-key")
 				.send({ searchTerm: 123 })
 				.expect(400);
 
@@ -116,10 +119,21 @@ describe("Property Routes", () => {
 		it("should accept optional userId and scheduled fields", async () => {
 			await request(app)
 				.post("/api/properties/scrape")
+				.set("x-api-key", "test-api-key")
 				.send({ searchTerm: "Smith", userId: "user123", scheduled: true })
 				.expect(202);
 
 			expect(propertyController.scrapeProperties).toHaveBeenCalled();
+		});
+
+		it("should reject request without API key", async () => {
+			const response = await request(app)
+				.post("/api/properties/scrape")
+				.send({ searchTerm: "Smith" })
+				.expect(401);
+
+			expect(response.body).toHaveProperty("error");
+			expect(propertyController.scrapeProperties).not.toHaveBeenCalled();
 		});
 	});
 
@@ -354,6 +368,7 @@ describe("Property Routes", () => {
 		it("should add monitored search term", async () => {
 			const response = await request(app)
 				.post("/api/properties/monitor")
+				.set("x-api-key", "test-api-key")
 				.send({ searchTerm: "Smith" })
 				.expect(201);
 
@@ -365,6 +380,7 @@ describe("Property Routes", () => {
 		it("should reject request without searchTerm", async () => {
 			const response = await request(app)
 				.post("/api/properties/monitor")
+				.set("x-api-key", "test-api-key")
 				.send({})
 				.expect(400);
 
@@ -376,10 +392,21 @@ describe("Property Routes", () => {
 		it("should accept optional schedule and enabled fields", async () => {
 			await request(app)
 				.post("/api/properties/monitor")
+				.set("x-api-key", "test-api-key")
 				.send({ searchTerm: "Smith", schedule: "0 0 * * *", enabled: false })
 				.expect(201);
 
 			expect(propertyController.addMonitoredSearch).toHaveBeenCalled();
+		});
+
+		it("should reject request without API key", async () => {
+			const response = await request(app)
+				.post("/api/properties/monitor")
+				.send({ searchTerm: "Smith" })
+				.expect(401);
+
+			expect(response.body).toHaveProperty("error");
+			expect(propertyController.addMonitoredSearch).not.toHaveBeenCalled();
 		});
 	});
 

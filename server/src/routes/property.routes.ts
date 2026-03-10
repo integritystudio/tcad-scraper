@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { propertyController } from "../controllers/property.controller";
 import { asyncHandler } from "../middleware/error.middleware";
+import { apiKeyAuth } from "../middleware/auth";
 import {
 	validateBody,
 	validateQuery,
@@ -79,6 +80,7 @@ const router = Router();
  */
 router.post(
 	"/scrape",
+	apiKeyAuth,
 	validateBody(scrapeRequestSchema),
 	asyncHandler(propertyController.scrapeProperties),
 );
@@ -483,6 +485,7 @@ router.get("/stats", asyncHandler(propertyController.getStats));
  */
 router.post(
 	"/monitor",
+	apiKeyAuth,
 	validateBody(monitorRequestSchema),
 	asyncHandler(propertyController.addMonitoredSearch),
 );
