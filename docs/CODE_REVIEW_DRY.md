@@ -103,22 +103,10 @@ Identical camelCase-to-snake_case property mapping appears twice (in `getPropert
 
 ---
 
-### MEDIUM: humanDelay Function Duplication
+### ~~MEDIUM: humanDelay Function Duplication~~ — **RESOLVED** (2026-02-08)
 
-**Files**:
-- `server/src/lib/tcad-scraper.ts:114-120`
-- `server/src/lib/fallback/dom-scraper.ts:44-50`
-
-Same implementation in both files:
-
-```typescript
-async function humanDelay(min, max): Promise<void> {
-  const delay = Math.floor(Math.random() * (max - min) + min);
-  await new Promise((resolve) => setTimeout(resolve, delay));
-}
-```
-
-**Recommendation**: Move to `utils/timing.ts`.
+~~`dom-scraper.ts` (fallback browser scraper) contained duplicate `humanDelay` implementation.~~
+Playwright removed Feb 2026. DOM scraper no longer exists. `humanDelay` utility extracted to `utils/timing.ts` for use in API-direct scraper.
 
 ---
 

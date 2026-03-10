@@ -301,7 +301,7 @@ For now, with Basic-1gb (100 connections), connection pooling is unnecessary. Bu
 ## BullMQ on Valkey/Render Gotchas
 
 - **Valkey 8 compatibility**: Render Key Value now runs Valkey 8 (Redis 7.2.4 fork). BullMQ should work as a drop-in replacement, but verify in staging first.
-- **Stalled jobs**: Playwright scraping blocks the Node.js event loop, causing BullMQ lock renewal to miss deadlines. Jobs get incorrectly marked as stalled. Mitigate with BullMQ sandboxed processors or separate worker processes.
+- **~~Stalled jobs~~** — **RESOLVED** (Playwright removed 2026-02-26): ~~Playwright scraping blocked the Node.js event loop, causing BullMQ lock renewal to miss deadlines.~~ Scraping is now API-direct via `tcad-api-client.ts`. No blocking operations; event loop remains responsive.
 - **Redeploy interrupts active jobs**: Every git push triggers a redeploy. Active scraper jobs will be killed. Configure BullMQ `gracefulShutdown` and job retries (`attempts: 3`) to handle this.
 - **No SSH access**: Debugging is logs-only on Render. Ensure structured logging (Pino) captures enough context.
 
@@ -335,7 +335,7 @@ For now, with Basic-1gb (100 connections), connection pooling is unnecessary. Bu
 
 - Full server access (SSH, arbitrary processes)
 - Free compute on owned hardware
-- Playwright browser scraping (without Docker migration)
+- ~~Playwright browser scraping (without Docker migration)~~ — **N/A** (Playwright removed Feb 2026, migrated to API-direct scraping)
 - `results/` volume mount (use S3 or remove if unused)
 
 ---

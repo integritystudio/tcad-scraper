@@ -140,6 +140,22 @@ Both files share identical 52-term `ENTITY_TERMS` array. The only behavioral dif
 **Priority**: P3 | **Source**: repomix-explorer session 2026-03-09
 3 scripts (`queue-entity-searches.ts`, `queue-entity-searches-fresh.ts`, `enqueue-terms.ts`) hardcode job options `{ attempts: 3, backoff: { type: 'exponential', delay: 2000 }, removeOnComplete: 100, removeOnFail: 50 }` instead of using shared config. Centralize to shared config like `lib/queue-utils.ts` does. -- `server/src/scripts/{queue-entity-searches*.ts,enqueue-terms.ts}`
 
+#### [x] L27: Update CI-CD.md E2E tests section
+**Priority**: P3 | **Source**: documentation audit session 2026-03-09 | **Completed**: 2026-03-09
+✅ Updated section to list 5 actual E2E test suites (accessibility, error-handling, property-card, search, visual) with descriptions. Removed placeholder text. -- `docs/CI-CD.md:154-162`
+
+#### [x] L28: Fix MONITORING.md Grafana port reference
+**Priority**: P3 | **Source**: documentation audit session 2026-03-09 | **Completed**: 2026-03-09
+✅ Corrected Grafana port from 3001 (backend) to 3456 (default GRAFANA_PORT). Verified against docker-compose.monitoring.yml. -- `docs/MONITORING.md:26`
+
+#### [x] L29: Clean up moot items in CODE_REVIEW_DRY.md
+**Priority**: P4 | **Source**: documentation audit session 2026-03-09 | **Completed**: 2026-03-09
+✅ Marked humanDelay duplication as RESOLVED (Playwright removed Feb 2026, dom-scraper.ts deleted). Removed reference to non-existent file. Preserved historical context. -- `docs/CODE_REVIEW_DRY.md:106-119`
+
+#### [x] L30: Update archived RENDER-MIGRATION.md Playwright references
+**Priority**: P4 | **Source**: documentation audit session 2026-03-09 | **Completed**: 2026-03-09
+✅ Marked "Stalled jobs" gotcha as RESOLVED (API-direct scraping no longer blocks event loop). Marked "Playwright browser scraping" loss as N/A (removed Feb 2026). Preserved historical context. -- `docs/archive/RENDER-MIGRATION.md:304,338`
+
 ---
 
 ## Completed

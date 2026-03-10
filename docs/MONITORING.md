@@ -23,7 +23,7 @@ docker-compose -f config/docker-compose.monitoring.yml up -d
 | Service | URL | Credentials |
 |---------|-----|-------------|
 | Prometheus | http://localhost:9090 | -- |
-| Grafana | http://localhost:3001 | admin/admin |
+| Grafana | http://localhost:3456 | admin/admin |
 | App Metrics | http://localhost:3001/metrics | -- |
 | BullMQ Metrics | http://localhost:4000/metrics | -- |
 

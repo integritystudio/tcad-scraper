@@ -151,11 +151,15 @@ CLAUDE_API_KEY: "test-key"
 - Route integration tests (`routes/__tests__/*.test.ts`)
 - Security integration tests (`security.test.ts`)
 
-#### E2E Tests (Optional)
-- Placeholder for future end-to-end tests
-- Automatically detects if E2E test directory exists
-- Runs full user workflow tests if present
-- Skips gracefully if no E2E tests found
+#### E2E Tests
+- 5 comprehensive end-to-end test suites using Playwright/Vitest:
+  - `accessibility.spec.ts` - Screen reader, keyboard navigation, WCAG compliance
+  - `error-handling.spec.ts` - Error states, boundary conditions, recovery flows
+  - `property-card.spec.ts` - Component interactions, expand/collapse, data display
+  - `search.spec.ts` - Search workflows, pagination, filtering
+  - `visual.spec.ts` - Visual regression testing, snapshot validation
+- Runs automatically on PR merge and can be manually triggered
+- Reports coverage metrics alongside unit/integration tests
 
 #### Integration Success
 - Summary job that validates all integration tests passed
