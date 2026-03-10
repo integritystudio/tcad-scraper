@@ -170,10 +170,8 @@ Both `scraper.queue.ts:44` and `redis-cache.service.ts:26` set `rejectUnauthoriz
 
 `property.controller.ts:130-196` has no error boundary around three `prismaReadOnly` calls. Prisma errors propagate as unhandled promise rejections, leaking `err.message` in responses. Wrap DB block in try/catch. -- `server/src/controllers/property.controller.ts:130-196`
 
-### L28: Unsafe job.id.toString() with undefined guard
-**Priority**: P3 | **Source**: code-reviewer 2026-03-10
-
-`property.controller.ts:37` calls `job.id.toString()` without null check. If `job.id` is `undefined`, returns string `"undefined"` as job ID, which clients then poll. Add guard: `if (!job.id) throw new Error("Queue returned job without ID")`. -- `server/src/controllers/property.controller.ts:37`
+### ~~L28: Unsafe job.id.toString() with undefined guard~~
+Done — added `if (!job.id)` guard returning 500 before `.toString()` call. -- `server/src/controllers/property.controller.ts`
 
 ### L29: In-memory rate limiter ineffective across replicas
 **Priority**: P3 | **Source**: code-reviewer 2026-03-10

@@ -45,6 +45,10 @@ export class PropertyController {
 			attempts: 3,
 		});
 
+		if (!job.id) {
+			return res.status(500).json({ error: "Queue returned job without ID" });
+		}
+
 		const response: ScrapeResponse = {
 			jobId: job.id.toString(),
 			message: "Scrape job queued successfully",
