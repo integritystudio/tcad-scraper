@@ -70,14 +70,15 @@ function migrateFile(filePath: string, dryRun = false): void {
 		if (dryRun) {
 			// Count replacements per type
 			const counts: string[] = [];
+			let total = 0;
 			for (const { pattern, replacement } of replacements) {
 				const matches = (content.match(pattern) ?? []).length;
 				if (matches > 0) {
-					const from = pattern.source.replace(/\\\(/g, "(");
+					total += matches;
+					const from = pattern.source.replace(/\\\./g, ".").replace(/\\\(/g, "(");
 					counts.push(`  ${matches}x ${from} → ${replacement}`);
 				}
 			}
-			const total = counts.reduce((sum, line) => sum + parseInt(line.trim().split("x")[0], 10), 0);
 			console.log(`[dry-run] Would migrate: ${filePath} (${total} replacement${total !== 1 ? "s" : ""})`);
 			counts.forEach(line => console.log(line));
 		} else {
