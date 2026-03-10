@@ -19,6 +19,7 @@
 import { writeFileSync, mkdirSync } from 'fs';
 import { prisma } from '../lib/prisma';
 import { join } from 'path';
+import { getSearchedTermSets } from './lib/searched-terms';
 const OUTPUT_PATH = join(__dirname, '..', '..', 'data', 'valid-5char-terms.txt');
 
 // ── Curated name lists ─────────────────────────────────────────────────
@@ -241,19 +242,7 @@ async function main() {
   console.error(`Valid name set: ${validNames.size} entries (${dictProperCount} from dictionary proper nouns)`);
 
   // 2. Load already-searched terms from DB
-  const [analyticsRows, propTermRows] = await Promise.all([
-    prisma.searchTermAnalytics.findMany({ select: { searchTerm: true } }),
-    prisma.property.groupBy({
-      by: ['searchTerm'],
-      where: { year: 2025, searchTerm: { not: null } },
-    }),
-  ]);
-
-  const searched = new Set<string>();
-  for (const r of analyticsRows) searched.add(r.searchTerm.toLowerCase());
-  for (const r of propTermRows) {
-    if (r.searchTerm) searched.add(r.searchTerm.toLowerCase());
-  }
+  const { allSearched: searched } = await getSearchedTermSets();
 
   // Blacklist
   const blacklisted = await prisma.searchTermAnalytics.findMany({

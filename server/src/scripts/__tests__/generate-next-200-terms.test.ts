@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockFindMany = vi.fn();
 const mockGroupBy = vi.fn();
 const mockDisconnect = vi.fn();
+const mockQueryRaw = vi.fn();
+const mockScrapeJobFindMany = vi.fn();
 
 vi.mock("../../lib/prisma", () => ({
   prisma: {
@@ -12,6 +14,10 @@ vi.mock("../../lib/prisma", () => ({
     property: {
       groupBy: (...args: unknown[]) => mockGroupBy(...args),
     },
+    scrapeJob: {
+      findMany: (...args: unknown[]) => mockScrapeJobFindMany(...args),
+    },
+    $queryRaw: (...args: unknown[]) => mockQueryRaw(...args),
     $disconnect: () => mockDisconnect(),
   },
 }));

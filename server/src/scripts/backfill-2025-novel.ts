@@ -10,38 +10,12 @@
  */
 
 import { prisma } from "../lib/prisma";
-import { RECENT_JOBS_LOOKBACK_MS, MIN_TERM_LENGTH } from "./lib/backfill-constants";
+import { MIN_TERM_LENGTH } from "./lib/backfill-constants";
 import { runBackfillMain } from "./lib/backfill-runner";
+import { getSearchedTermSets } from "./lib/searched-terms";
 
 const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
 const MIN_PROPS_PER_TERM = 10;
-
-async function getSearchedTerms(): Promise<Set<string>> {
-  // All terms ever used: 2025 properties + 2026 properties + scrape_jobs
-  const [terms25, terms26, jobs] = await Promise.all([
-    prisma.$queryRaw<Array<{ search_term: string }>>`
-      SELECT DISTINCT search_term FROM properties WHERE year = 2025`,
-    prisma.$queryRaw<Array<{ search_term: string }>>`
-      SELECT DISTINCT search_term FROM properties WHERE year = 2026`,
-    prisma.scrapeJob.findMany({
-      where: { startedAt: { gte: new Date(Date.now() - RECENT_JOBS_LOOKBACK_MS) } },
-      select: { searchTerm: true },
-    }),
-  ]);
-
-  const searched = new Set<string>();
-  for (const r of terms25) searched.add(r.search_term.toLowerCase());
-  for (const r of terms26) searched.add(r.search_term.toLowerCase());
-  for (const j of jobs) searched.add(j.searchTerm.toLowerCase());
-
-  // Also include analytics terms
-  const analytics = await prisma.searchTermAnalytics.findMany({
-    select: { searchTerm: true },
-  });
-  for (const a of analytics) searched.add(a.searchTerm.toLowerCase());
-
-  return searched;
-}
 
 // Prefix filter (opposite strategy from other backfill scripts):
 // Skip novel candidates that are already a prefix of a longer already-searched term.
@@ -66,7 +40,7 @@ interface CandidateTerm {
 }
 
 async function getNovelTerms(): Promise<string[]> {
-  const searched = await getSearchedTerms();
+  const { allSearched: searched } = await getSearchedTermSets();
   console.log(`  Already-searched terms: ${searched.size}`);
 
   // Collect all candidates with their yields from all sources

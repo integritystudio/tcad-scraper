@@ -10,47 +10,13 @@
  */
 
 import { prisma } from "../lib/prisma";
-import { RECENT_JOBS_LOOKBACK_MS, MIN_TERM_LENGTH } from "./lib/backfill-constants";
+import { MIN_TERM_LENGTH } from "./lib/backfill-constants";
 import { isSupersetOfSuccessful } from "./lib/backfill-utils";
 import { runBackfillMain } from "./lib/backfill-runner";
-
-interface TermSets {
-  searched: Set<string>;
-  successful: Set<string>;
-  searched2025: Set<string>;
-}
-
-async function getTermSets(): Promise<TermSets> {
-  const analyticsRows = await prisma.searchTermAnalytics.findMany({
-    select: { searchTerm: true, totalResults: true },
-  });
-  const searched = new Set<string>();
-  const successful = new Set<string>();
-  for (const r of analyticsRows) {
-    const lower = r.searchTerm.toLowerCase();
-    searched.add(lower);
-    if (r.totalResults > 0) successful.add(lower);
-  }
-
-  const terms2025 = await prisma.$queryRaw<Array<{ search_term: string }>>`
-    SELECT DISTINCT search_term FROM properties WHERE year = 2025`;
-  const searched2025 = new Set(terms2025.map(r => r.search_term.toLowerCase()));
-
-  // Include recent scrape jobs to avoid re-running
-  const recentJobs = await prisma.scrapeJob.findMany({
-    where: { startedAt: { gte: new Date(Date.now() - RECENT_JOBS_LOOKBACK_MS) } },
-    select: { searchTerm: true },
-  });
-  for (const j of recentJobs) {
-    searched2025.add(j.searchTerm.toLowerCase());
-    searched.add(j.searchTerm.toLowerCase());
-  }
-
-  return { searched, successful, searched2025 };
-}
+import { getSearchedTermSets } from "./lib/searched-terms";
 
 async function getUnsearchedTerms(): Promise<string[]> {
-  const { searched, successful, searched2025 } = await getTermSets();
+  const { allSearched: searched, successful, searched2025 } = await getSearchedTermSets();
   const seen = new Set<string>();
   const result: string[] = [];
   let skippedSupersets = 0;

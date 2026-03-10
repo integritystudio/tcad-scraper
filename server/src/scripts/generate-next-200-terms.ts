@@ -22,6 +22,7 @@
 import { prisma } from '../lib/prisma';
 import { SearchTermDeduplicator } from '../lib/search-term-deduplicator';
 import { enqueueBatch } from './lib/queue-utils';
+import { getSearchedTermSets } from './lib/searched-terms';
 
 const TARGET_TERM_COUNT = 500;
 
@@ -106,22 +107,8 @@ const CANDIDATE_ENTITY = [
 ];
 
 export async function main(enqueueMode = false) {
-  // 1. Load all already-searched terms (analytics + property searchTerm)
-  const [analyticsRows, propTermRows] = await Promise.all([
-    prisma.searchTermAnalytics.findMany({
-      select: { searchTerm: true, avgResultsPerSearch: true, totalSearches: true },
-    }),
-    prisma.property.groupBy({
-      by: ['searchTerm'],
-      where: { year: 2025, searchTerm: { not: null } },
-    }),
-  ]);
-
-  const searched = new Set<string>();
-  for (const r of analyticsRows) searched.add(r.searchTerm.toLowerCase());
-  for (const r of propTermRows) {
-    if (r.searchTerm) searched.add(r.searchTerm.toLowerCase());
-  }
+  // 1. Load all already-searched terms (analytics + property searchTerm + recent jobs)
+  const { allSearched: searched } = await getSearchedTermSets();
 
   // 2. Load blacklisted terms
   const blacklisted = await prisma.searchTermAnalytics.findMany({

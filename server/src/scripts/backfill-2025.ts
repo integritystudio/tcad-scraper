@@ -10,38 +10,11 @@ import {
   DENSE_MAX_RESULTS_THRESHOLD, DENSE_AVG_RESULTS_THRESHOLD,
   DENSE_MIN_SUCCESS_RATE, DENSE_MAX_BASE_LENGTH,
   SEED_MIN_SUCCESS_RATE, SEED_MIN_AVG_RESULTS,
-  RECENT_JOBS_LOOKBACK_MS, MIN_TERM_LENGTH, ALPHABET,
+  MIN_TERM_LENGTH, ALPHABET,
 } from "./lib/backfill-constants";
 import { isSupersetOfSuccessful } from "./lib/backfill-utils";
 import { runBackfillMain } from "./lib/backfill-runner";
-
-async function getSearchedTerms(): Promise<{ searched2025: Set<string>; allSearched: Set<string>; successful: Set<string> }> {
-  // Already-scraped 2025 search terms
-  const terms2025 = await prisma.$queryRaw<Array<{ search_term: string }>>`
-    SELECT DISTINCT search_term FROM properties WHERE year = 2025`;
-  const searched2025 = new Set(terms2025.map(r => r.search_term.toLowerCase()));
-
-  // Also check scrape_jobs that ran recently (even if 0 results)
-  const recentJobs = await prisma.scrapeJob.findMany({
-    where: { startedAt: { gte: new Date(Date.now() - RECENT_JOBS_LOOKBACK_MS) } },
-    select: { searchTerm: true },
-  });
-  for (const j of recentJobs) searched2025.add(j.searchTerm.toLowerCase());
-
-  // All analytics terms (for superset checking)
-  const analyticsRows = await prisma.searchTermAnalytics.findMany({
-    select: { searchTerm: true, totalResults: true },
-  });
-  const allSearched = new Set<string>();
-  const successful = new Set<string>();
-  for (const r of analyticsRows) {
-    const lower = r.searchTerm.toLowerCase();
-    allSearched.add(lower);
-    if (r.totalResults > 0) successful.add(lower);
-  }
-
-  return { searched2025, allSearched, successful };
-}
+import { getSearchedTermSets } from "./lib/searched-terms";
 
 async function getDenseExpansions(allSearched: Set<string>): Promise<string[]> {
   const dense = await prisma.searchTermAnalytics.findMany({
@@ -151,7 +124,7 @@ const STATIC_TERMS = [
 ];
 
 async function getTermsToBackfill(): Promise<string[]> {
-  const { searched2025, allSearched, successful } = await getSearchedTerms();
+  const { searched2025, allSearched, successful } = await getSearchedTermSets();
 
   // Source 1: High-yield 2026 terms not yet in 2025
   const terms2026 = await prisma.$queryRaw<Array<{ search_term: string; cnt: number }>>`
