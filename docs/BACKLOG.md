@@ -62,18 +62,6 @@
   23. [x] Extract hardcoded TCAD total `451,339` in `analyze-search-terms.ts` — named `TCAD_TOTAL_PROPERTIES` constant with update comment (1514129)
   24. [x] Add `--dry-run` flag to `migrate-to-logger.ts` — previews changes without writing (684b1e1)
 
-### Code Review 2026-03-09: Full-Stack Review of 10-commit session (backlog-implementer)
-
-  High
-  25. [x] `queue-utils.ts` uses `console.error` for enqueue failures — added `EnqueueLogger` interface, lowthreshold scraper passes winston logger (1e74962, 2a97e19)
-
-  Medium
-  26. [x] `migrate-to-logger.ts` --dry-run flag shows no diff — now prints total + per-type replacement breakdown (c175bb4, 49f639e)
-  27. [x] `generate-next-200-terms.ts` line 318 hardcodes `'scrape-properties'` — replaced with `config.queue.jobName` (ca06eda)
-  28. [x] `analyze-search-terms.ts` TCAD_TOTAL_PROPERTIES has no staleness signal — added runtime guard + Math.max(0,...) clamp (7f194f5)
-
-  Low
-  29. [x] `continuous-batch-scraper-lowthreshold.ts` does not `await prisma.$disconnect()` before `process.exit(0)` — added on both normal and error exit paths (dfbd71f)
 
 ### Test Coverage Gaps — backlog-implementer session 2026-03-09
 
