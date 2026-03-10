@@ -21,6 +21,7 @@
 
 import { prisma } from '../lib/prisma';
 import { SearchTermDeduplicator } from '../lib/search-term-deduplicator';
+import { config } from '../config';
 
 const TARGET_TERM_COUNT = 500;
 const ENQUEUE_MODE = process.argv.includes('--enqueue');
@@ -315,7 +316,7 @@ async function main() {
     let queued = 0;
     for (const searchTerm of selected) {
       await scraperQueue.add(
-        'scrape-properties',
+        config.queue.jobName,
         { searchTerm, userId: 'next-200-gen', scheduled: true },
         {
           attempts: 3,
