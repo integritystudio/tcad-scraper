@@ -1,12 +1,14 @@
 import logger from "../lib/logger";
 import { scraperQueue } from "../queues/scraper.queue";
+import { enqueueBatch } from "./lib/queue-utils";
 import { getErrorMessage } from "../utils/error-helpers";
 
 /**
- * Queue 50 high-yield entity term searches based on optimal search strategy
+ * Queue high-yield entity term searches.
  *
- * Priority: Entity terms perform best (~70+ properties/search)
- * These terms target trusts, LLCs, partnerships, and corporations
+ * Usage:
+ *   tsx queue-entity-searches.ts           # queue only
+ *   tsx queue-entity-searches.ts --fresh   # clear failed jobs first, then queue
  */
 
 const ENTITY_TERMS = [
@@ -72,97 +74,81 @@ const ENTITY_TERMS = [
 	"Construction",
 ];
 
-async function queueEntitySearches() {
-	logger.info("🔄 Queuing Entity Term Searches for TCAD Scraper\n");
+async function queueEntitySearches(fresh: boolean) {
+	const label = fresh
+		? "Clearing Failed Jobs and Queuing Fresh Entity Searches"
+		: "Queuing Entity Term Searches for TCAD Scraper";
+	logger.info(`🔄 ${label}\n`);
 	logger.info(`${"=".repeat(80)}\n`);
 
-	try {
-		// Take first 50 entity terms
-		const searchTerms = ENTITY_TERMS.slice(0, 50);
+	if (fresh) {
+		logger.info("🧹 Cleaning up failed jobs...");
+		const failedJobs = await scraperQueue.getFailed(0, 100);
+		logger.info(`Found ${failedJobs.length} failed jobs`);
 
-		logger.info(
-			`Queuing ${searchTerms.length} high-yield entity term searches...\n`,
-		);
-
-		const jobs = [];
-		let queuedCount = 0;
-		let failedCount = 0;
-
-		for (const searchTerm of searchTerms) {
+		let removedCount = 0;
+		for (const job of failedJobs) {
 			try {
-				const job = await scraperQueue.add(
-					"scrape-properties",
-					{
-						searchTerm,
-						userId: "entity-batch-scraper",
-						scheduled: true,
-					},
-					{
-						attempts: 3,
-						backoff: {
-							type: "exponential",
-							delay: 2000,
-						},
-						removeOnComplete: 100,
-						removeOnFail: 50,
-					},
-				);
-
-				jobs.push(job);
-				queuedCount++;
-				logger.info(
-					`✅ [${queuedCount}/${searchTerms.length}] Queued: "${searchTerm}" (Job ID: ${job.id})`,
-				);
+				await job.remove();
+				removedCount++;
 			} catch (error) {
-				failedCount++;
 				logger.error(
-					`❌ Failed to queue "${searchTerm}": ${getErrorMessage(error)}`,
+					`Failed to remove job ${job.id}: ${getErrorMessage(error)}`,
 				);
 			}
 		}
+		logger.info(`✅ Removed ${removedCount} failed jobs\n`);
+	}
 
-		logger.info(`\n${"─".repeat(80)}`);
-		logger.info("QUEUE SUMMARY");
-		logger.info(`${"─".repeat(80)}\n`);
-		logger.info(`✅ Successfully queued: ${queuedCount} jobs`);
-		logger.info(`❌ Failed to queue: ${failedCount} jobs`);
-		logger.info(`📊 Total jobs added: ${queuedCount}`);
+	const searchTerms = ENTITY_TERMS.slice(0, 50);
+	const userId = fresh ? "entity-batch-scraper-fresh" : "entity-batch-scraper";
+	logger.info(`Queuing ${searchTerms.length} high-yield entity term searches...\n`);
 
-		if (queuedCount > 0) {
-			logger.info(`\n${"=".repeat(80)}`);
-			logger.info("MONITORING");
-			logger.info(`${"=".repeat(80)}\n`);
-			logger.info(
-				"🎯 Bull Board Dashboard: http://localhost:3001/admin/queues",
-			);
-			logger.info(
-				"   Monitor job progress, view completed/failed jobs, and queue stats\n",
-			);
+	const queuedCount = await enqueueBatch(searchTerms, userId, logger);
+	const failedCount = searchTerms.length - queuedCount;
 
-			logger.info("📈 Expected Results:");
-			logger.info(`   - Entity terms average: ~70 properties/search`);
+	logger.info(`\n${"─".repeat(80)}`);
+	logger.info("QUEUE SUMMARY");
+	logger.info(`${"─".repeat(80)}\n`);
+	logger.info(`✅ Successfully queued: ${queuedCount} jobs`);
+	logger.info(`❌ Failed to queue: ${failedCount} jobs`);
+
+	if (queuedCount > 0) {
+		logger.info(`\n${"=".repeat(80)}`);
+		logger.info("MONITORING");
+		logger.info(`${"=".repeat(80)}\n`);
+		logger.info("🎯 Bull Board Dashboard: http://localhost:3001/admin/queues");
+		logger.info(
+			"   Monitor job progress, view completed/failed jobs, and queue stats\n",
+		);
+		logger.info("📈 Expected Results:");
+		logger.info("   - Entity terms average: ~70 properties/search");
+		logger.info(
+			`   - Estimated total properties: ${queuedCount * 70} (if all succeed)`,
+		);
+		logger.info(
+			`   - Processing time: ~${Math.ceil(((queuedCount / 2) * 15) / 60)} hours (2 concurrent workers)\n`,
+		);
+		if (fresh) {
+			logger.info("⚠️  Note: Token expires in 5 minutes!");
 			logger.info(
-				`   - Estimated total properties: ${queuedCount * 70} (if all succeed)`,
-			);
-			logger.info(
-				`   - Processing time: ~${Math.ceil(((queuedCount / 2) * 15) / 60)} hours (2 concurrent workers)\n`,
+				"   token-refresh.service.ts handles auto-refresh via Cloudflare Worker\n",
 			);
 		}
-
-		logger.info("✨ Entity term searches queued successfully!\n");
-	} catch (error) {
-		logger.error(`❌ Fatal error: ${getErrorMessage(error)}`);
-		process.exit(1);
 	}
+
+	logger.info("✨ Entity term searches queued successfully!\n");
 }
 
-// Run the script
-queueEntitySearches()
-	.then(() => {
-		logger.info("✅ Script completed. Jobs are now processing...");
-		process.exit(0);
-	})
-	.catch((error) => {
-		logger.error("❌ Script failed:", error);
-		process.exit(1);
-	});
+if (require.main === module) {
+	const fresh = process.argv.includes("--fresh");
+	queueEntitySearches(fresh)
+		.then(() => {
+			logger.info("✅ Script completed. Jobs are now processing...");
+			process.exit(0);
+		})
+		.catch((error: unknown) => {
+			logger.error(`❌ Fatal error: ${getErrorMessage(error)}`);
+			process.exit(1);
+		});
+}
