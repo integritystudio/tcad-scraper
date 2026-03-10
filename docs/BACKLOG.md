@@ -171,10 +171,8 @@ Done — wrapped all three `prismaReadOnly` calls in `naturalLanguageSearch` in 
 ### ~~L28: Unsafe job.id.toString() with undefined guard~~
 Done — added `if (!job.id)` guard returning 500 before `.toString()` call. -- `server/src/controllers/property.controller.ts`
 
-### L29: In-memory rate limiter ineffective across replicas
-**Priority**: P3 | **Source**: code-reviewer 2026-03-10
-
-`canScheduleJob()` uses process-local `Map` to rate-limit scrape requests. With multiple Render replicas, each gets a fresh Map and rate limit resets on restart. Use Redis TTL key instead. -- `server/src/queues/scraper.queue.ts:263-278`
+### ~~L29: In-memory rate limiter ineffective across replicas~~
+Done — replaced in-memory `Map` with `cacheService.get/set` using Redis TTL. Rate limits now apply across all Render replicas and survive restarts. -- `server/src/queues/scraper.queue.ts`
 
 ### ~~L30: No length cap on natural language query sent to Claude~~
 Done — added `.max(500)` to `naturalLanguageSearchSchema.query` in property.types.ts; Zod validation rejects oversized queries at the route level before Claude is called. -- `server/src/types/property.types.ts`

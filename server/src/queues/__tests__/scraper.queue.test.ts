@@ -48,8 +48,13 @@ vi.mock("../../lib/prisma", () => ({
 	},
 }));
 
+const mockCacheGet = vi.fn();
+const mockCacheSet = vi.fn().mockResolvedValue(undefined);
+
 vi.mock("../../lib/redis-cache.service", () => ({
 	cacheService: {
+		get: mockCacheGet,
+		set: mockCacheSet,
 		deletePattern: vi.fn().mockResolvedValue(undefined),
 		delete: vi.fn().mockResolvedValue(undefined),
 	},
@@ -131,97 +136,65 @@ describe("Scraper Queue", () => {
 	});
 
 	describe("canScheduleJob", () => {
-		// Import after mocks are set up
 		let canScheduleJob: (searchTerm: string) => Promise<boolean>;
 
 		beforeEach(async () => {
-			// Use fake timers for this test suite
-			vi.useFakeTimers();
-
-			// Reset module to clear the activeJobs Map
-			vi.resetModules();
+			vi.clearAllMocks();
+			// Default: no existing rate limit key (cache miss = allow)
+			mockCacheGet.mockResolvedValue(null);
 			const module = await import("../scraper.queue");
 			canScheduleJob = module.canScheduleJob;
-		});
-
-		afterEach(() => {
-			vi.useRealTimers();
 		});
 
 		it("should allow scheduling a new job for a search term", async () => {
 			const result = await canScheduleJob("Smith");
 			expect(result).toBe(true);
+			expect(mockCacheSet).toHaveBeenCalledWith(
+				"ratelimit:scrape:Smith",
+				expect.any(Number),
+				expect.any(Number),
+			);
 		});
 
 		it("should prevent scheduling duplicate jobs within delay period", async () => {
-			const searchTerm = "Johnson";
-
-			// First job should be allowed
-			const result1 = await canScheduleJob(searchTerm);
+			// First call: cache miss → allow
+			const result1 = await canScheduleJob("Johnson");
 			expect(result1).toBe(true);
 
-			// Second job within delay period should be denied
-			const result2 = await canScheduleJob(searchTerm);
+			// Second call: cache hit → deny
+			mockCacheGet.mockResolvedValue(Date.now());
+			const result2 = await canScheduleJob("Johnson");
 			expect(result2).toBe(false);
+			expect(mockCacheSet).toHaveBeenCalledTimes(1); // Only first call sets the key
 		});
 
-		it("should allow scheduling after delay period has passed", async () => {
-			const searchTerm = "Williams";
-
-			// Schedule first job
-			const result1 = await canScheduleJob(searchTerm);
+		it("should allow scheduling after delay period has passed (TTL expired)", async () => {
+			// First call: allow
+			const result1 = await canScheduleJob("Williams");
 			expect(result1).toBe(true);
 
-			// Advance time past the job delay (60 seconds)
-			vi.advanceTimersByTime(61000);
-
-			// Should allow second job after delay
-			const result2 = await canScheduleJob(searchTerm);
+			// TTL expired — Redis returns null (key gone)
+			mockCacheGet.mockResolvedValue(null);
+			const result2 = await canScheduleJob("Williams");
 			expect(result2).toBe(true);
 		});
 
 		it("should track different search terms independently", async () => {
+			// All terms have cache miss → all allowed
 			const result1 = await canScheduleJob("Brown");
 			const result2 = await canScheduleJob("Davis");
 			const result3 = await canScheduleJob("Miller");
 
-			// All different search terms should be allowed
 			expect(result1).toBe(true);
 			expect(result2).toBe(true);
 			expect(result3).toBe(true);
 		});
 
-		it("should clean up old entries from activeJobs map", async () => {
-			const searchTerm = "Wilson";
-
-			// Schedule first job
-			await canScheduleJob(searchTerm);
-
-			// Advance time past cleanup interval (5 minutes)
-			vi.advanceTimersByTime(301000);
-
-			// Schedule another job to trigger cleanup
-			await canScheduleJob("Moore");
-
-			// Original job should be cleaned up, so scheduling it again should work
-			const result = await canScheduleJob(searchTerm);
-			expect(result).toBe(true);
-		});
-
-		it("should handle multiple rapid calls correctly", async () => {
-			const searchTerm = "Taylor";
-
-			// Simulate rapid successive calls
-			const results = await Promise.all([
-				canScheduleJob(searchTerm),
-				canScheduleJob(searchTerm),
-				canScheduleJob(searchTerm),
-			]);
-
-			// Only first call should succeed
-			expect(results[0]).toBe(true);
-			expect(results[1]).toBe(false);
-			expect(results[2]).toBe(false);
+		it("should deny when Redis returns a cached timestamp", async () => {
+			mockCacheGet.mockResolvedValue(Date.now() - 1000); // 1 second ago, within TTL
+			const result = await canScheduleJob("Wilson");
+			expect(result).toBe(false);
+			expect(mockCacheSet).not.toHaveBeenCalled();
 		});
 
 		it("should handle empty search term", async () => {
@@ -233,6 +206,7 @@ describe("Scraper Queue", () => {
 			const specialTerms = ["Smith & Co.", "LLC.", "Trust-Family"];
 
 			for (const term of specialTerms) {
+				mockCacheGet.mockResolvedValue(null);
 				const result = await canScheduleJob(term);
 				expect(result).toBe(true);
 			}

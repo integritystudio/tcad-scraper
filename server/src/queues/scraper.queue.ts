@@ -333,27 +333,16 @@ setInterval(async () => {
 	}
 }, config.queue.cleanupInterval);
 
-// Rate limiting helper
-const activeJobs = new Map<string, number>();
-
+// Rate limiting helper — uses Redis TTL so limits apply across all replicas
 export async function canScheduleJob(searchTerm: string): Promise<boolean> {
-	const lastJobTime = activeJobs.get(searchTerm);
+	const key = `ratelimit:scrape:${searchTerm}`;
+	const ttlSeconds = Math.ceil(config.rateLimit.scraper.jobDelay / 1000);
 
-	if (
-		lastJobTime &&
-		Date.now() - lastJobTime < config.rateLimit.scraper.jobDelay
-	) {
+	const existing = await cacheService.get<number>(key);
+	if (existing !== null) {
 		return false;
 	}
 
-	activeJobs.set(searchTerm, Date.now());
-
-	// Clean up old entries
-	for (const [term, time] of activeJobs.entries()) {
-		if (Date.now() - time > config.rateLimit.scraper.cacheCleanupInterval) {
-			activeJobs.delete(term);
-		}
-	}
-
+	await cacheService.set(key, Date.now(), ttlSeconds);
 	return true;
 }
