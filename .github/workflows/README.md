@@ -134,7 +134,7 @@ Add these in repository settings:
 
 | Secret | Required | Purpose |
 |--------|----------|---------|
-| `DOPPLER_TOKEN` | Yes | Access Doppler secrets |
+| `DOPPLER_TOKEN_PROD` | Yes | Access Doppler secrets (prd config) |
 | `CODECOV_TOKEN` | No | Upload coverage to Codecov |
 
 ### Environment Variables

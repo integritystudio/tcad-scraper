@@ -7,8 +7,8 @@ name: Deploy to GitHub Pages
 #
 # Doppler Configuration:
 #   - Project: integrity-studio
-#   - Environment: dev (or production if DOPPLER_TOKEN is for prod)
-#   - Token: Stored in GitHub Secrets as DOPPLER_TOKEN
+#   - Environment: prd
+#   - Token: Stored in GitHub Secrets as DOPPLER_TOKEN_PROD
 #
 # Note: GitHub Pages only deploys static frontend files
 # Backend services run separately and are NOT deployed via GitHub Pages
@@ -49,7 +49,7 @@ jobs:
 
       - name: Build with Vite
         env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_PROD }}
         run: |
           # Fetch environment variables from Doppler (integrity-studio project)
           if [ -n "$DOPPLER_TOKEN" ]; then
