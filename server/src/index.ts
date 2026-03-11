@@ -513,7 +513,11 @@ export default app;
 // This prevents EADDRINUSE errors when multiple test files import the app
 let server: ReturnType<typeof app.listen>;
 
-if (require.main === module) {
+import { fileURLToPath } from "node:url";
+
+const isMainModule = process.argv[1] && fileURLToPath(import.meta.url).includes(process.argv[1].replace(/\.ts$/, ""));
+
+if (isMainModule) {
 	server = app.listen(config.server.port, config.server.host, () => {
 		logger.info(
 			`Server running on http://${config.server.host}:${config.server.port}`,

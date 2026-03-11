@@ -335,7 +335,6 @@ export class TermSelector {
 
 class ContinuousBatchScraper {
 	private readonly lowThreshold: boolean;
-	private readonly stopAtProperties: number;
 	private readonly userId: string;
 	private termSelector: TermSelector;
 	private stats = {
@@ -351,7 +350,6 @@ class ContinuousBatchScraper {
 
 	constructor(lowThreshold = false) {
 		this.lowThreshold = lowThreshold;
-		this.stopAtProperties = lowThreshold ? TARGET_2025_PROPERTY_COUNT : TARGET_2025_PROPERTY_COUNT;
 		this.userId = lowThreshold ? "lowthreshold-batch" : "continuous-batch";
 		this.termSelector = new TermSelector(lowThreshold ? LOW_THRESHOLD_TIER_CONFIG : undefined);
 	}
@@ -377,8 +375,8 @@ class ContinuousBatchScraper {
 		this.stats.startingPropertyCount = await prisma.property.count({ where: { year: config.scraper.tcadYear } });
 		this.lastPropertyCount = this.stats.startingPropertyCount;
 		logger.info(`Starting: ${this.stats.startingPropertyCount.toLocaleString()}`);
-		logger.info(`Stop at: ${this.stopAtProperties.toLocaleString()} or ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive zero-result batches`);
-		logger.info(`Remaining: ${(this.stopAtProperties - this.stats.startingPropertyCount).toLocaleString()}\n`);
+		logger.info(`Stop at: ${TARGET_2025_PROPERTY_COUNT.toLocaleString()} or ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive zero-result batches`);
+		logger.info(`Remaining: ${(TARGET_2025_PROPERTY_COUNT - this.stats.startingPropertyCount).toLocaleString()}\n`);
 
 		process.on("SIGINT", () => this.stop());
 		process.on("SIGTERM", () => this.stop());
@@ -388,7 +386,7 @@ class ContinuousBatchScraper {
 		while (this.running) {
 			const currentCount = await prisma.property.count({ where: { year: config.scraper.tcadYear } });
 
-			if (currentCount >= this.stopAtProperties) {
+			if (currentCount >= TARGET_2025_PROPERTY_COUNT) {
 				logger.info(`STOP TARGET REACHED! Current count: ${currentCount.toLocaleString()}`);
 				break;
 			}
@@ -451,7 +449,7 @@ class ContinuousBatchScraper {
 					]);
 
 				const newProperties = currentCount - this.stats.startingPropertyCount;
-				const progress = (currentCount / this.stopAtProperties) * 100;
+				const progress = (currentCount / TARGET_2025_PROPERTY_COUNT) * 100;
 				const elapsed = Math.floor((Date.now() - this.stats.startTime) / 1000);
 				const hours = Math.floor(elapsed / 3600);
 				const minutes = Math.floor((elapsed % 3600) / 60);
@@ -465,7 +463,7 @@ class ContinuousBatchScraper {
 				);
 
 				if (rate > 0) {
-					const remaining = this.stopAtProperties - currentCount;
+					const remaining = TARGET_2025_PROPERTY_COUNT - currentCount;
 					const hoursRemaining = remaining / rate / 60;
 					logger.info(`ETA: ${hoursRemaining.toFixed(1)} hours`);
 				}
