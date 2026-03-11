@@ -177,17 +177,17 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./bullmq-exporter
           push: false
           load: true
-          tags: tcad-scraper:${{ github.sha }}
+          tags: tcad-scraper-exporter:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: tcad-scraper:${{ github.sha }}
+          image-ref: tcad-scraper-exporter:${{ github.sha }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -202,7 +202,7 @@ jobs:
       - name: Run Trivy for detailed report
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: tcad-scraper:${{ github.sha }}
+          image-ref: tcad-scraper-exporter:${{ github.sha }}
           format: 'table'
           output: 'trivy-report.txt'
 
