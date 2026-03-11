@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-10 (L25–L35 backlog items migrated to changelog/2026-03-10.md)
-**Status**: 678/678 tests passing | TypeScript clean | Lint clean
+**Last Updated**: 2026-03-11 (M28, M30, M25 marked Done — already implemented; M30 final fix committed fa88a21)
+**Status**: 680/680 tests passing | TypeScript clean | Lint clean
 
 ---
 ## Open Items
@@ -16,27 +16,6 @@
 
 **Research tasks** (remaining: city verification):
 1. Determine if Texas city names yield results in TCAD search (cities historically don't work per CLAUDE.md — verify before adding)
-
----
-
-### M28: Extract `getSearchedTerms()` to shared `lib/searched-terms.ts`
-**Priority**: P2 | **Source**: repomix-explorer analysis 2026-03-10
-
-**Problem**: 7 scripts independently build a `Set<string>` of already-searched terms by querying analytics + recent jobs + properties. Each reimplements slightly different logic, risking drift.
-
-**Affected files** (each has its own inline implementation):
-- `scripts/backfill-2025.ts:23` — `getSearchedTerms()` returns `{ searched2025, allSearched, successful }`
-- `scripts/backfill-2025-novel.ts:22` — `getSearchedTerms()` returns `Set<string>`
-- `scripts/backfill-2025-unsearched.ts:22` — `getTermSets()` returns `{ searched, successful, searched2025 }`
-- `scripts/enqueue-prefix-expansions.ts:43` — inline `searched = new Set<string>()` block
-- `scripts/enqueue-uncommon-names.ts:191` — inline `searched = new Set<string>()` block
-- `scripts/generate-next-200-terms.ts:120` — inline `searched = new Set<string>()` block
-- `scripts/generate-valid-5char-terms.ts:252` — inline `searched = new Set<string>()` block
-
-**Refactoring plan**:
-1. Create `scripts/lib/searched-terms.ts` exporting `getSearchedTermSets()` returning `{ searched2025: Set<string>; allSearched: Set<string>; successful: Set<string> }`
-2. Replace all 7 inline implementations with shared import
-3. Estimated savings: ~120 LOC, eliminates logic drift risk
 
 ---
 
@@ -65,31 +44,6 @@
 
 ---
 
-### M30: Extract `isSupersetOfSuccessful` and backfill `main()` loop to shared utilities
-**Priority**: P2 | **Source**: repomix-explorer analysis 2026-03-10
-
-**Problem**: Two distinct duplication patterns across backfill scripts.
-
-**Pattern 1 — `isSupersetOfSuccessful` exact duplicate** (3 files):
-- `scripts/backfill-2025.ts:56` — standalone function `(lower, successful) => boolean`
-- `scripts/backfill-2025-unsearched.ts:61` — identical copy
-- `scripts/generate-search-terms.ts:299` — closure variant (captures `successful` from scope)
-
-Move to `lib/backfill-utils.ts` alongside existing `get2025Count`.
-
-**Pattern 2 — backfill `main()` loop** (~60 LOC duplicated across 4 files):
-- `backfill-2025.ts`, `backfill-2025-proven.ts`, `backfill-2025-unsearched.ts`, `backfill-2025-novel.ts`
-- Identical structure: year guard → print header → early exit → get terms → batch loop (check target, slice, enqueueBatch, waitForQueueDrain, count gained, consecutive-zero tracking) → final report → `.catch`/`.finally` cleanup
-- Only differ in: term-sourcing function, userId string, header text
-
-**Refactoring plan**:
-1. Move `isSupersetOfSuccessful` to `lib/backfill-utils.ts`
-2. Create `lib/backfill-runner.ts` exporting `runBackfill({ getTerms, userId, label })` with the generic main loop
-3. Reduce each backfill script to ~20 lines (term-sourcing function + config)
-4. Estimated savings: ~200 LOC
-
----
-
 ### M16: Replace `winston` logger with Pino in production scripts
 **Priority**: P2 | **Source**: code-reviewer 2026-03-09, item 16 (DEFERRED)
 
@@ -106,10 +60,6 @@ Move to `lib/backfill-utils.ts` alongside existing `get2025Count`.
 4. Verify `winston` can be removed from `package.json` if no other consumers exist
 
 ---
-
-### M25: Consolidate queue-entity-searches.ts and queue-entity-searches-fresh.ts
-**Priority**: P2 | **Source**: repomix-explorer session 2026-03-09
-Both files share identical 52-term `ENTITY_TERMS` array. The only behavioral difference is that `-fresh.ts` cleans up failed jobs before enqueueing. Merge into single script with `--fresh` flag to eliminate ~150 LOC duplication. -- `scripts/queue-entity-searches*.ts`
 
 ### M26: Extract get2025Count() and related helpers to lib/backfill-utils.ts
 **Priority**: P2 | **Source**: repomix-explorer session 2026-03-09
@@ -152,10 +102,36 @@ The get-then-set pattern in `canScheduleJob` has a TOCTOU window where concurren
 
 `optionalAuth` now calls `logger.debug()` on JWT verification failure, but no test asserts the log message is emitted. Add a test that passes an invalid token and verifies `logger.debug` was called with the error context. -- `server/src/middleware/auth.ts`
 
+### TC-15: auth-database integration test requires live DB (2026-03-11)
+**Priority**: P3 | **Source**: integration test failure during CI setup
+
+`auth-database.integration.test.ts` fails when `DATABASE_URL` falls back to `localhost:5432` (test setup.ts:46-49). The test imports `prisma` directly and calls `prisma.property.deleteMany()` in `afterAll`, which crashes if the DB is unreachable. Consider adding a `beforeAll` connection check that skips the suite (like the existing `isRedisAvailable` pattern) instead of letting Prisma throw. -- `server/src/__tests__/auth-database.integration.test.ts`
+
+### TC-16: integration test coverage artifact path was misconfigured (2026-03-11)
+**Priority**: P4 | **Source**: CI run 22975946334
+
+`vitest.integration.config.ts` had `coverage.enabled: false` with no `reportsDirectory`, so `npm run test:integration:coverage` produced no output at `./server/coverage/integration/`. Fixed in `8864406` — verify CI produces artifacts on next run. -- `server/vitest.integration.config.ts`
+
+### TC-17: scrape endpoint auth expectations brittle across environments (2026-03-11)
+**Priority**: P3 | **Source**: 5 consecutive CI failures (commits 996d19b–b4ba3b2)
+
+`api.test.ts` scrape and monitor endpoint tests hardcoded `expect(status).toBe(200)` but the endpoints return 401 when `apiKeyAuth` is enforced (which Doppler prod config enables). Required iterative fixes to accept `[200, 401]`. Consider extracting a shared helper like `expectStatusOneOf(response, [200, 401])` or conditionally setting auth headers based on the test environment config. -- `server/src/__tests__/api.test.ts`
+
 ---
 
 ## Completed
 
-All completed items migrated to `docs/changelog/` (per-date files).
+### M28: Extract `getSearchedTerms()` to shared `lib/searched-terms.ts` — Done 2026-03-11
+`scripts/lib/searched-terms.ts` created; all 7 scripts import `getSearchedTermSets()` from it. ~120 LOC savings.
+
+### M30: Extract `isSupersetOfSuccessful` and backfill `main()` loop to shared utilities — Done 2026-03-11
+`lib/backfill-utils.ts` has `isSupersetOfSuccessful`; `lib/backfill-runner.ts` has `runBackfill`/`runBackfillMain`; all 4 backfill scripts reduced to term-sourcing + config; final inline closure removed from `generate-search-terms.ts` (commit fa88a21). ~200 LOC savings.
+
+### M25: Consolidate queue-entity-searches.ts and queue-entity-searches-fresh.ts — Done 2026-03-11
+Merged into single `queue-entity-searches.ts` with `--fresh` flag. ~150 LOC savings.
+
+---
+
+All other completed items migrated to `docs/changelog/` (per-date files).
 
 **Latest migration**: 18 items migrated to [changelog/2026-03-10.md](../changelog/2026-03-10.md) (L25–L35 backlog batch + M31–M36 security hardening)
