@@ -58,9 +58,17 @@ export default defineConfig({
 		// Bail on first failure (don't waste time if infra is down)
 		bail: 1,
 
-		// Coverage not typically needed for integration tests
 		coverage: {
-			enabled: false,
+			provider: "v8",
+			reporter: ["text", "json", "lcov", "html"],
+			reportsDirectory: "./coverage/integration",
+			include: ["src/**/*.ts"],
+			exclude: [
+				"src/**/*.d.ts",
+				"src/**/__tests__/**",
+				"src/index.ts",
+				"src/cli/**",
+			],
 		},
 	},
 
