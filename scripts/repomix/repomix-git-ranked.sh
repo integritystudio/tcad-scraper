@@ -70,17 +70,18 @@ is_generated_bundle_artifact() {
 }
 
 # Build include list from files touched in the selected commit window.
-declare -A seen=()
+# Use a newline-delimited string for dedup (bash 3.x lacks associative arrays).
+_seen=""
 include_files=()
 while IFS= read -r -d '' rel_path; do
   [[ -z "$rel_path" ]] && continue
   if is_generated_bundle_artifact "$rel_path"; then
     continue
   fi
-  [[ -n "${seen[$rel_path]:-}" ]] && continue
+  case "$_seen" in *$'\n'"$rel_path"$'\n'*) continue ;; esac
   # Keep only files that still exist on disk so repomix can resolve them.
   if [[ -f "$ROOT/$rel_path" ]]; then
-    seen["$rel_path"]=1
+    _seen="${_seen}${rel_path}"$'\n'
     include_files+=("$rel_path")
   fi
 done < <(git -C "$ROOT" log --name-only --pretty=format: -z -n "$SORT_BY_CHANGES_MAX_COMMITS")
