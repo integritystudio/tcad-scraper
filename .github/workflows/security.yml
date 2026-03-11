@@ -177,7 +177,8 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./bullmq-exporter
+          context: .
+          file: ./bullmq-exporter/Dockerfile
           push: false
           load: true
           tags: tcad-scraper-exporter:${{ github.sha }}
