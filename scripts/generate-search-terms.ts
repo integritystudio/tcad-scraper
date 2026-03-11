@@ -18,6 +18,7 @@ import { config } from "../server/src/config";
 import { prisma } from "../server/src/lib/prisma";
 import { scraperQueue } from "../server/src/queues/scraper.queue";
 import { getErrorMessage } from "../server/src/utils/error-helpers";
+import { isSupersetOfSuccessful } from "./lib/backfill-utils";
 import {
 	ALPHABET,
 	DENSE_AVG_RESULTS_THRESHOLD,
@@ -551,13 +552,6 @@ async function main() {
 	const seen = new Set<string>();
 	const tierResults: TierResult[] = [];
 
-	function isSupersetOfSuccessful(lower: string): boolean {
-		for (let len = MIN_TERM_LENGTH; len < lower.length; len++) {
-			if (successful.has(lower.substring(0, len))) return true;
-		}
-		return false;
-	}
-
 	let skippedSupersets = 0;
 
 	function addFromTier(tierName: string, terms: Iterable<string>): void {
@@ -568,7 +562,7 @@ async function main() {
 			if (searched.has(lower)) continue;
 			if (seen.has(lower)) continue;
 			if (term.length < MIN_TERM_LENGTH) continue;
-			if (isSupersetOfSuccessful(lower)) {
+			if (isSupersetOfSuccessful(lower, successful)) {
 				skippedSupersets++;
 				continue;
 			}
