@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { config } from "../server/src/config";
+import logger from "../server/src/lib/logger";
 import { prisma } from "../server/src/lib/prisma";
 import { SearchTermDeduplicator } from "../server/src/lib/search-term-deduplicator";
 import { scraperQueue } from "../server/src/queues/scraper.queue";
@@ -7,12 +8,12 @@ import {
 	type SearchTermOptimizer,
 	searchTermOptimizer,
 } from "../server/src/services/search-term-optimizer";
-import logger from "../server/src/lib/logger";
+import { MAX_CONSECUTIVE_ZERO_BATCHES } from "../server/src/utils/constants";
 import { getErrorMessage } from "../server/src/utils/error-helpers";
+import { TARGET_2025_PROPERTY_COUNT } from "../utils/constants";
 import { HIGH_RESULT_TERM_SPLITS } from "./config/batch-configs";
 import { enqueueBatch } from "./lib/queue-utils";
-import { TARGET_2025_PROPERTY_COUNT } from "../utils/constants";
-import { MAX_CONSECUTIVE_ZERO_BATCHES } from "../server/src/utils/constants";
+
 const BATCH_SIZE = 25;
 const DELAY_BETWEEN_BATCHES = 30000;
 const CHECK_INTERVAL = 60000;
@@ -21,71 +22,430 @@ const CHECK_INTERVAL = 60000;
 // 198 proven terms from first names, last names, geographic, entity, and neighborhood categories.
 export const FALLBACK_TERMS: readonly string[] = [
 	// First names (proven high-yield)
-	"Joseph", "Taylor", "Charles", "Carol", "Steven", "Juan", "James", "Mary",
-	"John", "Patricia", "Robert", "Elizabeth", "David", "Barbara", "Richard",
-	"Susan", "Thomas", "Sarah", "Daniel", "Lisa", "Matthew", "Anthony", "Mark",
-	"Donald", "Andrew", "Joshua", "Kenneth", "Kevin", "Brian", "George",
-	"Edward", "Ronald", "Timothy", "Jason", "Jeffrey", "Ryan", "Jacob", "Gary",
-	"Nicholas", "Eric", "Jonathan", "Stephen", "Larry", "Justin", "Scott",
-	"Brandon", "Benjamin", "Samuel", "Raymond", "Gregory",
+	"Joseph",
+	"Taylor",
+	"Charles",
+	"Carol",
+	"Steven",
+	"Juan",
+	"James",
+	"Mary",
+	"John",
+	"Patricia",
+	"Robert",
+	"Elizabeth",
+	"David",
+	"Barbara",
+	"Richard",
+	"Susan",
+	"Thomas",
+	"Sarah",
+	"Daniel",
+	"Lisa",
+	"Matthew",
+	"Anthony",
+	"Mark",
+	"Donald",
+	"Andrew",
+	"Joshua",
+	"Kenneth",
+	"Kevin",
+	"Brian",
+	"George",
+	"Edward",
+	"Ronald",
+	"Timothy",
+	"Jason",
+	"Jeffrey",
+	"Ryan",
+	"Jacob",
+	"Gary",
+	"Nicholas",
+	"Eric",
+	"Jonathan",
+	"Stephen",
+	"Larry",
+	"Justin",
+	"Scott",
+	"Brandon",
+	"Benjamin",
+	"Samuel",
+	"Raymond",
+	"Gregory",
 	// Last names (common Travis County, 4+ chars)
-	"Smith", "Johnson", "Williams", "Brown", "Garcia", "Miller", "Davis",
-	"Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson",
-	"Anderson", "Moore", "Jackson", "Martin", "Thompson",
-	"White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson",
-	"Walker", "Young", "Allen", "Wright", "Torres", "Nguyen",
-	"Flores", "Green", "Adams", "Nelson", "Baker", "Rivera", "Campbell",
-	"Mitchell", "Carter", "Roberts", "Gomez", "Phillips", "Evans", "Turner",
-	"Diaz", "Parker", "Cruz", "Edwards", "Collins", "Reyes", "Stewart",
-	"Morris", "Morales", "Murphy", "Cook", "Rogers", "Gutierrez", "Ortiz",
-	"Morgan", "Cooper", "Peterson", "Bailey", "Reed", "Howard", "Ramos",
-	"Watson", "Brooks", "Chavez", "Bennett", "Mendoza", "Ruiz", "Hughes",
-	"Price", "Alvarez", "Castillo", "Sanders", "Patel",
+	"Smith",
+	"Johnson",
+	"Williams",
+	"Brown",
+	"Garcia",
+	"Miller",
+	"Davis",
+	"Rodriguez",
+	"Martinez",
+	"Hernandez",
+	"Lopez",
+	"Gonzalez",
+	"Wilson",
+	"Anderson",
+	"Moore",
+	"Jackson",
+	"Martin",
+	"Thompson",
+	"White",
+	"Harris",
+	"Sanchez",
+	"Clark",
+	"Ramirez",
+	"Lewis",
+	"Robinson",
+	"Walker",
+	"Young",
+	"Allen",
+	"Wright",
+	"Torres",
+	"Nguyen",
+	"Flores",
+	"Green",
+	"Adams",
+	"Nelson",
+	"Baker",
+	"Rivera",
+	"Campbell",
+	"Mitchell",
+	"Carter",
+	"Roberts",
+	"Gomez",
+	"Phillips",
+	"Evans",
+	"Turner",
+	"Diaz",
+	"Parker",
+	"Cruz",
+	"Edwards",
+	"Collins",
+	"Reyes",
+	"Stewart",
+	"Morris",
+	"Morales",
+	"Murphy",
+	"Cook",
+	"Rogers",
+	"Gutierrez",
+	"Ortiz",
+	"Morgan",
+	"Cooper",
+	"Peterson",
+	"Bailey",
+	"Reed",
+	"Howard",
+	"Ramos",
+	"Watson",
+	"Brooks",
+	"Chavez",
+	"Bennett",
+	"Mendoza",
+	"Ruiz",
+	"Hughes",
+	"Price",
+	"Alvarez",
+	"Castillo",
+	"Sanders",
+	"Patel",
 	// Geographic / street terms
-	"Hill", "Lake", "Canyon", "Valley", "Forest", "Ranch", "Ridge", "Cave",
-	"Park", "Glen", "Dale", "Ford", "Cove", "Rock", "Wood", "Farm", "Mill",
-	"Pond", "Peak", "Creek", "Spring", "Bluff", "Meadow", "Grove", "Trail",
-	"Vista", "Harbor", "Knoll", "Prairie", "Summit",
+	"Hill",
+	"Lake",
+	"Canyon",
+	"Valley",
+	"Forest",
+	"Ranch",
+	"Ridge",
+	"Cave",
+	"Park",
+	"Glen",
+	"Dale",
+	"Ford",
+	"Cove",
+	"Rock",
+	"Wood",
+	"Farm",
+	"Mill",
+	"Pond",
+	"Peak",
+	"Creek",
+	"Spring",
+	"Bluff",
+	"Meadow",
+	"Grove",
+	"Trail",
+	"Vista",
+	"Harbor",
+	"Knoll",
+	"Prairie",
+	"Summit",
 	// Entity terms
-	"Trustee", "Holdings", "Partners", "Group", "Realty", "LLC", "Trust",
-	"Estate of", "Foundation", "Investments", "Properties", "Association",
-	"Capital", "Development", "Inc", "Corp", "Limited", "Company",
-	"Partnership", "Charitable",
+	"Trustee",
+	"Holdings",
+	"Partners",
+	"Group",
+	"Realty",
+	"LLC",
+	"Trust",
+	"Estate of",
+	"Foundation",
+	"Investments",
+	"Properties",
+	"Association",
+	"Capital",
+	"Development",
+	"Inc",
+	"Corp",
+	"Limited",
+	"Company",
+	"Partnership",
+	"Charitable",
 	// Neighborhoods / subdivisions
-	"Barton", "Westlake", "Mueller", "Zilker", "Allandale", "Crestview",
-	"Rosedale", "Tarrytown", "Brentwood", "Balcones", "Cherrywood",
-	"Rollingwood", "Bouldin", "Hancock", "Windsor", "Gracywoods",
-	"Spicewood", "Eanes", "Belterra", "Falconhead",
+	"Barton",
+	"Westlake",
+	"Mueller",
+	"Zilker",
+	"Allandale",
+	"Crestview",
+	"Rosedale",
+	"Tarrytown",
+	"Brentwood",
+	"Balcones",
+	"Cherrywood",
+	"Rollingwood",
+	"Bouldin",
+	"Hancock",
+	"Windsor",
+	"Gracywoods",
+	"Spicewood",
+	"Eanes",
+	"Belterra",
+	"Falconhead",
 	// Unsearched first names (curated 5-char list)
-	"Devin", "Diego", "Dolly", "Doris", "Dulce", "Dusty", "Dwain", "Earle",
-	"Ebony", "Eddie", "Edwin", "Efren", "Eldon", "Elena", "Elisa", "Elise",
-	"Ellie", "Elsie", "Elton", "Elvis", "Emile", "Erica", "Ernie", "Essie",
-	"Ethel", "Faith", "Fanny", "Fidel", "Fiona", "Frida", "Garry", "Gavin",
-	"Gemma", "Gerri", "Ginny", "Gopal", "Greta", "Heidi", "Homer", "Ilene",
-	"Irene", "Isael", "Janie", "Jared", "Jenna", "Jenny", "Jewel", "Jimmy",
-	"Johan", "Jorge", "Juana", "Jules", "Jyoti", "Karin", "Katie", "Kavya",
-	"Kayla", "Klaus", "Laila", "Lance", "Layne", "Lenny", "Leroy", "Linus",
-	"Lonny", "Loren", "Lorna", "Lucia", "Luisa", "Luigi", "Lydia", "Lynda",
-	"Mabel", "Macie", "Madge", "Mandy", "Manny", "Marco", "Marge", "Marla",
-	"Mateo", "Maude", "Maura", "Meena", "Mercy", "Merry", "Midge", "Miley",
-	"Millie", "Mindy", "Mirna", "Misty", "Mitch", "Moira", "Molly", "Monte",
-	"Monty", "Myrna", "Nabil", "Nadia", "Naomi", "Neha", "Nelly", "Nesta",
-	"Nigel", "Nicky", "Nikki", "Nilda", "Nisha", "Nitin", "Norma", "Pablo",
-	"Paige", "Pansy", "Patsy", "Patty", "Paula", "Pavan", "Pearl", "Peggy",
-	"Penny", "Percy", "Pooja", "Polly", "Priya", "Radha", "Randi", "Raoul",
-	"Reece", "Reema", "Reina", "Renee", "Rhoda", "Ricky", "Rocio", "Rocky",
-	"Ronda", "Rosie", "Rowan", "Roxie", "Rufus", "Rusty", "Sadie", "Sagar",
-	"Sally", "Sandy", "Seema", "Selma", "Serge", "Shane", "Shana", "Shari",
-	"Sheri", "Sonia", "Sonja", "Sonya", "Sonny", "Stacy", "Sunil", "Suraj",
-	"Susie", "Swati", "Tamra", "Tanya", "Tasha", "Teddy", "Terri", "Tessa",
-	"Theda", "Tiana", "Tisha", "Tommy", "Tonya", "Trent", "Trish", "Trudy",
-	"Varun", "Vicki", "Vijay", "Vikki", "Vince", "Viola", "Vivek", "Wally",
-	"Wanda", "Wendy", "Zelda", "Zelma",
+	"Devin",
+	"Diego",
+	"Dolly",
+	"Doris",
+	"Dulce",
+	"Dusty",
+	"Dwain",
+	"Earle",
+	"Ebony",
+	"Eddie",
+	"Edwin",
+	"Efren",
+	"Eldon",
+	"Elena",
+	"Elisa",
+	"Elise",
+	"Ellie",
+	"Elsie",
+	"Elton",
+	"Elvis",
+	"Emile",
+	"Erica",
+	"Ernie",
+	"Essie",
+	"Ethel",
+	"Faith",
+	"Fanny",
+	"Fidel",
+	"Fiona",
+	"Frida",
+	"Garry",
+	"Gavin",
+	"Gemma",
+	"Gerri",
+	"Ginny",
+	"Gopal",
+	"Greta",
+	"Heidi",
+	"Homer",
+	"Ilene",
+	"Irene",
+	"Isael",
+	"Janie",
+	"Jared",
+	"Jenna",
+	"Jenny",
+	"Jewel",
+	"Jimmy",
+	"Johan",
+	"Jorge",
+	"Juana",
+	"Jules",
+	"Jyoti",
+	"Karin",
+	"Katie",
+	"Kavya",
+	"Kayla",
+	"Klaus",
+	"Laila",
+	"Lance",
+	"Layne",
+	"Lenny",
+	"Leroy",
+	"Linus",
+	"Lonny",
+	"Loren",
+	"Lorna",
+	"Lucia",
+	"Luisa",
+	"Luigi",
+	"Lydia",
+	"Lynda",
+	"Mabel",
+	"Macie",
+	"Madge",
+	"Mandy",
+	"Manny",
+	"Marco",
+	"Marge",
+	"Marla",
+	"Mateo",
+	"Maude",
+	"Maura",
+	"Meena",
+	"Mercy",
+	"Merry",
+	"Midge",
+	"Miley",
+	"Millie",
+	"Mindy",
+	"Mirna",
+	"Misty",
+	"Mitch",
+	"Moira",
+	"Molly",
+	"Monte",
+	"Monty",
+	"Myrna",
+	"Nabil",
+	"Nadia",
+	"Naomi",
+	"Neha",
+	"Nelly",
+	"Nesta",
+	"Nigel",
+	"Nicky",
+	"Nikki",
+	"Nilda",
+	"Nisha",
+	"Nitin",
+	"Norma",
+	"Pablo",
+	"Paige",
+	"Pansy",
+	"Patsy",
+	"Patty",
+	"Paula",
+	"Pavan",
+	"Pearl",
+	"Peggy",
+	"Penny",
+	"Percy",
+	"Pooja",
+	"Polly",
+	"Priya",
+	"Radha",
+	"Randi",
+	"Raoul",
+	"Reece",
+	"Reema",
+	"Reina",
+	"Renee",
+	"Rhoda",
+	"Ricky",
+	"Rocio",
+	"Rocky",
+	"Ronda",
+	"Rosie",
+	"Rowan",
+	"Roxie",
+	"Rufus",
+	"Rusty",
+	"Sadie",
+	"Sagar",
+	"Sally",
+	"Sandy",
+	"Seema",
+	"Selma",
+	"Serge",
+	"Shane",
+	"Shana",
+	"Shari",
+	"Sheri",
+	"Sonia",
+	"Sonja",
+	"Sonya",
+	"Sonny",
+	"Stacy",
+	"Sunil",
+	"Suraj",
+	"Susie",
+	"Swati",
+	"Tamra",
+	"Tanya",
+	"Tasha",
+	"Teddy",
+	"Terri",
+	"Tessa",
+	"Theda",
+	"Tiana",
+	"Tisha",
+	"Tommy",
+	"Tonya",
+	"Trent",
+	"Trish",
+	"Trudy",
+	"Varun",
+	"Vicki",
+	"Vijay",
+	"Vikki",
+	"Vince",
+	"Viola",
+	"Vivek",
+	"Wally",
+	"Wanda",
+	"Wendy",
+	"Zelda",
+	"Zelma",
 	// Unsearched last names (curated lists)
-	"Navra", "Oakes", "Ogden", "Plant", "Platt", "Power", "Prine", "Pryor",
-	"Rains", "Reeve", "Ricks", "Roper", "Rouse", "Sales", "Sands", "Selby",
-	"Sells", "Sheen", "Small", "Stack", "Stern", "Stock", "Stowe", "Suggs",
-	"Thiel", "Tobin", "Truax", "Tubbs", "Varga", "Wages", "Wendt", "Worth",
+	"Navra",
+	"Oakes",
+	"Ogden",
+	"Plant",
+	"Platt",
+	"Power",
+	"Prine",
+	"Pryor",
+	"Rains",
+	"Reeve",
+	"Ricks",
+	"Roper",
+	"Rouse",
+	"Sales",
+	"Sands",
+	"Selby",
+	"Sells",
+	"Sheen",
+	"Small",
+	"Stack",
+	"Stern",
+	"Stock",
+	"Stowe",
+	"Suggs",
+	"Thiel",
+	"Tobin",
+	"Truax",
+	"Tubbs",
+	"Varga",
+	"Wages",
+	"Wendt",
+	"Worth",
 	"Wyman",
 ] as const;
 
@@ -98,7 +458,11 @@ const STANDARD_TIER_CONFIG: TermSelectorConfig = {
 	tiers: [
 		{ totalSearches: 1, successRate: 1, avgResultsPerSearch: { gte: 500 } },
 		{ totalSearches: 1, successRate: 1, avgResultsPerSearch: { gte: 100 } },
-		{ totalSearches: { lte: 2 }, successRate: { gte: 0.4 }, avgResultsPerSearch: { gte: 1000 } },
+		{
+			totalSearches: { lte: 2 },
+			successRate: { gte: 0.4 },
+			avgResultsPerSearch: { gte: 1000 },
+		},
 	],
 	applyHighResultSplits: true,
 };
@@ -106,8 +470,16 @@ const STANDARD_TIER_CONFIG: TermSelectorConfig = {
 export const LOW_THRESHOLD_TIER_CONFIG: TermSelectorConfig = {
 	tiers: [
 		{ totalSearches: 1, successRate: 1, avgResultsPerSearch: { gte: 20 } },
-		{ totalSearches: { lte: 2 }, successRate: { gte: 0.5 }, avgResultsPerSearch: { gte: 20 } },
-		{ totalSearches: { lte: 3 }, successRate: { gte: 0.3 }, avgResultsPerSearch: { gte: 50 } },
+		{
+			totalSearches: { lte: 2 },
+			successRate: { gte: 0.5 },
+			avgResultsPerSearch: { gte: 20 },
+		},
+		{
+			totalSearches: { lte: 3 },
+			successRate: { gte: 0.3 },
+			avgResultsPerSearch: { gte: 50 },
+		},
 	],
 	applyHighResultSplits: false,
 };
@@ -159,7 +531,11 @@ export class TermSelector {
 
 		for (const tierWhere of this.config.tiers) {
 			if (batch.length >= size) break;
-			const tierResults = await this.queryTier(tierWhere, size - batch.length, propertyTerms);
+			const tierResults = await this.queryTier(
+				tierWhere,
+				size - batch.length,
+				propertyTerms,
+			);
 			batch.push(...tierResults);
 		}
 
@@ -182,7 +558,9 @@ export class TermSelector {
 		// Keys must match DB casing exactly (Map lookup is case-sensitive).
 		const expanded: string[] = [];
 		for (const term of batch) {
-			const splits = this.config.applyHighResultSplits ? HIGH_RESULT_TERM_SPLITS.get(term) : undefined;
+			const splits = this.config.applyHighResultSplits
+				? HIGH_RESULT_TERM_SPLITS.get(term)
+				: undefined;
 			if (splits) {
 				let added = 0;
 				for (const split of splits) {
@@ -194,9 +572,13 @@ export class TermSelector {
 					added++;
 				}
 				if (added > 0) {
-					logger.info(`Expanded high-result term "${term}" → ${added} sub-queries`);
+					logger.info(
+						`Expanded high-result term "${term}" → ${added} sub-queries`,
+					);
 				} else {
-					logger.info(`High-result term "${term}" all splits already searched; slot dropped`);
+					logger.info(
+						`High-result term "${term}" all splits already searched; slot dropped`,
+					);
 				}
 				// Parent term stays in enqueuedTerms to prevent future re-selection
 			} else {
@@ -214,7 +596,9 @@ export class TermSelector {
 		}
 
 		if (result.length > 0) {
-			logger.info(`Selected ${result.length} terms: ${result.slice(0, 5).join(", ")}${result.length > 5 ? "..." : ""}`);
+			logger.info(
+				`Selected ${result.length} terms: ${result.slice(0, 5).join(", ")}${result.length > 5 ? "..." : ""}`,
+			);
 		} else {
 			logger.warn("No candidate terms available from any tier or fallback");
 		}
@@ -323,10 +707,14 @@ export class TermSelector {
 				this.enqueuedTerms.add(term);
 			}
 			if (overSearched.length > 0) {
-				logger.info(`Marked ${overSearched.length} over-searched terms as used`);
+				logger.info(
+					`Marked ${overSearched.length} over-searched terms as used`,
+				);
 			}
 		} catch (error) {
-			logger.warn(`Failed to load over-searched terms: ${getErrorMessage(error)}`);
+			logger.warn(
+				`Failed to load over-searched terms: ${getErrorMessage(error)}`,
+			);
 		}
 
 		this.blacklistLoaded = true;
@@ -351,7 +739,9 @@ class ContinuousBatchScraper {
 	constructor(lowThreshold = false) {
 		this.lowThreshold = lowThreshold;
 		this.userId = lowThreshold ? "lowthreshold-batch" : "continuous-batch";
-		this.termSelector = new TermSelector(lowThreshold ? LOW_THRESHOLD_TIER_CONFIG : undefined);
+		this.termSelector = new TermSelector(
+			lowThreshold ? LOW_THRESHOLD_TIER_CONFIG : undefined,
+		);
 	}
 
 	async run() {
@@ -372,11 +762,19 @@ class ContinuousBatchScraper {
 			logger.info(`Cleared ${pendingCount} pending jobs`);
 		}
 
-		this.stats.startingPropertyCount = await prisma.property.count({ where: { year: config.scraper.tcadYear } });
+		this.stats.startingPropertyCount = await prisma.property.count({
+			where: { year: config.scraper.tcadYear },
+		});
 		this.lastPropertyCount = this.stats.startingPropertyCount;
-		logger.info(`Starting: ${this.stats.startingPropertyCount.toLocaleString()}`);
-		logger.info(`Stop at: ${TARGET_2025_PROPERTY_COUNT.toLocaleString()} or ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive zero-result batches`);
-		logger.info(`Remaining: ${(TARGET_2025_PROPERTY_COUNT - this.stats.startingPropertyCount).toLocaleString()}\n`);
+		logger.info(
+			`Starting: ${this.stats.startingPropertyCount.toLocaleString()}`,
+		);
+		logger.info(
+			`Stop at: ${TARGET_2025_PROPERTY_COUNT.toLocaleString()} or ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive zero-result batches`,
+		);
+		logger.info(
+			`Remaining: ${(TARGET_2025_PROPERTY_COUNT - this.stats.startingPropertyCount).toLocaleString()}\n`,
+		);
 
 		process.on("SIGINT", () => this.stop());
 		process.on("SIGTERM", () => this.stop());
@@ -384,10 +782,14 @@ class ContinuousBatchScraper {
 		this.startMonitoring();
 
 		while (this.running) {
-			const currentCount = await prisma.property.count({ where: { year: config.scraper.tcadYear } });
+			const currentCount = await prisma.property.count({
+				where: { year: config.scraper.tcadYear },
+			});
 
 			if (currentCount >= TARGET_2025_PROPERTY_COUNT) {
-				logger.info(`STOP TARGET REACHED! Current count: ${currentCount.toLocaleString()}`);
+				logger.info(
+					`STOP TARGET REACHED! Current count: ${currentCount.toLocaleString()}`,
+				);
 				break;
 			}
 
@@ -395,9 +797,13 @@ class ContinuousBatchScraper {
 			const newSinceLastCheck = currentCount - this.lastPropertyCount;
 			if (this.stats.batchesProcessed > 0 && newSinceLastCheck === 0) {
 				this.consecutiveZeroBatches++;
-				logger.warn(`Zero new properties (${this.consecutiveZeroBatches}/${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive)`);
+				logger.warn(
+					`Zero new properties (${this.consecutiveZeroBatches}/${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive)`,
+				);
 				if (this.consecutiveZeroBatches >= MAX_CONSECUTIVE_ZERO_BATCHES) {
-					logger.info(`STOPPING: ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive batches with zero new properties`);
+					logger.info(
+						`STOPPING: ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive batches with zero new properties`,
+					);
 					break;
 				}
 			} else if (newSinceLastCheck > 0) {
@@ -413,7 +819,9 @@ class ContinuousBatchScraper {
 			if (waiting + active < 100) {
 				await this.queueBatch();
 			} else {
-				logger.info(`Queue full (${waiting} waiting, ${active} active). Waiting...`);
+				logger.info(
+					`Queue full (${waiting} waiting, ${active} active). Waiting...`,
+				);
 			}
 
 			await this.delay(DELAY_BETWEEN_BATCHES);
@@ -428,7 +836,9 @@ class ContinuousBatchScraper {
 		const searchTerms = await this.termSelector.getNextBatch(BATCH_SIZE);
 		this.stats.batchesProcessed++;
 
-		logger.info(`Batch #${this.stats.batchesProcessed} (${searchTerms.length} terms)`);
+		logger.info(
+			`Batch #${this.stats.batchesProcessed} (${searchTerms.length} terms)`,
+		);
 
 		const enqueued = await enqueueBatch(searchTerms, this.userId, logger);
 		this.stats.totalQueued += enqueued;
@@ -457,9 +867,9 @@ class ContinuousBatchScraper {
 
 				logger.info(
 					`[${hours}h ${minutes}m] ${progress.toFixed(2)}% | ` +
-					`DB: ${currentCount.toLocaleString()} (+${newProperties.toLocaleString()}) | ` +
-					`Queue: ${waiting}w/${active}a/${completed}c/${failed}f | ` +
-					`${rate.toFixed(1)} props/min`,
+						`DB: ${currentCount.toLocaleString()} (+${newProperties.toLocaleString()}) | ` +
+						`Queue: ${waiting}w/${active}a/${completed}c/${failed}f | ` +
+						`${rate.toFixed(1)} props/min`,
 				);
 
 				if (rate > 0) {
@@ -474,16 +884,22 @@ class ContinuousBatchScraper {
 	}
 
 	private async printFinalReport() {
-		const finalCount = await prisma.property.count({ where: { year: config.scraper.tcadYear } });
+		const finalCount = await prisma.property.count({
+			where: { year: config.scraper.tcadYear },
+		});
 		const elapsed = Math.floor((Date.now() - this.stats.startTime) / 1000);
 		const hours = Math.floor(elapsed / 3600);
 		const minutes = Math.floor((elapsed % 3600) / 60);
 
 		logger.info("\n=== FINAL REPORT ===");
 		logger.info(`Runtime: ${hours}h ${minutes}m`);
-		logger.info(`Starting: ${this.stats.startingPropertyCount.toLocaleString()}`);
+		logger.info(
+			`Starting: ${this.stats.startingPropertyCount.toLocaleString()}`,
+		);
 		logger.info(`Final: ${finalCount.toLocaleString()}`);
-		logger.info(`Added: ${(finalCount - this.stats.startingPropertyCount).toLocaleString()}`);
+		logger.info(
+			`Added: ${(finalCount - this.stats.startingPropertyCount).toLocaleString()}`,
+		);
 		logger.info(`Jobs queued: ${this.stats.totalQueued.toLocaleString()}`);
 		logger.info(`Batches: ${this.stats.batchesProcessed}`);
 	}

@@ -17,7 +17,11 @@
  */
 
 import { z } from "zod";
-import { DEFAULT_LOOKBACK_DAYS, DEFAULT_QUERY_LIMIT, MIN_TERM_LENGTH } from "../utils/constants";
+import {
+	DEFAULT_LOOKBACK_DAYS,
+	DEFAULT_QUERY_LIMIT,
+	MIN_TERM_LENGTH,
+} from "../utils/constants";
 
 // ============================================================================
 // Database Level Types (Prisma/Backend)
@@ -209,7 +213,10 @@ export interface PropertyMetadata {
 export const scrapeRequestSchema = z.object({
 	searchTerm: z
 		.string()
-		.min(MIN_TERM_LENGTH, `Search term must be at least ${MIN_TERM_LENGTH} characters`)
+		.min(
+			MIN_TERM_LENGTH,
+			`Search term must be at least ${MIN_TERM_LENGTH} characters`,
+		)
 		.max(100),
 	userId: z.string().optional(),
 });

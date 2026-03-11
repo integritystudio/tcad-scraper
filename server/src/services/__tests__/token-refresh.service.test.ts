@@ -323,7 +323,9 @@ describe("TCADTokenRefreshService", () => {
 		it("should throw on timeout", async () => {
 			let fetchResolve!: (v: unknown) => void;
 			mockFetch.mockReturnValueOnce(
-				new Promise((r) => { fetchResolve = r; }),
+				new Promise((r) => {
+					fetchResolve = r;
+				}),
 			);
 
 			const promise = service.waitForToken(100);

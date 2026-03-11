@@ -1,8 +1,8 @@
 #!/usr/bin/env npx tsx
 
+import { LOG_SEPARATOR_WIDTH } from "../../../utils/constants";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
-import { LOG_SEPARATOR_WIDTH } from "../../../utils/constants";
 
 async function checkDatabaseStats() {
 	logger.info("📊 Database Statistics\n");

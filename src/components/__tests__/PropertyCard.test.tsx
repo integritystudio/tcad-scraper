@@ -8,7 +8,13 @@
  * - Accessibility features
  */
 
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Property } from "../../types";
 import { PropertyCard } from "../features/PropertySearch/PropertyCard";

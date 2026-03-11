@@ -9,7 +9,7 @@
 		"dev": "tsx watch src/index.ts",
 		"build": "tsc",
 		"start": "node dist/server/src/index.js",
-"queue": "tsx src/cli/queue-manager.ts",
+		"queue": "tsx src/cli/queue-manager.ts",
 		"queue:status": "tsx src/cli/queue-manager.ts status",
 		"queue:stop": "tsx src/cli/queue-manager.ts stop",
 		"queue:cleanup": "tsx src/cli/queue-manager.ts cleanup",

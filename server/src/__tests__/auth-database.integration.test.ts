@@ -132,77 +132,83 @@ describe("Authentication-Database Integration Tests", () => {
 			});
 		});
 
-		describe.skipIf(!redisAvailable)("Scrape Job Creation (Database Write)", () => {
-			test("should create scrape job without authentication (optional auth)", async () => {
-				const response = await request(app)
-					.post("/api/properties/scrape")
-					.send({
-						searchTerm: "test-auth-no-token",
-					});
+		describe.skipIf(!redisAvailable)(
+			"Scrape Job Creation (Database Write)",
+			() => {
+				test("should create scrape job without authentication (optional auth)", async () => {
+					const response = await request(app)
+						.post("/api/properties/scrape")
+						.send({
+							searchTerm: "test-auth-no-token",
+						});
 
-				// Should succeed or fail based on rate limiting, not auth
-				expect([202, 400, 429]).toContain(response.status);
+					// Should succeed or fail based on rate limiting, not auth
+					expect([202, 400, 429]).toContain(response.status);
 
-				if (response.status === 202) {
-					expect(response.body).toHaveProperty("jobId");
-					expect(response.body).toHaveProperty("message");
-				}
-			}, 10000);
+					if (response.status === 202) {
+						expect(response.body).toHaveProperty("jobId");
+						expect(response.body).toHaveProperty("message");
+					}
+				}, 10000);
 
-			test("should create scrape job with valid authentication", async () => {
-				const response = await request(app)
-					.post("/api/properties/scrape")
-					.set("Authorization", `Bearer ${validToken}`)
-					.send({
-						searchTerm: "test-auth-valid-token",
-					});
+				test("should create scrape job with valid authentication", async () => {
+					const response = await request(app)
+						.post("/api/properties/scrape")
+						.set("Authorization", `Bearer ${validToken}`)
+						.send({
+							searchTerm: "test-auth-valid-token",
+						});
 
-				expect([202, 400, 429]).toContain(response.status);
+					expect([202, 400, 429]).toContain(response.status);
 
-				if (response.status === 202) {
-					expect(response.body).toHaveProperty("jobId");
-					expect(response.body).toHaveProperty("message");
-				}
-			}, 10000);
+					if (response.status === 202) {
+						expect(response.body).toHaveProperty("jobId");
+						expect(response.body).toHaveProperty("message");
+					}
+				}, 10000);
 
-			test("should handle invalid request data gracefully", async () => {
-				const response = await request(app)
-					.post("/api/properties/scrape")
-					.set("Authorization", `Bearer ${validToken}`)
-					.send({
-						searchTerm: "ab", // Too short (min 4 chars)
-					});
+				test("should handle invalid request data gracefully", async () => {
+					const response = await request(app)
+						.post("/api/properties/scrape")
+						.set("Authorization", `Bearer ${validToken}`)
+						.send({
+							searchTerm: "ab", // Too short (min 4 chars)
+						});
 
-				expect(response.status).toBe(400);
-				expect(response.body).toHaveProperty("error");
-			});
-		});
+					expect(response.status).toBe(400);
+					expect(response.body).toHaveProperty("error");
+				});
+			},
+		);
 
-		describe.skipIf(!redisAvailable)("Job Status Retrieval (Database Read)", () => {
-			test("should retrieve job status without authentication", async () => {
-				const response = await request(app).get(
-					"/api/properties/jobs/non-existent-job",
-				);
-				expect([200, 404]).toContain(response.status);
-			}, 10000);
+		describe.skipIf(!redisAvailable)(
+			"Job Status Retrieval (Database Read)",
+			() => {
+				test("should retrieve job status without authentication", async () => {
+					const response = await request(app).get(
+						"/api/properties/jobs/non-existent-job",
+					);
+					expect([200, 404]).toContain(response.status);
+				}, 10000);
 
-			test("should retrieve job status with valid authentication", async () => {
-				const response = await request(app)
-					.get("/api/properties/jobs/non-existent-job")
-					.set("Authorization", `Bearer ${validToken}`);
+				test("should retrieve job status with valid authentication", async () => {
+					const response = await request(app)
+						.get("/api/properties/jobs/non-existent-job")
+						.set("Authorization", `Bearer ${validToken}`);
 
-				expect([200, 404]).toContain(response.status);
-			}, 10000);
+					expect([200, 404]).toContain(response.status);
+				}, 10000);
 
-			test("should handle non-existent job ID", async () => {
-				const fakeJobId = "non-existent-job-id";
-				const response = await request(app)
-					.get(`/api/properties/jobs/${fakeJobId}`)
-					.set("Authorization", `Bearer ${validToken}`);
+				test("should handle non-existent job ID", async () => {
+					const fakeJobId = "non-existent-job-id";
+					const response = await request(app)
+						.get(`/api/properties/jobs/${fakeJobId}`)
+						.set("Authorization", `Bearer ${validToken}`);
 
-				expect(response.status).toBe(404);
-			}, 10000);
-		});
+					expect(response.status).toBe(404);
+				}, 10000);
+			},
+		);
 	});
 
 	describe("Token Validation and Database Access", () => {
@@ -274,28 +280,31 @@ describe("Authentication-Database Integration Tests", () => {
 		});
 	});
 
-	describe.skipIf(!redisAvailable)("Database Transaction Integrity with Authentication", () => {
-		test("should maintain transaction integrity during authenticated writes", async () => {
-			const searchTerm = `test-auth-transaction-${Date.now()}`;
+	describe.skipIf(!redisAvailable)(
+		"Database Transaction Integrity with Authentication",
+		() => {
+			test("should maintain transaction integrity during authenticated writes", async () => {
+				const searchTerm = `test-auth-transaction-${Date.now()}`;
 
-			// Create a scrape job
-			const response = await request(app)
-				.post("/api/properties/scrape")
-				.set("Authorization", `Bearer ${validToken}`)
-				.send({ searchTerm });
+				// Create a scrape job
+				const response = await request(app)
+					.post("/api/properties/scrape")
+					.set("Authorization", `Bearer ${validToken}`)
+					.send({ searchTerm });
 
-			if (response.status === 202) {
-				const jobId = response.body.jobId;
+				if (response.status === 202) {
+					const jobId = response.body.jobId;
 
-				// Verify we can retrieve it via API
-				const statusResponse = await request(app)
-					.get(`/api/properties/jobs/${jobId}`)
-					.set("Authorization", `Bearer ${validToken}`);
+					// Verify we can retrieve it via API
+					const statusResponse = await request(app)
+						.get(`/api/properties/jobs/${jobId}`)
+						.set("Authorization", `Bearer ${validToken}`);
 
-				expect([200, 404]).toContain(statusResponse.status);
-			}
-		}, 10000);
-	});
+					expect([200, 404]).toContain(statusResponse.status);
+				}
+			}, 10000);
+		},
+	);
 
 	describe("Error Handling with Authentication and Database", () => {
 		test.skipIf(!redisAvailable)(

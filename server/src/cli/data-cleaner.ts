@@ -9,10 +9,10 @@
  */
 
 import { Command } from "commander";
-import { MIN_TERM_LENGTH, PROGRESS_LOG_INTERVAL } from "../utils/constants";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
+import { MIN_TERM_LENGTH, PROGRESS_LOG_INTERVAL } from "../utils/constants";
 import { removeDuplicatesFromQueue } from "../utils/deduplication";
 
 interface CleanupOptions {

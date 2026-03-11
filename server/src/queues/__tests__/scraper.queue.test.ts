@@ -7,7 +7,7 @@
  * - Event listeners
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Use vi.hoisted to declare mocks before they're used
 const { mockBullQueue, MockBull } = vi.hoisted(() => {
@@ -89,7 +89,8 @@ describe("deduplicateByPropertyId", () => {
 	beforeEach(async () => {
 		vi.resetModules();
 		const module = await import("../scraper.queue");
-		deduplicateByPropertyId = module.deduplicateByPropertyId as typeof deduplicateByPropertyId;
+		deduplicateByPropertyId =
+			module.deduplicateByPropertyId as typeof deduplicateByPropertyId;
 	});
 
 	it("should return empty array for empty input", () => {

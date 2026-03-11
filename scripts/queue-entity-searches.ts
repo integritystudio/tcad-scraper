@@ -1,7 +1,7 @@
 import logger from "../server/src/lib/logger";
 import { scraperQueue } from "../server/src/queues/scraper.queue";
-import { enqueueBatch } from "./lib/queue-utils";
 import { getErrorMessage } from "../server/src/utils/error-helpers";
+import { enqueueBatch } from "./lib/queue-utils";
 
 /**
  * Queue high-yield entity term searches.
@@ -102,7 +102,9 @@ async function queueEntitySearches(fresh: boolean) {
 
 	const searchTerms = ENTITY_TERMS.slice(0, 50);
 	const userId = fresh ? "entity-batch-scraper-fresh" : "entity-batch-scraper";
-	logger.info(`Queuing ${searchTerms.length} high-yield entity term searches...\n`);
+	logger.info(
+		`Queuing ${searchTerms.length} high-yield entity term searches...\n`,
+	);
 
 	const queuedCount = await enqueueBatch(searchTerms, userId, logger);
 	const failedCount = searchTerms.length - queuedCount;

@@ -1,6 +1,6 @@
 import { type Prisma, PrismaClient } from "@prisma/client";
-import { DEFAULT_LOOKBACK_DAYS, MIN_TERM_LENGTH } from "../utils/constants";
 import logger from "../lib/logger";
+import { DEFAULT_LOOKBACK_DAYS, MIN_TERM_LENGTH } from "../utils/constants";
 
 const prisma = new PrismaClient();
 
@@ -437,7 +437,10 @@ export class SearchTermOptimizer {
 	 * @param minSearches - Minimum search count to qualify (inclusive)
 	 * @param limit - Maximum rows to return; prevents unbounded memory at scale (default: 10000)
 	 */
-	async getOverSearchedTerms(minSearches = 5, limit = 10_000): Promise<string[]> {
+	async getOverSearchedTerms(
+		minSearches = 5,
+		limit = 10_000,
+	): Promise<string[]> {
 		const terms = await this.prisma.searchTermAnalytics.findMany({
 			where: { totalSearches: { gte: minSearches } },
 			select: { searchTerm: true },
@@ -452,7 +455,10 @@ export class SearchTermOptimizer {
 	 * @param minSearches - Minimum search count to qualify
 	 * @param limit - Maximum rows to return (default: 10000)
 	 */
-	async getBlacklistedTerms(minSearches = 3, limit = 10_000): Promise<string[]> {
+	async getBlacklistedTerms(
+		minSearches = 3,
+		limit = 10_000,
+	): Promise<string[]> {
 		const zeroYieldTerms = await this.prisma.searchTermAnalytics.findMany({
 			where: {
 				// lte: 0 rather than exact equality to catch NaN-coerced 0 and negative values

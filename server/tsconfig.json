@@ -25,5 +25,11 @@
 		}
 	},
 	"include": ["src/**/*", "../utils/constants.ts"],
-	"exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "**/__tests__/**"]
+	"exclude": [
+		"node_modules",
+		"dist",
+		"**/*.test.ts",
+		"**/*.spec.ts",
+		"**/__tests__/**"
+	]
 }

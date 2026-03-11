@@ -1,38 +1,38 @@
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: "./e2e",
-  outputDir: "./e2e/test-results",
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: 1,
-  workers: process.env.CI ? 2 : undefined,
+	testDir: "./e2e",
+	outputDir: "./e2e/test-results",
+	fullyParallel: true,
+	forbidOnly: !!process.env.CI,
+	retries: 1,
+	workers: process.env.CI ? 2 : undefined,
 
-  use: {
-    baseURL: "http://localhost:3002",
-    screenshot: "only-on-failure",
-    trace: "on-first-retry",
-  },
+	use: {
+		baseURL: "http://localhost:3002",
+		screenshot: "only-on-failure",
+		trace: "on-first-retry",
+	},
 
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-    {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
-    },
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
-    },
-  ],
+	projects: [
+		{
+			name: "chromium",
+			use: { ...devices["Desktop Chrome"] },
+		},
+		{
+			name: "firefox",
+			use: { ...devices["Desktop Firefox"] },
+		},
+		{
+			name: "webkit",
+			use: { ...devices["Desktop Safari"] },
+		},
+	],
 
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3002",
-    reuseExistingServer: !process.env.CI,
-    timeout: 30_000,
-  },
+	webServer: {
+		command: "npm run dev",
+		url: "http://localhost:3002",
+		reuseExistingServer: !process.env.CI,
+		timeout: 30_000,
+	},
 });

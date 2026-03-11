@@ -71,11 +71,9 @@ async function analyzeFailedJobs(): Promise<FailureAnalysis> {
 	for (const job of failedJobsData) {
 		const errorMsg = job.error || "Unknown error";
 
-		if (!errorGroups.has(errorMsg)) {
-			errorGroups.set(errorMsg, { count: 0, searchTerms: new Set() });
-		}
-
-		const group = errorGroups.get(errorMsg)!;
+		const existing = errorGroups.get(errorMsg);
+		const group = existing ?? { count: 0, searchTerms: new Set<string>() };
+		if (!existing) errorGroups.set(errorMsg, group);
 		group.count++;
 		group.searchTerms.add(job.searchTerm);
 	}

@@ -50,8 +50,8 @@ export const LoadingSkeleton = ({
 				data-testid="cards-skeleton"
 			>
 				{Array.from({ length: count }).map((_, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton items never reorder
 					<div
+						// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton items never reorder
 						key={`skeleton-${i}`}
 						className={styles.cardSkeleton}
 						data-testid="card-skeleton"

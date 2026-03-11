@@ -81,7 +81,10 @@ export const optionalAuth = (
 			};
 			req.user = decoded;
 		} catch (error) {
-			logger.debug({ err: error }, "optionalAuth: invalid JWT token, continuing unauthenticated");
+			logger.debug(
+				{ err: error },
+				"optionalAuth: invalid JWT token, continuing unauthenticated",
+			);
 		}
 	}
 

@@ -8,10 +8,9 @@
  * - Cache statistics and monitoring
  */
 
-import { PERCENT_MULTIPLIER } from "../utils/constants";
-
 import { createClient, type RedisClientType } from "redis";
 import { config } from "../config";
+import { PERCENT_MULTIPLIER } from "../utils/constants";
 import { getErrorMessage } from "../utils/error-helpers";
 import logger from "./logger";
 
@@ -364,4 +363,3 @@ cacheService.connect().catch((error: unknown) => {
 		getErrorMessage(error),
 	);
 });
-

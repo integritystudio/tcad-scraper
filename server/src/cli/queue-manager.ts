@@ -3,10 +3,14 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Command } from "commander";
-import { DEFAULT_LOOKBACK_DAYS, DEFAULT_RETRY_DELAY_MS, PERCENT_MULTIPLIER } from "../utils/constants";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
+import {
+	DEFAULT_LOOKBACK_DAYS,
+	DEFAULT_RETRY_DELAY_MS,
+	PERCENT_MULTIPLIER,
+} from "../utils/constants";
 
 interface QueueManagerOptions {
 	priority?: boolean;
@@ -287,7 +291,11 @@ program
 	.command("cleanup")
 	.description("Clean up queue by removing old jobs")
 	.option("--aggressive", "Remove all completed and failed jobs")
-	.option("--older-than <days>", "Remove jobs older than N days", String(DEFAULT_LOOKBACK_DAYS))
+	.option(
+		"--older-than <days>",
+		"Remove jobs older than N days",
+		String(DEFAULT_LOOKBACK_DAYS),
+	)
 	.option(
 		"--zero-results",
 		"Remove waiting jobs for terms that previously returned zero results",

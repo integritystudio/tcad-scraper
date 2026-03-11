@@ -18,7 +18,10 @@ function safeRedisAddr(): string {
 
 logger.info("TCAD Scraper Worker started");
 logger.info({ redis: safeRedisAddr() }, "Redis connection");
-logger.info({ database: config.database.url ? "configured" : "not configured" }, "Database");
+logger.info(
+	{ database: config.database.url ? "configured" : "not configured" },
+	"Database",
+);
 logger.info("Listening for jobs");
 
 // Graceful shutdown

@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance } from "axios";
+import { API_CLIENT_TIMEOUT_MS } from "../../utils/constants";
 import logger from "../lib/logger";
 import type { Property } from "../types";
-import { API_CLIENT_TIMEOUT_MS } from "../../utils/constants";
 
 // API configuration
 const API_BASE_URL =

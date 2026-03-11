@@ -1,8 +1,8 @@
-import { PERCENT_MULTIPLIER } from "./constants";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
 import type { ScraperJob } from "../types/queue.types";
+import { PERCENT_MULTIPLIER } from "./constants";
 import { getErrorMessage } from "./error-helpers";
 
 interface DeduplicationOptions {

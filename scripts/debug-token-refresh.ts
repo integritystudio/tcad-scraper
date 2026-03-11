@@ -37,7 +37,9 @@ async function debugTokenRefresh() {
 
 		logger.info(`\n3. refreshToken() returned after ${duration}ms:`);
 		logger.info(`   Type: ${typeof token}`);
-		logger.info(`   Value: [REDACTED]...${token ? token.slice(TOKEN_PREVIEW_SUFFIX) : "N/A"}`);
+		logger.info(
+			`   Value: [REDACTED]...${token ? token.slice(TOKEN_PREVIEW_SUFFIX) : "N/A"}`,
+		);
 		logger.info(`   Length: ${token ? token.length : "N/A"}`);
 	} catch (error) {
 		logger.error(`\n3. refreshToken() threw error: ${getErrorMessage(error)}`);

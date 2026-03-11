@@ -6,7 +6,10 @@
  * CLI:        `npx tsx scripts/utils/list-all-search-terms.ts`
  */
 
-import { BATCH_CONFIGS, HIGH_RESULT_TERM_SPLITS } from "../config/batch-configs";
+import {
+	BATCH_CONFIGS,
+	HIGH_RESULT_TERM_SPLITS,
+} from "../config/batch-configs";
 import { FALLBACK_TERMS } from "../continuous-batch-scraper";
 
 const NUMERIC_ONLY = /^\d+$/;

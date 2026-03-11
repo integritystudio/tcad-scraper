@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock prisma before importing TermSelector
 const mockFindMany = vi.fn();
@@ -30,12 +30,17 @@ const mockGetBlacklistedTerms = vi.fn();
 const mockGetOverSearchedTerms = vi.fn();
 vi.mock("../../server/src/services/search-term-optimizer", () => ({
 	searchTermOptimizer: {
-		getBlacklistedTerms: (...args: unknown[]) => mockGetBlacklistedTerms(...args),
-		getOverSearchedTerms: (...args: unknown[]) => mockGetOverSearchedTerms(...args),
+		getBlacklistedTerms: (...args: unknown[]) =>
+			mockGetBlacklistedTerms(...args),
+		getOverSearchedTerms: (...args: unknown[]) =>
+			mockGetOverSearchedTerms(...args),
 	},
 }));
 
-import { TermSelector, LOW_THRESHOLD_TIER_CONFIG } from "../continuous-batch-scraper";
+import {
+	LOW_THRESHOLD_TIER_CONFIG,
+	TermSelector,
+} from "../continuous-batch-scraper";
 
 function makeTierRow(searchTerm: string) {
 	return { searchTerm };
@@ -111,12 +116,15 @@ describe("TermSelector", () => {
 			// All tiers empty — default mockResolvedValue([]) covers all findMany calls
 			const batch = await selector.getNextBatch(3);
 			expect(batch.length).toBe(3);
-			expect(batch.every((t) => typeof t === "string" && t.length > 0)).toBe(true);
+			expect(batch.every((t) => typeof t === "string" && t.length > 0)).toBe(
+				true,
+			);
 		});
 
 		it("excludes already-searched terms from fallback", async () => {
 			mockFindMany
-				.mockResolvedValueOnce([ // getSearchedTermSet (analytics)
+				.mockResolvedValueOnce([
+					// getSearchedTermSet (analytics)
 					{ searchTerm: "Joseph" },
 					{ searchTerm: "Taylor" },
 					{ searchTerm: "Charles" },
@@ -216,7 +224,10 @@ describe("TermSelector", () => {
 
 			mockFindMany
 				.mockResolvedValueOnce([]) // getSearchedTermSet (analytics)
-				.mockResolvedValueOnce([makeTierRow("BadTerm"), makeTierRow("GoodTerm")]) // tier 1
+				.mockResolvedValueOnce([
+					makeTierRow("BadTerm"),
+					makeTierRow("GoodTerm"),
+				]) // tier 1
 				.mockResolvedValueOnce([]) // tier 2
 				.mockResolvedValueOnce([]); // tier 3
 

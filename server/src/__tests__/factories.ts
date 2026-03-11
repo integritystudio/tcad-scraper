@@ -27,7 +27,9 @@ export function resetFactoryCounter(): void {
 // PropertyData factory
 // ---------------------------------------------------------------------------
 
-export function buildProperty(overrides: Partial<PropertyData> = {}): PropertyData {
+export function buildProperty(
+	overrides: Partial<PropertyData> = {},
+): PropertyData {
 	const n = nextId();
 	return {
 		propertyId: `PROP-${n.toString().padStart(6, "0")}`,

@@ -9,14 +9,17 @@
  */
 
 import { prisma } from "../server/src/lib/prisma";
-import { RECENT_JOBS_LOOKBACK_DAYS, RECENT_JOBS_LOOKBACK_MS } from "../utils/constants";
+import {
+	RECENT_JOBS_LOOKBACK_DAYS,
+	RECENT_JOBS_LOOKBACK_MS,
+} from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
 
 const MIN_2026_YIELD = 100;
 
 async function getProvenTerms(): Promise<string[]> {
-  // Terms that yielded 100+ properties in 2026 but have 0 in 2025
-  const terms = await prisma.$queryRaw<Array<{ term: string; y26: number }>>`
+	// Terms that yielded 100+ properties in 2026 but have 0 in 2025
+	const terms = await prisma.$queryRaw<Array<{ term: string; y26: number }>>`
     SELECT p26.search_term as term, p26.cnt::int as y26
     FROM (
       SELECT search_term, COUNT(DISTINCT property_id) as cnt
@@ -32,28 +35,37 @@ async function getProvenTerms(): Promise<string[]> {
     WHERE COALESCE(p25.cnt, 0) = 0
     ORDER BY p26.cnt DESC`;
 
-  // Also exclude terms already attempted today (scrape_jobs)
-  const recentJobs = await prisma.scrapeJob.findMany({
-    where: { startedAt: { gte: new Date(Date.now() - RECENT_JOBS_LOOKBACK_MS) } },
-    select: { searchTerm: true },
-  });
-  const attempted = new Set(recentJobs.map(j => j.searchTerm.toLowerCase()));
+	// Also exclude terms already attempted today (scrape_jobs)
+	const recentJobs = await prisma.scrapeJob.findMany({
+		where: {
+			startedAt: { gte: new Date(Date.now() - RECENT_JOBS_LOOKBACK_MS) },
+		},
+		select: { searchTerm: true },
+	});
+	const attempted = new Set(recentJobs.map((j) => j.searchTerm.toLowerCase()));
 
-  const result: string[] = [];
-  let skipped = 0;
-  for (const t of terms) {
-    if (attempted.has(t.term.toLowerCase())) { skipped++; continue; }
-    result.push(t.term);
-  }
+	const result: string[] = [];
+	let skipped = 0;
+	for (const t of terms) {
+		if (attempted.has(t.term.toLowerCase())) {
+			skipped++;
+			continue;
+		}
+		result.push(t.term);
+	}
 
-  console.log(`  Proven terms (${MIN_2026_YIELD}+ yield in 2026, 0 in 2025): ${terms.length}`);
-  console.log(`  Skipped (attempted in last ${RECENT_JOBS_LOOKBACK_DAYS} days): ${skipped}`);
-  console.log(`  Queued: ${result.length}`);
-  return result;
+	console.log(
+		`  Proven terms (${MIN_2026_YIELD}+ yield in 2026, 0 in 2025): ${terms.length}`,
+	);
+	console.log(
+		`  Skipped (attempted in last ${RECENT_JOBS_LOOKBACK_DAYS} days): ${skipped}`,
+	);
+	console.log(`  Queued: ${result.length}`);
+	return result;
 }
 
 runBackfillMain({
-  getTerms: getProvenTerms,
-  userId: "backfill-2025-proven",
-  label: "Proven 2026 Terms",
+	getTerms: getProvenTerms,
+	userId: "backfill-2025-proven",
+	label: "Proven 2026 Terms",
 });

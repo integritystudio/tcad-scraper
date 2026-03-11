@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Prisma } from "@prisma/client";
-import { COST_DECIMAL_PLACES } from "../utils/constants";
 import { config } from "../config";
+import { COST_DECIMAL_PLACES } from "../utils/constants";
 import { getErrorMessage } from "../utils/error-helpers";
 import { calculateClaudeCost } from "./claude-pricing";
 import logger from "./logger";

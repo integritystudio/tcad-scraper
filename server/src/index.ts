@@ -1,4 +1,3 @@
-import { DEFAULT_RETRY_DELAY_MS } from "./utils/constants";
 import { createBullBoard } from "@bull-board/api";
 import { BullAdapter } from "@bull-board/api/bullAdapter";
 import { ExpressAdapter } from "@bull-board/express";
@@ -33,6 +32,7 @@ import {
 	stopPeriodicAnalysis,
 } from "./services/code-complexity.service";
 import { tokenRefreshService } from "./services/token-refresh.service";
+import { DEFAULT_RETRY_DELAY_MS } from "./utils/constants";
 
 // Initialize Sentry with service tagging (must be first)
 initializeSentry("tcad-scraper");
@@ -136,7 +136,11 @@ if (config.queue.dashboard.enabled) {
 		serverAdapter,
 	});
 
-	app.use(config.queue.dashboard.basePath, apiKeyAuth, serverAdapter.getRouter());
+	app.use(
+		config.queue.dashboard.basePath,
+		apiKeyAuth,
+		serverAdapter.getRouter(),
+	);
 	logger.info(`Bull Dashboard enabled at ${config.queue.dashboard.basePath}`);
 }
 
@@ -513,9 +517,8 @@ export default app;
 // This prevents EADDRINUSE errors when multiple test files import the app
 let server: ReturnType<typeof app.listen>;
 
-import { fileURLToPath } from "node:url";
-
-const isMainModule = process.argv[1] && fileURLToPath(import.meta.url).includes(process.argv[1].replace(/\.ts$/, ""));
+const isMainModule =
+	process.argv[1] && __filename.includes(process.argv[1].replace(/\.ts$/, ""));
 
 if (isMainModule) {
 	server = app.listen(config.server.port, config.server.host, () => {
@@ -541,7 +544,9 @@ if (isMainModule) {
 				if (token) {
 					logger.info("TCAD token fetched successfully");
 				} else {
-					logger.warn("Initial TCAD token fetch failed — auto-refresh will retry");
+					logger.warn(
+						"Initial TCAD token fetch failed — auto-refresh will retry",
+					);
 				}
 			})
 			.catch((err) => {

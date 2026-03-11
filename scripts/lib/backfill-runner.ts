@@ -1,109 +1,122 @@
 /** Generic backfill loop shared by all backfill-2025* scripts. */
 
+import { config } from "../../server/src/config";
 import { prisma } from "../../server/src/lib/prisma";
 import { scraperQueue } from "../../server/src/queues/scraper.queue";
-import { config } from "../../server/src/config";
 import { getErrorMessage } from "../../server/src/utils/error-helpers";
 import { TARGET_2025_PROPERTY_COUNT as TARGET_2025_COUNT } from "../../utils/constants";
-import { enqueueBatch, waitForQueueDrain, BATCH_SIZE } from "./queue-utils";
 import { get2025Count } from "./backfill-utils";
+import { BATCH_SIZE, enqueueBatch, waitForQueueDrain } from "./queue-utils";
 
 export interface BackfillConfig {
-  /** Function that returns the terms to backfill */
-  getTerms: () => Promise<string[]>;
-  /** User ID for job attribution (e.g. "backfill-2025-proven") */
-  userId: string;
-  /** Display label for the header (e.g. "Proven 2026 Terms") */
-  label: string;
-  /** Max consecutive zero-result batches before stopping (default: 3) */
-  maxConsecutiveZeroBatches?: number;
+	/** Function that returns the terms to backfill */
+	getTerms: () => Promise<string[]>;
+	/** User ID for job attribution (e.g. "backfill-2025-proven") */
+	userId: string;
+	/** Display label for the header (e.g. "Proven 2026 Terms") */
+	label: string;
+	/** Max consecutive zero-result batches before stopping (default: 3) */
+	maxConsecutiveZeroBatches?: number;
 }
 
 export const DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES = 3;
 
 export async function runBackfill(cfg: BackfillConfig): Promise<void> {
-  const maxZero = cfg.maxConsecutiveZeroBatches ?? DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES;
+	const maxZero =
+		cfg.maxConsecutiveZeroBatches ?? DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES;
 
-  if (config.scraper.tcadYear !== 2025) {
-    console.error(`ERROR: TCAD_YEAR is ${config.scraper.tcadYear}, must be 2025.`);
-    console.error(`Run with: TCAD_YEAR=2025 doppler run -- npx tsx scripts/${cfg.userId}.ts`);
-    process.exit(1);
-  }
+	if (config.scraper.tcadYear !== 2025) {
+		console.error(
+			`ERROR: TCAD_YEAR is ${config.scraper.tcadYear}, must be 2025.`,
+		);
+		console.error(
+			`Run with: TCAD_YEAR=2025 doppler run -- npx tsx scripts/${cfg.userId}.ts`,
+		);
+		process.exit(1);
+	}
 
-  let current = await get2025Count();
-  console.log(`\n=== 2025 Backfill (${cfg.label}) ===`);
-  console.log(`Current 2025 properties: ${current.toLocaleString()}`);
-  console.log(`Target: ${TARGET_2025_COUNT.toLocaleString()}`);
-  console.log(`Gap: ${(TARGET_2025_COUNT - current).toLocaleString()}\n`);
+	let current = await get2025Count();
+	console.log(`\n=== 2025 Backfill (${cfg.label}) ===`);
+	console.log(`Current 2025 properties: ${current.toLocaleString()}`);
+	console.log(`Target: ${TARGET_2025_COUNT.toLocaleString()}`);
+	console.log(`Gap: ${(TARGET_2025_COUNT - current).toLocaleString()}\n`);
 
-  if (current >= TARGET_2025_COUNT) {
-    console.log("Already at target.");
-    return;
-  }
+	if (current >= TARGET_2025_COUNT) {
+		console.log("Already at target.");
+		return;
+	}
 
-  const allTerms = await cfg.getTerms();
-  console.log(`\nTerms to backfill: ${allTerms.length}\n`);
+	const allTerms = await cfg.getTerms();
+	console.log(`\nTerms to backfill: ${allTerms.length}\n`);
 
-  if (allTerms.length === 0) {
-    console.log("No terms remaining.");
-    return;
-  }
+	if (allTerms.length === 0) {
+		console.log("No terms remaining.");
+		return;
+	}
 
-  let batchNum = 0;
-  let consecutiveZeroBatches = 0;
-  let totalGained = 0;
-  for (let i = 0; i < allTerms.length; i += BATCH_SIZE) {
-    current = await get2025Count();
-    if (current >= TARGET_2025_COUNT) {
-      console.log(`\nTarget reached: ${current.toLocaleString()} >= ${TARGET_2025_COUNT.toLocaleString()}`);
-      break;
-    }
+	let batchNum = 0;
+	let consecutiveZeroBatches = 0;
+	let totalGained = 0;
+	for (let i = 0; i < allTerms.length; i += BATCH_SIZE) {
+		current = await get2025Count();
+		if (current >= TARGET_2025_COUNT) {
+			console.log(
+				`\nTarget reached: ${current.toLocaleString()} >= ${TARGET_2025_COUNT.toLocaleString()}`,
+			);
+			break;
+		}
 
-    batchNum++;
-    const batch = allTerms.slice(i, i + BATCH_SIZE);
-    console.log(`--- Batch ${batchNum} (${batch.length} terms) ---`);
-    console.log(`  Terms: ${batch.join(", ")}`);
+		batchNum++;
+		const batch = allTerms.slice(i, i + BATCH_SIZE);
+		console.log(`--- Batch ${batchNum} (${batch.length} terms) ---`);
+		console.log(`  Terms: ${batch.join(", ")}`);
 
-    const enqueued = await enqueueBatch(batch, cfg.userId);
-    console.log(`  Enqueued: ${enqueued}`);
+		const enqueued = await enqueueBatch(batch, cfg.userId);
+		console.log(`  Enqueued: ${enqueued}`);
 
-    await waitForQueueDrain();
+		await waitForQueueDrain();
 
-    const newCount = await get2025Count();
-    const gained = newCount - current;
-    totalGained += gained;
-    console.log(`  2025 properties: ${newCount.toLocaleString()} (+${gained.toLocaleString()}) [session: +${totalGained.toLocaleString()}]`);
-    console.log(`  Remaining: ${Math.max(0, TARGET_2025_COUNT - newCount).toLocaleString()}`);
+		const newCount = await get2025Count();
+		const gained = newCount - current;
+		totalGained += gained;
+		console.log(
+			`  2025 properties: ${newCount.toLocaleString()} (+${gained.toLocaleString()}) [session: +${totalGained.toLocaleString()}]`,
+		);
+		console.log(
+			`  Remaining: ${Math.max(0, TARGET_2025_COUNT - newCount).toLocaleString()}`,
+		);
 
-    if (gained === 0) {
-      consecutiveZeroBatches++;
-      console.log(`  Zero-result batches in a row: ${consecutiveZeroBatches}/${maxZero}`);
-      if (consecutiveZeroBatches >= maxZero) {
-        console.log(`\nStopping: ${maxZero} consecutive zero-result batches.`);
-        break;
-      }
-    } else {
-      consecutiveZeroBatches = 0;
-    }
-    console.log("");
-  }
+		if (gained === 0) {
+			consecutiveZeroBatches++;
+			console.log(
+				`  Zero-result batches in a row: ${consecutiveZeroBatches}/${maxZero}`,
+			);
+			if (consecutiveZeroBatches >= maxZero) {
+				console.log(`\nStopping: ${maxZero} consecutive zero-result batches.`);
+				break;
+			}
+		} else {
+			consecutiveZeroBatches = 0;
+		}
+		console.log("");
+	}
 
-  const finalCount = await get2025Count();
-  console.log(`\n=== Done ===`);
-  console.log(`Final 2025 count: ${finalCount.toLocaleString()}`);
-  console.log(`Session gained: +${totalGained.toLocaleString()}`);
-  console.log(`Target met: ${finalCount >= TARGET_2025_COUNT ? "YES" : "NO"}`);
+	const finalCount = await get2025Count();
+	console.log(`\n=== Done ===`);
+	console.log(`Final 2025 count: ${finalCount.toLocaleString()}`);
+	console.log(`Session gained: +${totalGained.toLocaleString()}`);
+	console.log(`Target met: ${finalCount >= TARGET_2025_COUNT ? "YES" : "NO"}`);
 }
 
 /** Standard entry point wrapper with error handling and cleanup. */
 export function runBackfillMain(cfg: BackfillConfig): void {
-  runBackfill(cfg)
-    .catch(err => {
-      console.error("Fatal:", getErrorMessage(err));
-      process.exit(1);
-    })
-    .finally(async () => {
-      await prisma.$disconnect();
-      await scraperQueue.close();
-    });
+	runBackfill(cfg)
+		.catch((err) => {
+			console.error("Fatal:", getErrorMessage(err));
+			process.exit(1);
+		})
+		.finally(async () => {
+			await prisma.$disconnect();
+			await scraperQueue.close();
+		});
 }

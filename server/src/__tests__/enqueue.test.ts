@@ -368,5 +368,4 @@ describe.skipIf(!(await checkRedis()))("Queue Enqueuing Tests", () => {
 			await job.remove();
 		});
 	});
-
 });

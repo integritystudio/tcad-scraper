@@ -10,8 +10,12 @@
  */
 
 import dotenv from "dotenv";
-import { DEFAULT_QUERY_LIMIT, DEFAULT_RATE_LIMIT_DELAY_MS, DEFAULT_RETRY_DELAY_MS } from "../utils/constants";
 import logger from "../lib/logger";
+import {
+	DEFAULT_QUERY_LIMIT,
+	DEFAULT_RATE_LIMIT_DELAY_MS,
+	DEFAULT_RETRY_DELAY_MS,
+} from "../utils/constants";
 
 // Load environment variables from .env or Doppler
 dotenv.config();
@@ -146,7 +150,10 @@ export const config = {
 			message:
 				process.env.SCRAPER_RATE_LIMIT_MESSAGE ||
 				"Too many scrape requests, please wait before trying again.",
-			jobDelay: parseIntEnv("SCRAPER_RATE_LIMIT_DELAY", DEFAULT_RATE_LIMIT_DELAY_MS),
+			jobDelay: parseIntEnv(
+				"SCRAPER_RATE_LIMIT_DELAY",
+				DEFAULT_RATE_LIMIT_DELAY_MS,
+			),
 			cacheCleanupInterval: parseIntEnv("SCRAPER_RATE_CACHE_CLEANUP", 60000),
 		},
 	},

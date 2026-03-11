@@ -9,7 +9,7 @@
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
-import React from "react";
+import type React from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the analytics hook

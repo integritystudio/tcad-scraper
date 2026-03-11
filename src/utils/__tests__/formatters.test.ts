@@ -74,9 +74,7 @@ describe("formatCurrency", () => {
 			expect(formatCurrency(invalidNumber)).toBe("-");
 		});
 	});
-
 });
-
 
 describe("formatNumber", () => {
 	it("should format numbers with thousands separators", () => {

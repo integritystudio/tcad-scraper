@@ -1,10 +1,10 @@
 #!/usr/bin/env npx tsx
 
 import { Command } from "commander";
-import { DEFAULT_LOOKBACK_DAYS, PERCENT_MULTIPLIER } from "../utils/constants";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
+import { DEFAULT_LOOKBACK_DAYS, PERCENT_MULTIPLIER } from "../utils/constants";
 
 interface AnalyzerOptions {
 	top?: string;
@@ -143,7 +143,8 @@ program
 					totalProperties: total,
 					avgProperties: avg,
 					maxProperties: max,
-					percentage: (jobs.length / successfulJobs.length) * PERCENT_MULTIPLIER,
+					percentage:
+						(jobs.length / successfulJobs.length) * PERCENT_MULTIPLIER,
 				};
 			})
 			.sort((a, b) => b.totalProperties - a.totalProperties);
@@ -402,7 +403,8 @@ program
 
 		// Success rate
 		const totalJobsAttempted = completed.length + failed;
-		const successRate = (completed.length / totalJobsAttempted) * PERCENT_MULTIPLIER;
+		const successRate =
+			(completed.length / totalJobsAttempted) * PERCENT_MULTIPLIER;
 
 		logger.info(
 			`\n✅ Success Rate: ${successRate.toFixed(1)}% (${completed.length}/${totalJobsAttempted})`,
@@ -467,7 +469,8 @@ program
 			where: { status: "completed", resultCount: 0 },
 		});
 
-		const successRate = totalJobs > 0 ? (successfulJobs / totalJobs) * PERCENT_MULTIPLIER : 0;
+		const successRate =
+			totalJobs > 0 ? (successfulJobs / totalJobs) * PERCENT_MULTIPLIER : 0;
 
 		logger.info(`\n✅ Success Metrics:`);
 		logger.info(`   - Successful jobs: ${successfulJobs.toLocaleString()}`);

@@ -1,7 +1,11 @@
 import { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { prismaReadOnly } from "../lib/prisma";
-import { COST_DECIMAL_PLACES, DEFAULT_LOOKBACK_DAYS, PERCENT_MULTIPLIER } from "../utils/constants";
+import {
+	COST_DECIMAL_PLACES,
+	DEFAULT_LOOKBACK_DAYS,
+	PERCENT_MULTIPLIER,
+} from "../utils/constants";
 
 export class ApiUsageController {
 	/**
@@ -10,8 +14,12 @@ export class ApiUsageController {
 	async getUsageStats(req: Request, res: Response) {
 		const { days = DEFAULT_LOOKBACK_DAYS, environment } = req.query;
 
-		const daysStr = typeof days === "string" ? days : String(DEFAULT_LOOKBACK_DAYS);
-		const daysNum = Math.min(parseInt(daysStr, 10) || DEFAULT_LOOKBACK_DAYS, 90); // Max 90 days
+		const daysStr =
+			typeof days === "string" ? days : String(DEFAULT_LOOKBACK_DAYS);
+		const daysNum = Math.min(
+			parseInt(daysStr, 10) || DEFAULT_LOOKBACK_DAYS,
+			90,
+		); // Max 90 days
 		const startDate = new Date();
 		startDate.setDate(startDate.getDate() - daysNum);
 
@@ -122,7 +130,9 @@ export class ApiUsageController {
 		]);
 
 		const successRate =
-			totalLogs > 0 ? (Number(successfulLogs) / totalLogs) * PERCENT_MULTIPLIER : 0;
+			totalLogs > 0
+				? (Number(successfulLogs) / totalLogs) * PERCENT_MULTIPLIER
+				: 0;
 
 		return res.json({
 			summary: {

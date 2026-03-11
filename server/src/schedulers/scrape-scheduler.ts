@@ -2,7 +2,13 @@ import cron from "node-cron";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
-import { MS_PER_MINUTE, QUEUE_RETENTION_DAYS, SCRAPE_BACKOFF_DELAY_MS, SCRAPE_JOB_ATTEMPTS, SCRAPE_JOB_RETENTION_DAYS } from "../utils/constants";
+import {
+	MS_PER_MINUTE,
+	QUEUE_RETENTION_DAYS,
+	SCRAPE_BACKOFF_DELAY_MS,
+	SCRAPE_JOB_ATTEMPTS,
+	SCRAPE_JOB_RETENTION_DAYS,
+} from "../utils/constants";
 import { getErrorMessage } from "../utils/error-helpers";
 
 const SCRAPE_JITTER_MAX_MS = MS_PER_MINUTE;

@@ -4,7 +4,6 @@
  * Provides comprehensive application monitoring with Prometheus metrics
  */
 
-import { PERCENT_MULTIPLIER } from "../utils/constants";
 import {
 	Counter,
 	collectDefaultMetrics,
@@ -12,6 +11,7 @@ import {
 	Histogram,
 	Registry,
 } from "prom-client";
+import { PERCENT_MULTIPLIER } from "../utils/constants";
 import logger from "./logger";
 
 // Create a new registry

@@ -1,6 +1,5 @@
 import type { Prisma } from "@prisma/client";
 import type { NextFunction, Request, Response } from "express";
-import { DEFAULT_QUERY_LIMIT } from "../utils/constants";
 import { claudeSearchService } from "../lib/claude.service";
 import { prisma, prismaReadOnly } from "../lib/prisma";
 import { cacheService } from "../lib/redis-cache.service";
@@ -15,6 +14,7 @@ import type {
 	PropertyFilters,
 	ScrapeRequestBody,
 } from "../types/property.types";
+import { DEFAULT_QUERY_LIMIT } from "../utils/constants";
 import { transformPropertyToSnakeCase } from "../utils/property-transformers";
 
 // TODO: Update to 2026 in April/May when TCAD publishes 2026 appraised values.
@@ -175,8 +175,12 @@ export class PropertyController {
 		}
 
 		// Use Claude to parse the natural language query
-		let whereClause: Awaited<ReturnType<typeof claudeSearchService.parseNaturalLanguageQuery>>["whereClause"];
-		let orderBy: Awaited<ReturnType<typeof claudeSearchService.parseNaturalLanguageQuery>>["orderBy"];
+		let whereClause: Awaited<
+			ReturnType<typeof claudeSearchService.parseNaturalLanguageQuery>
+		>["whereClause"];
+		let orderBy: Awaited<
+			ReturnType<typeof claudeSearchService.parseNaturalLanguageQuery>
+		>["orderBy"];
 		let explanation: string | undefined;
 		let answer: string | undefined;
 		let answerType: string | undefined;
@@ -193,7 +197,9 @@ export class PropertyController {
 
 		// Query the database with the generated filters
 		const yearFilteredClause = { ...whereClause, year: DISPLAY_YEAR };
-		let properties: Awaited<ReturnType<typeof prismaReadOnly.property.findMany>>;
+		let properties: Awaited<
+			ReturnType<typeof prismaReadOnly.property.findMany>
+		>;
 		let total: number;
 		let statistics: AnswerStatistics | undefined;
 		let formattedAnswer: string | undefined;
@@ -429,12 +435,9 @@ export class PropertyController {
 
 		return res.json({ data: monitoredSearches });
 	}
-
 }
 
-function buildWhereClause(
-	filters: PropertyFilters,
-): Prisma.PropertyWhereInput {
+function buildWhereClause(filters: PropertyFilters): Prisma.PropertyWhereInput {
 	const where: Prisma.PropertyWhereInput = {
 		year: DISPLAY_YEAR,
 	};

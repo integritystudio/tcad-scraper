@@ -14,11 +14,7 @@
 		"showLineNumbers": false,
 		"copyToClipboard": false
 	},
-	"include": [
-		"docs/**",
-		"CLAUDE.md",
-		"README.md"
-	],
+	"include": ["docs/**", "CLAUDE.md", "README.md"],
 	"ignore": {
 		"useGitignore": true,
 		"useDefaultPatterns": true,

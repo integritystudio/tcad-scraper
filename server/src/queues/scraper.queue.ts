@@ -26,7 +26,9 @@ export function deduplicateByPropertyId(
 		}
 	}
 	if (droppedEmpty > 0) {
-		logger.warn(`deduplicateByPropertyId: dropped ${droppedEmpty} properties with empty propertyId`);
+		logger.warn(
+			`deduplicateByPropertyId: dropped ${droppedEmpty} properties with empty propertyId`,
+		);
 	}
 	return Array.from(map.values());
 }
@@ -45,7 +47,7 @@ function buildRedisConfig(): Bull.QueueOptions["redis"] {
 		const parsed = new URL(config.redis.url);
 		return {
 			host: parsed.hostname,
-			port: parseInt(parsed.port || "6379"),
+			port: parseInt(parsed.port || "6379", 10),
 			password: parsed.password,
 			username: parsed.username,
 			tls: {},

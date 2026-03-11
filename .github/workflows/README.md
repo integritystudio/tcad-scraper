@@ -141,28 +141,12 @@ Add these in repository settings:
 
 Workflows use these test environment variables:
 - `NODE_ENV=test`
-- `DATABASE_URL` - PostgreSQL connection
+- `DATABASE_URL` process.env.DATABASE_URL
 - `REDIS_HOST=localhost`
 - `REDIS_PORT=6379`
 - `CLAUDE_API_KEY=test-key`
 
 ## Development
-
-### Testing Workflow Changes
-
-Always test workflow changes in a feature branch before merging to main.
-
-### Workflow Syntax
-
-Validate syntax using:
-```bash
-# Install act (local GitHub Actions runner)
-brew install act
-
-# Test workflow locally
-act -l  # List workflows
-act push  # Run push event workflows
-```
 
 ### Best Practices
 

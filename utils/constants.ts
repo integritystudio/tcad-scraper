@@ -40,7 +40,8 @@ export const TARGET_2025_PROPERTY_COUNT = 500_000;
 
 // ── Recent jobs lookback ─────────────────────────────────────────────
 export const RECENT_JOBS_LOOKBACK_DAYS = 7;
-export const RECENT_JOBS_LOOKBACK_MS = RECENT_JOBS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
+export const RECENT_JOBS_LOOKBACK_MS =
+	RECENT_JOBS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
 
 // ── Term generation thresholds ───────────────────────────────────────
 export const MIN_TERM_LENGTH = 4;

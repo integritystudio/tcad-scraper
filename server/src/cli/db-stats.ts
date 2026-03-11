@@ -1,10 +1,10 @@
 #!/usr/bin/env npx tsx
 
 import { Command } from "commander";
-import { DEFAULT_LOOKBACK_DAYS, PERCENT_MULTIPLIER } from "../utils/constants";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
+import { DEFAULT_LOOKBACK_DAYS, PERCENT_MULTIPLIER } from "../utils/constants";
 
 interface StatsOptions {
 	byCity?: boolean;

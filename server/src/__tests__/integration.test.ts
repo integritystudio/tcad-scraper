@@ -27,18 +27,26 @@ describe("Integration Tests", () => {
 			expect(response.body.status).toBe("healthy");
 		});
 
-		test("should respond to queue health check", async () => {
-			const redisAvailable = await isRedisAvailable(REDIS_AVAILABILITY_TIMEOUT_MS);
+		test(
+			"should respond to queue health check",
+			async () => {
+				const redisAvailable = await isRedisAvailable(
+					REDIS_AVAILABILITY_TIMEOUT_MS,
+				);
 
-			if (!redisAvailable) {
-				logger.debug("⏭️  Skipping queue health check: Redis not available");
-				return;
-			}
+				if (!redisAvailable) {
+					logger.debug("⏭️  Skipping queue health check: Redis not available");
+					return;
+				}
 
-			const response = await request(app).get("/health/queue");
-			expect([HTTP_STATUS.OK, HTTP_STATUS.INTERNAL_SERVER_ERROR]).toContain(response.status);
-			// May be 500 if Redis is not running, but should respond
-		}, SLOW_TEST_TIMEOUT_MS);
+				const response = await request(app).get("/health/queue");
+				expect([HTTP_STATUS.OK, HTTP_STATUS.INTERNAL_SERVER_ERROR]).toContain(
+					response.status,
+				);
+				// May be 500 if Redis is not running, but should respond
+			},
+			SLOW_TEST_TIMEOUT_MS,
+		);
 	});
 
 	describe("API Routes", () => {
@@ -123,27 +131,24 @@ describe("Integration Tests", () => {
 	});
 
 	describe("Data Passing", () => {
-		test.skipIf(!hasFrontend)(
-			"should embed initial data in HTML",
-			async () => {
-				const response = await request(app).get("/");
+		test.skipIf(!hasFrontend)("should embed initial data in HTML", async () => {
+			const response = await request(app).get("/");
 
-				expect(response.text).toContain('id="initial-data"');
-				expect(response.text).toContain('type="application/json"');
+			expect(response.text).toContain('id="initial-data"');
+			expect(response.text).toContain('type="application/json"');
 
-				const dataMatch = response.text.match(
-					/<script type="application\/json" id="initial-data"[^>]*>\s*({[\s\S]*?})\s*<\/script>/,
-				);
+			const dataMatch = response.text.match(
+				/<script type="application\/json" id="initial-data"[^>]*>\s*({[\s\S]*?})\s*<\/script>/,
+			);
 
-				expect(dataMatch).toBeTruthy();
-				const data = JSON.parse(dataMatch?.[1]);
+			expect(dataMatch).toBeTruthy();
+			const data = JSON.parse(dataMatch?.[1]);
 
-				expect(data).toHaveProperty("apiUrl");
-				expect(data).toHaveProperty("environment");
-				expect(data).toHaveProperty("features");
-				expect(data).toHaveProperty("version");
-			},
-		);
+			expect(data).toHaveProperty("apiUrl");
+			expect(data).toHaveProperty("environment");
+			expect(data).toHaveProperty("features");
+			expect(data).toHaveProperty("version");
+		});
 
 		test.skipIf(!hasFrontend)(
 			"should not expose sensitive environment variables",
@@ -187,26 +192,23 @@ describe("Integration Tests", () => {
 			},
 		);
 
-		test.skipIf(!hasFrontend)(
-			"should not allow script breakout",
-			async () => {
-				const response = await request(app).get("/");
+		test.skipIf(!hasFrontend)("should not allow script breakout", async () => {
+			const response = await request(app).get("/");
 
-				// Should not have unescaped script tags in data
-				const scriptSections = response.text.match(
-					/<script[^>]*>[\s\S]*?<\/script>/g,
-				);
+			// Should not have unescaped script tags in data
+			const scriptSections = response.text.match(
+				/<script[^>]*>[\s\S]*?<\/script>/g,
+			);
 
-				if (scriptSections && scriptSections.length > 0) {
-					// Each script section should be properly closed
-					scriptSections.forEach((section) => {
-						const openCount = (section.match(/<script/g) || []).length;
-						const closeCount = (section.match(/<\/script>/g) || []).length;
-						expect(openCount).toBe(closeCount);
-					});
-				}
-			},
-		);
+			if (scriptSections && scriptSections.length > 0) {
+				// Each script section should be properly closed
+				scriptSections.forEach((section) => {
+					const openCount = (section.match(/<script/g) || []).length;
+					const closeCount = (section.match(/<\/script>/g) || []).length;
+					expect(openCount).toBe(closeCount);
+				});
+			}
+		});
 	});
 
 	describe("Error Handling", () => {

@@ -73,15 +73,9 @@ async function categorizeErrors(): Promise<Map<string, ErrorStats>> {
 			category = job.error.substring(0, 80).replace(/\n/g, " ");
 		}
 
-		if (!errorMap.has(category)) {
-			errorMap.set(category, {
-				category,
-				count: 0,
-				examples: [],
-			});
-		}
-
-		const stats = errorMap.get(category)!;
+		const existing = errorMap.get(category);
+		const stats = existing ?? { category, count: 0, examples: [] as string[] };
+		if (!existing) errorMap.set(category, stats);
 		stats.count++;
 
 		// Keep up to 5 example search terms for each error category

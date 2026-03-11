@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { propertyController } from "../controllers/property.controller";
-import { asyncHandler } from "../middleware/error.middleware";
 import { apiKeyAuth } from "../middleware/auth";
+import { asyncHandler } from "../middleware/error.middleware";
 import {
 	validateBody,
 	validateQuery,

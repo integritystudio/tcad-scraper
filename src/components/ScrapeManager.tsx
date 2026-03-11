@@ -1,5 +1,4 @@
 import axios from "axios";
-import { STATUS_COLORS } from "../utils";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -8,6 +7,7 @@ import {
 	propertyAPI,
 	type ScrapeHistory,
 } from "../services/api.service";
+import { STATUS_COLORS } from "../utils";
 import "./ScrapeManager.css";
 import logger from "../lib/logger";
 

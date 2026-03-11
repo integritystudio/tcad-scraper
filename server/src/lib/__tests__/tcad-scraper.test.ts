@@ -15,8 +15,7 @@ vi.mock("../../services/token-refresh.service", () => ({
 // Mock tcad-api-client
 const mockFetchTCADProperties = vi.fn();
 vi.mock("../tcad-api-client", () => ({
-	fetchTCADProperties: (...args: unknown[]) =>
-		mockFetchTCADProperties(...args),
+	fetchTCADProperties: (...args: unknown[]) => mockFetchTCADProperties(...args),
 	mapTCADResultToPropertyData: vi.fn((r: unknown) => r),
 }));
 
@@ -127,9 +126,9 @@ describe("TCADScraper", () => {
 		it("should throw after all retries exhausted", async () => {
 			mockFetchTCADProperties.mockRejectedValue(new Error("API down"));
 
-			await expect(
-				scraper.scrapePropertiesViaAPI("test", 1),
-			).rejects.toThrow("API down");
+			await expect(scraper.scrapePropertiesViaAPI("test", 1)).rejects.toThrow(
+				"API down",
+			);
 		});
 
 		it("should throw when no token is available", async () => {
@@ -137,9 +136,9 @@ describe("TCADScraper", () => {
 				new Error("No TCAD API token available after refresh attempt"),
 			);
 
-			await expect(
-				scraper.scrapePropertiesViaAPI("test", 1),
-			).rejects.toThrow("No TCAD API token available");
+			await expect(scraper.scrapePropertiesViaAPI("test", 1)).rejects.toThrow(
+				"No TCAD API token available",
+			);
 		});
 	});
 
