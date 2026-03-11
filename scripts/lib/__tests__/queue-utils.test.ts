@@ -4,7 +4,7 @@ const mockAdd = vi.fn();
 const mockGetWaitingCount = vi.fn();
 const mockGetActiveCount = vi.fn();
 
-vi.mock("../../../queues/scraper.queue", () => ({
+vi.mock("../../../server/src/queues/scraper.queue", () => ({
   scraperQueue: {
     add: (...args: unknown[]) => mockAdd(...args),
     getWaitingCount: () => mockGetWaitingCount(),
@@ -12,7 +12,7 @@ vi.mock("../../../queues/scraper.queue", () => ({
   },
 }));
 
-vi.mock("../../../config", () => ({
+vi.mock("../../../server/src/config", () => ({
   config: {
     queue: {
       jobName: "scrape-properties",

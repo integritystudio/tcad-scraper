@@ -1,15 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockFindMany = vi.fn();
+const mockAnalyticsFindMany = vi.fn();
+const mockBlacklistFindMany = vi.fn();
 const mockGroupBy = vi.fn();
 const mockDisconnect = vi.fn();
 const mockQueryRaw = vi.fn();
 const mockScrapeJobFindMany = vi.fn();
 
-vi.mock("../../lib/prisma", () => ({
+// Dispatch searchTermAnalytics.findMany by argument shape:
+//   - analytics call (getSearchedTermSets): select only, no where.successRate
+//   - blacklist call (main): where.successRate === 0
+function dispatchAnalyticsFindMany(...args: unknown[]) {
+  const opts = args[0] as Record<string, unknown> | undefined;
+  const where = opts?.where as Record<string, unknown> | undefined;
+  if (where && "successRate" in where) return mockBlacklistFindMany(...args);
+  return mockAnalyticsFindMany(...args);
+}
+
+vi.mock("../../server/src/lib/prisma", () => ({
   prisma: {
     searchTermAnalytics: {
-      findMany: (...args: unknown[]) => mockFindMany(...args),
+      findMany: (...args: unknown[]) => dispatchAnalyticsFindMany(...args),
     },
     property: {
       groupBy: (...args: unknown[]) => mockGroupBy(...args),
@@ -28,7 +39,7 @@ vi.mock("../lib/queue-utils", () => ({
 }));
 
 const mockQueueClose = vi.fn();
-vi.mock("../../queues/scraper.queue", () => ({
+vi.mock("../../server/src/queues/scraper.queue", () => ({
   scraperQueue: {
     close: () => mockQueueClose(),
   },
@@ -41,9 +52,10 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "log").mockImplementation(() => {});
 
-  // Default prisma responses: analytics has a few rows, no 2025 properties yet
-  mockFindMany.mockResolvedValue([]);
+  mockAnalyticsFindMany.mockResolvedValue([]);
+  mockBlacklistFindMany.mockResolvedValue([]);
   mockGroupBy.mockResolvedValue([]);
+  mockScrapeJobFindMany.mockResolvedValue([]);
   mockEnqueueBatch.mockResolvedValue(0);
 });
 

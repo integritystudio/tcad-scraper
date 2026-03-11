@@ -8,19 +8,19 @@ const mockClose = vi.fn();
 
 let mockTcadYear = 2025;
 
-vi.mock("../../../lib/prisma", () => ({
+vi.mock("../../../server/src/lib/prisma", () => ({
   prisma: { $disconnect: () => mockDisconnect() },
 }));
 
-vi.mock("../../../queues/scraper.queue", () => ({
+vi.mock("../../../server/src/queues/scraper.queue", () => ({
   scraperQueue: { close: () => mockClose() },
 }));
 
-vi.mock("../../../config", () => ({
+vi.mock("../../../server/src/config", () => ({
   config: { scraper: { get tcadYear() { return mockTcadYear; } } },
 }));
 
-vi.mock("../../../utils/error-helpers", () => ({
+vi.mock("../../../server/src/utils/error-helpers", () => ({
   getErrorMessage: (e: unknown) => (e instanceof Error ? e.message : String(e)),
 }));
 
@@ -35,7 +35,7 @@ vi.mock("../backfill-utils", () => ({
   get2025Count: () => mockGet2025Count(),
 }));
 
-vi.mock("../backfill-constants", () => ({
+vi.mock("../../../utils/constants", () => ({
   TARGET_2025_PROPERTY_COUNT: 100,
 }));
 
@@ -191,7 +191,7 @@ describe("runBackfill", () => {
     );
   });
 
-  it("uses DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES when not overridden", () => {
-    expect(DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES).toBe(DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES);
+  it("exports DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES as expected value", () => {
+    expect(DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES).toBe(TEST_BATCH_SIZE); // 3
   });
 });

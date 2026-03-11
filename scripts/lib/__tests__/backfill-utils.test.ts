@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MIN_TERM_LENGTH } from "../backfill-constants";
+import { MIN_TERM_LENGTH } from "../../../utils/constants";
 
 const mockQueryRaw = vi.fn();
 
-vi.mock("../../../lib/prisma", () => ({
+vi.mock("../../../server/src/lib/prisma", () => ({
   prisma: { $queryRaw: (...args: unknown[]) => mockQueryRaw(...args) },
 }));
 
