@@ -5,8 +5,8 @@
 import { useAnalytics } from "../../../hooks";
 import styles from "./AttributionCard.module.css";
 
-const INTEGRITY_STUDIO_URL = "https://integritystudio.dev";
-const GITHUB_REPO_URL = "https://github.com/alephatx/tcad-scraper";
+const INTEGRITY_STUDIO_URL = "https://integritystudio.ai";
+const GITHUB_REPO_URL = "https://github.com/integritystudio/tcad-scraper";
 
 export const AttributionCard = () => {
 	const { track } = useAnalytics();
@@ -66,7 +66,7 @@ export const AttributionCard = () => {
 				</p>
 				<div className={styles.actions}>
 					<a
-						href={INTEGRITY_STUDIO_URL}
+						href="https://integritystudio.ai/features"
 						target="_blank"
 						rel="noopener noreferrer"
 						className={styles.primaryLink}

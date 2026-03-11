@@ -5,7 +5,7 @@
 import { useAnalytics } from "../../../hooks";
 import styles from "./HeaderBadge.module.css";
 
-const INTEGRITY_STUDIO_URL = "https://integritystudio.dev";
+const INTEGRITY_STUDIO_URL = "https://integritystudio.ai";
 
 export const HeaderBadge = () => {
 	const { track } = useAnalytics();

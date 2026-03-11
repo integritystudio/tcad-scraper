@@ -5,8 +5,8 @@
 import { useAnalytics } from "../../../hooks";
 import styles from "./Footer.module.css";
 
-const INTEGRITY_STUDIO_URL = "https://integritystudio.dev";
-const GITHUB_REPO_URL = "https://github.com/alephatx/tcad-scraper";
+const INTEGRITY_STUDIO_URL = "https://integritystudio.ai";
+const GITHUB_REPO_URL = "https://github.com/integritystudio/tcad-scraper";
 
 interface FooterLink {
 	label: string;
@@ -22,12 +22,12 @@ const footerLinks: FooterLink[] = [
 	},
 	{
 		label: "Portfolio",
-		href: `${INTEGRITY_STUDIO_URL}/portfolio`,
+		href: "https://www.aledlie.com/reports/",
 		trackingLabel: "portfolio",
 	},
 	{
 		label: "Blog",
-		href: `${INTEGRITY_STUDIO_URL}/blog`,
+		href: "https://integritystudio.ai/blog",
 		trackingLabel: "blog",
 	},
 	{
