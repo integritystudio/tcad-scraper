@@ -92,11 +92,11 @@ If a test fails with any of these symptoms, check mock paths first:
 - `X is not iterable` — mock returns `undefined` instead of `[]`
 - `connect ECONNREFUSED` — queue/Redis mock bypassed
 
-Run this to verify module resolution from a test file:
+Verify module resolution manually by tracing the relative path:
 
 ```bash
-# From project root — trace where a path resolves
-node -e "console.log(require.resolve('./scripts/lib/__tests__/../../../server/src/config'))"
+# From project root — resolve a relative path from a test file's directory
+realpath scripts/lib/__tests__/../../../server/src/config
 ```
 
 ---

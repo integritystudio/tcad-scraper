@@ -191,7 +191,8 @@ describe("runBackfill", () => {
     );
   });
 
-  it("exports DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES as expected value", () => {
-    expect(DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES).toBe(TEST_BATCH_SIZE); // 3
+  it("exports DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES as 3", () => {
+    const EXPECTED_DEFAULT_MAX_ZERO_BATCHES = 3;
+    expect(DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES).toBe(EXPECTED_DEFAULT_MAX_ZERO_BATCHES);
   });
 });
