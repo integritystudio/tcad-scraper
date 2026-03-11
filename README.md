@@ -51,7 +51,7 @@ The application uses **API-direct scraping**: direct HTTP calls to the TCAD back
 ### API & Frontend
 - **RESTful API**: Express server with rate limiting, CORS, security middleware
 - **AI-Powered Search**: Natural language property search using Claude AI (Anthropic)
-- **Bull Dashboard**: Web UI for monitoring job queues at `/admin/queues`
+- **Bull Dashboard**: Web UI for monitoring job queues at `/admin/queues` (protected by API key auth)
 - **React Frontend**: Modern UI for searching and viewing property data
   - **Expandable Property Cards**: Progressive disclosure UI pattern for detailed property information
   - **Financial Analysis**: Visual comparison of appraised vs assessed values with difference calculations
@@ -184,17 +184,22 @@ tcad-scraper/
 │   └── monitoring/                    # Grafana dashboards, Prometheus rules
 ├── docs/                       # All documentation
 │   ├── API.md, ANALYTICS.md, CI-CD.md, TOKEN_MANAGEMENT.md, SETUP.md
-│   ├── BACKLOG.md, CHANGELOG.md, CODE_REVIEW_DRY.md
+│   ├── BACKLOG.md, CHANGELOG.md, CODE_REVIEW_DRY.md, TEST-MOCK-PATHS.md
 │   ├── archive/                # RELIABILITY_AUDIT.md, RENDER-MIGRATION.md
 │   ├── changelog/              # Per-session changelogs
 │   └── examples/               # Search algorithm examples
-├── e2e/                        # Playwright E2E tests (accessibility, search, visual)
-├── scripts/                    # Shell + Python utility scripts, repomix tooling
+├── e2e/                        # Playwright E2E tests (a11y, search, visual, mobile, api-errors, answer-box)
+├── scripts/                    # CLI tools, batch scripts, backfill, enqueue (root level)
+│   ├── config/                 # 18 batch type definitions
+│   ├── lib/                    # queue-utils, backfill-runner, searched-terms, backfill-utils
+│   ├── requeue/                # Failed job requeue scripts
+│   └── repomix/                # Repomix tooling
+├── utils/                      # Shared constants (constants.ts)
 ├── server/                     # Backend (Express + BullMQ + Prisma)
 │   ├── prisma/                 # Schema + migrations (canonical location)
 │   ├── scripts/                # DB setup, test infra, verification
 │   └── src/
-│       ├── index.ts            # Express + Sentry + Bull Board
+│       ├── index.ts            # Express + Sentry + Bull Board (apiKeyAuth on dashboard)
 │       ├── cli/                # Interactive CLI tools (data-cleaner, db-stats, queue-*)
 │       ├── config/             # App config + Swagger
 │       ├── controllers/        # Route handlers (property, api-usage)
@@ -202,16 +207,10 @@ tcad-scraper/
 │       ├── middleware/         # Auth, error, validation, xcontroller
 │       ├── queues/             # BullMQ scraper queue
 │       ├── routes/             # Express routes
-│       ├── scripts/            # CLI tools, batch scripts (see scripts/README.md)
-│       │   ├── config/         # 18 batch type definitions
-│       │   ├── lib/            # queue-utils, backfill-constants
-│       │   ├── one-off-and-test-batches/
-│       │   ├── requeue/        # Failed job requeue scripts
-│       │   └── utils/          # batch-enqueue, test-scripts
 │       ├── services/           # code-complexity, search-term-optimizer, token-refresh
 │       ├── types/              # TypeScript types (property, queue)
 │       └── utils/              # error-helpers, deduplication, json-ld, timing
-├── shared/                     # Shared types between frontend/backend
+├── shared/                     # Shared types (index.ts, json-ld.utils.ts)
 ├── src/                        # Frontend (React 19 + Vite)
 │   ├── components/
 │   │   ├── features/PropertySearch/  # Search UI, PropertyCard, AnswerBox
@@ -220,7 +219,7 @@ tcad-scraper/
 │   ├── hooks/                  # usePropertySearch, useAnalytics, usePagination
 │   ├── lib/                    # analytics, api-config, sentry, xcontroller
 │   ├── services/               # api.service
-│   └── utils/                  # constants, formatters, helpers
+│   └── utils/                  # formatters, helpers
 └── workers/tcad-token/         # Cloudflare Worker for token refresh
 ```
 
@@ -585,7 +584,7 @@ By default, authentication is optional in development. Configure `JWT_SECRET` an
 #### Running Directly
 
 ```bash
-cd server
+# From repo root (scripts are at root level)
 
 # With Doppler
 doppler run -- npx tsx scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
@@ -623,11 +622,9 @@ The TCAD API requires token refresh every ~5 minutes. The `token-refresh.service
 
 ### Batch Enqueue
 
-Use the config-driven batch enqueue runner:
+Use the config-driven batch enqueue runner (from repo root):
 
 ```bash
-cd server
-
 # Enqueue a specific batch type (see scripts/config/batch-configs.ts for 18 types)
 doppler run -- npx tsx scripts/enqueue-batch.ts <batch-type>
 
@@ -640,10 +637,9 @@ echo "Smith\nJohnson" | doppler run -- npx tsx scripts/enqueue-terms.ts
 
 ### Worker Process
 
-Run a standalone worker to process queued jobs:
+Run a standalone worker to process queued jobs (from repo root):
 
 ```bash
-cd server
 doppler run -- npx tsx scripts/worker.ts
 ```
 
@@ -870,9 +866,8 @@ ps aux | grep continuous-batch-scraper
 # Check for errors in log
 tail -100 continuous-scraper.log | grep -i error
 
-# Restart scraper
+# Restart scraper (from repo root)
 pkill -f "continuous-batch-scraper"
-cd server
 doppler run -- npx tsx scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
 ```
 
@@ -881,8 +876,7 @@ doppler run -- npx tsx scripts/continuous-batch-scraper.ts > continuous-scraper.
 # Check queue status
 curl http://localhost:3001/health/queue
 
-# Check queue details
-cd server
+# Check queue details (from repo root)
 doppler run -- npx tsx scripts/queue-results.ts
 ```
 
@@ -931,8 +925,7 @@ open http://localhost:3001/admin/queues
 # View in Bull Dashboard
 open http://localhost:3001/admin/queues
 
-# Or use requeue scripts
-cd server
+# Or use requeue scripts (from repo root)
 doppler run -- npx tsx scripts/requeue/requeue-all-failed-with-error-tracking.ts
 ```
 
@@ -994,7 +987,7 @@ Some TCAD search terms return malformed/truncated JSON responses regardless of s
 
 See [docs/CHANGELOG.md](docs/CHANGELOG.md) for complete version history.
 
-**Latest** (March 9, 2026): TCAD API JSON parse diagnostics, enqueue infrastructure consolidation (18 batch types), TermSelector cache invalidation, code review cleanup (B1–B11). 631+ tests passing.
+**Latest** (March 11, 2026): Scripts promoted to root `scripts/`, constants consolidated into `utils/`, Bull Dashboard protected with apiKeyAuth, natural language query capped at 500 chars, repo map updated. 631+ tests passing.
 
 ## Documentation
 

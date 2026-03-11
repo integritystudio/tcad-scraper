@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: March 9, 2026 | **Version**: 4.5
+**Last Updated**: March 11, 2026 | **Version**: 4.6
 
 ## Project Overview
 
@@ -37,19 +37,25 @@ doppler run -- npm run dev
 ## Key Components
 
 ### Backend (`server/`)
-- `src/index.ts` - Express + Sentry + Bull Board
+- `src/index.ts` - Express + Sentry + Bull Board (Bull Dashboard protected by apiKeyAuth)
 - `src/lib/tcad-scraper.ts` - Scraper entry point (API-direct mode; Playwright removed Feb 2026)
 - `src/queues/scraper.queue.ts` - BullMQ job processing
 - `src/services/token-refresh.service.ts` - Auto-refresh tokens via Cloudflare Worker
-- `src/lib/claude.service.ts` - Natural language search
+- `src/lib/claude.service.ts` - Natural language search (query capped at 500 chars via Zod)
 - `src/lib/tcad-api-client.ts` - TCAD API client with structured diagnostics for JSON parse failures
-- `scripts/enqueue-batch.ts` - Config-driven batch enqueue runner
-- `scripts/config/batch-configs.ts` - 18 batch type definitions
-- `scripts/continuous-batch-scraper.ts` - Long-running scraper; `STOP_AT_PROPERTIES` (500K) controls halt threshold
-- `scripts/queue-results.ts` - Queue status + recent completed/failed jobs (`doppler run -- npx tsx scripts/queue-results.ts [--limit N]`)
-- See [scripts/README.md](scripts/README.md) for full scripts reference
 - `src/utils/` - Shared utilities (error-helpers, property-transformers, timing)
 - `prisma/schema.prisma` - Schema (properties, scrape_jobs, monitored_searches)
+
+### Scripts (`scripts/` — root level, run from repo root)
+- `continuous-batch-scraper.ts` - Long-running scraper; `STOP_AT_PROPERTIES` (500K) controls halt threshold
+- `enqueue-batch.ts` - Config-driven batch enqueue runner
+- `generate-valid-5char-terms.ts` - Generate valid 5-character search terms
+- `generate-next-200-terms.ts` - Generate next candidate terms for backfill
+- `queue-results.ts` - Queue status + recent completed/failed jobs (`doppler run -- npx tsx scripts/queue-results.ts [--limit N]`)
+- `config/batch-configs.ts` - 18 batch type definitions
+- `lib/` - queue-utils, backfill-runner, searched-terms, backfill-utils
+- `requeue/` - Failed job requeue scripts
+- See [scripts/README.md](scripts/README.md) for full scripts reference
 
 ### API
 - See [docs/API.md](docs/API.md) for full endpoint reference
@@ -64,10 +70,15 @@ doppler run -- npm run dev
 ├── src/                  # Frontend (React + Vite)
 ├── server/               # Backend (Express + BullMQ + Prisma)
 │   └── prisma/           # Schema + migrations (canonical location)
-├── scripts/              # CLI tools, batch scripts, backfill, enqueue
+├── scripts/              # CLI tools, batch scripts, backfill, enqueue (root level)
+│   ├── config/           # 18 batch type definitions
+│   ├── lib/              # queue-utils, backfill-runner, searched-terms, backfill-utils
+│   └── requeue/          # Failed job requeue scripts
+├── e2e/                  # Playwright E2E tests (a11y, search, visual, mobile, api-errors)
+├── utils/                # Shared constants (constants.ts)
 ├── config/               # Monitoring, GTM configs
 │   └── monitoring/       # Grafana dashboards, Prometheus rules + Docker Compose
-├── shared/               # Shared types between frontend/backend
+├── shared/               # Shared types (index.ts, json-ld.utils.ts)
 └── docs/                 # All documentation
 ```
 
@@ -77,7 +88,7 @@ doppler run -- npm run dev
 
 **Always use absolute paths or run from repo root.** Tests run from `server/`, so `git add server/src/...` resolves to `server/server/src/...`. Use:
 ```bash
-git -C /Users/alyshialedlie/code/ISPublicSites/tcad-scraper add server/src/file.ts
+git -C /Users/alyshialedlie/code/is-public-sites/tcad-scraper add server/src/file.ts
 ```
 
 ---
@@ -162,7 +173,7 @@ curl -s "https://api.alephatx.info/health" | jq
 | DB connection failed | Check Render dashboard → verify DATABASE_URL in Doppler |
 | TCAD API auth failed | Token expired (5 min lifetime); check server logs for "Token refreshed". See [Requeue Scripts](server/README.md#requeue-scripts) |
 | Queue not processing | `npm run queue:status` → check Render Redis dashboard or server logs |
-| Mass job failures | Use requeue scripts in `scripts/requeue/`. See [Requeue Scripts](server/README.md#requeue-scripts) |
+| Mass job failures | Use requeue scripts in root `scripts/requeue/`. See [Requeue Scripts](server/README.md#requeue-scripts) |
 | Rate limiting error | Ensure `app.set('trust proxy', 1)` in `server/src/index.ts` |
 | API 522/unreachable | Check Render dashboard → service logs |
 | DNS not resolving | Flush: `sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder` |
