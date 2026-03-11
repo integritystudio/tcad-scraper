@@ -135,15 +135,15 @@ describe("Authentication-Database Integration Tests", () => {
 		describe.skipIf(!redisAvailable)(
 			"Scrape Job Creation (Database Write)",
 			() => {
-				test("should create scrape job without authentication (optional auth)", async () => {
+				test("should reject scrape job without authentication", async () => {
 					const response = await request(app)
 						.post("/api/properties/scrape")
 						.send({
 							searchTerm: "test-auth-no-token",
 						});
 
-					// Should succeed or fail based on rate limiting, not auth
-					expect([202, 400, 429]).toContain(response.status);
+					// Scrape endpoint requires apiKeyAuth
+					expect([401, 400, 429]).toContain(response.status);
 
 					if (response.status === 202) {
 						expect(response.body).toHaveProperty("jobId");
