@@ -8,17 +8,20 @@
 import logger from "../server/src/lib/logger";
 import { tokenRefreshService } from "../server/src/services/token-refresh.service";
 import { getErrorMessage } from "../server/src/utils/error-helpers";
+import { LOG_SEPARATOR_WIDTH } from "../utils/constants";
+
+const TOKEN_PREVIEW_SUFFIX = -4;
 
 async function debugTokenRefresh() {
-	logger.info("=".repeat(60));
+	logger.info("=".repeat(LOG_SEPARATOR_WIDTH));
 	logger.info("DEBUG: Token Refresh Service");
-	logger.info("=".repeat(60));
+	logger.info("=".repeat(LOG_SEPARATOR_WIDTH));
 
 	// Check initial state
 	logger.info("\n1. Initial State:");
 	const initialToken = tokenRefreshService.getCurrentToken();
 	logger.info(
-		`   currentToken: ${initialToken ? `...${initialToken.slice(-4)}` : "null"}`,
+		`   currentToken: ${initialToken ? `...${initialToken.slice(TOKEN_PREVIEW_SUFFIX)}` : "null"}`,
 	);
 
 	const initialStats = tokenRefreshService.getStats();
@@ -34,7 +37,7 @@ async function debugTokenRefresh() {
 
 		logger.info(`\n3. refreshToken() returned after ${duration}ms:`);
 		logger.info(`   Type: ${typeof token}`);
-		logger.info(`   Value: [REDACTED]...${token ? token.slice(-4) : "N/A"}`);
+		logger.info(`   Value: [REDACTED]...${token ? token.slice(TOKEN_PREVIEW_SUFFIX) : "N/A"}`);
 		logger.info(`   Length: ${token ? token.length : "N/A"}`);
 	} catch (error) {
 		logger.error(`\n3. refreshToken() threw error: ${getErrorMessage(error)}`);
@@ -44,18 +47,19 @@ async function debugTokenRefresh() {
 	logger.info("\n4. State After Refresh:");
 	const refreshedToken = tokenRefreshService.getCurrentToken();
 	logger.info(
-		`   currentToken: ${refreshedToken ? `...${refreshedToken.slice(-4)}` : "null"}`,
+		`   currentToken: ${refreshedToken ? `...${refreshedToken.slice(TOKEN_PREVIEW_SUFFIX)}` : "null"}`,
 	);
 
 	const afterStats = tokenRefreshService.getStats();
 	logger.info(`   Stats: ${JSON.stringify(afterStats, null, 2)}`);
 
 	// Test getCurrentToken multiple times
+	const TOKEN_FETCH_RETRIES = 3;
 	logger.info("\n5. Multiple getCurrentToken() calls:");
-	for (let i = 0; i < 3; i++) {
+	for (let i = 0; i < TOKEN_FETCH_RETRIES; i++) {
 		const token = tokenRefreshService.getCurrentToken();
 		logger.info(
-			`   Call ${i + 1}: ${token ? `...${token.slice(-4)}` : "null"}`,
+			`   Call ${i + 1}: ${token ? `...${token.slice(TOKEN_PREVIEW_SUFFIX)}` : "null"}`,
 		);
 	}
 
@@ -63,9 +67,9 @@ async function debugTokenRefresh() {
 	logger.info("\n6. Cleaning up...");
 	await tokenRefreshService.cleanup();
 
-	logger.info(`\n${"=".repeat(60)}`);
+	logger.info(`\n${"=".repeat(LOG_SEPARATOR_WIDTH)}`);
 	logger.info("DEBUG: Complete");
-	logger.info("=".repeat(60));
+	logger.info("=".repeat(LOG_SEPARATOR_WIDTH));
 }
 
 debugTokenRefresh()

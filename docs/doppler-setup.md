@@ -35,7 +35,7 @@ cd server
 # Initialize Doppler
 doppler setup
 
-# Select or create project: tcad-scraper
+# Select or create project: integrity-studio
 # Select config: dev (for development) or prd (for production)
 ```
 

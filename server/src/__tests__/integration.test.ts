@@ -13,10 +13,11 @@ import request from "supertest";
 import { describe, expect, test } from "vitest";
 import app from "../index";
 import logger from "../lib/logger";
-import { HTTP_STATUS } from "../utils/constants";
+import { HTTP_STATUS, REDIS_AVAILABILITY_TIMEOUT_MS } from "../utils/constants";
 import { isFrontendBuilt, isRedisAvailable } from "./test-utils";
 
 const hasFrontend = isFrontendBuilt();
+const SLOW_TEST_TIMEOUT_MS = 10_000;
 
 describe("Integration Tests", () => {
 	describe("Server Health", () => {
@@ -27,7 +28,7 @@ describe("Integration Tests", () => {
 		});
 
 		test("should respond to queue health check", async () => {
-			const redisAvailable = await isRedisAvailable(3000);
+			const redisAvailable = await isRedisAvailable(REDIS_AVAILABILITY_TIMEOUT_MS);
 
 			if (!redisAvailable) {
 				logger.debug("⏭️  Skipping queue health check: Redis not available");
@@ -35,9 +36,9 @@ describe("Integration Tests", () => {
 			}
 
 			const response = await request(app).get("/health/queue");
-			expect([HTTP_STATUS.OK, 500]).toContain(response.status);
+			expect([HTTP_STATUS.OK, HTTP_STATUS.INTERNAL_SERVER_ERROR]).toContain(response.status);
 			// May be 500 if Redis is not running, but should respond
-		}, 10000); // 10 second timeout for this test
+		}, SLOW_TEST_TIMEOUT_MS);
 	});
 
 	describe("API Routes", () => {
@@ -211,7 +212,7 @@ describe("Integration Tests", () => {
 	describe("Error Handling", () => {
 		test("should handle 404 for non-existent API routes", async () => {
 			const response = await request(app).get("/api/nonexistent");
-			expect(response.status).toBe(404);
+			expect(response.status).toBe(HTTP_STATUS.NOT_FOUND);
 		});
 
 		// Conditionally skip if frontend not built - requires npm run build in frontend

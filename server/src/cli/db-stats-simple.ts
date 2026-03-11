@@ -2,10 +2,11 @@
 
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
+import { LOG_SEPARATOR_WIDTH } from "../../../utils/constants";
 
 async function checkDatabaseStats() {
 	logger.info("📊 Database Statistics\n");
-	logger.info("=".repeat(60));
+	logger.info("=".repeat(LOG_SEPARATOR_WIDTH));
 
 	// Count total properties
 	const totalProperties = await prisma.property.count();
@@ -109,7 +110,7 @@ async function checkDatabaseStats() {
 		`  Min properties in single scrape: ${avgStats._min.resultCount || 0}`,
 	);
 
-	logger.info(`\n${"=".repeat(60)}`);
+	logger.info(`\n${"=".repeat(LOG_SEPARATOR_WIDTH)}`);
 
 	await prisma.$disconnect();
 }

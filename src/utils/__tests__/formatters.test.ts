@@ -148,19 +148,23 @@ describe("formatPropertyType", () => {
 });
 
 describe("truncateText", () => {
+	const NO_TRUNCATE_LENGTH = 10;
+	const TRUNCATE_LENGTH = 8;
+	const EXACT_LENGTH = 5;
+
 	it("should not truncate text shorter than maxLength", () => {
-		expect(truncateText("Hello", 10)).toBe("Hello");
+		expect(truncateText("Hello", NO_TRUNCATE_LENGTH)).toBe("Hello");
 	});
 
 	it("should truncate text longer than maxLength", () => {
-		expect(truncateText("Hello World", 8)).toBe("Hello...");
+		expect(truncateText("Hello World", TRUNCATE_LENGTH)).toBe("Hello...");
 	});
 
 	it("should handle exact length match", () => {
-		expect(truncateText("Hello", 5)).toBe("Hello");
+		expect(truncateText("Hello", EXACT_LENGTH)).toBe("Hello");
 	});
 
 	it("should handle empty strings", () => {
-		expect(truncateText("", 10)).toBe("");
+		expect(truncateText("", NO_TRUNCATE_LENGTH)).toBe("");
 	});
 });

@@ -53,7 +53,8 @@ vi.mock("../../lib/logger", () => ({
 import cron from "node-cron";
 import { prisma } from "../../lib/prisma";
 import { scraperQueue } from "../../queues/scraper.queue";
-import { QUEUE_RETENTION_DAYS, SCRAPE_JOB_RETENTION_DAYS, scheduledJobs } from "../scrape-scheduler";
+import { QUEUE_RETENTION_DAYS, SCRAPE_JOB_RETENTION_DAYS } from "../../utils/constants";
+import { scheduledJobs } from "../scrape-scheduler";
 
 // Get mock instances for testing
 const mockScraperQueue = scraperQueue as unknown as {

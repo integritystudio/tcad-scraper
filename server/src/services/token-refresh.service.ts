@@ -7,12 +7,12 @@
 
 import { config } from "../config";
 import logger from "../lib/logger";
+import { TOKEN_FETCH_TIMEOUT_MS } from "../utils/constants";
 
 const DEFAULT_REFRESH_INTERVAL_MS = 4 * 60 * 1000; // 4 min (tokens expire at 5)
-const FETCH_TIMEOUT_MS = 10_000;
 const TOKEN_EXPIRY_MS = 5 * 60 * 1000;
 const EXPIRY_BUFFER_MS = 30_000;
-// Must exceed FETCH_TIMEOUT_MS (10s) plus network variance; 20s provides a 10s margin.
+// Must exceed TOKEN_FETCH_TIMEOUT_MS (10s) plus network variance; 20s provides a 10s margin.
 const DEFAULT_WAIT_TIMEOUT_MS = 20_000;
 
 interface TokenResponse {
@@ -146,7 +146,7 @@ export class TCADTokenRefreshService {
 
       const res = await fetch(this.workerUrl!, {
         headers,
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        signal: AbortSignal.timeout(TOKEN_FETCH_TIMEOUT_MS),
       });
 
       if (!res.ok) {
@@ -179,7 +179,7 @@ export class TCADTokenRefreshService {
 
   /**
    * Start auto-refresh on an interval.
-   * Interval should be significantly larger than FETCH_TIMEOUT_MS (10s).
+   * Interval should be significantly larger than TOKEN_FETCH_TIMEOUT_MS (10s).
    * Throws immediately if TOKEN_WORKER_URL is not configured.
    */
   startAutoRefreshInterval(intervalMs?: number): void {

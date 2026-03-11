@@ -56,9 +56,19 @@ export const DENSE_MAX_BASE_LENGTH = 6;
 export const SEED_MIN_SUCCESS_RATE = 0.5;
 export const SEED_MIN_AVG_RESULTS = 100;
 
+// ── Time ────────────────────────────────────────────────────────────
+export const MS_PER_SECOND = 1000;
+export const SECONDS_PER_MINUTE = 60;
+export const MS_PER_MINUTE = SECONDS_PER_MINUTE * MS_PER_SECOND;
+
+// ── Retention ───────────────────────────────────────────────────────
+export const SCRAPE_JOB_RETENTION_DAYS = 30;
+export const QUEUE_RETENTION_DAYS = 7;
+
 // ── Formatting ─────────────────────────────────────────────────────
 export const PERCENT_MULTIPLIER = 100;
 export const COST_DECIMAL_PLACES = 6;
+export const LOG_SEPARATOR_WIDTH = 60;
 
 // ── Default limits & intervals ─────────────────────────────────────
 export const DEFAULT_LOOKBACK_DAYS = 7;
@@ -66,3 +76,12 @@ export const DEFAULT_QUERY_LIMIT = 100;
 export const DEFAULT_RETRY_DELAY_MS = 2000;
 export const DEFAULT_RATE_LIMIT_DELAY_MS = 5000;
 export const PROGRESS_LOG_INTERVAL = 100;
+
+// ── Network ─────────────────────────────────────────────────────────
+export const API_CLIENT_TIMEOUT_MS = 30_000;
+
+// ── CLI formatting ──────────────────────────────────────────────────
+export const BATCH_TYPE_COL_WIDTH = 16;
+
+// ── Test timeouts ───────────────────────────────────────────────────
+export const REDIS_AVAILABILITY_TIMEOUT_MS = 3000;

@@ -218,10 +218,11 @@ describe("Security Tests", () => {
 		});
 
 		test("should handle extremely large data", () => {
-			const largeArray = Array(10000).fill({ data: "test" });
+			const LARGE_ARRAY_SIZE = 10_000;
+			const largeArray = Array(LARGE_ARRAY_SIZE).fill({ data: "test" });
 			const encoded = encodeJsonForHtml(largeArray);
 
-			expect(encoded.length).toBeGreaterThan(10000);
+			expect(encoded.length).toBeGreaterThan(LARGE_ARRAY_SIZE);
 			expect(() => JSON.parse(encoded)).not.toThrow();
 		});
 

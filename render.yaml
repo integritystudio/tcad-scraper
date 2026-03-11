@@ -8,7 +8,7 @@ services:
     branch: main
     nodeVersion: "22"
     buildCommand: cd server && NODE_ENV=development npm install && npx prisma generate && npm run build
-    startCommand: cd server && node dist/index.js
+    startCommand: cd server && node dist/server/src/index.js
     preDeployCommand: cd server && npx prisma migrate deploy
     healthCheckPath: /health
     envVars:

@@ -2,14 +2,11 @@ import cron from "node-cron";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
+import { DEFAULT_RATE_LIMIT_DELAY_MS, MAX_CONSECUTIVE_ZERO_BATCHES, MS_PER_MINUTE, QUEUE_RETENTION_DAYS, SCRAPE_JOB_RETENTION_DAYS } from "../utils/constants";
 import { getErrorMessage } from "../utils/error-helpers";
 
-export const SCRAPE_JOB_RETENTION_DAYS = 30;
-export const QUEUE_RETENTION_DAYS = 7;
-const SCRAPE_JITTER_MAX_MS = 60_000;
-const SCRAPE_JOB_ATTEMPTS = 5;
-const SCRAPE_BACKOFF_DELAY_MS = 5000;
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const SCRAPE_JITTER_MAX_MS = MS_PER_MINUTE;
+const MS_PER_DAY = 24 * 60 * MS_PER_MINUTE;
 
 class ScheduledJobs {
 	private tasks: cron.ScheduledTask[] = [];
@@ -99,10 +96,10 @@ class ScheduledJobs {
 					},
 					{
 						delay,
-						attempts: SCRAPE_JOB_ATTEMPTS,
+						attempts: MAX_CONSECUTIVE_ZERO_BATCHES,
 						backoff: {
 							type: "exponential",
-							delay: SCRAPE_BACKOFF_DELAY_MS,
+							delay: DEFAULT_RATE_LIMIT_DELAY_MS,
 						},
 					},
 				);

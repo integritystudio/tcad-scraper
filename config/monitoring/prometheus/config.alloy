@@ -15,7 +15,7 @@ prometheus.relabel "integrations_postgres_exporter" {
 
   rule {
         target_label = "instance"
-        replacement  = "hobbes"
+        replacement  = "render"
     }
 
 	rule {

@@ -11,6 +11,7 @@
  */
 
 import logger from "../server/src/lib/logger";
+import { BATCH_TYPE_COL_WIDTH } from "../utils/constants";
 import { BATCH_CONFIGS, getAvailableBatchTypes } from "./config/batch-configs";
 import { enqueueBatch } from "./lib/queue-utils";
 
@@ -30,7 +31,7 @@ if (args.includes("--list")) {
 	for (const type of types) {
 		const cfg = BATCH_CONFIGS[type];
 		console.log(
-			`  ${type.padEnd(16)} ${cfg.emoji} ${cfg.batchName} (${cfg.terms.length} terms)`,
+			`  ${type.padEnd(BATCH_TYPE_COL_WIDTH)} ${cfg.emoji} ${cfg.batchName} (${cfg.terms.length} terms)`,
 		);
 	}
 	process.exit(0);

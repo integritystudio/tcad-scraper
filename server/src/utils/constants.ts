@@ -2,19 +2,30 @@
  * Server-side numeric constants
  *
  * Eliminates magic numbers across the server codebase.
- * Mirrors values from root utils/constants.ts for items
- * that are also used by non-server code.
+ * Shared constants are imported from root utils/constants.ts
+ * and re-exported so server code can import from one place.
  */
 
-// ── Formatting ─────────────────────────────────────────────────────
-export const PERCENT_MULTIPLIER = 100;
-export const COST_DECIMAL_PLACES = 6;
+import { DEFAULT_RETRY_DELAY_MS } from "../../../utils/constants";
 
-// ── Default limits & intervals ─────────────────────────────────────
-export const DEFAULT_LOOKBACK_DAYS = 7;
-export const DEFAULT_QUERY_LIMIT = 100;
-export const DEFAULT_RETRY_DELAY_MS = 2000;
-export const DEFAULT_RATE_LIMIT_DELAY_MS = 5000;
+// ── Re-exported from root utils/constants.ts ────────────────────────
+export {
+  COST_DECIMAL_PLACES,
+  DEFAULT_LOOKBACK_DAYS,
+  DEFAULT_QUERY_LIMIT,
+  DEFAULT_RATE_LIMIT_DELAY_MS,
+  DEFAULT_RETRY_DELAY_MS,
+  MIN_TERM_LENGTH,
+  MS_PER_MINUTE,
+  PERCENT_MULTIPLIER,
+  PROGRESS_LOG_INTERVAL,
+  QUEUE_RETENTION_DAYS,
+  REDIS_AVAILABILITY_TIMEOUT_MS,
+  SCRAPE_JOB_RETENTION_DAYS,
+  SECONDS_PER_MINUTE,
+} from "../../../utils/constants";
+
+// ── Server-only limits & intervals ──────────────────────────────────
 export const FETCH_TIMEOUT_MS = 30_000;
 export const FETCH_RETRIES = 1;
 export const GATEWAY_TIMEOUT_MULTIPLIER = 5;
@@ -22,7 +33,6 @@ export const SHORT_RATE_LIMIT_DELAY_MS = 1000;
 export const RATE_LIMIT_BACKOFF_MULTIPLIER = 2;
 export const RATE_LIMIT_FIRST_PAGE_MULTIPLIER = 3;
 
-export const PROGRESS_LOG_INTERVAL = 100;
 export const CONTENT_LENGTH_UNKNOWN = "unknown";
 export const BODY_PREVIEW_HEAD = 100;
 export const BODY_PREVIEW_TAIL = 30;
@@ -33,8 +43,8 @@ export const RATE_LIMIT_DELAY_MS = SHORT_RATE_LIMIT_DELAY_MS;
 export const FETCH_RETRY_DELAY_MS = DEFAULT_RETRY_DELAY_MS;
 
 export const JITTER_FACTOR = 0.5;
-// ── Term generation (mirrored from root utils/constants.ts) ────────
-export const MIN_TERM_LENGTH = 4;
+export const TOKEN_FETCH_TIMEOUT_MS = 10_000;
+export const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
 
 export const API_URL =
   "https://prod-container.trueprodigyapi.com/public/property/searchfulltext";
@@ -54,8 +64,10 @@ export const HTTP_ERROR = {
 
 export const HTTP_STATUS = {
   OK: 200,
+  NOT_FOUND: 404,
   UNAUTHORIZED: 401,
   CONFLICT: 409,
+  INTERNAL_SERVER_ERROR: 500,
   GATEWAY_TIMEOUT: 504,
 } as const;
 

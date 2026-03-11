@@ -1,17 +1,16 @@
 /**
- * Enqueue scrape jobs until 400K year-2025 properties or 5 consecutive zero-result jobs.
+ * Enqueue scrape jobs until TARGET_2025_PROPERTY_COUNT or MAX_CONSECUTIVE_ZERO_BATCHES consecutive zero-result jobs.
  * Usage: doppler run -- npx tsx scripts/run-until-target.ts
  */
 import { config } from "../server/src/config";
 import { prisma } from "../server/src/lib/prisma";
 import { scraperQueue } from "../server/src/queues/scraper.queue";
 import { TermSelector } from "./continuous-batch-scraper";
+import { DEFAULT_RATE_LIMIT_DELAY_MS, MAX_CONSECUTIVE_ZERO_BATCHES } from "../server/src/utils/constants";
 import { getErrorMessage } from "../server/src/utils/error-helpers";
+import { MS_PER_SECOND, SECONDS_PER_MINUTE, TARGET_2025_PROPERTY_COUNT } from "../utils/constants";
 
-const TARGET = 400_000;
-const MAX_CONSECUTIVE_ZEROS = 5;
 const BATCH_SIZE = 10;
-const POLL_INTERVAL_MS = 5_000;
 const MAX_JOB_WAIT_MS = 300_000;
 
 async function getYearCount(): Promise<number> {
@@ -29,7 +28,7 @@ async function waitForJobs(jobIds: { id: string; term: string }[]): Promise<{ te
     );
     const done = states.filter((s) => s === "completed" || s === "failed").length;
     if (done >= jobIds.length) break;
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+    await new Promise((r) => setTimeout(r, DEFAULT_RATE_LIMIT_DELAY_MS));
   }
 
   const results: { term: string; count: number; failed: boolean }[] = [];
@@ -50,10 +49,10 @@ async function waitForJobs(jobIds: { id: string; term: string }[]): Promise<{ te
 async function main() {
   const year = config.scraper.tcadYear;
   const startCount = await getYearCount();
-  console.log(`\n=== Run until ${TARGET.toLocaleString()} properties (year=${year}) ===`);
+  console.log(`\n=== Run until ${TARGET_2025_PROPERTY_COUNT.toLocaleString()} properties (year=${year}) ===`);
   console.log(`Starting count: ${startCount.toLocaleString()}\n`);
 
-  if (startCount >= TARGET) {
+  if (startCount >= TARGET_2025_PROPERTY_COUNT) {
     console.log("Target already reached.");
     await prisma.$disconnect();
     process.exit(0);
@@ -67,7 +66,7 @@ async function main() {
 
   while (true) {
     const currentCount = await getYearCount();
-    if (currentCount >= TARGET) {
+    if (currentCount >= TARGET_2025_PROPERTY_COUNT) {
       console.log(`\nTARGET REACHED: ${currentCount.toLocaleString()} properties`);
       break;
     }
@@ -103,23 +102,23 @@ async function main() {
         totalNew += r.count;
       }
 
-      if (consecutiveZeros >= MAX_CONSECUTIVE_ZEROS) {
-        console.log(`\nSTOPPED: ${MAX_CONSECUTIVE_ZEROS} consecutive zero-result/failed jobs`);
+      if (consecutiveZeros >= MAX_CONSECUTIVE_ZERO_BATCHES) {
+        console.log(`\nSTOPPED: ${MAX_CONSECUTIVE_ZERO_BATCHES} consecutive zero-result/failed jobs`);
         break;
       }
     }
 
-    if (consecutiveZeros >= MAX_CONSECUTIVE_ZEROS) break;
+    if (consecutiveZeros >= MAX_CONSECUTIVE_ZERO_BATCHES) break;
 
-    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    const elapsed = Math.round((Date.now() - startTime) / MS_PER_SECOND);
     const current = await getYearCount();
     console.log(`  [${elapsed}s] ${current.toLocaleString()} properties (+${(current - startCount).toLocaleString()}) | jobs=${totalJobsRun} | streak=${consecutiveZeros}`);
   }
 
   const finalCount = await getYearCount();
-  const elapsed = Math.round((Date.now() - startTime) / 1000);
+  const elapsed = Math.round((Date.now() - startTime) / MS_PER_SECOND);
   console.log(`\n=== FINAL REPORT ===`);
-  console.log(`  Runtime: ${Math.floor(elapsed / 60)}m ${elapsed % 60}s`);
+  console.log(`  Runtime: ${Math.floor(elapsed / SECONDS_PER_MINUTE)}m ${elapsed % SECONDS_PER_MINUTE}s`);
   console.log(`  Start: ${startCount.toLocaleString()} -> Final: ${finalCount.toLocaleString()} (+${(finalCount - startCount).toLocaleString()})`);
   console.log(`  Jobs run: ${totalJobsRun}`);
   console.log(`  Year: ${year}`);

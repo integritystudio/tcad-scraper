@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance } from "axios";
 import logger from "../lib/logger";
 import type { Property } from "../types";
+import { API_CLIENT_TIMEOUT_MS } from "../../utils/constants";
 
 // API configuration
 const API_BASE_URL =
@@ -12,7 +13,7 @@ const apiClient: AxiosInstance = axios.create({
 	headers: {
 		"Content-Type": "application/json",
 	},
-	timeout: 30000,
+	timeout: API_CLIENT_TIMEOUT_MS,
 });
 
 // Request interceptor for auth token (if needed in future)

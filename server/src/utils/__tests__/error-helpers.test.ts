@@ -17,7 +17,7 @@ describe("getErrorMessage", () => {
 	});
 
 	it("should convert number to string", () => {
-		expect(getErrorMessage(404)).toBe("404");
+		expect(getErrorMessage(42)).toBe("42");
 	});
 
 	it("should handle null", () => {

@@ -12,12 +12,7 @@ import { getErrorMessage } from "../server/src/utils/error-helpers";
 import { HIGH_RESULT_TERM_SPLITS } from "./config/batch-configs";
 import { enqueueBatch } from "./lib/queue-utils";
 import { TARGET_2025_PROPERTY_COUNT } from "../utils/constants";
-
-// Operational stop threshold — scraper halts when DB reaches this count.
-// Not the full dataset ceiling (~451K total Travis County parcels); set lower
-// to leave headroom for duplicate records and future growth.
-const STOP_AT_PROPERTIES = 500000;
-const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
+import { MAX_CONSECUTIVE_ZERO_BATCHES } from "../server/src/utils/constants";
 const BATCH_SIZE = 25;
 const DELAY_BETWEEN_BATCHES = 30000;
 const CHECK_INTERVAL = 60000;
@@ -356,7 +351,7 @@ class ContinuousBatchScraper {
 
 	constructor(lowThreshold = false) {
 		this.lowThreshold = lowThreshold;
-		this.stopAtProperties = lowThreshold ? TARGET_2025_PROPERTY_COUNT : STOP_AT_PROPERTIES;
+		this.stopAtProperties = lowThreshold ? TARGET_2025_PROPERTY_COUNT : TARGET_2025_PROPERTY_COUNT;
 		this.userId = lowThreshold ? "lowthreshold-batch" : "continuous-batch";
 		this.termSelector = new TermSelector(lowThreshold ? LOW_THRESHOLD_TIER_CONFIG : undefined);
 	}
