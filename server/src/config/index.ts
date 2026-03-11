@@ -154,6 +154,7 @@ export const config = {
 	// CORS Configuration
 	cors: {
 		allowedOrigins: parseArrayEnv("CORS_ALLOWED_ORIGINS", [
+			"http://localhost:3002",
 			"http://localhost:5173",
 			"http://localhost:5174",
 			"https://alephatx.info",

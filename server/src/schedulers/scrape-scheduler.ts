@@ -2,7 +2,7 @@ import cron from "node-cron";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
-import { DEFAULT_RATE_LIMIT_DELAY_MS, MAX_CONSECUTIVE_ZERO_BATCHES, MS_PER_MINUTE, QUEUE_RETENTION_DAYS, SCRAPE_JOB_RETENTION_DAYS } from "../utils/constants";
+import { MS_PER_MINUTE, QUEUE_RETENTION_DAYS, SCRAPE_BACKOFF_DELAY_MS, SCRAPE_JOB_ATTEMPTS, SCRAPE_JOB_RETENTION_DAYS } from "../utils/constants";
 import { getErrorMessage } from "../utils/error-helpers";
 
 const SCRAPE_JITTER_MAX_MS = MS_PER_MINUTE;
@@ -96,10 +96,10 @@ class ScheduledJobs {
 					},
 					{
 						delay,
-						attempts: MAX_CONSECUTIVE_ZERO_BATCHES,
+						attempts: SCRAPE_JOB_ATTEMPTS,
 						backoff: {
 							type: "exponential",
-							delay: DEFAULT_RATE_LIMIT_DELAY_MS,
+							delay: SCRAPE_BACKOFF_DELAY_MS,
 						},
 					},
 				);

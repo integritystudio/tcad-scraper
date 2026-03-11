@@ -45,6 +45,8 @@ export const FETCH_RETRY_DELAY_MS = DEFAULT_RETRY_DELAY_MS;
 export const JITTER_FACTOR = 0.5;
 export const TOKEN_FETCH_TIMEOUT_MS = 10_000;
 export const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
+export const SCRAPE_JOB_ATTEMPTS = 5;
+export const SCRAPE_BACKOFF_DELAY_MS = 5000;
 
 export const API_URL =
   "https://prod-container.trueprodigyapi.com/public/property/searchfulltext";
