@@ -1,6 +1,6 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-11 (M16, M29, M26 marked Done — already implemented in prior sessions)
+**Last Updated**: 2026-03-11 (M16, M25, M26, M28, M29, M30 migrated to changelog/2026-03-11.md)
 **Status**: 680/680 tests passing | TypeScript clean | Lint clean
 
 ---
@@ -74,28 +74,6 @@ The get-then-set pattern in `canScheduleJob` has a TOCTOU window where concurren
 
 ---
 
-## Completed
+All completed items migrated to `docs/changelog/` (per-date files).
 
-### M28: Extract `getSearchedTerms()` to shared `lib/searched-terms.ts` — Done 2026-03-11
-`scripts/lib/searched-terms.ts` created; all 7 scripts import `getSearchedTermSets()` from it. ~120 LOC savings.
-
-### M30: Extract `isSupersetOfSuccessful` and backfill `main()` loop to shared utilities — Done 2026-03-11
-`lib/backfill-utils.ts` has `isSupersetOfSuccessful`; `lib/backfill-runner.ts` has `runBackfill`/`runBackfillMain`; all 4 backfill scripts reduced to term-sourcing + config; final inline closure removed from `generate-search-terms.ts` (commit fa88a21). ~200 LOC savings.
-
-### M25: Consolidate queue-entity-searches.ts and queue-entity-searches-fresh.ts — Done 2026-03-11
-Merged into single `queue-entity-searches.ts` with `--fresh` flag. ~150 LOC savings.
-
-### M29: Unify enqueueBatch and enqueueBatchGeneric into single enqueue utility — Done 2026-03-11
-`utils/batch-enqueue.ts` deleted; `enqueueBatch` in `lib/queue-utils.ts` extended with optional `priority` param and `BatchEnqueueConfig` interface. `enqueue-batch.ts` uses unified function. ~80 LOC savings.
-
-### M16: Replace winston logger with Pino in production scripts — Done 2026-03-11
-Both `continuous-batch-scraper.ts` and `clear-all-jobs.ts` now use Pino logger. Winston removed from `package.json`.
-
-### M26: Extract get2025Count() and related helpers to lib/backfill-utils.ts — Done 2026-03-11
-`get2025Count()` in `lib/backfill-utils.ts`; `DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES` in `lib/backfill-runner.ts`. All 4 backfill scripts import from shared lib.
-
----
-
-All other completed items migrated to `docs/changelog/` (per-date files).
-
-**Latest migration**: 18 items migrated to [changelog/2026-03-10.md](../changelog/2026-03-10.md) (L25–L35 backlog batch + M31–M36 security hardening)
+**Latest migration**: 6 items migrated to [changelog/2026-03-11.md](../changelog/2026-03-11.md) (M16, M25, M26, M28, M29, M30 refactoring completion)

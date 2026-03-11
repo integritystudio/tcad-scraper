@@ -1,5 +1,15 @@
 ## Recent Updates
 
+### March 11, 2026 - Backlog Refactoring Completion (M16, M25, M26, M28, M29, M30)
+
+- **Script consolidation**: Unified `getSearchedTermSets()`, `isSupersetOfSuccessful()`, `get2025Count()`, and enqueue utilities across 40+ CLI tools; merged queue-entity-searches variants; ~450 LOC eliminated
+- **Logger standardization**: Completed migration from winston to Pino in all production scripts
+- **Backlog cleanup**: Migrated 6 refactoring items (M16, M25, M26, M28, M29, M30) from backlog to changelog; all implemented in prior sessions but marked Done today
+
+See [changelog/2026-03-11.md](changelog/2026-03-11.md) for full details.
+
+---
+
 ### March 9, 2026 - TCAD API Diagnostics & Enqueue Infrastructure Consolidation + Code Review Cleanup
 
 - **TCAD API JSON parse diagnostics** (`a3b838e`, `688c034`): Added content-length header capture, body preview (first/last 100 chars) logging, and structured `logger.warn` at JSON parse failure point for better troubleshooting of truncated/malformed responses
