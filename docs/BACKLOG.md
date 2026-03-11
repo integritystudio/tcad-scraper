@@ -1,6 +1,6 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-11 (M28, M30, M25 marked Done — already implemented; M30 final fix committed fa88a21)
+**Last Updated**: 2026-03-11 (M16, M29, M26 marked Done — already implemented in prior sessions)
 **Status**: 680/680 tests passing | TypeScript clean | Lint clean
 
 ---
@@ -19,51 +19,6 @@
 
 ---
 
-### M29: Unify `enqueueBatch` and `enqueueBatchGeneric` into single enqueue utility
-**Priority**: P2 | **Source**: repomix-explorer analysis 2026-03-10
-
-**Problem**: Two independent enqueue utilities exist with different APIs and job option sources:
-- `scripts/lib/queue-utils.ts:28` — `enqueueBatch(terms, userId, logger?)` uses `config.queue.defaultJobOptions`; consumed by 9 scripts
-- `scripts/utils/batch-enqueue.ts:48` — `enqueueBatchGeneric(BatchEnqueueConfig)` uses hardcoded `{ attempts: 3, backoff: { type: 'exponential', delay: 2000 }, removeOnComplete: 100, removeOnFail: 50 }` + rich logging; consumed only by `enqueue-batch.ts`
-
-**Key differences**:
-| Feature | `enqueueBatch` | `enqueueBatchGeneric` |
-|---------|---------------|----------------------|
-| Job options | `config.queue.defaultJobOptions` | Hardcoded |
-| Priority | Not supported | Accepts `priority` param |
-| Logging | Optional `EnqueueLogger` | Rich emoji + batch name |
-| Return | `number` (count) | `BatchEnqueueResult` (success/fail/total) |
-| Error handling | Per-term try/catch, logs via logger | Per-term try/catch, logs via pino |
-
-**Refactoring plan**:
-1. Extend `enqueueBatch` in `lib/queue-utils.ts` with optional `priority` and `batchName` params
-2. Move `BatchEnqueueConfig`/`BatchEnqueueResult` interfaces to `lib/queue-utils.ts`
-3. Update `enqueue-batch.ts` to use unified function
-4. Delete `utils/batch-enqueue.ts`
-5. Estimated savings: ~80 LOC
-
----
-
-### M16: Replace `winston` logger with Pino in production scripts
-**Priority**: P2 | **Source**: code-reviewer 2026-03-09, item 16 (DEFERRED)
-
-**Problem**: 2 scripts still create inline `winston.createLogger()` instances instead of using the shared Pino logger (`../../lib/logger`). The winston logger in `continuous-batch-scraper.ts` also hardcodes a file transport path (`logs/continuous-scraper.log`).
-
-**Affected files**:
-- `scripts/continuous-batch-scraper.ts:2,16-25` — `import winston` + 9-line logger creation with Console + File transports
-- `scripts/clear-all-jobs.ts:1,4-8` — `import winston` + 5-line logger creation with Console transport only
-
-**Refactoring plan**:
-1. Replace both winston imports with `import logger from "../../lib/logger"`
-2. Remove inline `winston.createLogger()` blocks
-3. If file transport is needed for continuous-batch-scraper, configure via Pino's `pino.destination()` or environment-based transport
-4. Verify `winston` can be removed from `package.json` if no other consumers exist
-
----
-
-### M26: Extract get2025Count() and related helpers to lib/backfill-utils.ts
-**Priority**: P2 | **Source**: repomix-explorer session 2026-03-09
-`get2025Count()` function is copy-pasted identically across 4 backfill scripts (backfill-2025.ts, backfill-2025-proven.ts, backfill-2025-unsearched.ts, backfill-2025-novel.ts). Also duplicates `MAX_CONSECUTIVE_ZERO_BATCHES` and `getSearchedTerms()` variants. Extract to shared `lib/backfill-utils.ts` and import across all 4 scripts. -- `scripts/backfill-2025*.ts`
 
 
 ---
@@ -129,6 +84,15 @@ The get-then-set pattern in `canScheduleJob` has a TOCTOU window where concurren
 
 ### M25: Consolidate queue-entity-searches.ts and queue-entity-searches-fresh.ts — Done 2026-03-11
 Merged into single `queue-entity-searches.ts` with `--fresh` flag. ~150 LOC savings.
+
+### M29: Unify enqueueBatch and enqueueBatchGeneric into single enqueue utility — Done 2026-03-11
+`utils/batch-enqueue.ts` deleted; `enqueueBatch` in `lib/queue-utils.ts` extended with optional `priority` param and `BatchEnqueueConfig` interface. `enqueue-batch.ts` uses unified function. ~80 LOC savings.
+
+### M16: Replace winston logger with Pino in production scripts — Done 2026-03-11
+Both `continuous-batch-scraper.ts` and `clear-all-jobs.ts` now use Pino logger. Winston removed from `package.json`.
+
+### M26: Extract get2025Count() and related helpers to lib/backfill-utils.ts — Done 2026-03-11
+`get2025Count()` in `lib/backfill-utils.ts`; `DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES` in `lib/backfill-runner.ts`. All 4 backfill scripts import from shared lib.
 
 ---
 
