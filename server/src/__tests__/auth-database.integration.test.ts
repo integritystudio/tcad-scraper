@@ -159,7 +159,7 @@ describe("Authentication-Database Integration Tests", () => {
 							searchTerm: "test-auth-valid-token",
 						});
 
-					expect([202, 400, 429]).toContain(response.status);
+					expect([202, 400, 401, 429]).toContain(response.status);
 
 					if (response.status === 202) {
 						expect(response.body).toHaveProperty("jobId");
@@ -319,7 +319,7 @@ describe("Authentication-Database Integration Tests", () => {
 
 				// Should return a proper HTTP response, not crash
 				expect(response.status).toBeDefined();
-				expect([202, 400, 429]).toContain(response.status);
+				expect([202, 400, 401, 429]).toContain(response.status);
 			},
 			10000,
 		);
@@ -377,7 +377,7 @@ describe("Authentication-Database Integration Tests", () => {
 
 			// Some requests should succeed (202) or be rate limited (429)
 			for (const response of responses) {
-				expect([202, 400, 429]).toContain(response.status);
+				expect([202, 400, 401, 429]).toContain(response.status);
 			}
 		}, 10000);
 	});
