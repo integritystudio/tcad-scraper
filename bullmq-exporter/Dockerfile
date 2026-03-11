@@ -6,14 +6,14 @@
 # --- Stage 1: Build ---
 FROM node:20-alpine AS build
 
-WORKDIR /app
+WORKDIR /repo/bullmq-exporter
 
 # Copy package files and install all deps (including devDependencies for tsc)
 COPY bullmq-exporter/package*.json ./
 RUN npm install
 
-# Copy TypeScript source
-COPY shared/ /app/shared/
+# Copy TypeScript source (mirror repo structure so ../shared/ resolves)
+COPY shared/ /repo/shared/
 COPY bullmq-exporter/index.ts ./
 COPY bullmq-exporter/tsconfig.json ./
 
@@ -31,7 +31,7 @@ RUN npm install --only=production --omit=optional && \
     npm cache clean --force
 
 # Copy compiled output from build stage
-COPY --from=build /app/dist/ ./dist/
+COPY --from=build /repo/bullmq-exporter/dist/ ./dist/
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
