@@ -6,6 +6,7 @@
 
 import { prisma } from "../server/src/lib/prisma";
 import { scraperQueue } from "../server/src/queues/scraper.queue";
+import { cacheService } from "../server/src/lib/redis-cache.service";
 
 const limit = Number(
 	process.argv.find((_, i, a) => a[i - 1] === "--limit") ?? 20,
@@ -70,7 +71,8 @@ async function main() {
 		}
 	}
 
-	await Promise.all([scraperQueue.close(), prisma.$disconnect()]);
+	await Promise.all([scraperQueue.close(), prisma.$disconnect(), cacheService.disconnect()]);
+	process.exit(0);
 }
 
 main().catch((err) => {
