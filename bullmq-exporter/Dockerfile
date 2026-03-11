@@ -8,7 +8,7 @@ FROM node:20-alpine AS build
 
 WORKDIR /repo/bullmq-exporter
 
-# Copy package files and install all deps (including devDependencies for tsc)
+# Copy package files and install deps (node_modules at this level)
 COPY bullmq-exporter/package*.json ./
 RUN npm install
 
@@ -16,6 +16,9 @@ RUN npm install
 COPY shared/ /repo/shared/
 COPY bullmq-exporter/index.ts ./
 COPY bullmq-exporter/tsconfig.json ./
+
+# Symlink node_modules to parent so ../shared/ can resolve bullmq/ioredis
+RUN ln -s /repo/bullmq-exporter/node_modules /repo/node_modules
 
 # Compile TypeScript
 RUN npx tsc
