@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Prisma } from "@prisma/client";
+import { COST_DECIMAL_PLACES } from "../utils/constants";
 import { config } from "../config";
 import { getErrorMessage } from "../utils/error-helpers";
 import { calculateClaudeCost } from "./claude-pricing";
@@ -143,7 +144,7 @@ export class ClaudeSearchService {
 			});
 
 			logger.info(
-				`Claude API usage logged: ${inputTokens} input + ${outputTokens} output tokens, cost: $${queryCost.toFixed(6)}, success: ${success}`,
+				`Claude API usage logged: ${inputTokens} input + ${outputTokens} output tokens, cost: $${queryCost.toFixed(COST_DECIMAL_PLACES)}, success: ${success}`,
 			);
 		} catch (error) {
 			// Don't fail the main request if logging fails

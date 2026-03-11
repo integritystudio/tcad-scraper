@@ -4,6 +4,7 @@
  * Provides comprehensive application monitoring with Prometheus metrics
  */
 
+import { PERCENT_MULTIPLIER } from "../utils/constants";
 import {
 	Counter,
 	collectDefaultMetrics,
@@ -451,7 +452,7 @@ export function updateCacheMetrics(
 	size: number,
 ): void {
 	const total = hits + misses;
-	const hitRate = total > 0 ? (hits / total) * 100 : 0;
+	const hitRate = total > 0 ? (hits / total) * PERCENT_MULTIPLIER : 0;
 
 	cacheHitRate.set(hitRate);
 	cacheSize.set(size);

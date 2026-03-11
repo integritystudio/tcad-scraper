@@ -84,7 +84,7 @@ doppler setup
 cd server
 
 # Production mode (with Doppler)
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
 
 # Save PID for later
 echo $! > continuous-scraper.pid
@@ -163,7 +163,7 @@ docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT property_i
 
 ### Requeue Scripts
 
-Recovery scripts for failed jobs live in `src/scripts/requeue/`:
+Recovery scripts for failed jobs live in `scripts/requeue/`:
 
 | Script | When to Use |
 |--------|-------------|
@@ -175,13 +175,13 @@ Recovery scripts for failed jobs live in `src/scripts/requeue/`:
 cd server
 
 # General requeue (analyzes errors, saves report, re-enqueues all failed)
-doppler run -- npx tsx src/scripts/requeue/requeue-all-failed-with-error-tracking.ts
+doppler run -- npx tsx scripts/requeue/requeue-all-failed-with-error-tracking.ts
 
 # Requeue only analytics-related failures
-doppler run -- npx tsx src/scripts/requeue/requeue-analytics-failed-jobs.ts
+doppler run -- npx tsx scripts/requeue/requeue-analytics-failed-jobs.ts
 
 # Requeue after token expiry (clears queue, refreshes, re-enqueues)
-doppler run -- npx tsx src/scripts/requeue/requeue-with-fresh-tokens.ts
+doppler run -- npx tsx scripts/requeue/requeue-with-fresh-tokens.ts
 ```
 
 ### Scraper Not Running
@@ -194,7 +194,7 @@ tail -50 continuous-scraper.log | grep -i error
 
 # Restart scraper
 pkill -f "continuous-batch-scraper"
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tcad_scraper" doppler run -- npx tsx scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
 ```
 
 ### Redis Connection Issues
@@ -264,7 +264,7 @@ docker exec tcad-postgres psql -U postgres -d tcad_scraper -c "SELECT search_ter
 
 ## Debugging Scripts
 
-Ad-hoc debugging and manual testing scripts live in `src/scripts/utils/test-scripts/`:
+Ad-hoc debugging and manual testing scripts live in `scripts/utils/test-scripts/`:
 
 | Script | Purpose |
 |--------|---------|
@@ -281,10 +281,10 @@ Ad-hoc debugging and manual testing scripts live in `src/scripts/utils/test-scri
 
 ```bash
 cd server
-doppler run -- npx tsx src/scripts/utils/test-scripts/test-api-direct.ts
+doppler run -- npx tsx scripts/utils/test-scripts/test-api-direct.ts
 ```
 
-One-off campaign and batch enqueue scripts live in `src/scripts/one-off-and-test-batches/`:
+One-off campaign and batch enqueue scripts live in `scripts/one-off-and-test-batches/`:
 
 | Script | Purpose |
 |--------|---------|

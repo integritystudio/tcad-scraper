@@ -8,13 +8,13 @@
  *      2  corporation
  *   omit  standard priority (all others)
  *
- * Usage: npx tsx src/scripts/enqueue-batch.ts <batchType>
- * Example: npx tsx src/scripts/enqueue-batch.ts llc
+ * Usage: npx tsx scripts/enqueue-batch.ts <batchType>
+ * Example: npx tsx scripts/enqueue-batch.ts llc
  */
 
 import type { BatchEnqueueConfig } from "../lib/queue-utils";
 
-type BatchConfigEntry = Omit<BatchEnqueueConfig, "extraLogs">;
+type BatchConfigEntry = Omit<BatchEnqueueConfig, "extraLogs"> & { extraLogs?: () => void };
 
 export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 	llc: {

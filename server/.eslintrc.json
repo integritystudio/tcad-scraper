@@ -31,15 +31,6 @@
 			"rules": {
 				"no-console": "warn"
 			}
-		},
-		{
-			"files": [
-				"src/scripts/**/*.ts",
-				"src/scripts/**/*.test.ts"
-			],
-			"rules": {
-				"no-console": "off"
-			}
 		}
 	]
 }

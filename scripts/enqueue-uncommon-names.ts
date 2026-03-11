@@ -8,12 +8,12 @@
  * Filters out already-searched and blacklisted terms (4+ chars required).
  *
  * Usage:
- *   doppler run -- npx tsx src/scripts/enqueue-uncommon-names.ts          # preview
- *   doppler run -- npx tsx src/scripts/enqueue-uncommon-names.ts --enqueue # enqueue
- *   doppler run -- npx tsx src/scripts/enqueue-uncommon-names.ts --limit 50 # cap count
+ *   doppler run -- npx tsx scripts/enqueue-uncommon-names.ts          # preview
+ *   doppler run -- npx tsx scripts/enqueue-uncommon-names.ts --enqueue # enqueue
+ *   doppler run -- npx tsx scripts/enqueue-uncommon-names.ts --limit 50 # cap count
  */
 
-import { prisma } from '../lib/prisma';
+import { prisma } from '../server/src/lib/prisma';
 import { getSearchedTermSets } from './lib/searched-terms';
 
 const ENQUEUE = process.argv.includes('--enqueue');
@@ -246,7 +246,7 @@ async function main() {
   }
 
   if (ENQUEUE && selected.length > 0) {
-    const { scraperQueue } = await import('../queues/scraper.queue');
+    const { scraperQueue } = await import('../server/src/queues/scraper.queue');
     console.log(`\nEnqueuing ${selected.length} terms...`);
 
     for (const { name } of selected) {

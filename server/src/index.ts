@@ -1,3 +1,4 @@
+import { DEFAULT_RETRY_DELAY_MS } from "./utils/constants";
 import { createBullBoard } from "@bull-board/api";
 import { BullAdapter } from "@bull-board/api/bullAdapter";
 import { ExpressAdapter } from "@bull-board/express";
@@ -572,7 +573,7 @@ if (require.main === module) {
 
 			// Cleanup in parallel where safe
 			await Promise.allSettled([
-				sentryFlush(2000),
+				sentryFlush(DEFAULT_RETRY_DELAY_MS),
 				scraperQueue.close(),
 				tokenRefreshService.cleanup(),
 				cacheService.disconnect(),

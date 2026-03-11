@@ -1,16 +1,17 @@
 import { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { prismaReadOnly } from "../lib/prisma";
+import { COST_DECIMAL_PLACES, DEFAULT_LOOKBACK_DAYS, PERCENT_MULTIPLIER } from "../utils/constants";
 
 export class ApiUsageController {
 	/**
 	 * GET /api/usage/stats - Get API usage statistics
 	 */
 	async getUsageStats(req: Request, res: Response) {
-		const { days = 7, environment } = req.query;
+		const { days = DEFAULT_LOOKBACK_DAYS, environment } = req.query;
 
-		const daysStr = typeof days === "string" ? days : "7";
-		const daysNum = Math.min(parseInt(daysStr, 10) || 7, 90); // Max 90 days
+		const daysStr = typeof days === "string" ? days : String(DEFAULT_LOOKBACK_DAYS);
+		const daysNum = Math.min(parseInt(daysStr, 10) || DEFAULT_LOOKBACK_DAYS, 90); // Max 90 days
 		const startDate = new Date();
 		startDate.setDate(startDate.getDate() - daysNum);
 
@@ -121,7 +122,7 @@ export class ApiUsageController {
 		]);
 
 		const successRate =
-			totalLogs > 0 ? (Number(successfulLogs) / totalLogs) * 100 : 0;
+			totalLogs > 0 ? (Number(successfulLogs) / totalLogs) * PERCENT_MULTIPLIER : 0;
 
 		return res.json({
 			summary: {
@@ -129,8 +130,8 @@ export class ApiUsageController {
 				successfulCalls: successfulLogs,
 				failedCalls: totalLogs - successfulLogs,
 				successRate: `${successRate.toFixed(2)}%`,
-				totalCost: `$${(totalCost._sum.queryCost || 0).toFixed(6)}`,
-				averageCost: `$${(totalCost._avg.queryCost || 0).toFixed(6)}`,
+				totalCost: `$${(totalCost._sum.queryCost || 0).toFixed(COST_DECIMAL_PLACES)}`,
+				averageCost: `$${(totalCost._avg.queryCost || 0).toFixed(COST_DECIMAL_PLACES)}`,
 				totalInputTokens: totalCost._sum.inputTokens || 0,
 				totalOutputTokens: totalCost._sum.outputTokens || 0,
 				averageResponseTime: totalCost._avg.responseTime
@@ -142,13 +143,13 @@ export class ApiUsageController {
 			byDay: usageByDay.map((day) => ({
 				date: day.date,
 				calls: Number(day.count),
-				cost: `$${day.total_cost.toFixed(6)}`,
-				successRate: `${((Number(day.success_count) / Number(day.count)) * 100).toFixed(1)}%`,
+				cost: `$${day.total_cost.toFixed(COST_DECIMAL_PLACES)}`,
+				successRate: `${((Number(day.success_count) / Number(day.count)) * PERCENT_MULTIPLIER).toFixed(1)}%`,
 			})),
 			byModel: usageByModel.map((model) => ({
 				model: model.model,
 				calls: model._count,
-				totalCost: `$${(model._sum.queryCost || 0).toFixed(6)}`,
+				totalCost: `$${(model._sum.queryCost || 0).toFixed(COST_DECIMAL_PLACES)}`,
 				totalInputTokens: model._sum.inputTokens || 0,
 				totalOutputTokens: model._sum.outputTokens || 0,
 				avgResponseTime: model._avg.responseTime
@@ -289,8 +290,8 @@ export class ApiUsageController {
 		return res.json({
 			alerts,
 			costs: {
-				today: `$${todayCostNum.toFixed(6)}`,
-				month: `$${monthCostNum.toFixed(6)}`,
+				today: `$${todayCostNum.toFixed(COST_DECIMAL_PLACES)}`,
+				month: `$${monthCostNum.toFixed(COST_DECIMAL_PLACES)}`,
 			},
 			failures: {
 				last24Hours: recentFailures,

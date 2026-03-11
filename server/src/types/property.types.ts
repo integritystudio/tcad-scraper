@@ -17,6 +17,7 @@
  */
 
 import { z } from "zod";
+import { DEFAULT_LOOKBACK_DAYS, DEFAULT_QUERY_LIMIT, MIN_TERM_LENGTH } from "../utils/constants";
 
 // ============================================================================
 // Database Level Types (Prisma/Backend)
@@ -208,7 +209,7 @@ export interface PropertyMetadata {
 export const scrapeRequestSchema = z.object({
 	searchTerm: z
 		.string()
-		.min(4, "Search term must be at least 4 characters")
+		.min(MIN_TERM_LENGTH, `Search term must be at least ${MIN_TERM_LENGTH} characters`)
 		.max(100),
 	userId: z.string().optional(),
 });
@@ -219,7 +220,7 @@ export const propertyFilterSchema = z.object({
 	propType: z.string().optional(),
 	minValue: z.coerce.number().optional(),
 	maxValue: z.coerce.number().optional(),
-	limit: z.coerce.number().min(1).max(1000).default(100),
+	limit: z.coerce.number().min(1).max(1000).default(DEFAULT_QUERY_LIMIT),
 	offset: z.coerce.number().min(0).default(0),
 });
 
@@ -505,7 +506,7 @@ function getDataFreshness(scrapedAt: Date): "current" | "stale" | "historical" {
 	const daysSinceUpdate =
 		(Date.now() - scrapedAt.getTime()) / (1000 * 60 * 60 * 24);
 
-	if (daysSinceUpdate < 7) return "current";
+	if (daysSinceUpdate < DEFAULT_LOOKBACK_DAYS) return "current";
 	if (daysSinceUpdate < 30) return "stale";
 	return "historical";
 }

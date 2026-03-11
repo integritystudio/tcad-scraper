@@ -1,6 +1,6 @@
-import { config } from "../config";
-import logger from "../lib/logger";
-import { scraperQueue } from "../queues/scraper.queue";
+import { config } from "../server/src/config";
+import logger from "../server/src/lib/logger";
+import { scraperQueue } from "../server/src/queues/scraper.queue";
 
 function safeRedisAddr(): string {
 	if (!config.redis.url) {

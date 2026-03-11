@@ -1,9 +1,9 @@
 /**
  * Check which inventory terms haven't been searched yet (2025 properties).
  * Uses batched EXISTS queries to avoid full table scans.
- * Usage: doppler run -- npx tsx src/scripts/check-unsearched-terms.ts
+ * Usage: doppler run -- npx tsx scripts/check-unsearched-terms.ts
  */
-import { prisma } from '../lib/prisma';
+import { prisma } from '../server/src/lib/prisma';
 import { getAllSearchTerms } from './utils/list-all-search-terms';
 
 async function check() {

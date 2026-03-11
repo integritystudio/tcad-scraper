@@ -1,10 +1,10 @@
 /**
  * Queue Results — show recent completed/failed jobs from BullMQ + DB property count.
  *
- * Usage: doppler run -- npx tsx src/scripts/queue-results.ts [--limit N]
+ * Usage: doppler run -- npx tsx scripts/queue-results.ts [--limit N]
  */
-import { scraperQueue } from '../queues/scraper.queue';
-import { prisma } from '../lib/prisma';
+import { scraperQueue } from '../server/src/queues/scraper.queue';
+import { prisma } from '../server/src/lib/prisma';
 
 const limit = Number(process.argv.find((_, i, a) => a[i - 1] === '--limit') ?? 20);
 

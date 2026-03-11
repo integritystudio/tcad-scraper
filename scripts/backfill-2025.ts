@@ -2,16 +2,16 @@
  * Backfill 2025 TCAD properties by enqueuing high-yield terms
  * that exist in 2026 data but not yet in 2025.
  *
- * Usage: TCAD_YEAR=2025 doppler run -- npx tsx src/scripts/backfill-2025.ts
+ * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025.ts
  */
 
-import { prisma } from "../lib/prisma";
+import { prisma } from "../server/src/lib/prisma";
 import {
   DENSE_MAX_RESULTS_THRESHOLD, DENSE_AVG_RESULTS_THRESHOLD,
   DENSE_MIN_SUCCESS_RATE, DENSE_MAX_BASE_LENGTH,
   SEED_MIN_SUCCESS_RATE, SEED_MIN_AVG_RESULTS,
   MIN_TERM_LENGTH, ALPHABET,
-} from "./lib/backfill-constants";
+} from "../utils/constants";
 import { isSupersetOfSuccessful } from "./lib/backfill-utils";
 import { runBackfillMain } from "./lib/backfill-runner";
 import { getSearchedTermSets } from "./lib/searched-terms";

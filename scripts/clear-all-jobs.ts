@@ -1,5 +1,5 @@
-import logger from "../lib/logger";
-import { scraperQueue } from "../queues/scraper.queue";
+import logger from "../server/src/lib/logger";
+import { scraperQueue } from "../server/src/queues/scraper.queue";
 
 async function clearAllJobs() {
 	try {

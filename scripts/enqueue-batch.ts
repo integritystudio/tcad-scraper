@@ -4,13 +4,13 @@
  * Replaces 10 individual enqueue-*-batch.ts scripts.
  *
  * Usage:
- *   npx tsx src/scripts/enqueue-batch.ts <batchType>
- *   npx tsx src/scripts/enqueue-batch.ts llc
- *   npx tsx src/scripts/enqueue-batch.ts --list
- *   npx tsx src/scripts/enqueue-batch.ts --all
+ *   npx tsx scripts/enqueue-batch.ts <batchType>
+ *   npx tsx scripts/enqueue-batch.ts llc
+ *   npx tsx scripts/enqueue-batch.ts --list
+ *   npx tsx scripts/enqueue-batch.ts --all
  */
 
-import logger from "../lib/logger";
+import logger from "../server/src/lib/logger";
 import { BATCH_CONFIGS, getAvailableBatchTypes } from "./config/batch-configs";
 import { enqueueBatch } from "./lib/queue-utils";
 
@@ -18,9 +18,9 @@ const args = process.argv.slice(2);
 
 if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
 	const types = getAvailableBatchTypes();
-	console.log("Usage: npx tsx src/scripts/enqueue-batch.ts <batchType>");
-	console.log("       npx tsx src/scripts/enqueue-batch.ts --all");
-	console.log("       npx tsx src/scripts/enqueue-batch.ts --list");
+	console.log("Usage: npx tsx scripts/enqueue-batch.ts <batchType>");
+	console.log("       npx tsx scripts/enqueue-batch.ts --all");
+	console.log("       npx tsx scripts/enqueue-batch.ts --list");
 	console.log(`\nAvailable batch types: ${types.join(", ")}`);
 	process.exit(0);
 }

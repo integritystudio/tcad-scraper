@@ -4,7 +4,7 @@ const mockScrapeJobCount = vi.fn();
 const mockPropertyCount = vi.fn();
 const mockQueryRaw = vi.fn();
 
-vi.mock("../../lib/prisma", () => ({
+vi.mock("../../server/src/lib/prisma", () => ({
   prisma: {
     scrapeJob: {
       count: (...args: unknown[]) => mockScrapeJobCount(...args),

@@ -27,7 +27,7 @@ if [ -z "$BATCH_TYPE" ]; then
   echo ""
   echo "Usage: ./run-enqueue-script.sh <batch-type>"
   echo ""
-  doppler run -- npx tsx "./src/scripts/enqueue-batch.ts" --list
+  doppler run -- npx tsx "../scripts/enqueue-batch.ts" --list
   exit 1
 fi
 
@@ -42,7 +42,7 @@ if ! doppler setup --silent 2>/dev/null; then
   exit 1
 fi
 
-doppler run -- npx tsx "./src/scripts/enqueue-batch.ts" "$BATCH_TYPE"
+doppler run -- npx tsx "../scripts/enqueue-batch.ts" "$BATCH_TYPE"
 
 echo ""
 echo -e "${GREEN}Done!${NC}"

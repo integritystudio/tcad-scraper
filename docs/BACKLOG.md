@@ -11,8 +11,8 @@
 **Context**: Codebase cleanup identified overlapping search term systems. Dead code (`enqueue-by-category.ts`, `one-off-and-test-batches/`, `utils/test-scripts/`, `migrate-to-logger.ts`) deleted 2026-03-10. Remaining: 2 active systems with overlapping term data.
 
 **Files**:
-- `server/src/scripts/enqueue-batch.ts` + `config/batch-configs.ts` — active, canonical. Config-driven CLI with 18 batch types and priority system
-- `server/src/scripts/continuous-batch-scraper.ts` — active, long-running scraper that auto-generates and enqueues terms
+- `scripts/enqueue-batch.ts` + `config/batch-configs.ts` — active, canonical. Config-driven CLI with 18 batch types and priority system
+- `scripts/continuous-batch-scraper.ts` — active, long-running scraper that auto-generates and enqueues terms
 
 **Research tasks** (remaining: city verification):
 1. Determine if Texas city names yield results in TCAD search (cities historically don't work per CLAUDE.md — verify before adding)
@@ -25,16 +25,16 @@
 **Problem**: 7 scripts independently build a `Set<string>` of already-searched terms by querying analytics + recent jobs + properties. Each reimplements slightly different logic, risking drift.
 
 **Affected files** (each has its own inline implementation):
-- `server/src/scripts/backfill-2025.ts:23` — `getSearchedTerms()` returns `{ searched2025, allSearched, successful }`
-- `server/src/scripts/backfill-2025-novel.ts:22` — `getSearchedTerms()` returns `Set<string>`
-- `server/src/scripts/backfill-2025-unsearched.ts:22` — `getTermSets()` returns `{ searched, successful, searched2025 }`
-- `server/src/scripts/enqueue-prefix-expansions.ts:43` — inline `searched = new Set<string>()` block
-- `server/src/scripts/enqueue-uncommon-names.ts:191` — inline `searched = new Set<string>()` block
-- `server/src/scripts/generate-next-200-terms.ts:120` — inline `searched = new Set<string>()` block
-- `server/src/scripts/generate-valid-5char-terms.ts:252` — inline `searched = new Set<string>()` block
+- `scripts/backfill-2025.ts:23` — `getSearchedTerms()` returns `{ searched2025, allSearched, successful }`
+- `scripts/backfill-2025-novel.ts:22` — `getSearchedTerms()` returns `Set<string>`
+- `scripts/backfill-2025-unsearched.ts:22` — `getTermSets()` returns `{ searched, successful, searched2025 }`
+- `scripts/enqueue-prefix-expansions.ts:43` — inline `searched = new Set<string>()` block
+- `scripts/enqueue-uncommon-names.ts:191` — inline `searched = new Set<string>()` block
+- `scripts/generate-next-200-terms.ts:120` — inline `searched = new Set<string>()` block
+- `scripts/generate-valid-5char-terms.ts:252` — inline `searched = new Set<string>()` block
 
 **Refactoring plan**:
-1. Create `server/src/scripts/lib/searched-terms.ts` exporting `getSearchedTermSets()` returning `{ searched2025: Set<string>; allSearched: Set<string>; successful: Set<string> }`
+1. Create `scripts/lib/searched-terms.ts` exporting `getSearchedTermSets()` returning `{ searched2025: Set<string>; allSearched: Set<string>; successful: Set<string> }`
 2. Replace all 7 inline implementations with shared import
 3. Estimated savings: ~120 LOC, eliminates logic drift risk
 
@@ -44,8 +44,8 @@
 **Priority**: P2 | **Source**: repomix-explorer analysis 2026-03-10
 
 **Problem**: Two independent enqueue utilities exist with different APIs and job option sources:
-- `server/src/scripts/lib/queue-utils.ts:28` — `enqueueBatch(terms, userId, logger?)` uses `config.queue.defaultJobOptions`; consumed by 9 scripts
-- `server/src/scripts/utils/batch-enqueue.ts:48` — `enqueueBatchGeneric(BatchEnqueueConfig)` uses hardcoded `{ attempts: 3, backoff: { type: 'exponential', delay: 2000 }, removeOnComplete: 100, removeOnFail: 50 }` + rich logging; consumed only by `enqueue-batch.ts`
+- `scripts/lib/queue-utils.ts:28` — `enqueueBatch(terms, userId, logger?)` uses `config.queue.defaultJobOptions`; consumed by 9 scripts
+- `scripts/utils/batch-enqueue.ts:48` — `enqueueBatchGeneric(BatchEnqueueConfig)` uses hardcoded `{ attempts: 3, backoff: { type: 'exponential', delay: 2000 }, removeOnComplete: 100, removeOnFail: 50 }` + rich logging; consumed only by `enqueue-batch.ts`
 
 **Key differences**:
 | Feature | `enqueueBatch` | `enqueueBatchGeneric` |
@@ -71,9 +71,9 @@
 **Problem**: Two distinct duplication patterns across backfill scripts.
 
 **Pattern 1 — `isSupersetOfSuccessful` exact duplicate** (3 files):
-- `server/src/scripts/backfill-2025.ts:56` — standalone function `(lower, successful) => boolean`
-- `server/src/scripts/backfill-2025-unsearched.ts:61` — identical copy
-- `server/src/scripts/generate-search-terms.ts:299` — closure variant (captures `successful` from scope)
+- `scripts/backfill-2025.ts:56` — standalone function `(lower, successful) => boolean`
+- `scripts/backfill-2025-unsearched.ts:61` — identical copy
+- `scripts/generate-search-terms.ts:299` — closure variant (captures `successful` from scope)
 
 Move to `lib/backfill-utils.ts` alongside existing `get2025Count`.
 
@@ -96,8 +96,8 @@ Move to `lib/backfill-utils.ts` alongside existing `get2025Count`.
 **Problem**: 2 scripts still create inline `winston.createLogger()` instances instead of using the shared Pino logger (`../../lib/logger`). The winston logger in `continuous-batch-scraper.ts` also hardcodes a file transport path (`logs/continuous-scraper.log`).
 
 **Affected files**:
-- `server/src/scripts/continuous-batch-scraper.ts:2,16-25` — `import winston` + 9-line logger creation with Console + File transports
-- `server/src/scripts/clear-all-jobs.ts:1,4-8` — `import winston` + 5-line logger creation with Console transport only
+- `scripts/continuous-batch-scraper.ts:2,16-25` — `import winston` + 9-line logger creation with Console + File transports
+- `scripts/clear-all-jobs.ts:1,4-8` — `import winston` + 5-line logger creation with Console transport only
 
 **Refactoring plan**:
 1. Replace both winston imports with `import logger from "../../lib/logger"`
@@ -109,11 +109,11 @@ Move to `lib/backfill-utils.ts` alongside existing `get2025Count`.
 
 ### M25: Consolidate queue-entity-searches.ts and queue-entity-searches-fresh.ts
 **Priority**: P2 | **Source**: repomix-explorer session 2026-03-09
-Both files share identical 52-term `ENTITY_TERMS` array. The only behavioral difference is that `-fresh.ts` cleans up failed jobs before enqueueing. Merge into single script with `--fresh` flag to eliminate ~150 LOC duplication. -- `server/src/scripts/queue-entity-searches*.ts`
+Both files share identical 52-term `ENTITY_TERMS` array. The only behavioral difference is that `-fresh.ts` cleans up failed jobs before enqueueing. Merge into single script with `--fresh` flag to eliminate ~150 LOC duplication. -- `scripts/queue-entity-searches*.ts`
 
 ### M26: Extract get2025Count() and related helpers to lib/backfill-utils.ts
 **Priority**: P2 | **Source**: repomix-explorer session 2026-03-09
-`get2025Count()` function is copy-pasted identically across 4 backfill scripts (backfill-2025.ts, backfill-2025-proven.ts, backfill-2025-unsearched.ts, backfill-2025-novel.ts). Also duplicates `MAX_CONSECUTIVE_ZERO_BATCHES` and `getSearchedTerms()` variants. Extract to shared `lib/backfill-utils.ts` and import across all 4 scripts. -- `server/src/scripts/backfill-2025*.ts`
+`get2025Count()` function is copy-pasted identically across 4 backfill scripts (backfill-2025.ts, backfill-2025-proven.ts, backfill-2025-unsearched.ts, backfill-2025-novel.ts). Also duplicates `MAX_CONSECUTIVE_ZERO_BATCHES` and `getSearchedTerms()` variants. Extract to shared `lib/backfill-utils.ts` and import across all 4 scripts. -- `scripts/backfill-2025*.ts`
 
 
 ---

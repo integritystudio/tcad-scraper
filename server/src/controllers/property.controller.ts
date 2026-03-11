@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import type { NextFunction, Request, Response } from "express";
+import { DEFAULT_QUERY_LIMIT } from "../utils/constants";
 import { claudeSearchService } from "../lib/claude.service";
 import { prisma, prismaReadOnly } from "../lib/prisma";
 import { cacheService } from "../lib/redis-cache.service";
@@ -165,7 +166,7 @@ export class PropertyController {
 		req: Request<object, object, NaturalLanguageSearchBody>,
 		res: Response,
 	) {
-		const { query, limit = 100, offset = 0 } = req.body;
+		const { query, limit = DEFAULT_QUERY_LIMIT, offset = 0 } = req.body;
 
 		if (!query || typeof query !== "string") {
 			return res

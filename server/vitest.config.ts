@@ -25,6 +25,7 @@ export default defineConfig({
 			"src/**/__tests__/**/*.test.ts",
 			"src/**/*.test.ts",
 			"src/**/*.spec.ts",
+			"../scripts/**/__tests__/**/*.test.ts",
 		],
 
 		// Exclude integration tests (require external services: DB, Redis, Anthropic API)
@@ -49,7 +50,7 @@ export default defineConfig({
 				"src/**/__tests__/**",
 				"src/**/*.integration.test.ts",
 				"src/index.ts",
-				"src/scripts/**",
+				"../scripts/**",
 				"src/cli/**",
 			],
 			thresholds: {

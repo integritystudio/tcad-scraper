@@ -147,7 +147,7 @@ fi
 # Check 9: Enqueue Scripts
 echo ""
 echo -n "Checking enqueue scripts... "
-SCRIPT_COUNT=$(ls -1 src/scripts/enqueue-*.ts 2>/dev/null | wc -l)
+SCRIPT_COUNT=$(ls -1 ../scripts/enqueue-*.ts 2>/dev/null | wc -l)
 if [ $SCRIPT_COUNT -ge 10 ]; then
   echo -e "${GREEN}✓ Found ${SCRIPT_COUNT} scripts${NC}"
 else

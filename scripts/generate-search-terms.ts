@@ -7,23 +7,23 @@
  *   3. Unexplored prefix candidates (gap analysis on searched prefixes)
  *   4. Static fallback arrays (legacy names/geo/entity/neighborhood)
  *
- * Usage: doppler run -- npx tsx src/scripts/generate-search-terms.ts
+ * Usage: doppler run -- npx tsx scripts/generate-search-terms.ts
  * Flags:
  *   --enqueue   also enqueue the generated terms into BullMQ
  *   --json      output JSON instead of TypeScript
  *   --limit N   number of terms to generate (default: 200)
  */
 
-import { config } from "../config";
-import { prisma } from "../lib/prisma";
-import { scraperQueue } from "../queues/scraper.queue";
-import { getErrorMessage } from "../utils/error-helpers";
+import { config } from "../server/src/config";
+import { prisma } from "../server/src/lib/prisma";
+import { scraperQueue } from "../server/src/queues/scraper.queue";
+import { getErrorMessage } from "../server/src/utils/error-helpers";
 import {
   DENSE_MAX_RESULTS_THRESHOLD, DENSE_AVG_RESULTS_THRESHOLD,
   DENSE_MIN_SUCCESS_RATE, DENSE_MAX_BASE_LENGTH,
   SEED_MIN_SUCCESS_RATE, SEED_MIN_AVG_RESULTS,
   MIN_TERM_LENGTH, ALPHABET,
-} from "./lib/backfill-constants";
+} from "../utils/constants";
 
 const rawLimit =
   process.argv.find((a) => a.startsWith("--limit="))?.split("=")[1] ??

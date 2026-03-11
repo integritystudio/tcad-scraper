@@ -10,11 +10,11 @@
  * 4. Continues monitoring for new 401 errors
  */
 
-import logger from "../lib/logger";
-import { prisma } from "../lib/prisma";
-import { scraperQueue } from "../queues/scraper.queue";
-import { tokenRefreshService } from "../services/token-refresh.service";
-import { getErrorMessage } from "../utils/error-helpers";
+import logger from "../server/src/lib/logger";
+import { prisma } from "../server/src/lib/prisma";
+import { scraperQueue } from "../server/src/queues/scraper.queue";
+import { tokenRefreshService } from "../server/src/services/token-refresh.service";
+import { getErrorMessage } from "../server/src/utils/error-helpers";
 
 const BATCH_SIZE = 50; // Enqueue 50 jobs at a time
 const CHECK_INTERVAL_MS = 60000; // Check every 1 minute

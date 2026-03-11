@@ -588,11 +588,11 @@ By default, authentication is optional in development. Configure `JWT_SECRET` an
 cd server
 
 # With Doppler
-doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
+doppler run -- npx tsx scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
 
 # Without Doppler
 DATABASE_URL="postgresql://localhost:5432/tcad_scraper" \
-  npx tsx src/scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
+  npx tsx scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
 
 # Save PID for later
 echo $! > continuous-scraper.pid
@@ -628,14 +628,14 @@ Use the config-driven batch enqueue runner:
 ```bash
 cd server
 
-# Enqueue a specific batch type (see src/scripts/config/batch-configs.ts for 18 types)
-doppler run -- npx tsx src/scripts/enqueue-batch.ts <batch-type>
+# Enqueue a specific batch type (see scripts/config/batch-configs.ts for 18 types)
+doppler run -- npx tsx scripts/enqueue-batch.ts <batch-type>
 
 # Generate and enqueue backfill terms
-doppler run -- npx tsx src/scripts/generate-next-200-terms.ts --enqueue
+doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue
 
 # Enqueue terms from stdin
-echo "Smith\nJohnson" | doppler run -- npx tsx src/scripts/enqueue-terms.ts
+echo "Smith\nJohnson" | doppler run -- npx tsx scripts/enqueue-terms.ts
 ```
 
 ### Worker Process
@@ -644,7 +644,7 @@ Run a standalone worker to process queued jobs:
 
 ```bash
 cd server
-doppler run -- npx tsx src/scripts/worker.ts
+doppler run -- npx tsx scripts/worker.ts
 ```
 
 ### Available npm Scripts
@@ -873,7 +873,7 @@ tail -100 continuous-scraper.log | grep -i error
 # Restart scraper
 pkill -f "continuous-batch-scraper"
 cd server
-doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
+doppler run -- npx tsx scripts/continuous-batch-scraper.ts > continuous-scraper.log 2>&1 &
 ```
 
 **No properties being scraped:**
@@ -883,7 +883,7 @@ curl http://localhost:3001/health/queue
 
 # Check queue details
 cd server
-doppler run -- npx tsx src/scripts/queue-results.ts
+doppler run -- npx tsx scripts/queue-results.ts
 ```
 
 ### Database Issues
@@ -920,7 +920,7 @@ psql $DATABASE_URL -c "ANALYZE properties;"
 ```bash
 # Check queue status
 cd server
-doppler run -- npx tsx src/scripts/queue-results.ts
+doppler run -- npx tsx scripts/queue-results.ts
 
 # View Bull Dashboard
 open http://localhost:3001/admin/queues
@@ -933,7 +933,7 @@ open http://localhost:3001/admin/queues
 
 # Or use requeue scripts
 cd server
-doppler run -- npx tsx src/scripts/requeue/requeue-all-failed-with-error-tracking.ts
+doppler run -- npx tsx scripts/requeue/requeue-all-failed-with-error-tracking.ts
 ```
 
 ### API Server Issues
@@ -1020,7 +1020,7 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ### Server-Specific Documentation
 - **[server/README.md](server/README.md)** - Server setup, troubleshooting, requeue scripts
-- **[server/src/scripts/README.md](server/src/scripts/README.md)** - Full scripts inventory and usage
+- **[scripts/README.md](scripts/README.md)** - Full scripts inventory and usage
 
 ---
 

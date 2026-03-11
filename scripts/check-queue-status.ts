@@ -5,13 +5,13 @@
  * Displays current status of all jobs in the scraper queue
  */
 
-import logger from "../lib/logger";
-import { scraperQueue } from "../queues/scraper.queue";
+import logger from "../server/src/lib/logger";
+import { scraperQueue } from "../server/src/queues/scraper.queue";
 import type {
 	CompletedScraperJob,
 	FailedScraperJob,
 	ScraperJob,
-} from "../types/queue.types";
+} from "../server/src/types/queue.types";
 
 async function checkQueueStatus() {
 	try {

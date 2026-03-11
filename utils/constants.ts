@@ -12,11 +12,11 @@ export const PROPERTY_TYPES = [
 ] as const;
 
 export const VALUE_RANGES = [
-	{ label: "Under $100k", min: 0, max: 100000 },
-	{ label: "$100k - $300k", min: 100000, max: 300000 },
-	{ label: "$300k - $500k", min: 300000, max: 500000 },
-	{ label: "$500k - $1M", min: 500000, max: 1000000 },
-	{ label: "Over $1M", min: 1000000, max: Infinity },
+	{ label: "$0-100k", min: 0, max: 100_000 },
+	{ label: "$100k-250k", min: 100_000, max: 250_000 },
+	{ label: "$250k-500k", min: 250_000, max: 500_000 },
+	{ label: "$500k-1M", min: 500_000, max: 1_000_000 },
+	{ label: "$1M+", min: 1_000_000, max: Infinity },
 ] as const;
 
 export const STATUS_COLORS = {
@@ -55,3 +55,14 @@ export const DENSE_MAX_BASE_LENGTH = 6;
 // Seed term expansion
 export const SEED_MIN_SUCCESS_RATE = 0.5;
 export const SEED_MIN_AVG_RESULTS = 100;
+
+// ── Formatting ─────────────────────────────────────────────────────
+export const PERCENT_MULTIPLIER = 100;
+export const COST_DECIMAL_PLACES = 6;
+
+// ── Default limits & intervals ─────────────────────────────────────
+export const DEFAULT_LOOKBACK_DAYS = 7;
+export const DEFAULT_QUERY_LIMIT = 100;
+export const DEFAULT_RETRY_DELAY_MS = 2000;
+export const DEFAULT_RATE_LIMIT_DELAY_MS = 5000;
+export const PROGRESS_LOG_INTERVAL = 100;

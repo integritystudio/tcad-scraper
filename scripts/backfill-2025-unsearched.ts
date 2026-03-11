@@ -6,11 +6,11 @@
  * 2026 properties that have no 2025 counterpart, filter supersets and
  * already-searched terms, then enqueue in batches with drain-and-count.
  *
- * Usage: TCAD_YEAR=2025 doppler run -- npx tsx src/scripts/backfill-2025-unsearched.ts
+ * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025-unsearched.ts
  */
 
-import { prisma } from "../lib/prisma";
-import { MIN_TERM_LENGTH } from "./lib/backfill-constants";
+import { prisma } from "../server/src/lib/prisma";
+import { MIN_TERM_LENGTH } from "../utils/constants";
 import { isSupersetOfSuccessful } from "./lib/backfill-utils";
 import { runBackfillMain } from "./lib/backfill-runner";
 import { getSearchedTermSets } from "./lib/searched-terms";

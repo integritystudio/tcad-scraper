@@ -1,7 +1,7 @@
-import logger from "../lib/logger";
-import { scraperQueue } from "../queues/scraper.queue";
+import logger from "../server/src/lib/logger";
+import { scraperQueue } from "../server/src/queues/scraper.queue";
 import { enqueueBatch } from "./lib/queue-utils";
-import { getErrorMessage } from "../utils/error-helpers";
+import { getErrorMessage } from "../server/src/utils/error-helpers";
 
 /**
  * Queue high-yield entity term searches.

@@ -12,7 +12,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue**: BullMQ + Redis (Render, TLS)
 - **Logging**: Pino (structured JSON)
 - **Testing**: Vitest (631+ tests)
-- **Scale**: 418K+ properties
+- **Scale**: 500K+ properties
 
 ```
 React (5174) → Express (3001) → PostgreSQL (Render)
@@ -43,11 +43,11 @@ doppler run -- npm run dev
 - `src/services/token-refresh.service.ts` - Auto-refresh tokens via Cloudflare Worker
 - `src/lib/claude.service.ts` - Natural language search
 - `src/lib/tcad-api-client.ts` - TCAD API client with structured diagnostics for JSON parse failures
-- `src/scripts/enqueue-batch.ts` - Config-driven batch enqueue runner
-- `src/scripts/config/batch-configs.ts` - 18 batch type definitions
-- `src/scripts/continuous-batch-scraper.ts` - Long-running scraper; `STOP_AT_PROPERTIES` (500K) controls halt threshold
-- `src/scripts/queue-results.ts` - Queue status + recent completed/failed jobs (`doppler run -- npx tsx src/scripts/queue-results.ts [--limit N]`)
-- See [src/scripts/README.md](server/src/scripts/README.md) for full scripts reference
+- `scripts/enqueue-batch.ts` - Config-driven batch enqueue runner
+- `scripts/config/batch-configs.ts` - 18 batch type definitions
+- `scripts/continuous-batch-scraper.ts` - Long-running scraper; `STOP_AT_PROPERTIES` (500K) controls halt threshold
+- `scripts/queue-results.ts` - Queue status + recent completed/failed jobs (`doppler run -- npx tsx scripts/queue-results.ts [--limit N]`)
+- See [scripts/README.md](scripts/README.md) for full scripts reference
 - `src/utils/` - Shared utilities (error-helpers, property-transformers, timing)
 - `prisma/schema.prisma` - Schema (properties, scrape_jobs, monitored_searches)
 
@@ -63,11 +63,10 @@ doppler run -- npm run dev
 ```
 ├── src/                  # Frontend (React + Vite)
 ├── server/               # Backend (Express + BullMQ + Prisma)
-│   ├── src/scripts/      # CLI tools, batch scripts, test utilities
 │   └── prisma/           # Schema + migrations (canonical location)
+├── scripts/              # CLI tools, batch scripts, backfill, enqueue
 ├── config/               # Monitoring, GTM configs
 │   └── monitoring/       # Grafana dashboards, Prometheus rules + Docker Compose
-├── scripts/              # Shell + Python utility scripts
 ├── shared/               # Shared types between frontend/backend
 └── docs/                 # All documentation
 ```
@@ -102,15 +101,15 @@ npm run test:integration     # Integration tests
 npm run test:all:coverage    # Full coverage report
 
 # Scraping
-doppler run -- npx tsx src/scripts/continuous-batch-scraper.ts
+doppler run -- npx tsx scripts/continuous-batch-scraper.ts
 npm run queue:status
 
 # Backfill Discovery
-doppler run -- npx tsx src/scripts/generate-next-200-terms.ts          # Generate next 500 candidate terms (dry run)
-doppler run -- npx tsx src/scripts/generate-next-200-terms.ts --enqueue # Generate and enqueue
-doppler run -- npx tsx src/scripts/check-unsearched-terms.ts            # Find inventory terms not yet searched for current year
+doppler run -- npx tsx scripts/generate-next-200-terms.ts          # Generate next 500 candidate terms (dry run)
+doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue # Generate and enqueue
+doppler run -- npx tsx scripts/check-unsearched-terms.ts            # Find inventory terms not yet searched for current year
 # Pipe unsearched terms to enqueue:
-#   doppler run -- npx tsx src/scripts/check-unsearched-terms.ts | grep '^ ' | sed 's/^  //' | doppler run -- npx tsx src/scripts/enqueue-terms.ts
+#   doppler run -- npx tsx scripts/check-unsearched-terms.ts | grep '^ ' | sed 's/^  //' | doppler run -- npx tsx scripts/enqueue-terms.ts
 bash scripts/search-terms-summary.sh                                    # Recent search terms table (from repo root)
 
 # Queue Management
@@ -163,7 +162,7 @@ curl -s "https://api.alephatx.info/health" | jq
 | DB connection failed | Check Render dashboard → verify DATABASE_URL in Doppler |
 | TCAD API auth failed | Token expired (5 min lifetime); check server logs for "Token refreshed". See [Requeue Scripts](server/README.md#requeue-scripts) |
 | Queue not processing | `npm run queue:status` → check Render Redis dashboard or server logs |
-| Mass job failures | Use requeue scripts in `server/src/scripts/requeue/`. See [Requeue Scripts](server/README.md#requeue-scripts) |
+| Mass job failures | Use requeue scripts in `scripts/requeue/`. See [Requeue Scripts](server/README.md#requeue-scripts) |
 | Rate limiting error | Ensure `app.set('trust proxy', 1)` in `server/src/index.ts` |
 | API 522/unreachable | Check Render dashboard → service logs |
 | DNS not resolving | Flush: `sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder` |

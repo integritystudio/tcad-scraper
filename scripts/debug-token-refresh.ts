@@ -5,9 +5,9 @@
  * Tests the token refresh service and prints detailed diagnostics
  */
 
-import logger from "../lib/logger";
-import { tokenRefreshService } from "../services/token-refresh.service";
-import { getErrorMessage } from "../utils/error-helpers";
+import logger from "../server/src/lib/logger";
+import { tokenRefreshService } from "../server/src/services/token-refresh.service";
+import { getErrorMessage } from "../server/src/utils/error-helpers";
 
 async function debugTokenRefresh() {
 	logger.info("=".repeat(60));

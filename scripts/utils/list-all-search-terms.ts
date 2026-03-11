@@ -3,7 +3,7 @@
  * batch-configs.ts and continuous-batch-scraper.ts.
  *
  * Importable: `import { getAllSearchTerms } from "./utils/list-all-search-terms"`
- * CLI:        `npx tsx src/scripts/utils/list-all-search-terms.ts`
+ * CLI:        `npx tsx scripts/utils/list-all-search-terms.ts`
  */
 
 import { BATCH_CONFIGS, HIGH_RESULT_TERM_SPLITS } from "../config/batch-configs";

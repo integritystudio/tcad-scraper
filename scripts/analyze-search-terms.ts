@@ -7,10 +7,10 @@
  * 2. Which search terms still have potential
  * 3. Patterns in failed vs successful jobs
  *
- * Run: doppler run -- npx tsx src/scripts/analyze-search-terms.ts
+ * Run: doppler run -- npx tsx scripts/analyze-search-terms.ts
  */
 
-import { prisma } from "../lib/prisma";
+import { prisma } from "../server/src/lib/prisma";
 
 // Approximate total TCAD property count — update periodically from https://tcad.org/
 // Used for coverage percentage and threshold checks only; staleness won't affect scraping.

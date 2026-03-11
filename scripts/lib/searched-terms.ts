@@ -1,7 +1,7 @@
 /** Shared utility for loading already-searched term sets across backfill and generation scripts. */
 
-import { prisma } from "../../lib/prisma";
-import { RECENT_JOBS_LOOKBACK_MS } from "./backfill-constants";
+import { prisma } from "../../server/src/lib/prisma";
+import { RECENT_JOBS_LOOKBACK_MS } from "../../utils/constants";
 
 export interface SearchedTermSets {
   /** All analytics terms + year=2025 properties + recent jobs. Use as the general "already tried" gate. */

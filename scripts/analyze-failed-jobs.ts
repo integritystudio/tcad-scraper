@@ -10,9 +10,9 @@
  * - Error types (TOKEN_EXPIRED, HTTP 504, TRUNCATED, etc.)
  */
 
-import logger from "../lib/logger";
-import { prisma } from "../lib/prisma";
-import { getErrorMessage } from "../utils/error-helpers";
+import logger from "../server/src/lib/logger";
+import { prisma } from "../server/src/lib/prisma";
+import { getErrorMessage } from "../server/src/utils/error-helpers";
 
 interface ErrorStats {
 	errorMessage: string;

@@ -1,6 +1,7 @@
 #!/usr/bin/env npx tsx
 
 import { Command } from "commander";
+import { DEFAULT_LOOKBACK_DAYS, PERCENT_MULTIPLIER } from "../utils/constants";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
@@ -153,7 +154,7 @@ program
 			logger.info(`\n🏙️  Top ${options.top} Cities:`);
 			propertiesByCity.forEach((city, idx) => {
 				const count = city._count.id;
-				const pct = ((count / totalProperties) * 100).toFixed(1);
+				const pct = ((count / totalProperties) * PERCENT_MULTIPLIER).toFixed(1);
 				logger.info(
 					`   ${idx + 1}. ${city.city || "Unknown"}: ${count.toLocaleString()} (${pct}%)`,
 				);
@@ -178,7 +179,7 @@ program
 			logger.info(`\n🏗️  Top ${options.top} Property Types:`);
 			propertiesByType.forEach((type, idx) => {
 				const count = type._count.id;
-				const pct = ((count / totalProperties) * 100).toFixed(1);
+				const pct = ((count / totalProperties) * PERCENT_MULTIPLIER).toFixed(1);
 				logger.info(
 					`   ${idx + 1}. ${type.propType}: ${count.toLocaleString()} (${pct}%)`,
 				);
@@ -226,7 +227,7 @@ program
 program
 	.command("rate")
 	.description("Show scraping rate and time-based statistics")
-	.option("--days <n>", "Analyze last N days", "7")
+	.option("--days <n>", "Analyze last N days", String(DEFAULT_LOOKBACK_DAYS))
 	.action(async (options: StatsOptions) => {
 		logger.info("⚡ Scraping Rate Analysis\n");
 		logger.info("=".repeat(70));

@@ -15,12 +15,12 @@
  *  - Loads DB blacklist (zero-yield after 3+ searches)
  *
  * Usage:
- *   doppler run -- npx tsx src/scripts/generate-next-200-terms.ts
- *   doppler run -- npx tsx src/scripts/generate-next-200-terms.ts --enqueue
+ *   doppler run -- npx tsx scripts/generate-next-200-terms.ts
+ *   doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue
  */
 
-import { prisma } from '../lib/prisma';
-import { SearchTermDeduplicator } from '../lib/search-term-deduplicator';
+import { prisma } from '../server/src/lib/prisma';
+import { SearchTermDeduplicator } from '../server/src/lib/search-term-deduplicator';
 import { enqueueBatch } from './lib/queue-utils';
 import { getSearchedTermSets } from './lib/searched-terms';
 
@@ -296,7 +296,7 @@ export async function main(enqueueMode = false) {
   }
 
   if (enqueueMode && selected.length > 0) {
-    const { scraperQueue } = await import('../queues/scraper.queue');
+    const { scraperQueue } = await import('../server/src/queues/scraper.queue');
     console.error(`\nEnqueuing ${selected.length} terms to BullMQ...`);
     const queued = await enqueueBatch(selected, 'next-200-gen');
     console.error(`Enqueued ${queued} jobs`);

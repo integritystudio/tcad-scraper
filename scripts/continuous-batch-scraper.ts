@@ -1,23 +1,23 @@
 import type { Prisma } from "@prisma/client";
-import { config } from "../config";
-import { prisma } from "../lib/prisma";
-import { SearchTermDeduplicator } from "../lib/search-term-deduplicator";
-import { scraperQueue } from "../queues/scraper.queue";
+import { config } from "../server/src/config";
+import { prisma } from "../server/src/lib/prisma";
+import { SearchTermDeduplicator } from "../server/src/lib/search-term-deduplicator";
+import { scraperQueue } from "../server/src/queues/scraper.queue";
 import {
 	type SearchTermOptimizer,
 	searchTermOptimizer,
-} from "../services/search-term-optimizer";
-import logger from "../lib/logger";
-import { getErrorMessage } from "../utils/error-helpers";
+} from "../server/src/services/search-term-optimizer";
+import logger from "../server/src/lib/logger";
+import { getErrorMessage } from "../server/src/utils/error-helpers";
 import { HIGH_RESULT_TERM_SPLITS } from "./config/batch-configs";
 import { enqueueBatch } from "./lib/queue-utils";
-import { TARGET_2025_PROPERTY_COUNT } from "./lib/backfill-constants";
+import { TARGET_2025_PROPERTY_COUNT } from "../utils/constants";
 
 // Operational stop threshold — scraper halts when DB reaches this count.
 // Not the full dataset ceiling (~451K total Travis County parcels); set lower
 // to leave headroom for duplicate records and future growth.
 const STOP_AT_PROPERTIES = 500000;
-const MAX_CONSECUTIVE_ZERO_BATCHES = 3;
+const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
 const BATCH_SIZE = 25;
 const DELAY_BETWEEN_BATCHES = 30000;
 const CHECK_INTERVAL = 60000;

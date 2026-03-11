@@ -5,11 +5,11 @@
  * queried for 2025. Re-querying them with TCAD_YEAR=2025 should capture
  * the bulk of missing 2025 properties.
  *
- * Usage: TCAD_YEAR=2025 doppler run -- npx tsx src/scripts/backfill-2025-proven.ts
+ * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025-proven.ts
  */
 
-import { prisma } from "../lib/prisma";
-import { RECENT_JOBS_LOOKBACK_DAYS, RECENT_JOBS_LOOKBACK_MS } from "./lib/backfill-constants";
+import { prisma } from "../server/src/lib/prisma";
+import { RECENT_JOBS_LOOKBACK_DAYS, RECENT_JOBS_LOOKBACK_MS } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
 
 const MIN_2026_YIELD = 100;

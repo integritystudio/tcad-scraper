@@ -1,8 +1,8 @@
 /**
  * Enqueue a list of search terms to BullMQ from stdin (one per line).
- * Usage: echo "term1\nterm2" | doppler run -- npx tsx src/scripts/enqueue-terms.ts
+ * Usage: echo "term1\nterm2" | doppler run -- npx tsx scripts/enqueue-terms.ts
  */
-import { scraperQueue } from '../queues/scraper.queue';
+import { scraperQueue } from '../server/src/queues/scraper.queue';
 import { enqueueBatch } from './lib/queue-utils';
 
 async function main() {

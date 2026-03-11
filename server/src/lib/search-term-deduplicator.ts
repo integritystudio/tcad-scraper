@@ -5,6 +5,8 @@
  * useful variations that might yield unique results.
  */
 
+import { MIN_TERM_LENGTH } from "../utils/constants";
+
 export interface DeduplicationStats {
 	exactDuplicates: number;
 	businessSupersets: number;
@@ -57,7 +59,7 @@ export class SearchTermDeduplicator {
 	 * @returns true if the term should be skipped, false if it's unique enough
 	 */
 	public shouldSkipTerm(term: string): boolean {
-		if (!term || term.length < 4) {
+		if (!term || term.length < MIN_TERM_LENGTH) {
 			return true; // Skip invalid/too-short terms
 		}
 

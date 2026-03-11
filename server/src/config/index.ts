@@ -10,6 +10,7 @@
  */
 
 import dotenv from "dotenv";
+import { DEFAULT_QUERY_LIMIT, DEFAULT_RATE_LIMIT_DELAY_MS, DEFAULT_RETRY_DELAY_MS } from "../utils/constants";
 import logger from "../lib/logger";
 
 // Load environment variables from .env or Doppler
@@ -117,7 +118,7 @@ export const config = {
 		concurrency: parseIntEnv("QUEUE_CONCURRENCY", 2),
 		defaultJobOptions: {
 			attempts: parseIntEnv("QUEUE_JOB_ATTEMPTS", 3),
-			backoffDelay: parseIntEnv("QUEUE_BACKOFF_DELAY", 2000),
+			backoffDelay: parseIntEnv("QUEUE_BACKOFF_DELAY", DEFAULT_RETRY_DELAY_MS),
 			removeOnComplete: parseIntEnv("QUEUE_REMOVE_ON_COMPLETE", 100),
 			removeOnFail: parseIntEnv("QUEUE_REMOVE_ON_FAIL", 50),
 		},
@@ -134,7 +135,7 @@ export const config = {
 	rateLimit: {
 		api: {
 			windowMs: parseIntEnv("API_RATE_LIMIT_WINDOW", 900000), // 15 minutes
-			max: parseIntEnv("API_RATE_LIMIT_MAX", 100),
+			max: parseIntEnv("API_RATE_LIMIT_MAX", DEFAULT_QUERY_LIMIT),
 			message:
 				process.env.API_RATE_LIMIT_MESSAGE ||
 				"Too many requests from this IP, please try again later.",
@@ -145,7 +146,7 @@ export const config = {
 			message:
 				process.env.SCRAPER_RATE_LIMIT_MESSAGE ||
 				"Too many scrape requests, please wait before trying again.",
-			jobDelay: parseIntEnv("SCRAPER_RATE_LIMIT_DELAY", 5000),
+			jobDelay: parseIntEnv("SCRAPER_RATE_LIMIT_DELAY", DEFAULT_RATE_LIMIT_DELAY_MS),
 			cacheCleanupInterval: parseIntEnv("SCRAPER_RATE_CACHE_CLEANUP", 60000),
 		},
 	},
@@ -212,7 +213,7 @@ export const config = {
 		tcadYear: parseTcadYear("TCAD_YEAR", new Date().getFullYear()),
 		timeout: parseIntEnv("SCRAPER_TIMEOUT", 30000),
 		retryAttempts: parseIntEnv("SCRAPER_RETRY_ATTEMPTS", 3),
-		retryDelay: parseIntEnv("SCRAPER_RETRY_DELAY", 2000),
+		retryDelay: parseIntEnv("SCRAPER_RETRY_DELAY", DEFAULT_RETRY_DELAY_MS),
 	},
 
 	// Claude AI Configuration

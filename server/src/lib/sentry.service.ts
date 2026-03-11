@@ -11,6 +11,7 @@
  * - Service tagging for unified Sentry project
  */
 
+import { DEFAULT_RETRY_DELAY_MS } from "../utils/constants";
 import * as Sentry from "@sentry/node";
 import {
 	expressErrorHandler,
@@ -330,7 +331,7 @@ export function wrapAsync<T extends (...args: unknown[]) => Promise<unknown>>(
 /**
  * Flush all pending events (useful before shutdown)
  */
-export async function flush(timeout: number = 2000): Promise<boolean> {
+export async function flush(timeout: number = DEFAULT_RETRY_DELAY_MS): Promise<boolean> {
 	if (!config.monitoring.sentry.enabled) {
 		return true;
 	}
@@ -341,7 +342,7 @@ export async function flush(timeout: number = 2000): Promise<boolean> {
 /**
  * Close Sentry client
  */
-export async function close(timeout: number = 2000): Promise<boolean> {
+export async function close(timeout: number = DEFAULT_RETRY_DELAY_MS): Promise<boolean> {
 	if (!config.monitoring.sentry.enabled) {
 		return true;
 	}

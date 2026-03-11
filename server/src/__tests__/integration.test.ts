@@ -13,6 +13,7 @@ import request from "supertest";
 import { describe, expect, test } from "vitest";
 import app from "../index";
 import logger from "../lib/logger";
+import { HTTP_STATUS } from "../utils/constants";
 import { isFrontendBuilt, isRedisAvailable } from "./test-utils";
 
 const hasFrontend = isFrontendBuilt();
@@ -21,7 +22,7 @@ describe("Integration Tests", () => {
 	describe("Server Health", () => {
 		test("should respond to health check", async () => {
 			const response = await request(app).get("/health");
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HTTP_STATUS.OK);
 			expect(response.body.status).toBe("healthy");
 		});
 
@@ -34,7 +35,7 @@ describe("Integration Tests", () => {
 			}
 
 			const response = await request(app).get("/health/queue");
-			expect([200, 500]).toContain(response.status);
+			expect([HTTP_STATUS.OK, 500]).toContain(response.status);
 			// May be 500 if Redis is not running, but should respond
 		}, 10000); // 10 second timeout for this test
 	});
@@ -56,7 +57,7 @@ describe("Integration Tests", () => {
 		test("should serve frontend with xcontroller security", async () => {
 			const response = await request(app).get("/");
 
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HTTP_STATUS.OK);
 			expect(response.headers["content-type"]).toContain("text/html");
 		});
 
@@ -97,14 +98,14 @@ describe("Integration Tests", () => {
 	describe("Route Priority", () => {
 		test("should serve health checks before app routes", async () => {
 			const response = await request(app).get("/health");
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HTTP_STATUS.OK);
 			expect(response.headers["content-type"]).toContain("application/json");
 		});
 
 		test("should serve API routes before app routes", async () => {
 			const response = await request(app).get("/api/properties/stats");
 			// Should respond (even if error) and not serve HTML
-			if (response.status === 200) {
+			if (response.status === HTTP_STATUS.OK) {
 				expect(response.headers["content-type"]).toContain("application/json");
 			}
 			expect(response.headers["content-type"]).not.toContain("text/html");
@@ -114,7 +115,7 @@ describe("Integration Tests", () => {
 			"should serve frontend for unmatched routes",
 			async () => {
 				const response = await request(app).get("/some-spa-route");
-				expect(response.status).toBe(200);
+				expect(response.status).toBe(HTTP_STATUS.OK);
 				expect(response.headers["content-type"]).toContain("text/html");
 			},
 		);
@@ -218,7 +219,7 @@ describe("Integration Tests", () => {
 			"should serve frontend for non-existent SPA routes",
 			async () => {
 				const response = await request(app).get("/dashboard/analytics/report");
-				expect(response.status).toBe(200);
+				expect(response.status).toBe(HTTP_STATUS.OK);
 				expect(response.headers["content-type"]).toContain("text/html");
 			},
 		);

@@ -1,8 +1,8 @@
 /** Shared queue helpers for backfill scripts. */
 
-import { scraperQueue } from "../../queues/scraper.queue";
-import { config } from "../../config";
-import { getErrorMessage } from "../../utils/error-helpers";
+import { scraperQueue } from "../../server/src/queues/scraper.queue";
+import { config } from "../../server/src/config";
+import { getErrorMessage } from "../../server/src/utils/error-helpers";
 
 export const POLL_INTERVAL_MS = 15_000;
 export const BATCH_SIZE = 20;

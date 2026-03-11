@@ -7,6 +7,26 @@
 
 import logger from "./logger";
 import { getErrorMessage } from "../utils/error-helpers";
+import {
+  API_URL,
+  BODY_PREVIEW_HEAD,
+  BODY_PREVIEW_TAIL,
+  CONTENT_LENGTH_UNKNOWN,
+  FETCH_RETRIES,
+  FETCH_RETRY_DELAY_MS,
+  FETCH_TIMEOUT_MS,
+  GATEWAY_TIMEOUT_MULTIPLIER,
+  HTTP_ERROR,
+  HTTP_STATUS,
+  JITTER_FACTOR,
+  MAX_PAGES,
+  PAGE_SIZES,
+  RATE_LIMIT_BACKOFF_MULTIPLIER,
+  RATE_LIMIT_DELAY_MS,
+  RATE_LIMIT_FIRST_PAGE_MULTIPLIER,
+  RESPONSE_ERROR,
+  RETRYABLE_ERRORS,
+} from "../utils/constants";
 import type { PropertyData } from "../types";
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -31,52 +51,6 @@ export interface TCADPropertyResult {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
-
-const API_URL =
-  "https://prod-container.trueprodigyapi.com/public/property/searchfulltext";
-
-const PAGE_SIZES = [1000, 500, 100, 50] as const;
-const MAX_PAGES = 100;
-const RATE_LIMIT_DELAY_MS = 1000;
-const FETCH_RETRIES = 1;
-const FETCH_RETRY_DELAY_MS = 2000;
-const FETCH_TIMEOUT_MS = 30_000;
-const JITTER_FACTOR = 0.5;
-
-const RESPONSE_ERROR = {
-  EMPTY: "EMPTY_RESPONSE",
-  HTML: "HTML_RESPONSE",
-  TRUNCATED: "TRUNCATED",
-  PARSE_FAILED: "JSON_PARSE_FAILED",
-} as const;
-
-const HTTP_ERROR = {
-  TOKEN_EXPIRED: "TOKEN_EXPIRED",
-  RATE_LIMITED: "RATE_LIMITED",
-  GATEWAY_TIMEOUT: "GATEWAY_TIMEOUT",
-} as const;
-
-const HTTP_STATUS = {
-  UNAUTHORIZED: 401,
-  CONFLICT: 409,
-  GATEWAY_TIMEOUT: 504,
-} as const;
-
-/** Delay multipliers for rate-limit and gateway-timeout back-off. */
-const RATE_LIMIT_BACKOFF_MULTIPLIER = 2;
-const RATE_LIMIT_FIRST_PAGE_MULTIPLIER = 3;
-const GATEWAY_TIMEOUT_MULTIPLIER = 5;
-
-const CONTENT_LENGTH_UNKNOWN = "unknown";
-const BODY_PREVIEW_HEAD = 100;
-const BODY_PREVIEW_TAIL = 30;
-
-/** Response content errors that are worth retrying (transient). */
-const RETRYABLE_ERRORS = [
-  RESPONSE_ERROR.TRUNCATED,
-  RESPONSE_ERROR.PARSE_FAILED,
-  RESPONSE_ERROR.EMPTY,
-] as const;
 
 function sanitizeLogField(value: string, maxLen = 200): string {
   return value.slice(0, maxLen).replace(/[\r\n\t]/g, " ");

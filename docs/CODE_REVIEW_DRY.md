@@ -18,7 +18,7 @@
 
 ### ~~CRITICAL: Enqueue Script Duplication (~2,400 lines)~~ — **RESOLVED** (2026-02-08)
 
-**Files**: ~~`server/src/scripts/enqueue-*.ts` (16 files)~~
+**Files**: ~~`scripts/enqueue-*.ts` (16 files)~~
 
 ~~16 nearly identical enqueue scripts~~ Consolidated into `enqueue-batch.ts` + `batch-configs.ts` with 18 batch types. See changelog/2026-02-08.
 

@@ -3,6 +3,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Command } from "commander";
+import { DEFAULT_LOOKBACK_DAYS, DEFAULT_RETRY_DELAY_MS, PERCENT_MULTIPLIER } from "../utils/constants";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
@@ -112,14 +113,14 @@ program
 						attempts: 3,
 						backoff: {
 							type: "exponential",
-							delay: 2000,
+							delay: DEFAULT_RETRY_DELAY_MS,
 						},
 					},
 				);
 				added++;
 				if (added % 10 === 0) {
 					process.stdout.write(
-						`\r   Progress: ${added}/${terms.length} (${((added / terms.length) * 100).toFixed(1)}%)`,
+						`\r   Progress: ${added}/${terms.length} (${((added / terms.length) * PERCENT_MULTIPLIER).toFixed(1)}%)`,
 					);
 				}
 			} catch (error: unknown) {
@@ -196,7 +197,7 @@ program
 					removed++;
 					if (removed % 50 === 0) {
 						process.stdout.write(
-							`\r   Progress: ${removed}/${waiting + delayed} (${((removed / (waiting + delayed)) * 100).toFixed(1)}%)`,
+							`\r   Progress: ${removed}/${waiting + delayed} (${((removed / (waiting + delayed)) * PERCENT_MULTIPLIER).toFixed(1)}%)`,
 						);
 					}
 				} catch (error: unknown) {
@@ -221,7 +222,7 @@ program
 					removed++;
 					if (removed % 50 === 0) {
 						process.stdout.write(
-							`\r   Progress: ${removed}/${waiting + delayed} (${((removed / (waiting + delayed)) * 100).toFixed(1)}%)`,
+							`\r   Progress: ${removed}/${waiting + delayed} (${((removed / (waiting + delayed)) * PERCENT_MULTIPLIER).toFixed(1)}%)`,
 						);
 					}
 				} catch (error: unknown) {
@@ -286,7 +287,7 @@ program
 	.command("cleanup")
 	.description("Clean up queue by removing old jobs")
 	.option("--aggressive", "Remove all completed and failed jobs")
-	.option("--older-than <days>", "Remove jobs older than N days", "7")
+	.option("--older-than <days>", "Remove jobs older than N days", String(DEFAULT_LOOKBACK_DAYS))
 	.option(
 		"--zero-results",
 		"Remove waiting jobs for terms that previously returned zero results",
@@ -382,7 +383,7 @@ program
 						removed++;
 						if (removed % 20 === 0) {
 							process.stdout.write(
-								`\r   Progress: ${removed}/${jobsToRemove.length} (${((removed / jobsToRemove.length) * 100).toFixed(1)}%)`,
+								`\r   Progress: ${removed}/${jobsToRemove.length} (${((removed / jobsToRemove.length) * PERCENT_MULTIPLIER).toFixed(1)}%)`,
 							);
 						}
 					} catch (_error: unknown) {

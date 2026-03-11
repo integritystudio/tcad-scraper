@@ -1,4 +1,5 @@
 import { type Prisma, PrismaClient } from "@prisma/client";
+import { DEFAULT_LOOKBACK_DAYS, MIN_TERM_LENGTH } from "../utils/constants";
 import logger from "../lib/logger";
 
 const prisma = new PrismaClient();
@@ -150,7 +151,7 @@ export class SearchTermOptimizer {
 		// Database has data - use analytics to optimize
 		logger.info("📊 Using analytics to optimize starter terms");
 		return this.getOptimizedTerms({
-			preferredTermLength: 4,
+			preferredTermLength: MIN_TERM_LENGTH,
 			minEfficiency: 5.0,
 			minSuccessRate: 0.5,
 			maxTermsToReturn: 50,
@@ -231,10 +232,10 @@ export class SearchTermOptimizer {
 		const {
 			minEfficiency = 5.0,
 			minSuccessRate = 0.5,
-			preferredTermLength = 4,
+			preferredTermLength = MIN_TERM_LENGTH,
 			maxTermsToReturn = 50,
 			excludeRecentlyUsed = false,
-			recentDays = 7,
+			recentDays = DEFAULT_LOOKBACK_DAYS,
 			maxSearches,
 		} = config;
 
@@ -409,12 +410,12 @@ export class SearchTermOptimizer {
 
 		for (const term of topTerms) {
 			// Generate variations of successful terms
-			if (term.searchTerm.length >= 4) {
-				// Prefix variations (first 4 chars)
-				suggestions.add(term.searchTerm.substring(0, 4));
+			if (term.searchTerm.length >= MIN_TERM_LENGTH) {
+				// Prefix variations (first MIN_TERM_LENGTH chars)
+				suggestions.add(term.searchTerm.substring(0, MIN_TERM_LENGTH));
 
 				// If term is longer, try middle and end substrings
-				if (term.searchTerm.length > 4) {
+				if (term.searchTerm.length > MIN_TERM_LENGTH) {
 					suggestions.add(term.searchTerm.substring(0, 5));
 					suggestions.add(term.searchTerm.substring(0, 3));
 				}

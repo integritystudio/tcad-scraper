@@ -9,6 +9,7 @@
  */
 
 import { Command } from "commander";
+import { MIN_TERM_LENGTH, PROGRESS_LOG_INTERVAL } from "../utils/constants";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
@@ -171,7 +172,7 @@ program
 				});
 				removed += toDelete.length;
 
-				if (removed % 100 === 0) {
+				if (removed % PROGRESS_LOG_INTERVAL === 0) {
 					process.stdout.write(
 						`\r   Progress: ${removed}/${totalDuplicates} removed`,
 					);
@@ -329,9 +330,9 @@ program
 
 		// Apply filters
 		if (options.short) {
-			filters.push("short terms (< 4 chars)");
+			filters.push(`short terms (< ${MIN_TERM_LENGTH} chars)`);
 			allTerms.forEach((t) => {
-				if (t.searchTerm.length < 4) {
+				if (t.searchTerm.length < MIN_TERM_LENGTH) {
 					termsToRemove.add(t.searchTerm);
 				}
 			});

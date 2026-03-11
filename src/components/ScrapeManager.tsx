@@ -1,4 +1,5 @@
 import axios from "axios";
+import { STATUS_COLORS } from "../utils";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -135,17 +136,14 @@ export const ScrapeManager: React.FC<ScrapeManagerProps> = ({
 	};
 
 	const getStatusColor = (status: string) => {
-		switch (status) {
-			case "completed":
-				return "#10b981";
-			case "failed":
-				return "#ef4444";
-			case "processing":
-			case "active":
-				return "#3b82f6";
-			default:
-				return "#6b7280";
-		}
+		const STATUS_COLOR_MAP: Record<string, string> = {
+			completed: STATUS_COLORS.completed,
+			failed: STATUS_COLORS.failed,
+			processing: STATUS_COLORS.active,
+			active: STATUS_COLORS.active,
+			pending: STATUS_COLORS.pending,
+		};
+		return STATUS_COLOR_MAP[status] ?? "#6b7280";
 	};
 
 	const formatDate = (dateString: string) => {

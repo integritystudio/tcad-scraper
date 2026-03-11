@@ -2,7 +2,7 @@
 /**
  * Simple script to get a fresh TCAD API token and output it
  */
-import { tokenRefreshService } from "../services/token-refresh.service";
+import { tokenRefreshService } from "../server/src/services/token-refresh.service";
 
 async function getFreshToken() {
 	try {

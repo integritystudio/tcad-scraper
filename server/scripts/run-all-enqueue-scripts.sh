@@ -29,7 +29,7 @@ if ! doppler setup --silent 2>/dev/null; then
   exit 1
 fi
 
-doppler run -- npx tsx "./src/scripts/enqueue-batch.ts" --all
+doppler run -- npx tsx "../scripts/enqueue-batch.ts" --all
 
 echo ""
 echo -e "${GREEN}Done!${NC}"

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Property } from "../types";
+import { VALUE_RANGES } from "../utils";
 import "./Charts.css";
 
 interface ChartsProps {
@@ -8,13 +9,7 @@ interface ChartsProps {
 
 function Charts({ properties }: ChartsProps) {
 	const valueDistribution = useMemo(() => {
-		const ranges = [
-			{ label: "$0-100k", min: 0, max: 100000, count: 0 },
-			{ label: "$100k-250k", min: 100000, max: 250000, count: 0 },
-			{ label: "$250k-500k", min: 250000, max: 500000, count: 0 },
-			{ label: "$500k-1M", min: 500000, max: 1000000, count: 0 },
-			{ label: "$1M+", min: 1000000, max: Infinity, count: 0 },
-		];
+		const ranges = VALUE_RANGES.map((r) => ({ ...r, count: 0 }));
 
 		properties.forEach((p) => {
 			const range = ranges.find(

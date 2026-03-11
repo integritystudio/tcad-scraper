@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock prisma before importing TermSelector
 const mockFindMany = vi.fn();
 const mockGroupBy = vi.fn();
-vi.mock("../../lib/prisma", () => ({
+vi.mock("../../server/src/lib/prisma", () => ({
 	prisma: {
 		searchTermAnalytics: {
 			findMany: (...args: unknown[]) => mockFindMany(...args),
@@ -15,7 +15,7 @@ vi.mock("../../lib/prisma", () => ({
 }));
 
 // Mock scraper queue (imported transitively)
-vi.mock("../../queues/scraper.queue", () => ({
+vi.mock("../../server/src/queues/scraper.queue", () => ({
 	scraperQueue: {
 		add: vi.fn(),
 		getWaitingCount: vi.fn().mockResolvedValue(0),
@@ -28,7 +28,7 @@ vi.mock("../../queues/scraper.queue", () => ({
 // Mock search-term-optimizer
 const mockGetBlacklistedTerms = vi.fn();
 const mockGetOverSearchedTerms = vi.fn();
-vi.mock("../../services/search-term-optimizer", () => ({
+vi.mock("../../server/src/services/search-term-optimizer", () => ({
 	searchTermOptimizer: {
 		getBlacklistedTerms: (...args: unknown[]) => mockGetBlacklistedTerms(...args),
 		getOverSearchedTerms: (...args: unknown[]) => mockGetOverSearchedTerms(...args),

@@ -40,7 +40,7 @@ cleanup() {
 trap cleanup EXIT
 
 # Generated bundle patterns sourced from base repomix config.
-BUNDLE_IGNORE_PATTERNS_FILE="$ROOT/repomix.config.json"
+BUNDLE_IGNORE_PATTERNS_FILE="$ROOT/scripts/repomix/repomix.config.json"
 BUNDLE_IGNORE_PATTERNS_JSON="$(
   jq -c '
     [

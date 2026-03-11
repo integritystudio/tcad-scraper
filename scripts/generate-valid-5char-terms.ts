@@ -13,11 +13,11 @@
  *  Also directly includes all 5-letter names from the curated lists.
  *  Filters out already-searched and blacklisted terms.
  *
- * Usage: doppler run -- npx tsx src/scripts/generate-valid-5char-terms.ts
+ * Usage: doppler run -- npx tsx scripts/generate-valid-5char-terms.ts
  */
 
 import { writeFileSync, mkdirSync } from 'fs';
-import { prisma } from '../lib/prisma';
+import { prisma } from '../server/src/lib/prisma';
 import { join } from 'path';
 import { getSearchedTermSets } from './lib/searched-terms';
 const OUTPUT_PATH = join(__dirname, '..', '..', 'data', 'valid-5char-terms.txt');

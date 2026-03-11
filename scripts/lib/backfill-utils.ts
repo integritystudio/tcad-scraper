@@ -1,7 +1,7 @@
 /** Shared helpers for backfill-2025* scripts. */
 
-import { prisma } from "../../lib/prisma";
-import { MIN_TERM_LENGTH } from "./backfill-constants";
+import { prisma } from "../../server/src/lib/prisma";
+import { MIN_TERM_LENGTH } from "../../utils/constants";
 
 /**
  * Count properties scraped for year 2025.

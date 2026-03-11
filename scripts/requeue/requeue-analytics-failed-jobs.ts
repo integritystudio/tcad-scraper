@@ -10,10 +10,10 @@
  * these jobs should process successfully.
  */
 
-import logger from "../../lib/logger";
-import { prisma } from "../../lib/prisma";
-import { scraperQueue } from "../../queues/scraper.queue";
-import { getErrorMessage } from "../../utils/error-helpers";
+import logger from "../../server/src/lib/logger";
+import { prisma } from "../../server/src/lib/prisma";
+import { scraperQueue } from "../../server/src/queues/scraper.queue";
+import { getErrorMessage } from "../../server/src/utils/error-helpers";
 
 const BATCH_SIZE = 50;
 

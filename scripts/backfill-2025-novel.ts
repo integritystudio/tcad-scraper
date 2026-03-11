@@ -6,11 +6,11 @@
  * 2026 properties with no 2025 counterpart and haven't been used as
  * search terms in any prior scrape.
  *
- * Usage: TCAD_YEAR=2025 doppler run -- npx tsx src/scripts/backfill-2025-novel.ts
+ * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025-novel.ts
  */
 
-import { prisma } from "../lib/prisma";
-import { MIN_TERM_LENGTH } from "./lib/backfill-constants";
+import { prisma } from "../server/src/lib/prisma";
+import { MIN_TERM_LENGTH } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
 import { getSearchedTermSets } from "./lib/searched-terms";
 

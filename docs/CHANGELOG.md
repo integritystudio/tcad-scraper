@@ -13,7 +13,7 @@ See [changelog/2026-03-09.md](changelog/2026-03-09.md) for full details.
 
 ### March 8, 2026 - Scripts Reorganization & Search Term Consolidation
 
-- **Scripts reorganization** (`c7aabe6`): Moved scripts into `requeue/`, `utils/test-scripts/`, `one-off-and-test-batches/` subdirectories. Added `server/src/scripts/README.md` with full inventory.
+- **Scripts reorganization** (`c7aabe6`): Moved scripts into `requeue/`, `utils/test-scripts/`, `one-off-and-test-batches/` subdirectories. Added `scripts/README.md` with full inventory.
 - **Search term consolidation**: Created `utils/list-all-search-terms.ts` — deduplicated inventory of 593 non-numeric terms across `batch-configs.ts` and `continuous-batch-scraper.ts`. Importable or CLI.
 - **Batch configs expanded**: 14 → 17 batch type definitions in `config/batch-configs.ts`
 - **New scripts**: `enqueue-uncommon-names.ts`, `enqueue-by-category.ts`, `enqueue-prefix-expansions.ts`, `enqueue-08-08-search.ts`, `continuous-batch-scraper-lowthreshold.ts`

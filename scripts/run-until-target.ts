@@ -1,12 +1,12 @@
 /**
  * Enqueue scrape jobs until 400K year-2025 properties or 5 consecutive zero-result jobs.
- * Usage: doppler run -- npx tsx src/scripts/run-until-target.ts
+ * Usage: doppler run -- npx tsx scripts/run-until-target.ts
  */
-import { config } from "../config";
-import { prisma } from "../lib/prisma";
-import { scraperQueue } from "../queues/scraper.queue";
+import { config } from "../server/src/config";
+import { prisma } from "../server/src/lib/prisma";
+import { scraperQueue } from "../server/src/queues/scraper.queue";
 import { TermSelector } from "./continuous-batch-scraper";
-import { getErrorMessage } from "../utils/error-helpers";
+import { getErrorMessage } from "../server/src/utils/error-helpers";
 
 const TARGET = 400_000;
 const MAX_CONSECUTIVE_ZEROS = 5;

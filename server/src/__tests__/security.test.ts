@@ -6,6 +6,7 @@ import request from "supertest";
 import { describe, expect, test } from "vitest";
 import app from "../index";
 import { encodeJsonForHtml } from "../middleware/xcontroller.middleware";
+import { HTTP_STATUS } from "../utils/constants";
 
 describe("Security Tests", () => {
 	describe("XSS Prevention", () => {
@@ -301,7 +302,7 @@ describe("Security Tests", () => {
 			const response = await request(app).get("/");
 
 			// Should still serve HTML
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HTTP_STATUS.OK);
 			expect(response.headers["content-type"]).toContain("text/html");
 
 			// Should have required elements
@@ -316,7 +317,7 @@ describe("Security Tests", () => {
 			expect(response.status).toBeDefined();
 
 			// Should not serve HTML for API routes
-			if (response.status === 200) {
+			if (response.status === HTTP_STATUS.OK) {
 				expect(response.headers["content-type"]).not.toContain("text/html");
 			}
 		});

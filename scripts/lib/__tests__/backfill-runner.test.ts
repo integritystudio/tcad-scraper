@@ -44,6 +44,7 @@ import { runBackfill, DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES, type BackfillConfig 
 // ── Test constants (match mocked values above) ──────────────────────
 const TEST_TARGET_COUNT = 100;
 const TEST_BATCH_SIZE = 3;
+const EXPECTED_DEFAULT_MAX_ZERO_BATCHES = 3; // must match backfill-runner.ts
 const BACKFILL_YEAR = 2025;
 const WRONG_YEAR = 2026;
 const BELOW_TARGET = 50;
@@ -192,7 +193,6 @@ describe("runBackfill", () => {
   });
 
   it("exports DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES as 3", () => {
-    const EXPECTED_DEFAULT_MAX_ZERO_BATCHES = 3;
     expect(DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES).toBe(EXPECTED_DEFAULT_MAX_ZERO_BATCHES);
   });
 });

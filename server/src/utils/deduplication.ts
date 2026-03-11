@@ -1,3 +1,4 @@
+import { PERCENT_MULTIPLIER } from "./constants";
 import logger from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { scraperQueue } from "../queues/scraper.queue";
@@ -156,7 +157,7 @@ export async function removeDuplicatesFromQueue(
 				removed++;
 				if (showProgress && removed % 10 === 0) {
 					process.stdout.write(
-						`\r   Progress: ${removed}/${totalToRemove} (${((removed / totalToRemove) * 100).toFixed(1)}%)`,
+						`\r   Progress: ${removed}/${totalToRemove} (${((removed / totalToRemove) * PERCENT_MULTIPLIER).toFixed(1)}%)`,
 					);
 				}
 			} catch (error: unknown) {
@@ -179,7 +180,7 @@ export async function removeDuplicatesFromQueue(
 				removed++;
 				if (showProgress && removed % 10 === 0) {
 					process.stdout.write(
-						`\r   Progress: ${removed}/${totalToRemove} (${((removed / totalToRemove) * 100).toFixed(1)}%)`,
+						`\r   Progress: ${removed}/${totalToRemove} (${((removed / totalToRemove) * PERCENT_MULTIPLIER).toFixed(1)}%)`,
 					);
 				}
 			} catch (error: unknown) {

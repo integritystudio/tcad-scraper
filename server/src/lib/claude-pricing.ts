@@ -4,6 +4,8 @@
  * Source: https://www.anthropic.com/pricing
  */
 
+import { COST_DECIMAL_PLACES } from "../utils/constants";
+
 export interface ClaudePricing {
 	inputCostPer1M: number; // Cost per 1M input tokens in USD
 	outputCostPer1M: number; // Cost per 1M output tokens in USD
@@ -68,7 +70,7 @@ export function calculateClaudeCost(
  * @returns Formatted string like "$0.0045"
  */
 export function formatCost(cost: number): string {
-	return `$${cost.toFixed(6)}`;
+	return `$${cost.toFixed(COST_DECIMAL_PLACES)}`;
 }
 
 /**

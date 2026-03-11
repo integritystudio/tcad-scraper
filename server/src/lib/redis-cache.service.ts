@@ -8,6 +8,8 @@
  * - Cache statistics and monitoring
  */
 
+import { PERCENT_MULTIPLIER } from "../utils/constants";
+
 import { createClient, type RedisClientType } from "redis";
 import { config } from "../config";
 import { getErrorMessage } from "../utils/error-helpers";
@@ -270,7 +272,7 @@ export class RedisCacheService {
 		const totalRequests = this.stats.hits + this.stats.misses;
 		const hitRate =
 			totalRequests > 0
-				? `${((this.stats.hits / totalRequests) * 100).toFixed(2)}%`
+				? `${((this.stats.hits / totalRequests) * PERCENT_MULTIPLIER).toFixed(2)}%`
 				: "0%";
 
 		return {

@@ -4,12 +4,12 @@
  * Waits for each batch to complete before enqueuing the next, tracking new properties.
  * Stops early if 3 consecutive terms yield 0 new unique properties.
  *
- * Usage: doppler run -- npx tsx src/scripts/enqueue-prefix-expansions.ts
+ * Usage: doppler run -- npx tsx scripts/enqueue-prefix-expansions.ts
  */
 
-import { prisma } from '../lib/prisma';
-import { scraperQueue } from '../queues/scraper.queue';
-import { config } from '../config';
+import { prisma } from '../server/src/lib/prisma';
+import { scraperQueue } from '../server/src/queues/scraper.queue';
+import { config } from '../server/src/config';
 import { enqueueBatch, waitForQueueDrain } from './lib/queue-utils';
 import { getSearchedTermSets } from './lib/searched-terms';
 

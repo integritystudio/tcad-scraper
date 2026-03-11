@@ -1,0 +1,2436 @@
+{
+  "generatedAt": "2026-03-10T23:46:49.576Z",
+  "input": {
+    "eslintJson": "/tmp/tcad-eslint.json",
+    "contextLines": 2,
+    "maxCandidates": 5,
+    "minSemanticScore": 0.2,
+    "peerSimilarityThreshold": 0.35
+  },
+  "summary": {
+    "totalOccurrences": 105,
+    "uniqueLiterals": 32,
+    "constantsCatalogSize": 16,
+    "groupsWithExactConstantMatch": 1,
+    "groupsWithSemanticConstantMatch": 0
+  },
+  "literals": [
+    {
+      "literal": "0.",
+      "numericValue": 0,
+      "count": 23,
+      "occurrences": [
+        {
+          "path": "scripts/clear-all-jobs.ts",
+          "line": 17,
+          "column": 28,
+          "snippet": "await scraperQueue.clean(0, \"completed\");"
+        },
+        {
+          "path": "scripts/clear-all-jobs.ts",
+          "line": 20,
+          "column": 28,
+          "snippet": "await scraperQueue.clean(0, \"failed\");"
+        },
+        {
+          "path": "scripts/clear-all-jobs.ts",
+          "line": 35,
+          "column": 16,
+          "snippet": "process.exit(0);"
+        },
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 72,
+          "column": 27,
+          "snippet": ".then(() => process.exit(0))"
+        },
+        {
+          "path": "scripts/enqueue-batch.ts",
+          "line": 19,
+          "column": 21,
+          "snippet": "if (args.length === 0 || args.includes(\"--help\") || args.includes(\"-h\")) {"
+        },
+        {
+          "path": "scripts/enqueue-batch.ts",
+          "line": 25,
+          "column": 15,
+          "snippet": "process.exit(0);"
+        },
+        {
+          "path": "scripts/enqueue-batch.ts",
+          "line": 36,
+          "column": 15,
+          "snippet": "process.exit(0);"
+        },
+        {
+          "path": "scripts/enqueue-batch.ts",
+          "line": 62,
+          "column": 27,
+          "snippet": ".then(() => process.exit(0))"
+        },
+        {
+          "path": "scripts/get-fresh-token.ts",
+          "line": 15,
+          "column": 17,
+          "snippet": "process.exit(0);"
+        },
+        {
+          "path": "server/scripts/verify-platform-deps.js",
+          "line": 27,
+          "column": 63,
+          "snippet": "const majorVersion = parseInt(nodeVersion.slice(1).split(\".\")[0], 10);"
+        },
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 198,
+          "column": 51,
+          "snippet": "if (scriptSections && scriptSections.length > 0) {"
+        },
+        {
+          "path": "server/src/__tests__/security.test.ts",
+          "line": 107,
+          "column": 47,
+          "snippet": "expect(htmlNonces?.length).toBeGreaterThan(0);"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 31,
+          "column": 44,
+          "snippet": "totalScraped += stat._sum.resultCount || 0;"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 33,
+          "column": 77,
+          "snippet": "`  ${stat.status}: ${stat._count._all} jobs (${(stat._sum.resultCount || 0).toLocaleString()} properties)`,"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 58,
+          "column": 87,
+          "snippet": "`  ${idx + 1}. ${city.city || \"Unknown\"}: ${city._count?._all?.toLocaleString() ?? 0} properties`,"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 103,
+          "column": 74,
+          "snippet": "`  Average properties per scrape: ${avgStats._avg.resultCount?.toFixed(0) || 0}`,"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 103,
+          "column": 80,
+          "snippet": "`  Average properties per scrape: ${avgStats._avg.resultCount?.toFixed(0) || 0}`,"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 106,
+          "column": 70,
+          "snippet": "`  Max properties in single scrape: ${avgStats._max.resultCount || 0}`,"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 109,
+          "column": 70,
+          "snippet": "`  Min properties in single scrape: ${avgStats._min.resultCount || 0}`,"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 119,
+          "column": 16,
+          "snippet": "process.exit(0);"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-5",
+          "size": 8,
+          "sharedTokens": [
+            "server",
+            "src",
+            "cli",
+            "db",
+            "stats",
+            "simple",
+            "ts",
+            "count",
+            "logger",
+            "properties"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/cli/db-stats-simple.ts",
+              "line": 31,
+              "column": 44,
+              "snippet": "totalScraped += stat._sum.resultCount || 0;"
+            },
+            {
+              "path": "server/src/cli/db-stats-simple.ts",
+              "line": 33,
+              "column": 77,
+              "snippet": "`  ${stat.status}: ${stat._count._all} jobs (${(stat._sum.resultCount || 0).toLocaleString()} properties)`,"
+            },
+            {
+              "path": "server/src/cli/db-stats-simple.ts",
+              "line": 58,
+              "column": 87,
+              "snippet": "`  ${idx + 1}. ${city.city || \"Unknown\"}: ${city._count?._all?.toLocaleString() ?? 0} properties`,"
+            },
+            {
+              "path": "server/src/cli/db-stats-simple.ts",
+              "line": 103,
+              "column": 74,
+              "snippet": "`  Average properties per scrape: ${avgStats._avg.resultCount?.toFixed(0) || 0}`,"
+            },
+            {
+              "path": "server/src/cli/db-stats-simple.ts",
+              "line": 103,
+              "column": 80,
+              "snippet": "`  Average properties per scrape: ${avgStats._avg.resultCount?.toFixed(0) || 0}`,"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-1",
+          "size": 6,
+          "sharedTokens": [
+            "scripts",
+            "ts",
+            "process",
+            "exit",
+            "enqueue",
+            "batch"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 72,
+              "column": 27,
+              "snippet": ".then(() => process.exit(0))"
+            },
+            {
+              "path": "scripts/enqueue-batch.ts",
+              "line": 19,
+              "column": 21,
+              "snippet": "if (args.length === 0 || args.includes(\"--help\") || args.includes(\"-h\")) {"
+            },
+            {
+              "path": "scripts/enqueue-batch.ts",
+              "line": 25,
+              "column": 15,
+              "snippet": "process.exit(0);"
+            },
+            {
+              "path": "scripts/enqueue-batch.ts",
+              "line": 36,
+              "column": 15,
+              "snippet": "process.exit(0);"
+            },
+            {
+              "path": "scripts/enqueue-batch.ts",
+              "line": 62,
+              "column": 27,
+              "snippet": ".then(() => process.exit(0))"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-0",
+          "size": 3,
+          "sharedTokens": [
+            "scripts",
+            "clear",
+            "all",
+            "jobs",
+            "ts",
+            "queue",
+            "logger",
+            "scraper",
+            "clean",
+            "completed"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "scripts/clear-all-jobs.ts",
+              "line": 17,
+              "column": 28,
+              "snippet": "await scraperQueue.clean(0, \"completed\");"
+            },
+            {
+              "path": "scripts/clear-all-jobs.ts",
+              "line": 20,
+              "column": 28,
+              "snippet": "await scraperQueue.clean(0, \"failed\");"
+            },
+            {
+              "path": "scripts/clear-all-jobs.ts",
+              "line": 35,
+              "column": 16,
+              "snippet": "process.exit(0);"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-6",
+          "size": 3,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "to",
+            "be"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 19,
+              "column": 26,
+              "snippet": "expect(formatCurrency(0)).toBe(\"$0\");"
+            },
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 63,
+              "column": 24,
+              "snippet": "const result = 10 / 0;"
+            },
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 88,
+              "column": 23,
+              "snippet": "expect(formatNumber(0)).toBe(\"0\");"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-2",
+          "size": 1,
+          "sharedTokens": [
+            "server",
+            "scripts",
+            "verify",
+            "platform",
+            "deps",
+            "js",
+            "major",
+            "version",
+            "int",
+            "node"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/scripts/verify-platform-deps.js",
+              "line": 27,
+              "column": 63,
+              "snippet": "const majorVersion = parseInt(nodeVersion.slice(1).split(\".\")[0], 10);"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-3",
+          "size": 1,
+          "sharedTokens": [
+            "server",
+            "src",
+            "tests",
+            "integration",
+            "test",
+            "ts",
+            "script",
+            "sections",
+            "length",
+            "each"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 198,
+              "column": 51,
+              "snippet": "if (scriptSections && scriptSections.length > 0) {"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-4",
+          "size": 1,
+          "sharedTokens": [
+            "server",
+            "src",
+            "tests",
+            "security",
+            "test",
+            "ts",
+            "expect",
+            "html",
+            "nonces",
+            "length"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/__tests__/security.test.ts",
+              "line": 107,
+              "column": 47,
+              "snippet": "expect(htmlNonces?.length).toBeGreaterThan(0);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "1.",
+      "numericValue": 1,
+      "count": 20,
+      "occurrences": [
+        {
+          "path": "load-tests/api.k6.js",
+          "line": 69,
+          "column": 23,
+          "snippet": "}) || errorRate.add(1);"
+        },
+        {
+          "path": "load-tests/api.k6.js",
+          "line": 78,
+          "column": 23,
+          "snippet": "}) || errorRate.add(1);"
+        },
+        {
+          "path": "load-tests/api.k6.js",
+          "line": 90,
+          "column": 23,
+          "snippet": "}) || errorRate.add(1);"
+        },
+        {
+          "path": "scripts/clear-all-jobs.ts",
+          "line": 38,
+          "column": 16,
+          "snippet": "process.exit(1);"
+        },
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 58,
+          "column": 19,
+          "snippet": "`   Call ${i + 1}: ${token ? `...${token.slice(-4)}` : \"null\"}`,"
+        },
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 75,
+          "column": 16,
+          "snippet": "process.exit(1);"
+        },
+        {
+          "path": "scripts/enqueue-batch.ts",
+          "line": 48,
+          "column": 17,
+          "snippet": "process.exit(1);"
+        },
+        {
+          "path": "scripts/enqueue-batch.ts",
+          "line": 65,
+          "column": 16,
+          "snippet": "process.exit(1);"
+        },
+        {
+          "path": "scripts/get-fresh-token.ts",
+          "line": 18,
+          "column": 17,
+          "snippet": "process.exit(1);"
+        },
+        {
+          "path": "scripts/get-fresh-token.ts",
+          "line": 22,
+          "column": 16,
+          "snippet": "process.exit(1);"
+        },
+        {
+          "path": "server/scripts/verify-platform-deps.js",
+          "line": 27,
+          "column": 49,
+          "snippet": "const majorVersion = parseInt(nodeVersion.slice(1).split(\".\")[0], 10);"
+        },
+        {
+          "path": "server/scripts/verify-platform-deps.js",
+          "line": 93,
+          "column": 15,
+          "snippet": "process.exit(1);"
+        },
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 77,
+          "column": 39,
+          "snippet": "const htmlNonce = htmlNonceMatch?.[1];"
+        },
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 137,
+          "column": 41,
+          "snippet": "const data = JSON.parse(dataMatch?.[1]);"
+        },
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 174,
+          "column": 36,
+          "snippet": "const dataSection = dataMatch[1];"
+        },
+        {
+          "path": "server/src/__tests__/security.test.ts",
+          "line": 111,
+          "column": 35,
+          "snippet": "expect(uniqueNonces.size).toBe(1);"
+        },
+        {
+          "path": "server/src/__tests__/security.test.ts",
+          "line": 181,
+          "column": 39,
+          "snippet": "const data = JSON.parse(dataMatch[1]);"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 58,
+          "column": 15,
+          "snippet": "`  ${idx + 1}. ${city.city || \"Unknown\"}: ${city._count?._all?.toLocaleString() ?? 0} properties`,"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 80,
+          "column": 15,
+          "snippet": "`  ${idx + 1}. \"${job.searchTerm}\": ${job.resultCount} properties (${time})`,"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 124,
+          "column": 16,
+          "snippet": "process.exit(1);"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-1",
+          "size": 7,
+          "sharedTokens": [
+            "scripts",
+            "ts",
+            "process",
+            "exit"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "scripts/clear-all-jobs.ts",
+              "line": 38,
+              "column": 16,
+              "snippet": "process.exit(1);"
+            },
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 58,
+              "column": 19,
+              "snippet": "`   Call ${i + 1}: ${token ? `...${token.slice(-4)}` : \"null\"}`,"
+            },
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 75,
+              "column": 16,
+              "snippet": "process.exit(1);"
+            },
+            {
+              "path": "scripts/enqueue-batch.ts",
+              "line": 48,
+              "column": 17,
+              "snippet": "process.exit(1);"
+            },
+            {
+              "path": "scripts/enqueue-batch.ts",
+              "line": 65,
+              "column": 16,
+              "snippet": "process.exit(1);"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-4",
+          "size": 5,
+          "sharedTokens": [
+            "server",
+            "src",
+            "tests",
+            "test",
+            "ts",
+            "match",
+            "integration",
+            "expect",
+            "to",
+            "be"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 77,
+              "column": 39,
+              "snippet": "const htmlNonce = htmlNonceMatch?.[1];"
+            },
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 137,
+              "column": 41,
+              "snippet": "const data = JSON.parse(dataMatch?.[1]);"
+            },
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 174,
+              "column": 36,
+              "snippet": "const dataSection = dataMatch[1];"
+            },
+            {
+              "path": "server/src/__tests__/security.test.ts",
+              "line": 111,
+              "column": 35,
+              "snippet": "expect(uniqueNonces.size).toBe(1);"
+            },
+            {
+              "path": "server/src/__tests__/security.test.ts",
+              "line": 181,
+              "column": 39,
+              "snippet": "const data = JSON.parse(dataMatch[1]);"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-0",
+          "size": 3,
+          "sharedTokens": [
+            "load",
+            "tests",
+            "api",
+            "k6",
+            "js",
+            "rate",
+            "add",
+            "status",
+            "sleep",
+            "check"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "load-tests/api.k6.js",
+              "line": 69,
+              "column": 23,
+              "snippet": "}) || errorRate.add(1);"
+            },
+            {
+              "path": "load-tests/api.k6.js",
+              "line": 78,
+              "column": 23,
+              "snippet": "}) || errorRate.add(1);"
+            },
+            {
+              "path": "load-tests/api.k6.js",
+              "line": 90,
+              "column": 23,
+              "snippet": "}) || errorRate.add(1);"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-5",
+          "size": 3,
+          "sharedTokens": [
+            "server",
+            "src",
+            "cli",
+            "db",
+            "stats",
+            "simple",
+            "ts",
+            "logger",
+            "idx",
+            "count"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/cli/db-stats-simple.ts",
+              "line": 58,
+              "column": 15,
+              "snippet": "`  ${idx + 1}. ${city.city || \"Unknown\"}: ${city._count?._all?.toLocaleString() ?? 0} properties`,"
+            },
+            {
+              "path": "server/src/cli/db-stats-simple.ts",
+              "line": 80,
+              "column": 15,
+              "snippet": "`  ${idx + 1}. \"${job.searchTerm}\": ${job.resultCount} properties (${time})`,"
+            },
+            {
+              "path": "server/src/cli/db-stats-simple.ts",
+              "line": 124,
+              "column": 16,
+              "snippet": "process.exit(1);"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-2",
+          "size": 1,
+          "sharedTokens": [
+            "server",
+            "scripts",
+            "verify",
+            "platform",
+            "deps",
+            "js",
+            "major",
+            "version",
+            "int",
+            "node"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/scripts/verify-platform-deps.js",
+              "line": 27,
+              "column": 49,
+              "snippet": "const majorVersion = parseInt(nodeVersion.slice(1).split(\".\")[0], 10);"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-3",
+          "size": 1,
+          "sharedTokens": [
+            "server",
+            "scripts",
+            "verify",
+            "platform",
+            "deps",
+            "js",
+            "process",
+            "exit",
+            "has",
+            "errors"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/scripts/verify-platform-deps.js",
+              "line": 93,
+              "column": 15,
+              "snippet": "process.exit(1);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "200.",
+      "numericValue": 200,
+      "count": 12,
+      "occurrences": [
+        {
+          "path": "load-tests/api.k6.js",
+          "line": 67,
+          "column": 46,
+          "snippet": "\"health status 200\": (r) => r.status === 200,"
+        },
+        {
+          "path": "load-tests/api.k6.js",
+          "line": 77,
+          "column": 44,
+          "snippet": "\"stats status 2xx\": (r) => r.status >= 200 && r.status < 300,"
+        },
+        {
+          "path": "load-tests/api.k6.js",
+          "line": 89,
+          "column": 45,
+          "snippet": "\"search status 2xx\": (r) => r.status >= 200 && r.status < 300,"
+        },
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 24,
+          "column": 33,
+          "snippet": "expect(response.status).toBe(200);"
+        },
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 37,
+          "column": 12,
+          "snippet": "expect([200, 500]).toContain(response.status);"
+        },
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 59,
+          "column": 33,
+          "snippet": "expect(response.status).toBe(200);"
+        },
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 100,
+          "column": 33,
+          "snippet": "expect(response.status).toBe(200);"
+        },
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 107,
+          "column": 28,
+          "snippet": "if (response.status === 200) {"
+        },
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 117,
+          "column": 34,
+          "snippet": "expect(response.status).toBe(200);"
+        },
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 221,
+          "column": 34,
+          "snippet": "expect(response.status).toBe(200);"
+        },
+        {
+          "path": "server/src/__tests__/security.test.ts",
+          "line": 304,
+          "column": 33,
+          "snippet": "expect(response.status).toBe(200);"
+        },
+        {
+          "path": "server/src/__tests__/security.test.ts",
+          "line": 319,
+          "column": 28,
+          "snippet": "if (response.status === 200) {"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-1",
+          "size": 9,
+          "sharedTokens": [
+            "server",
+            "src",
+            "tests",
+            "test",
+            "ts",
+            "expect",
+            "response",
+            "status",
+            "to",
+            "contain"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 24,
+              "column": 33,
+              "snippet": "expect(response.status).toBe(200);"
+            },
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 37,
+              "column": 12,
+              "snippet": "expect([200, 500]).toContain(response.status);"
+            },
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 59,
+              "column": 33,
+              "snippet": "expect(response.status).toBe(200);"
+            },
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 100,
+              "column": 33,
+              "snippet": "expect(response.status).toBe(200);"
+            },
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 107,
+              "column": 28,
+              "snippet": "if (response.status === 200) {"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-0",
+          "size": 3,
+          "sharedTokens": [
+            "load",
+            "tests",
+            "api",
+            "k6",
+            "js",
+            "status",
+            "latency",
+            "add",
+            "timings",
+            "duration"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "load-tests/api.k6.js",
+              "line": 67,
+              "column": 46,
+              "snippet": "\"health status 200\": (r) => r.status === 200,"
+            },
+            {
+              "path": "load-tests/api.k6.js",
+              "line": 77,
+              "column": 44,
+              "snippet": "\"stats status 2xx\": (r) => r.status >= 200 && r.status < 300,"
+            },
+            {
+              "path": "load-tests/api.k6.js",
+              "line": 89,
+              "column": 45,
+              "snippet": "\"search status 2xx\": (r) => r.status >= 200 && r.status < 300,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "60.",
+      "numericValue": 60,
+      "count": 6,
+      "occurrences": [
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 13,
+          "column": 25,
+          "snippet": "logger.info(\"=\".repeat(60));"
+        },
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 15,
+          "column": 25,
+          "snippet": "logger.info(\"=\".repeat(60));"
+        },
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 66,
+          "column": 30,
+          "snippet": "logger.info(`\\n${\"=\".repeat(60)}`);"
+        },
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 68,
+          "column": 25,
+          "snippet": "logger.info(\"=\".repeat(60));"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 8,
+          "column": 25,
+          "snippet": "logger.info(\"=\".repeat(60));"
+        },
+        {
+          "path": "server/src/cli/db-stats-simple.ts",
+          "line": 112,
+          "column": 30,
+          "snippet": "logger.info(`\\n${\"=\".repeat(60)}`);"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 4,
+          "sharedTokens": [
+            "scripts",
+            "token",
+            "refresh",
+            "ts",
+            "logger",
+            "repeat",
+            "service"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 13,
+              "column": 25,
+              "snippet": "logger.info(\"=\".repeat(60));"
+            },
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 15,
+              "column": 25,
+              "snippet": "logger.info(\"=\".repeat(60));"
+            },
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 66,
+              "column": 30,
+              "snippet": "logger.info(`\\n${\"=\".repeat(60)}`);"
+            },
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 68,
+              "column": 25,
+              "snippet": "logger.info(\"=\".repeat(60));"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-1",
+          "size": 2,
+          "sharedTokens": [
+            "server",
+            "src",
+            "cli",
+            "db",
+            "stats",
+            "simple",
+            "ts",
+            "logger",
+            "repeat"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/cli/db-stats-simple.ts",
+              "line": 8,
+              "column": 25,
+              "snippet": "logger.info(\"=\".repeat(60));"
+            },
+            {
+              "path": "server/src/cli/db-stats-simple.ts",
+              "line": 112,
+              "column": 30,
+              "snippet": "logger.info(`\\n${\"=\".repeat(60)}`);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "2.",
+      "numericValue": 2,
+      "count": 4,
+      "occurrences": [
+        {
+          "path": "playwright.config.ts",
+          "line": 9,
+          "column": 29,
+          "snippet": "workers: process.env.CI ? 2 : undefined,"
+        },
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 25,
+          "column": 62,
+          "snippet": "logger.info(`   Stats: ${JSON.stringify(initialStats, null, 2)}`);"
+        },
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 51,
+          "column": 60,
+          "snippet": "logger.info(`   Stats: ${JSON.stringify(afterStats, null, 2)}`);"
+        },
+        {
+          "path": "scripts/enqueue-batch.ts",
+          "line": 17,
+          "column": 33,
+          "snippet": "const args = process.argv.slice(2);"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-1",
+          "size": 2,
+          "sharedTokens": [
+            "scripts",
+            "token",
+            "refresh",
+            "ts",
+            "logger",
+            "stats",
+            "service",
+            "get"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 25,
+              "column": 62,
+              "snippet": "logger.info(`   Stats: ${JSON.stringify(initialStats, null, 2)}`);"
+            },
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 51,
+              "column": 60,
+              "snippet": "logger.info(`   Stats: ${JSON.stringify(afterStats, null, 2)}`);"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "playwright",
+            "config",
+            "ts",
+            "workers",
+            "process",
+            "env",
+            "ci",
+            "forbid",
+            "only",
+            "retries"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "playwright.config.ts",
+              "line": 9,
+              "column": 29,
+              "snippet": "workers: process.env.CI ? 2 : undefined,"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-2",
+          "size": 1,
+          "sharedTokens": [
+            "scripts",
+            "enqueue",
+            "batch",
+            "ts",
+            "args",
+            "process",
+            "argv",
+            "slice",
+            "lib",
+            "queue"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "scripts/enqueue-batch.ts",
+              "line": 17,
+              "column": 33,
+              "snippet": "const args = process.argv.slice(2);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "-4.",
+      "numericValue": -4,
+      "count": 4,
+      "occurrences": [
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 21,
+          "column": 63,
+          "snippet": "`   currentToken: ${initialToken ? `...${initialToken.slice(-4)}` : \"null\"}`,"
+        },
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 37,
+          "column": 61,
+          "snippet": "logger.info(`   Value: [REDACTED]...${token ? token.slice(-4) : \"N/A\"}`);"
+        },
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 47,
+          "column": 67,
+          "snippet": "`   currentToken: ${refreshedToken ? `...${refreshedToken.slice(-4)}` : \"null\"}`,"
+        },
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 58,
+          "column": 51,
+          "snippet": "`   Call ${i + 1}: ${token ? `...${token.slice(-4)}` : \"null\"}`,"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 3,
+          "sharedTokens": [
+            "scripts",
+            "token",
+            "refresh",
+            "ts",
+            "current",
+            "slice",
+            "service",
+            "get",
+            "logger"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 21,
+              "column": 63,
+              "snippet": "`   currentToken: ${initialToken ? `...${initialToken.slice(-4)}` : \"null\"}`,"
+            },
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 47,
+              "column": 67,
+              "snippet": "`   currentToken: ${refreshedToken ? `...${refreshedToken.slice(-4)}` : \"null\"}`,"
+            },
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 58,
+              "column": 51,
+              "snippet": "`   Call ${i + 1}: ${token ? `...${token.slice(-4)}` : \"null\"}`,"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-1",
+          "size": 1,
+          "sharedTokens": [
+            "scripts",
+            "token",
+            "refresh",
+            "ts",
+            "logger",
+            "redacted",
+            "slice",
+            "n3",
+            "returned",
+            "after"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 37,
+              "column": 61,
+              "snippet": "logger.info(`   Value: [REDACTED]...${token ? token.slice(-4) : \"N/A\"}`);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "10000.",
+      "numericValue": 10000,
+      "count": 3,
+      "occurrences": [
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 39,
+          "column": 6,
+          "snippet": "}, 10000); // 10 second timeout for this test"
+        },
+        {
+          "path": "server/src/__tests__/security.test.ts",
+          "line": 220,
+          "column": 29,
+          "snippet": "const largeArray = Array(10000).fill({ data: \"test\" });"
+        },
+        {
+          "path": "server/src/__tests__/security.test.ts",
+          "line": 223,
+          "column": 43,
+          "snippet": "expect(encoded.length).toBeGreaterThan(10000);"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-1",
+          "size": 2,
+          "sharedTokens": [
+            "server",
+            "src",
+            "tests",
+            "security",
+            "test",
+            "ts",
+            "large",
+            "encoded",
+            "encode",
+            "html"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/__tests__/security.test.ts",
+              "line": 220,
+              "column": 29,
+              "snippet": "const largeArray = Array(10000).fill({ data: \"test\" });"
+            },
+            {
+              "path": "server/src/__tests__/security.test.ts",
+              "line": 223,
+              "column": 43,
+              "snippet": "expect(encoded.length).toBeGreaterThan(10000);"
+            }
+          ]
+        },
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "server",
+            "src",
+            "tests",
+            "integration",
+            "test",
+            "ts",
+            "second",
+            "timeout",
+            "expect",
+            "to"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 39,
+              "column": 6,
+              "snippet": "}, 10000); // 10 second timeout for this test"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "10.",
+      "numericValue": 10,
+      "count": 3,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 63,
+          "column": 19,
+          "snippet": "const result = 10 / 0;"
+        },
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 152,
+          "column": 32,
+          "snippet": "expect(truncateText(\"Hello\", 10)).toBe(\"Hello\");"
+        },
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 164,
+          "column": 27,
+          "snippet": "expect(truncateText(\"\", 10)).toBe(\"\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 3,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "it",
+            "should",
+            "expect",
+            "to"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 63,
+              "column": 19,
+              "snippet": "const result = 10 / 0;"
+            },
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 152,
+              "column": 32,
+              "snippet": "expect(truncateText(\"Hello\", 10)).toBe(\"Hello\");"
+            },
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 164,
+              "column": 27,
+              "snippet": "expect(truncateText(\"\", 10)).toBe(\"\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "0.2.",
+      "numericValue": 0.2,
+      "count": 2,
+      "occurrences": [
+        {
+          "path": "load-tests/api.k6.js",
+          "line": 71,
+          "column": 9,
+          "snippet": "sleep(0.2);"
+        },
+        {
+          "path": "load-tests/api.k6.js",
+          "line": 80,
+          "column": 9,
+          "snippet": "sleep(0.2);"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 2,
+          "sharedTokens": [
+            "load",
+            "tests",
+            "api",
+            "k6",
+            "js",
+            "sleep",
+            "rate",
+            "add",
+            "property"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "load-tests/api.k6.js",
+              "line": 71,
+              "column": 9,
+              "snippet": "sleep(0.2);"
+            },
+            {
+              "path": "load-tests/api.k6.js",
+              "line": 80,
+              "column": 9,
+              "snippet": "sleep(0.2);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "300.",
+      "numericValue": 300,
+      "count": 2,
+      "occurrences": [
+        {
+          "path": "load-tests/api.k6.js",
+          "line": 77,
+          "column": 62,
+          "snippet": "\"stats status 2xx\": (r) => r.status >= 200 && r.status < 300,"
+        },
+        {
+          "path": "load-tests/api.k6.js",
+          "line": 89,
+          "column": 63,
+          "snippet": "\"search status 2xx\": (r) => r.status >= 200 && r.status < 300,"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 2,
+          "sharedTokens": [
+            "load",
+            "tests",
+            "api",
+            "k6",
+            "js",
+            "status",
+            "2xx",
+            "latency",
+            "add",
+            "timings"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "load-tests/api.k6.js",
+              "line": 77,
+              "column": 62,
+              "snippet": "\"stats status 2xx\": (r) => r.status >= 200 && r.status < 300,"
+            },
+            {
+              "path": "load-tests/api.k6.js",
+              "line": 89,
+              "column": 63,
+              "snippet": "\"search status 2xx\": (r) => r.status >= 200 && r.status < 300,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "404.",
+      "numericValue": 404,
+      "count": 2,
+      "occurrences": [
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 213,
+          "column": 33,
+          "snippet": "expect(response.status).toBe(404);"
+        },
+        {
+          "path": "server/src/utils/__tests__/error-helpers.test.ts",
+          "line": 20,
+          "column": 26,
+          "snippet": "expect(getErrorMessage(404)).toBe(\"404\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 2,
+          "sharedTokens": [
+            "server",
+            "src",
+            "tests",
+            "test",
+            "ts",
+            "expect",
+            "to",
+            "be",
+            "should",
+            "get"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 213,
+              "column": 33,
+              "snippet": "expect(response.status).toBe(404);"
+            },
+            {
+              "path": "server/src/utils/__tests__/error-helpers.test.ts",
+              "line": 20,
+              "column": 26,
+              "snippet": "expect(getErrorMessage(404)).toBe(\"404\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "1000.",
+      "numericValue": 1000,
+      "count": 2,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 13,
+          "column": 26,
+          "snippet": "expect(formatCurrency(1000)).toBe(\"$1,000\");"
+        },
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 83,
+          "column": 23,
+          "snippet": "expect(formatNumber(1000)).toBe(\"1,000\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 2,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "to",
+            "be"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 13,
+              "column": 26,
+              "snippet": "expect(formatCurrency(1000)).toBe(\"$1,000\");"
+            },
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 83,
+              "column": 23,
+              "snippet": "expect(formatNumber(1000)).toBe(\"1,000\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "1234567.",
+      "numericValue": 1234567,
+      "count": 2,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 14,
+          "column": 26,
+          "snippet": "expect(formatCurrency(1234567)).toBe(\"$1,234,567\");"
+        },
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 84,
+          "column": 23,
+          "snippet": "expect(formatNumber(1234567)).toBe(\"1,234,567\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 2,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "to",
+            "be"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 14,
+              "column": 26,
+              "snippet": "expect(formatCurrency(1234567)).toBe(\"$1,234,567\");"
+            },
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 84,
+              "column": 23,
+              "snippet": "expect(formatNumber(1234567)).toBe(\"1,234,567\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "1234.56.",
+      "numericValue": 1234.56,
+      "count": 2,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 28,
+          "column": 26,
+          "snippet": "expect(formatCurrency(1234.56)).toBe(\"$1,235\");"
+        },
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 92,
+          "column": 23,
+          "snippet": "expect(formatNumber(1234.56)).toBe(\"1,234.56\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 2,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "to",
+            "be"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 28,
+              "column": 26,
+              "snippet": "expect(formatCurrency(1234.56)).toBe(\"$1,235\");"
+            },
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 92,
+              "column": 23,
+              "snippet": "expect(formatNumber(1234.56)).toBe(\"1,234.56\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "0.5.",
+      "numericValue": 0.5,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "load-tests/api.k6.js",
+          "line": 92,
+          "column": 9,
+          "snippet": "sleep(0.5);"
+        }
+      ],
+      "exactConstantMatches": [
+        {
+          "constantId": "cconstants.ts_5",
+          "name": "DENSE_MIN_SUCCESS_RATE",
+          "path": "utils/constants.ts",
+          "line": 52,
+          "literal": "0.5",
+          "numericValue": 0.5,
+          "semanticScore": 0.07142857142857142,
+          "valueMatch": true
+        },
+        {
+          "constantId": "cconstants.ts_7",
+          "name": "SEED_MIN_SUCCESS_RATE",
+          "path": "utils/constants.ts",
+          "line": 56,
+          "literal": "0.5",
+          "numericValue": 0.5,
+          "semanticScore": 0.07142857142857142,
+          "valueMatch": true
+        }
+      ],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "load",
+            "tests",
+            "api",
+            "k6",
+            "js",
+            "sleep",
+            "rate",
+            "add"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "load-tests/api.k6.js",
+              "line": 92,
+              "column": 9,
+              "snippet": "sleep(0.5);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "3.",
+      "numericValue": 3,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "scripts/debug-token-refresh.ts",
+          "line": 55,
+          "column": 22,
+          "snippet": "for (let i = 0; i < 3; i++) {"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "scripts",
+            "token",
+            "refresh",
+            "ts",
+            "test",
+            "get",
+            "current",
+            "multiple",
+            "times",
+            "logger"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "scripts/debug-token-refresh.ts",
+              "line": 55,
+              "column": 22,
+              "snippet": "for (let i = 0; i < 3; i++) {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "16.",
+      "numericValue": 16,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "scripts/enqueue-batch.ts",
+          "line": 33,
+          "column": 21,
+          "snippet": "`  ${type.padEnd(16)} ${cfg.emoji} ${cfg.batchName} (${cfg.terms.length} terms)`,"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "scripts",
+            "enqueue",
+            "batch",
+            "ts",
+            "pad",
+            "end",
+            "cfg",
+            "emoji",
+            "name",
+            "terms"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "scripts/enqueue-batch.ts",
+              "line": 33,
+              "column": 21,
+              "snippet": "`  ${type.padEnd(16)} ${cfg.emoji} ${cfg.batchName} (${cfg.terms.length} terms)`,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "18.",
+      "numericValue": 18,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "server/scripts/verify-platform-deps.js",
+          "line": 28,
+          "column": 21,
+          "snippet": "if (majorVersion >= 18) {"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "server",
+            "scripts",
+            "verify",
+            "platform",
+            "deps",
+            "js",
+            "major",
+            "version",
+            "node",
+            "process"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/scripts/verify-platform-deps.js",
+              "line": 28,
+              "column": 21,
+              "snippet": "if (majorVersion >= 18) {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "3000.",
+      "numericValue": 3000,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 29,
+          "column": 50,
+          "snippet": "const redisAvailable = await isRedisAvailable(3000);"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "server",
+            "src",
+            "tests",
+            "integration",
+            "test",
+            "ts",
+            "redis",
+            "available",
+            "is",
+            "should"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 29,
+              "column": 50,
+              "snippet": "const redisAvailable = await isRedisAvailable(3000);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "500.",
+      "numericValue": 500,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "server/src/__tests__/integration.test.ts",
+          "line": 37,
+          "column": 17,
+          "snippet": "expect([200, 500]).toContain(response.status);"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "server",
+            "src",
+            "tests",
+            "integration",
+            "test",
+            "ts",
+            "expect",
+            "to",
+            "contain",
+            "response"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "server/src/__tests__/integration.test.ts",
+              "line": 37,
+              "column": 17,
+              "snippet": "expect([200, 500]).toContain(response.status);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "999.",
+      "numericValue": 999,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 15,
+          "column": 26,
+          "snippet": "expect(formatCurrency(999)).toBe(\"$999\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "currency",
+            "to"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 15,
+              "column": 26,
+              "snippet": "expect(formatCurrency(999)).toBe(\"$999\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "-1000.",
+      "numericValue": -1000,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 23,
+          "column": 26,
+          "snippet": "expect(formatCurrency(-1000)).toBe(\"-$1,000\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "currency",
+            "to"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 23,
+              "column": 26,
+              "snippet": "expect(formatCurrency(-1000)).toBe(\"-$1,000\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "-500.",
+      "numericValue": -500,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 24,
+          "column": 26,
+          "snippet": "expect(formatCurrency(-500)).toBe(\"-$500\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "currency",
+            "to"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 24,
+              "column": 26,
+              "snippet": "expect(formatCurrency(-500)).toBe(\"-$500\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "999.99.",
+      "numericValue": 999.99,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 29,
+          "column": 26,
+          "snippet": "expect(formatCurrency(999.99)).toBe(\"$1,000\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "currency",
+            "to"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 29,
+              "column": 26,
+              "snippet": "expect(formatCurrency(999.99)).toBe(\"$1,000\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "100.49.",
+      "numericValue": 100.49,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 30,
+          "column": 26,
+          "snippet": "expect(formatCurrency(100.49)).toBe(\"$100\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "currency",
+            "to"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 30,
+              "column": 26,
+              "snippet": "expect(formatCurrency(100.49)).toBe(\"$100\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "1000000000.",
+      "numericValue": 1000000000,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 34,
+          "column": 26,
+          "snippet": "expect(formatCurrency(1000000000)).toBe(\"$1,000,000,000\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "currency",
+            "to"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 34,
+              "column": 26,
+              "snippet": "expect(formatCurrency(1000000000)).toBe(\"$1,000,000,000\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "3900000000.",
+      "numericValue": 3900000000,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 35,
+          "column": 26,
+          "snippet": "expect(formatCurrency(3900000000)).toBe(\"$3,900,000,000\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "currency",
+            "to"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 35,
+              "column": 26,
+              "snippet": "expect(formatCurrency(3900000000)).toBe(\"$3,900,000,000\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "0.01.",
+      "numericValue": 0.01,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 39,
+          "column": 26,
+          "snippet": "expect(formatCurrency(0.01)).toBe(\"$0\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "currency",
+            "to"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 39,
+              "column": 26,
+              "snippet": "expect(formatCurrency(0.01)).toBe(\"$0\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "0.99.",
+      "numericValue": 0.99,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 40,
+          "column": 26,
+          "snippet": "expect(formatCurrency(0.99)).toBe(\"$1\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "format",
+            "currency",
+            "to"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 40,
+              "column": 26,
+              "snippet": "expect(formatCurrency(0.99)).toBe(\"$1\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "-1.",
+      "numericValue": -1,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 68,
+          "column": 29,
+          "snippet": "const result = Math.sqrt(-1);"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "result",
+            "math",
+            "sqrt",
+            "it"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 68,
+              "column": 29,
+              "snippet": "const result = Math.sqrt(-1);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "8.",
+      "numericValue": 8,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 156,
+          "column": 38,
+          "snippet": "expect(truncateText(\"Hello World\", 8)).toBe(\"Hello...\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "truncate",
+            "text",
+            "hello"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 156,
+              "column": 38,
+              "snippet": "expect(truncateText(\"Hello World\", 8)).toBe(\"Hello...\");"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "literal": "5.",
+      "numericValue": 5,
+      "count": 1,
+      "occurrences": [
+        {
+          "path": "src/utils/__tests__/formatters.test.ts",
+          "line": 160,
+          "column": 32,
+          "snippet": "expect(truncateText(\"Hello\", 5)).toBe(\"Hello\");"
+        }
+      ],
+      "exactConstantMatches": [],
+      "semanticConstantMatches": [],
+      "peerClusters": [
+        {
+          "clusterId": "cluster-0",
+          "size": 1,
+          "sharedTokens": [
+            "src",
+            "utils",
+            "tests",
+            "formatters",
+            "test",
+            "ts",
+            "expect",
+            "truncate",
+            "text",
+            "hello"
+          ],
+          "sampleOccurrences": [
+            {
+              "path": "src/utils/__tests__/formatters.test.ts",
+              "line": 160,
+              "column": 32,
+              "snippet": "expect(truncateText(\"Hello\", 5)).toBe(\"Hello\");"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
