@@ -7,7 +7,7 @@
 	"scripts": {
 		"verify": "tsx scripts/verify-platform-deps.ts",
 		"dev": "tsx watch src/index.ts",
-		"build": "tsc",
+		"build": "tsc && tsc-alias -f",
 		"start": "node dist/server/src/index.js",
 		"queue": "tsx src/cli/queue-manager.ts",
 		"queue:status": "tsx src/cli/queue-manager.ts status",
@@ -101,6 +101,7 @@
 		"@vitest/ui": "^4.0.10",
 		"eslint": "^8.56.0",
 		"supertest": "^6.3.4",
+		"tsc-alias": "^1.8.16",
 		"tsx": "^4.7.0",
 		"typescript": "^5.3.3",
 		"vite": "^7.2.2",
@@ -110,9 +111,9 @@
 		"node": ">=22.0.0 <25"
 	},
 	"optionalDependencies": {
+		"@esbuild/linux-x64": "^0.25.0",
 		"@rollup/rollup-darwin-arm64": "^4.53.3",
 		"@rollup/rollup-linux-x64-gnu": "^4.53.3",
-		"@esbuild/linux-x64": "^0.25.0",
 		"fsevents": "^2.3.3"
 	}
 }
