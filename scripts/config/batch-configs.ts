@@ -13,6 +13,7 @@
  */
 
 import type { BatchEnqueueConfig } from "../lib/queue-utils";
+import { BACKFILL_2025_SOURCE_TERMS } from "./backfill-2025-source-terms";
 
 type BatchConfigEntry = Omit<BatchEnqueueConfig, "extraLogs"> & {
 	extraLogs?: () => void;
@@ -663,6 +664,13 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Zelma",
 		],
 		userId: "curated-first-names-batch-enqueue",
+	},
+
+	"backfill-2025-source": {
+		batchName: "Backfill 2025 Source",
+		emoji: "🎯",
+		terms: [...BACKFILL_2025_SOURCE_TERMS],
+		userId: "backfill-2025-source-enqueue",
 	},
 };
 
