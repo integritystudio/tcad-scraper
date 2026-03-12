@@ -1,24 +1,10 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-11 (M16, M25, M26, M28, M29, M30 migrated to changelog/2026-03-11.md)
+**Last Updated**: 2026-03-11 (enqueue consolidation research closed; city names verified)
 **Status**: 680/680 tests passing | TypeScript clean | Lint clean
 
 ---
 ## Open Items
-
-### Consolidate enqueue scripts and search term infrastructure (2026-03-08)
-
-**Context**: Codebase cleanup identified overlapping search term systems. Dead code (`enqueue-by-category.ts`, `one-off-and-test-batches/`, `utils/test-scripts/`, `migrate-to-logger.ts`) deleted 2026-03-10. Remaining: 2 active systems with overlapping term data.
-
-**Files**:
-- `scripts/enqueue-batch.ts` + `config/batch-configs.ts` — active, canonical. Config-driven CLI with 18 batch types and priority system
-- `scripts/continuous-batch-scraper.ts` — active, long-running scraper that auto-generates and enqueues terms
-
-**Research tasks** (remaining: city verification):
-1. Determine if Texas city names yield results in TCAD search (cities historically don't work per CLAUDE.md — verify before adding)
-
----
-
 
 
 ---
@@ -31,6 +17,11 @@
 ---
 
 ## Test Coverage Gaps (2026-03-10, L25–L35 session)
+
+### TC-18: test-api-direct.ts needs modernization (2026-03-11)
+**Priority**: P4 | **Source**: codebase-analyzer cleanup
+
+`test-api-direct.ts` (moved from `src/` to `server/src/__tests__/`) is an early exploration script that brute-forces TCAD API endpoints. It predates the production `tcad-api-client.ts` and uses hardcoded URLs, emoji logging, and `error.message` without type narrowing. Decide whether to convert into a proper integration test against `tcad-api-client.ts` or delete entirely. -- `server/src/__tests__/test-api-direct.ts`
 
 ### TC-10: naturalLanguageSearch DB failure path untested
 **Priority**: P3 | **Source**: L27 implementation + code review
