@@ -43,13 +43,16 @@ model Property {
 }
 
 model ScrapeJob {
-  id          String    @id @default(uuid())
-  searchTerm  String    @map("search_term")
-  status      String    // pending, processing, completed, failed
-  resultCount Int?      @map("result_count")
-  error       String?   @db.Text
-  startedAt   DateTime  @default(now()) @map("started_at")
-  completedAt DateTime? @map("completed_at")
+  id              String    @id @default(uuid())
+  searchTerm      String    @map("search_term")
+  status          String    // pending, processing, completed, failed
+  resultCount     Int?      @map("result_count")
+  totalApiResults Int?      @map("total_api_results")
+  updatedCount    Int?      @map("updated_count")
+  newPropertyIds  String[]  @map("new_property_ids")
+  error           String?   @db.Text
+  startedAt       DateTime  @default(now()) @map("started_at")
+  completedAt     DateTime? @map("completed_at")
 
   @@index([status, startedAt])
   @@index([searchTerm])

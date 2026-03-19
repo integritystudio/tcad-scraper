@@ -116,6 +116,7 @@ scraperQueue.process(
 			// Batch upsert properties to database using PostgreSQL's ON CONFLICT
 			// This is 10-50x faster than individual upserts
 			let savedCount = 0;
+			const newPropertyIds: string[] = [];
 
 			if (properties.length > 0) {
 				const CHUNK_SIZE = config.queue.batchChunkSize;
@@ -182,18 +183,20 @@ scraperQueue.process(
             search_term = EXCLUDED.search_term,
             scraped_at = EXCLUDED.scraped_at,
             updated_at = EXCLUDED.updated_at
-          RETURNING (xmax = 0) AS inserted
+          RETURNING property_id, (xmax = 0) AS inserted
         `;
 
 					// Execute query and get result indicating which were INSERTs (new) vs UPDATEs (existing)
-					const result = await prisma.$queryRawUnsafe<{ inserted: boolean }[]>(
-						sql,
-						...params,
-					);
+					const result = await prisma.$queryRawUnsafe<
+						{ property_id: string; inserted: boolean }[]
+					>(sql, ...params);
 
 					// Count only the actual new properties (INSERTs)
 					const newPropertyCount = result.filter((r) => r.inserted).length;
 					const updatedPropertyCount = result.length - newPropertyCount;
+					newPropertyIds.push(
+						...result.filter((r) => r.inserted).map((r) => r.property_id),
+					);
 
 					savedCount += newPropertyCount;
 					logger.info(
@@ -222,7 +225,10 @@ scraperQueue.process(
 				where: { id: scrapeJob.id },
 				data: {
 					status: "completed",
-					resultCount: savedCount, // ✅ FIX: Report actual NEW properties, not total scraped
+					resultCount: savedCount,
+					totalApiResults: rawProperties.length,
+					updatedCount: totalUpdated,
+					newPropertyIds,
 					completedAt: new Date(),
 				},
 			});
