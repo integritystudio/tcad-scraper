@@ -116,6 +116,7 @@ scraperQueue.process(
 			// Batch upsert properties to database using PostgreSQL's ON CONFLICT
 			// This is 10-50x faster than individual upserts
 			let savedCount = 0;
+			let totalUpdated = 0;
 			const newPropertyIds: string[] = [];
 
 			if (properties.length > 0) {
@@ -199,6 +200,7 @@ scraperQueue.process(
 					);
 
 					savedCount += newPropertyCount;
+					totalUpdated += updatedPropertyCount;
 					logger.info(
 						`Batch processed ${chunk.length} properties: ` +
 							`${newPropertyCount} new, ${updatedPropertyCount} updated ` +
@@ -207,9 +209,7 @@ scraperQueue.process(
 				}
 			}
 
-			// savedCount now contains the actual number of NEW properties inserted (not updates)
-			const totalScraped = properties.length;
-			const totalUpdated = totalScraped - savedCount;
+			// savedCount = actual new INSERTs, totalUpdated = actual UPDATEs (accumulated per-chunk)
 
 			// Update progress: Complete
 			await job.progress(100);
@@ -217,7 +217,7 @@ scraperQueue.process(
 			// Log final results with breakdown
 			logger.info(
 				`Scrape complete for "${searchTerm}": ` +
-					`${savedCount} new properties, ${totalUpdated} updated, ${totalScraped} total processed`,
+					`${savedCount} new properties, ${totalUpdated} updated, ${savedCount + totalUpdated} total processed`,
 			);
 
 			// Update job record with ACTUAL new property count (not total scraped)
