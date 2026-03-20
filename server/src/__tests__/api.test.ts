@@ -14,9 +14,29 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DISPLAY_YEAR } from "../controllers/property.controller";
 import { isDatabaseAvailable, isRedisAvailable } from "./test-utils";
 
+/** Refuse to run destructive tests against a production/remote database. */
+function isProductionDatabase(): boolean {
+	const dbUrl = process.env.DATABASE_URL || "";
+	return (
+		dbUrl.includes("render.com") ||
+		dbUrl.includes("neon.tech") ||
+		dbUrl.includes("supabase.co") ||
+		dbUrl.includes("hyperdrive") ||
+		(!dbUrl.includes("localhost") && !dbUrl.includes("127.0.0.1"))
+	);
+}
+
 // Check infrastructure availability before running
 let skipApiTests = true;
 const checkInfrastructure = async () => {
+	if (isProductionDatabase()) {
+		console.warn(
+			"SKIPPING API integration tests: DATABASE_URL points to a remote/production database. " +
+			"These tests run deleteMany() and would destroy production data. " +
+			"Use a local database instead.",
+		);
+		return false;
+	}
 	const [redisOk, dbOk] = await Promise.all([
 		isRedisAvailable(3000),
 		isDatabaseAvailable(5000),
