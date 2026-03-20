@@ -51,20 +51,19 @@ jobs:
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_PROD }}
         run: |
+          # Set frontend port
+          export FRONTEND_PORT="5174"
+
           # Fetch environment variables from Doppler (integrity-studio project)
           if [ -n "$DOPPLER_TOKEN" ]; then
             # Get VITE_API_URL from Doppler or use production default
             export VITE_API_URL=$(doppler secrets get VITE_API_URL --plain --project integrity-studio --config prd 2>/dev/null || echo "https://api.alephatx.info/api")
-
-            # Get FRONTEND_PORT from Doppler (used for build, not deployment)
-            export FRONTEND_PORT=$(doppler secrets get FRONTEND_PORT --plain --project integrity-studio --config prd 2>/dev/null || echo "5174")
 
             # Get DATABASE_URL for build-time constant generation
             export DATABASE_URL=$(doppler secrets get DATABASE_URL --plain --project integrity-studio --config prd 2>/dev/null || echo "")
           else
             # Fallback if Doppler token is not available
             export VITE_API_URL="https://api.alephatx.info/api"
-            export FRONTEND_PORT="5174"
           fi
 
           echo "Building with API_URL: $VITE_API_URL"
