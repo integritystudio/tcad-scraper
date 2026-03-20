@@ -1,0 +1,144 @@
+/**
+ * Enqueue "tail" search terms to maximize new property discovery once
+ * high-yield terms have been exhausted.
+ *
+ * Three phases, each ordered by expected yield:
+ *   Phase 1: Unscrapped analytics terms (proven yielders not yet searched for 2025)
+ *   Phase 2: Analytics tail terms ranked by total_results DESC (diminishing returns)
+ *   Phase 3: Owner-name mining from 2026-only properties (novel terms)
+ *
+ * Uses the backfill-runner loop with adaptive zero-batch cutoff (default 5).
+ *
+ * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts
+ *        TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 2
+ */
+
+import { prisma } from "../server/src/lib/prisma";
+import { MIN_TERM_LENGTH } from "../utils/constants";
+import { runBackfillMain } from "./lib/backfill-runner";
+import { isSupersetOfSuccessful } from "./lib/backfill-utils";
+import { getSearchedTermSets } from "./lib/searched-terms";
+
+const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
+
+/** Parse --phase flag (1, 2, or 3). Default: run all phases sequentially. */
+function parsePhaseArg(): number | null {
+	const idx = process.argv.indexOf("--phase");
+	if (idx === -1 || idx + 1 >= process.argv.length) return null;
+	const val = parseInt(process.argv[idx + 1], 10);
+	return val >= 1 && val <= 3 ? val : null;
+}
+
+async function getTailTerms(): Promise<string[]> {
+	const { searched2025, successful } = await getSearchedTermSets();
+	const seen = new Set<string>();
+	const result: string[] = [];
+	let skippedSearched = 0;
+	let skippedSupersets = 0;
+
+	function addTerm(term: string): boolean {
+		if (term.length < MIN_TERM_LENGTH) return false;
+		const lower = term.toLowerCase();
+		if (searched2025.has(lower) || seen.has(lower)) {
+			skippedSearched++;
+			return false;
+		}
+		if (isSupersetOfSuccessful(lower, successful)) {
+			skippedSupersets++;
+			return false;
+		}
+		seen.add(lower);
+		result.push(term);
+		return true;
+	}
+
+	const phase = parsePhaseArg();
+	const runPhase1 = phase === null || phase === 1;
+	const runPhase2 = phase === null || phase === 2;
+	const runPhase3 = phase === null || phase === 3;
+
+	// ── Phase 1: Unscrapped analytics terms (proven yielders) ─────────
+	if (runPhase1) {
+		const prevCount = result.length;
+		console.log("  Phase 1: Unscrapped analytics terms (proven yielders)...");
+		const analyticsTerms = await prisma.$queryRaw<
+			Array<{ search_term: string; total_results: number }>
+		>`
+			SELECT search_term, total_results
+			FROM search_term_analytics
+			WHERE total_results > 0
+			ORDER BY total_results DESC`;
+		for (const row of analyticsTerms) addTerm(row.search_term);
+		console.log(`    Added: ${result.length - prevCount} terms`);
+	}
+
+	// ── Phase 2: Analytics tail (all remaining by total_results) ──────
+	// Phase 1 already adds all analytics terms ordered by total_results,
+	// so Phase 2 only runs standalone when --phase 2 is passed.
+	if (runPhase2 && phase === 2) {
+		const prevCount = result.length;
+		console.log("  Phase 2: Analytics tail terms...");
+		const tailTerms = await prisma.$queryRaw<
+			Array<{ search_term: string; total_results: number }>
+		>`
+			SELECT search_term, total_results
+			FROM search_term_analytics
+			WHERE total_results > 0
+			ORDER BY total_results DESC`;
+		for (const row of tailTerms) addTerm(row.search_term);
+		console.log(`    Added: ${result.length - prevCount} terms`);
+	}
+
+	// ── Phase 3: Owner-name mining from 2026-only properties ──────────
+	if (runPhase3) {
+		const prevCount = result.length;
+		console.log("  Phase 3: Mining owner names from 2026-only properties...");
+
+		// First words of owner names on 2026 properties missing from 2025
+		const ownerNames = await prisma.$queryRaw<
+			Array<{ word: string; cnt: number }>
+		>`
+			SELECT SPLIT_PART(p.name, ' ', 1) AS word,
+			       COUNT(DISTINCT p.property_id)::int AS cnt
+			FROM properties p
+			WHERE p.year = 2026
+			  AND p.property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+			  AND LENGTH(SPLIT_PART(p.name, ' ', 1)) >= ${MIN_TERM_LENGTH}
+			GROUP BY SPLIT_PART(p.name, ' ', 1)
+			HAVING COUNT(DISTINCT p.property_id) >= 5
+			ORDER BY cnt DESC`;
+		for (const row of ownerNames) addTerm(row.word);
+
+		// Street names from 2026-only properties
+		const streets = await prisma.$queryRaw<
+			Array<{ street: string; cnt: number }>
+		>`
+			SELECT SPLIT_PART(property_address, ' ', 2) AS street,
+			       COUNT(DISTINCT property_id)::int AS cnt
+			FROM properties
+			WHERE year = 2026
+			  AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+			  AND property_address IS NOT NULL
+			  AND LENGTH(SPLIT_PART(property_address, ' ', 2)) >= ${MIN_TERM_LENGTH}
+			GROUP BY SPLIT_PART(property_address, ' ', 2)
+			HAVING COUNT(DISTINCT property_id) >= 5
+			ORDER BY cnt DESC`;
+		for (const row of streets) addTerm(row.street);
+		console.log(`    Added: ${result.length - prevCount} terms`);
+	}
+
+	console.log(
+		`\n  Summary: ${result.length} terms | skipped ${skippedSearched} already-searched, ${skippedSupersets} supersets`,
+	);
+	return result;
+}
+
+const phase = parsePhaseArg();
+const label = phase ? `Tail Terms (Phase ${phase})` : "Tail Terms (All Phases)";
+
+runBackfillMain({
+	getTerms: getTailTerms,
+	userId: "tail-term-optimizer",
+	label,
+	maxConsecutiveZeroBatches: MAX_CONSECUTIVE_ZERO_BATCHES,
+});

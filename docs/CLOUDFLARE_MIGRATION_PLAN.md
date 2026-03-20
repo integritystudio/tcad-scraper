@@ -4,7 +4,7 @@ _Based on [CLOUDFLARE_D1_FEASIBILITY.md](./CLOUDFLARE_D1_FEASIBILITY.md) — Mar
 
 **Strategy**: Hyperdrive + Keep Render PostgreSQL (zero DB changes)
 
-**Status**: Phases 0-4 implemented (code in `workers/tcad-api/`). Phase 5 (production cutover) pending.
+**Status**: All phases complete. Production traffic served by Cloudflare Workers as of 2026-03-20.
 
 ---
 
@@ -15,18 +15,17 @@ _Based on [CLOUDFLARE_D1_FEASIBILITY.md](./CLOUDFLARE_D1_FEASIBILITY.md) — Mar
 | **0** | Done | wrangler.toml, package.json, Prisma + driverAdapters, Hyperdrive helper |
 | **1** | Done | All Express routes ported to Hono (property, api-usage, auth, CORS) |
 | **2** | Done | ScraperWorkflow (5 steps), Queue consumer, bulk upsert with xmax |
-| **3** | Done | KV bindings, cron handlers (token refresh, cleanup, monitors). KV IDs pending |
+| **3** | Done | KV namespaces created, cron handlers active (token refresh, cleanup, monitors) |
 | **4** | Done | Sentry withSentry wrapper, console logging |
-| **5** | Not started | DNS migration, parallel run, canary |
+| **5** | Done | DNS cutover, Hyperdrive, secrets, KV, queues, crons all deployed |
 
-**Build**: `npx tsc --noEmit` clean, `wrangler deploy --dry-run` succeeds (3.3MB / 1.1MB gzip)
-
-**Deploy prerequisites**:
-1. `wrangler hyperdrive create tcad-db --connection-string="$DATABASE_URL"` → paste ID into wrangler.toml
-2. `wrangler secret put API_KEY` (+ JWT_SECRET, ANTHROPIC_API_KEY, SENTRY_DSN, TOKEN_WORKER_URL, TOKEN_WORKER_SECRET)
-3. `wrangler kv namespace create tcad-token-cache` → uncomment KV bindings, paste IDs
-4. `wrangler deploy`
-5. Smoke test: `curl https://tcad-api.<subdomain>.workers.dev/health`
+**Infrastructure IDs**:
+- Hyperdrive: `e0406d51a79a4440863e0c608390a613`
+- KV TOKEN_CACHE: `df1bbaf6c7d94db58f9669410b7e6e1d`
+- KV RESPONSE_CACHE: `5eec76ee553e43af892876e9069a74d5`
+- Queue: `tcad-scraper-jobs` (DLQ: `tcad-scraper-dlq`)
+- Route: `api.alephatx.info/*` (zone: `alephatx.info`)
+- DNS: `api.alephatx.info` A record proxied through Cloudflare
 
 ---
 

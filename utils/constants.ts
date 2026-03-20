@@ -33,6 +33,9 @@ export const BREAKPOINTS = {
 	wide: "1280px",
 } as const;
 
+// ── TCAD year ───────────────────────────────────────────────────────
+export const DEFAULT_TCAD_YEAR = 2025;
+
 // ── Property count targets ──────────────────────────────────────────
 // Approximate 2025 TCAD property count used as halt threshold by backfill
 // and lowthreshold scripts. See CLAUDE.md "Scale: 500K+ properties".

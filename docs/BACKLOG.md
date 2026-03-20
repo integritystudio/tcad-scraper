@@ -1,11 +1,10 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-11 (enqueue consolidation research closed; city names verified)
+**Last Updated**: 2026-03-11 (codebase cleanup completed; city names verified; enqueue consolidation research closed)
 **Status**: 680/680 tests passing | TypeScript clean | Lint clean
 
 ---
 ## Open Items
-
 
 ---
 
@@ -67,4 +66,4 @@ The get-then-set pattern in `canScheduleJob` has a TOCTOU window where concurren
 
 All completed items migrated to `docs/changelog/` (per-date files).
 
-**Latest migration**: 6 items migrated to [changelog/2026-03-11.md](../changelog/2026-03-11.md) (M16, M25, M26, M28, M29, M30 refactoring completion)
+**Latest migration**: Codebase cleanup audit items migrated to [changelog/2026-03-11.md](changelog/2026-03-11.md)

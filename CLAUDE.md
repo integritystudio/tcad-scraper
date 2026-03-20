@@ -1,84 +1,86 @@
 # CLAUDE.md
 
-**Last Updated**: March 11, 2026 | **Version**: 4.6
+**Last Updated**: March 20, 2026 | **Version**: 5.0
 
 ## Project Overview
 
 TCAD Scraper extracts property tax data from Travis Central Appraisal District (TCAD).
 
-- **Backend**: Express API (TypeScript) + BullMQ queues + TCAD API-direct scraping
-- **Frontend**: React 19 + Vite
-- **Database**: PostgreSQL (Render) + Prisma ORM
-- **Queue**: BullMQ + Redis (Render, TLS)
-- **Logging**: Pino (structured JSON)
-- **Testing**: Vitest (631+ tests)
+- **API**: Cloudflare Workers (Hono) + Workflows — migrated from Express/BullMQ March 2026
+- **Frontend**: React 19 + Vite (GitHub Pages)
+- **Database**: PostgreSQL (Render) via Cloudflare Hyperdrive
+- **Queue**: Cloudflare Queues + Workflows (replaced BullMQ + Redis)
+- **Cache**: Cloudflare KV (replaced Redis cache)
+- **Logging**: Workers `console.*` + Sentry (replaced Pino)
+- **Testing**: Vitest (680+ tests)
 - **Scale**: 500K+ properties
 
 ```
-React (5174) → Express (3001) → PostgreSQL (Render)
+React (5174) → CF Workers (Hono) → Hyperdrive → PostgreSQL (Render)
                     ↓
-                BullMQ Queue (Render Redis / TLS)
+               CF Queue → ScraperWorkflow (5 steps)
                     ↓
-                Scraper Workers → TCAD API
+               TCAD API → bulk upsert via Hyperdrive
 ```
 
----
+**Legacy stack** (still in `server/` for reference): Express + BullMQ + Redis. Production traffic now served by Workers.
 
-## Secrets Management - Doppler
-
-All secrets via Doppler. **Project**: `integrity-studio` | **Config**: `dev` / `prod`
-
-```bash
-doppler run -- npm run dev
-```
+All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler project**: `integrity-studio` | **Config**: `dev` / `prod`.
 
 ---
 
 ## Key Components
 
-### Backend (`server/`)
-- `src/index.ts` - Express + Sentry + Bull Board (Bull Dashboard protected by apiKeyAuth)
-- `src/lib/tcad-scraper.ts` - Scraper entry point (API-direct mode; Playwright removed Feb 2026)
-- `src/queues/scraper.queue.ts` - BullMQ job processing
-- `src/services/token-refresh.service.ts` - Auto-refresh tokens via Cloudflare Worker
+### Workers API (`workers/tcad-api/`) — Production
+- `src/index.ts` - Hono app + queue consumer + cron handlers + Sentry
+- `src/workflows/scraper.workflow.ts` - ScraperWorkflow (5 steps: token, fetch, dedup, upsert, analytics)
+- `src/controllers/property.ts` - Property routes (list, get, scrape, search, history)
+- `src/controllers/api-usage.ts` - API usage routes
+- `src/middleware/auth.ts` - API key (`x-api-key`) + JWT (`jose`) auth
+- `src/db.ts` - Prisma + Hyperdrive connection
 - `src/lib/claude.service.ts` - Natural language search (query capped at 500 chars via Zod)
-- `src/lib/tcad-api-client.ts` - TCAD API client with structured diagnostics for JSON parse failures
-- `src/utils/` - Shared utilities (error-helpers, property-transformers, timing)
-- `prisma/schema.prisma` - Schema (properties, scrape_jobs, monitored_searches)
+- `src/utils/constants.ts` - TCAD_API_URL, chunk sizes, timeouts
+- `wrangler.toml` - Hyperdrive, KV, Queues, Workflows, Crons, route config
+
+### Legacy Backend (`server/`) — Reference only
+- `src/index.ts` - Express + Sentry + Bull Board (no longer serving production traffic)
+- `src/queues/scraper.queue.ts` - BullMQ job processing (replaced by ScraperWorkflow)
+- `src/services/token-refresh.service.ts` - Token refresh (replaced by KV + cron)
+- `prisma/schema.prisma` - Schema (properties, scrape_jobs, monitored_searches) — still canonical
 
 ### Scripts (`scripts/` — root level, run from repo root)
-- `continuous-batch-scraper.ts` - Long-running scraper; `STOP_AT_PROPERTIES` (500K) controls halt threshold
+- `continuous-batch-scraper.ts` - Long-running scraper; `STOP_AT_PROPERTIES` (500K) halt threshold
 - `enqueue-batch.ts` - Config-driven batch enqueue runner
-- `generate-valid-5char-terms.ts` - Generate valid 5-character search terms
+- `enqueue-tail-terms.ts` - Multi-phase tail term optimizer (analytics + owner-name mining)
 - `generate-next-200-terms.ts` - Generate next candidate terms for backfill
-- `queue-results.ts` - Queue status + recent completed/failed jobs (`doppler run -- npx tsx scripts/queue-results.ts [--limit N]`)
+- `queue-results.ts` - Queue status + recent jobs (`doppler run -- npx tsx scripts/queue-results.ts [--limit N]`)
 - `config/batch-configs.ts` - 18 batch type definitions
 - `lib/` - queue-utils, backfill-runner, searched-terms, backfill-utils
 - `requeue/` - Failed job requeue scripts
-- See [scripts/README.md](scripts/README.md) for full scripts reference
-
-### API
-- See [docs/API.md](docs/API.md) for full endpoint reference
+- See [scripts/README.md](scripts/README.md) for full reference
 
 ### Infrastructure
-- **Hosting**: GitHub Pages (frontend via `alephatx.info`), Render (API)
-- Monitoring: `config/monitoring/` (Grafana dashboards, Prometheus configs, Docker Compose)
-- Ports: Frontend 5174, Backend 3001, Redis 6379 (Render TLS), PostgreSQL (Render)
+- **API**: Cloudflare Workers at `api.alephatx.info` (route: `api.alephatx.info/*`)
+- **Frontend**: GitHub Pages at `alephatx.info`
+- **Database**: Render PostgreSQL via Hyperdrive (`e0406d51a79a4440863e0c608390a613`)
+- **Cache**: Cloudflare KV (TOKEN_CACHE, RESPONSE_CACHE)
+- **Queue**: Cloudflare Queues (`tcad-scraper-jobs`, DLQ: `tcad-scraper-dlq`)
+- **Crons**: Token refresh (4min), stale job cleanup (hourly), monitored searches (6hr)
+- **Monitoring**: Sentry + `wrangler tail` + Cloudflare dashboard
+- **Legacy monitoring**: `config/monitoring/` (Grafana, Prometheus, Docker Compose)
 
 ### Project Layout
 ```
+├── workers/tcad-api/     # Production API (CF Workers + Hono)
+│   └── src/              # index, controllers, workflows, middleware, lib
 ├── src/                  # Frontend (React + Vite)
-├── server/               # Backend (Express + BullMQ + Prisma)
-│   └── prisma/           # Schema + migrations (canonical location)
-├── scripts/              # CLI tools, batch scripts, backfill, enqueue (root level)
-│   ├── config/           # 18 batch type definitions
-│   ├── lib/              # queue-utils, backfill-runner, searched-terms, backfill-utils
-│   └── requeue/          # Failed job requeue scripts
-├── e2e/                  # Playwright E2E tests (a11y, search, visual, mobile, api-errors)
-├── utils/                # Shared constants (constants.ts)
+├── server/               # Legacy backend (Express + BullMQ + Prisma)
+│   └── prisma/           # Schema + migrations (canonical)
+├── scripts/              # CLI tools, batch scripts, backfill, enqueue
+├── e2e/                  # Playwright E2E tests
+├── utils/                # Shared constants
 ├── config/               # Monitoring, GTM configs
-│   └── monitoring/       # Grafana dashboards, Prometheus rules + Docker Compose
-├── shared/               # Shared types (index.ts, json-ld.utils.ts)
+├── shared/               # Shared types
 └── docs/                 # All documentation
 ```
 
@@ -96,63 +98,82 @@ git -C /Users/alyshialedlie/code/is-public-sites/tcad-scraper add server/src/fil
 ## Common Commands
 
 ```bash
-# Frontend
-npm install && doppler run -- npm run dev
+# Dev
+npm install && doppler run -- npm run dev          # Frontend
+cd workers/tcad-api && npm run dev                  # Workers API (local)
+cd server && npm install && doppler run -- npm run dev  # Legacy backend
 
-# Backend
-cd server && npm install && doppler run -- npm run dev
+# Workers Management
+cd workers/tcad-api
+npx wrangler deploy                                # Deploy to production
+npx wrangler tail                                  # Live logs
+npx wrangler workflows instances list scraper-workflow --per-page 10  # Workflow status
+npx wrangler secret put <NAME>                     # Set secret
 
 # Database
-npx prisma generate
+cd server && npx prisma generate
 doppler run -- npx prisma migrate dev
 
 # Testing
-npm test                     # Unit tests (631+ tests, <5 sec)
+npm test                     # Unit tests (680+ tests, <5 sec)
 npm run test:integration     # Integration tests
 npm run test:all:coverage    # Full coverage report
 
-# Scraping
+# Scraping (via Workers API)
+curl -X POST "https://api.alephatx.info/api/properties/scrape" \
+  -H "Content-Type: application/json" -H "x-api-key: $TCAD_API_KEY" \
+  -d '{"searchTerm": "Smith"}'
+
+# Scraping (legacy BullMQ — still works for local dev)
 doppler run -- npx tsx scripts/continuous-batch-scraper.ts
 npm run queue:status
 
 # Backfill Discovery
-doppler run -- npx tsx scripts/generate-next-200-terms.ts          # Generate next 500 candidate terms (dry run)
+doppler run -- npx tsx scripts/generate-next-200-terms.ts          # Dry run
 doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue # Generate and enqueue
-doppler run -- npx tsx scripts/check-unsearched-terms.ts            # Find inventory terms not yet searched for current year
-# Pipe unsearched terms to enqueue:
-#   doppler run -- npx tsx scripts/check-unsearched-terms.ts | grep '^ ' | sed 's/^  //' | doppler run -- npx tsx scripts/enqueue-terms.ts
-bash scripts/search-terms-summary.sh                                    # Recent search terms table (from repo root)
+doppler run -- npx tsx scripts/check-unsearched-terms.ts            # Find unsearched terms
+bash scripts/search-terms-summary.sh                                # Recent search terms table
 
-# Queue Management
-## Dequeue all waiting/failed jobs
-# ⚠️ Bull (not BullMQ) API: clean() and drain() have different signatures or don't exist
-# ⚠️ Must pause queue first — active workers grab waiting jobs during removal
-# ⚠️ Use try/catch on job.remove() — already-active jobs throw "Could not remove"
+# Tail Term Optimizer (maximize new properties when yield drops)
+TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts           # All phases
+TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 1 # Proven analytics terms
+TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 3 # Mine owner names/streets
+
+# Database Queries (run from server/)
+doppler run -- npx tsx --eval "import { PrismaClient } from '@prisma/client'; const p = new PrismaClient(); p.property.count({where:{year:2025}}).then(c=>{console.log('Count:',c);return p.\$disconnect()}).then(()=>process.exit(0));"
+doppler run -- npx tsx --eval "import { PrismaClient } from '@prisma/client'; const p = new PrismaClient(); p.\$queryRaw\`SELECT search_term, total_results, total_searches, success_rate FROM search_term_analytics WHERE total_results > 0 ORDER BY total_results DESC LIMIT 50\`.then(r=>{console.table(r);return p.\$disconnect()}).then(()=>process.exit(0));"
+
+# Queue Management (Legacy BullMQ — dequeue all waiting/failed jobs)
+# ⚠️ Must pause queue first; use try/catch on job.remove()
 npx tsx --eval "import { scraperQueue } from './src/queues/scraper.queue'; (async () => { await scraperQueue.pause(); const waiting = await scraperQueue.getWaiting(0, 500); for (const j of waiting) { try { await j.remove(); } catch(e) {} } const failed = await scraperQueue.getFailed(0, 500); for (const j of failed) { try { await j.remove(); } catch(e) {} } await scraperQueue.resume(); console.log('Cleared', waiting.length, 'waiting +', failed.length, 'failed'); await scraperQueue.close(); process.exit(0); })();"
+
+# Workers Queue — view via Cloudflare dashboard or:
+cd workers/tcad-api && npx wrangler queues list
 ```
 
 ---
 
 ## Architecture Decisions
 
-- **Remote PostgreSQL on Render**; local container disabled
-- **Production Redis**: Render Redis via `REDIS_URL` in Doppler (`rediss://` TLS). Config auto-detects TLS from URL prefix. Local dev also uses Render Redis (IP allowlisted)
-- **Bearer tokens** expire ~5 min; `token-refresh.service.ts` auto-refreshes (see [docs/TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md))
-- **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses, suburb/city names (Pflugerville, Cedar Park, Bee Cave — but NOT "Austin" which is too broad). Does NOT work with ZIP codes, short terms (<4 chars), compound names, or numeric-only terms (address numbers, property IDs, GEO IDs)
-- **Env vars**: `TCAD_YEAR` (default: current year), `QUEUE_BATCH_CHUNK_SIZE` (default: 500)
+- **Cloudflare Workers** serves production API (March 2026 migration from Render/Express)
+- **Hyperdrive** connection pools to Render PostgreSQL — no DB migration needed
+- **Cloudflare Queues + Workflows** replaced BullMQ + Redis for scrape job processing
+- **Cloudflare KV** replaced Redis for token cache + response cache
+- **Cron Triggers** replaced `node-cron` for scheduled tasks
+- **Bearer tokens** expire ~5 min; cron trigger auto-refreshes to KV (see [docs/TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md))
+- **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses, suburb/city names. Does NOT work with ZIP codes, short terms (<4 chars), compound names, or numeric-only terms
+- **Env vars**: `TCAD_YEAR` (wrangler.toml vars), `UPSERT_CHUNK_SIZE` (500)
+- See [docs/CLOUDFLARE_MIGRATION_PLAN.md](docs/CLOUDFLARE_MIGRATION_PLAN.md) for full migration details
 
 ---
 
-## Production Deployment (Render)
+## Production Deployment (Cloudflare Workers)
 
-**Branch**: `main` | **Platform**: Render
+Deploy from `workers/tcad-api/`: `npx wrangler deploy`
 
-Deploys automatically on push to `main`. See `render.yaml` for service config.
+Verify: `curl -s "https://api.alephatx.info/health" | jq`
 
-```bash
-# Verify
-curl -s "https://api.alephatx.info/health" | jq
-```
+Expected response: `{"status":"ok","propertyCount":N,"runtime":"cloudflare-workers"}`
 
 ---
 
@@ -160,9 +181,11 @@ curl -s "https://api.alephatx.info/health" | jq
 
 - **Prisma selects**: Only use fields from `prisma/schema.prisma`. `SearchTermAnalytics` has `totalSearches`, NOT `searchCount`
 - **No `any`**: Use `unknown` + type guards. Use `getErrorMessage()` from `utils/error-helpers.ts`
-- **No `console.*`**: Use Pino logger (`import logger from '../lib/logger'`). CLI scripts exempt via ESLint override
-- **BullMQ typing**: Use `ScraperJob`, `CompletedScraperJob`, `FailedScraperJob` from `types/queue.types.ts`
-- **Documented exceptions**: None remaining (0 `any` in production code)
+- **Workers logging**: Use `console.*` (Workers structured logging). Legacy `server/` uses Pino logger
+- **Workers env**: Access via `c.env.X` (Hono context), not `process.env.X`
+- **Auth**: Workers uses `x-api-key` header checked against `env.API_KEY` (value = Doppler `TCAD_API_KEY`). JWT via `jose` (not `jsonwebtoken`)
+- **TCAD API request format**: Body must use `{ pYear: { operator: "=", value }, fullTextSearch: { operator: "match", value } }` with pagination as query params `?page=N&pageSize=N`. Token passed as `Authorization: token` (token already includes "Bearer " prefix from token worker — do NOT add a second "Bearer " prefix). See `server/src/lib/tcad-api-client.ts` for the canonical implementation
+- **BullMQ typing** (legacy): Use `ScraperJob`, `CompletedScraperJob`, `FailedScraperJob` from `types/queue.types.ts`
 
 ---
 
@@ -170,13 +193,14 @@ curl -s "https://api.alephatx.info/health" | jq
 
 | Problem | Steps |
 |---------|-------|
-| DB connection failed | Check Render dashboard → verify DATABASE_URL in Doppler |
-| TCAD API auth failed | Token expired (5 min lifetime); check server logs for "Token refreshed". See [Requeue Scripts](server/README.md#requeue-scripts) |
-| Queue not processing | `npm run queue:status` → check Render Redis dashboard or server logs |
-| Mass job failures | Use requeue scripts in root `scripts/requeue/`. See [Requeue Scripts](server/README.md#requeue-scripts) |
-| Rate limiting error | Ensure `app.set('trust proxy', 1)` in `server/src/index.ts` |
-| API 522/unreachable | Check Render dashboard → service logs |
-| DNS not resolving | Flush: `sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder` |
+| DB connection failed | Check Render dashboard; verify Hyperdrive config: `wrangler hyperdrive get tcad-db` |
+| TCAD API auth failed | Token expired (5 min); check `wrangler tail` for refresh errors |
+| TCAD API 500 / 0 results | Verify request body format matches `tcad-api-client.ts` (operator format, query string pagination, no double Bearer prefix). TCAD also returns 500 for genuinely empty terms |
+| Workflows stuck | `wrangler workflows instances list scraper-workflow --status running` |
+| Queue not processing | `wrangler queues list`; check consumer in `wrangler tail` |
+| Workers deploy failed | `wrangler deploy --dry-run`; check `npx tsc --noEmit` in `workers/tcad-api/` |
+| API 522/unreachable | Check Cloudflare dashboard; `wrangler tail` for errors |
+| Legacy: Queue stuck | `npm run queue:status`, check Render Redis or server logs |
 
 ---
 
@@ -185,8 +209,10 @@ curl -s "https://api.alephatx.info/health" | jq
 | Environment | URL |
 |------------|-----|
 | Frontend (local) | http://localhost:5174 |
-| Backend (local) | http://localhost:3001 |
-| Bull Dashboard | http://localhost:3001/admin/queues |
+| Workers API (local) | `wrangler dev` (workers/tcad-api/) |
+| Legacy backend (local) | http://localhost:3001 |
 | Frontend (prod) | https://alephatx.info |
 | API (prod) | https://api.alephatx.info/api |
 | Health (prod) | https://api.alephatx.info/health |
+| Workers logs | `wrangler tail` (workers/tcad-api/) |
+| Cloudflare dashboard | https://dash.cloudflare.com |

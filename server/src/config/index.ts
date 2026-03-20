@@ -15,6 +15,7 @@ import {
 	DEFAULT_QUERY_LIMIT,
 	DEFAULT_RATE_LIMIT_DELAY_MS,
 	DEFAULT_RETRY_DELAY_MS,
+	DEFAULT_TCAD_YEAR,
 } from "../utils/constants";
 
 // Load environment variables from .env or Doppler
@@ -218,7 +219,7 @@ export const config = {
 		tokenWorkerUrl: process.env.TOKEN_WORKER_URL,
 		tokenWorkerSecret: process.env.TOKEN_WORKER_SECRET,
 		/** Stored as number; coerced to string via template interpolation for the TCAD API pYear field */
-		tcadYear: parseTcadYear("TCAD_YEAR", new Date().getFullYear()),
+		tcadYear: parseTcadYear("TCAD_YEAR", DEFAULT_TCAD_YEAR),
 		timeout: parseIntEnv("SCRAPER_TIMEOUT", 30000),
 		retryAttempts: parseIntEnv("SCRAPER_RETRY_ATTEMPTS", 3),
 		retryDelay: parseIntEnv("SCRAPER_RETRY_DELAY", DEFAULT_RETRY_DELAY_MS),
