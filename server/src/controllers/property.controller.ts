@@ -3,8 +3,6 @@ import type { NextFunction, Request, Response } from "express";
 import { claudeSearchService } from "../lib/claude.service";
 import { prisma, prismaReadOnly } from "../lib/prisma";
 import { cacheService } from "../lib/redis-cache.service";
-import { canScheduleJob, scraperQueue } from "../queues/scraper.queue";
-import type { ScrapeResponse } from "../types";
 import type {
 	AnswerStatistics,
 	AnswerType,
@@ -22,81 +20,6 @@ import { transformPropertyToSnakeCase } from "../utils/property-transformers";
 export const DISPLAY_YEAR = 2025;
 
 export class PropertyController {
-	/**
-	 * POST /api/properties/scrape - Trigger a new scrape job
-	 */
-	async scrapeProperties(
-		req: Request<object, object, ScrapeRequestBody>,
-		res: Response,
-	) {
-		const validatedData = req.body;
-
-		// Check rate limiting
-		const canSchedule = await canScheduleJob(validatedData.searchTerm);
-		if (!canSchedule) {
-			return res.status(429).json({
-				error:
-					"Rate limit exceeded. Please wait before scraping the same search term again.",
-			});
-		}
-
-		// Add job to queue
-		const job = await scraperQueue.add("scrape-properties", validatedData, {
-			delay: 0,
-			attempts: 3,
-		});
-
-		if (!job.id) {
-			return res.status(500).json({ error: "Queue returned job without ID" });
-		}
-
-		const response: ScrapeResponse = {
-			jobId: job.id.toString(),
-			message: "Scrape job queued successfully",
-		};
-
-		return res.status(202).json(response);
-	}
-
-	/**
-	 * GET /api/properties/jobs/:jobId - Get job status
-	 */
-	async getJobStatus(
-		req: Request<{ jobId: string }>,
-		res: Response,
-		_next: NextFunction,
-	) {
-		const { jobId } = req.params;
-
-		const job = await scraperQueue.getJob(jobId);
-		if (!job) {
-			return res.status(404).json({ error: "Job not found" });
-		}
-
-		const state = await job.getState();
-		const progress = job.progress();
-
-		let result = null;
-		if (state === "completed") {
-			result = job.returnvalue;
-		}
-
-		let error = null;
-		if (state === "failed") {
-			error = job.failedReason;
-		}
-
-		return res.json({
-			id: jobId,
-			status: state,
-			progress: typeof progress === "number" ? progress : 0,
-			resultCount: result?.count,
-			error,
-			createdAt: new Date(job.timestamp),
-			completedAt: job.finishedOn ? new Date(job.finishedOn) : null,
-		});
-	}
-
 	/**
 	 * GET /api/properties - Get properties from database with filters
 	 * Cached for 5 minutes per unique filter combination

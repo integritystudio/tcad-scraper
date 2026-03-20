@@ -1,6 +1,3 @@
-import { createBullBoard } from "@bull-board/api";
-import { BullAdapter } from "@bull-board/api/bullAdapter.js";
-import { ExpressAdapter } from "@bull-board/express";
 import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -9,7 +6,7 @@ import swaggerUi from "swagger-ui-express";
 import { config, logConfigSummary, validateConfig } from "./config";
 import { swaggerSpec } from "./config/swagger";
 import logger from "./lib/logger";
-import { getMetrics, updateQueueMetrics } from "./lib/metrics.service";
+import { getMetrics } from "./lib/metrics.service";
 import { cacheService } from "./lib/redis-cache.service";
 import {
 	getHealth as getSentryHealth,
@@ -19,19 +16,16 @@ import {
 	sentryRequestHandler,
 	sentryTracingHandler,
 } from "./lib/sentry.service";
-import { apiKeyAuth, optionalAuth } from "./middleware/auth";
+import { optionalAuth } from "./middleware/auth";
 import { metricsMiddleware } from "./middleware/metrics.middleware";
 import { nonceMiddleware } from "./middleware/xcontroller.middleware";
-import { scraperQueue } from "./queues/scraper.queue";
 import { apiUsageRouter } from "./routes/api-usage.routes";
 import { appRouter } from "./routes/app.routes";
 import { propertyRouter } from "./routes/property.routes";
-import { scheduledJobs } from "./schedulers/scrape-scheduler";
 import {
 	startPeriodicAnalysis,
 	stopPeriodicAnalysis,
 } from "./services/code-complexity.service";
-import { tokenRefreshService } from "./services/token-refresh.service";
 import { DEFAULT_RETRY_DELAY_MS } from "./utils/constants";
 
 // Initialize Sentry with service tagging (must be first)
@@ -59,13 +53,8 @@ app.use(sentryTracingHandler());
 // Add nonce generation for all requests (used by CSP in frontend routes)
 app.use(nonceMiddleware);
 
-// Security middleware - exclude Bull Board dashboard from CSP
+// Security middleware
 app.use((req, res, next) => {
-	// Skip CSP for Bull Board dashboard
-	if (req.path.startsWith(config.queue.dashboard.basePath)) {
-		return next();
-	}
-
 	helmet({
 		crossOriginResourcePolicy: {
 			policy: config.security.helmet.crossOriginResourcePolicy as
@@ -126,24 +115,6 @@ const scrapeLimiter = rateLimit({
 
 app.use("/api/properties/scrape", scrapeLimiter);
 
-// Bull Dashboard setup
-if (config.queue.dashboard.enabled) {
-	const serverAdapter = new ExpressAdapter();
-	serverAdapter.setBasePath(config.queue.dashboard.basePath);
-
-	createBullBoard({
-		queues: [new BullAdapter(scraperQueue)],
-		serverAdapter,
-	});
-
-	app.use(
-		config.queue.dashboard.basePath,
-		apiKeyAuth,
-		serverAdapter.getRouter(),
-	);
-	logger.info(`Bull Dashboard enabled at ${config.queue.dashboard.basePath}`);
-}
-
 // Swagger API Documentation
 app.use(
 	"/api-docs",
@@ -201,129 +172,6 @@ app.get("/health", (_req, res) => {
 		uptime: process.uptime(),
 		environment: config.env.nodeEnv,
 	});
-});
-
-/**
- * @swagger
- * /health/queue:
- *   get:
- *     summary: Queue health check
- *     description: Returns BullMQ queue health status and job counts
- *     tags: [Health]
- *     responses:
- *       200:
- *         description: Queue is healthy
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: healthy
- *                 queue:
- *                   type: object
- *                   properties:
- *                     name:
- *                       type: string
- *                       example: scraper-queue
- *                     waiting:
- *                       type: integer
- *                       description: Number of jobs waiting
- *                     active:
- *                       type: integer
- *                       description: Number of jobs currently processing
- *                     completed:
- *                       type: integer
- *                       description: Number of completed jobs
- *                     failed:
- *                       type: integer
- *                       description: Number of failed jobs
- *       500:
- *         description: Queue is unhealthy
- */
-app.get("/health/queue", async (_req, res) => {
-	try {
-		const [waiting, active, completed, failed] = await Promise.all([
-			scraperQueue.getWaitingCount(),
-			scraperQueue.getActiveCount(),
-			scraperQueue.getCompletedCount(),
-			scraperQueue.getFailedCount(),
-		]);
-
-		res.json({
-			status: "healthy",
-			queue: {
-				name: "scraper-queue",
-				waiting,
-				active,
-				completed,
-				failed,
-			},
-		});
-	} catch (error) {
-		logger.error({ error }, "Queue health check failed");
-		res.status(500).json({
-			status: "unhealthy",
-			error: "Failed to get queue status",
-		});
-	}
-});
-
-/**
- * @swagger
- * /health/token:
- *   get:
- *     summary: Token refresh service health check
- *     description: Returns TCAD token refresh service health status and statistics
- *     tags: [Health]
- *     responses:
- *       200:
- *         description: Token service is healthy
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   enum: [healthy, unhealthy]
- *                 tokenRefresh:
- *                   type: object
- *                   properties:
- *                     healthy:
- *                       type: boolean
- *                     lastRefresh:
- *                       type: string
- *                       format: date-time
- *                     nextRefresh:
- *                       type: string
- *                       format: date-time
- *                     successCount:
- *                       type: integer
- *                     failureCount:
- *                       type: integer
- *       503:
- *         description: Token service is unhealthy (no valid token or token expired)
- *       500:
- *         description: Failed to get token status
- */
-app.get("/health/token", async (_req, res) => {
-	try {
-		const health = tokenRefreshService.getHealth();
-
-		const statusCode = health.healthy ? 200 : 503;
-		res.status(statusCode).json({
-			status: health.healthy ? "healthy" : "unhealthy",
-			tokenRefresh: health,
-		});
-	} catch (error) {
-		logger.error({ error }, "Token health check failed");
-		res.status(500).json({
-			status: "unhealthy",
-			error: "Failed to get token status",
-		});
-	}
 });
 
 /**
@@ -452,16 +300,6 @@ app.get("/health/sentry", (_req, res) => {
  */
 app.get("/metrics", async (_req, res) => {
 	try {
-		// Update queue metrics before returning
-		const [waiting, active, completed, failed] = await Promise.all([
-			scraperQueue.getWaitingCount(),
-			scraperQueue.getActiveCount(),
-			scraperQueue.getCompletedCount(),
-			scraperQueue.getFailedCount(),
-		]);
-
-		await updateQueueMetrics(waiting, active, completed, failed);
-
 		// Get cache stats and update metrics
 		const cacheStats = cacheService.getStats();
 		const { updateCacheMetrics } = await import("./lib/metrics.service");
@@ -528,35 +366,7 @@ if (isMainModule) {
 		logger.info(
 			`Server running on http://${config.server.host}:${config.server.port}`,
 		);
-		if (config.queue.dashboard.enabled) {
-			logger.info(
-				`Bull Dashboard available at http://${config.server.host}:${config.server.port}${config.queue.dashboard.basePath}`,
-			);
-		}
 		logger.info(`Environment: ${config.env.nodeEnv}`);
-
-		// Initialize scheduled jobs
-		scheduledJobs.initialize();
-
-		// Start auto-refresh before initial fetch so the timer is always running,
-		// even if the first fetch fails or the process receives SIGTERM during startup.
-		tokenRefreshService.startAutoRefreshInterval();
-		tokenRefreshService
-			.refreshToken()
-			.then((token) => {
-				if (token) {
-					logger.info("TCAD token fetched successfully");
-				} else {
-					logger.warn(
-						"Initial TCAD token fetch failed — auto-refresh will retry",
-					);
-				}
-			})
-			.catch((err) => {
-				logger.error(
-					`Token service startup error: ${err instanceof Error ? err.message : String(err)}`,
-				);
-			});
 
 		// Start periodic code complexity analysis
 		logger.info("Starting periodic code complexity analysis...");
@@ -586,12 +396,9 @@ if (isMainModule) {
 			// Cleanup in parallel where safe
 			await Promise.allSettled([
 				sentryFlush(DEFAULT_RETRY_DELAY_MS),
-				scraperQueue.close(),
-				tokenRefreshService.cleanup(),
 				cacheService.disconnect(),
 			]);
 
-			scheduledJobs.stop();
 			stopPeriodicAnalysis();
 
 			logger.info("Graceful shutdown complete");
