@@ -5,7 +5,7 @@ import type { Property } from "../types";
 
 // API configuration
 const API_BASE_URL =
-	import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+	import.meta.env.VITE_API_URL || "https://api.alephatx.info/api";
 
 // Create axios instance with default config
 const apiClient: AxiosInstance = axios.create({
