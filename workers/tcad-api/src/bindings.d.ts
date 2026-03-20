@@ -17,6 +17,7 @@ export interface Env {
   API_KEY: string;
   JWT_SECRET: string;
   ANTHROPIC_API_KEY: string;
+  OPENAI_API_KEY?: string;
   SENTRY_DSN: string;
   TOKEN_WORKER_URL: string;
   TOKEN_WORKER_SECRET: string;

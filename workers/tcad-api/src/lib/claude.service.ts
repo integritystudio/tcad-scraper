@@ -3,6 +3,7 @@
  * Ported from server/src/lib/claude.service.ts.
  * Key changes: no module-level Anthropic client, API key passed as argument,
  * uses fetch directly instead of Anthropic SDK (lighter for Workers bundle).
+ * Supports fallback to OpenAI when Anthropic balance is unavailable.
  */
 
 import type { Prisma } from "@prisma/client";
@@ -18,8 +19,10 @@ interface SearchFilters {
 }
 
 const CLAUDE_MODEL = "claude-3-haiku-20240307";
+const GPT_MODEL = "gpt-4o-mini";
 const MAX_TOKENS = 1024;
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
 const SYSTEM_PROMPT = `You are a database query generator for a property search system. Convert the user's natural language query into Prisma query filters.
 
@@ -45,6 +48,26 @@ Respond with ONLY valid JSON, no markdown fences.`;
 
 export async function parseNaturalLanguageQuery(
   query: string,
+  anthropicKey: string,
+  openaiKey?: string,
+): Promise<SearchFilters> {
+  // Try Anthropic first
+  try {
+    return await callAnthropicAPI(query, anthropicKey);
+  } catch (err) {
+    const errorMessage = getErrorMessage(err);
+    // If Anthropic fails with billing/quota error and OpenAI is available, try OpenAI
+    if (openaiKey && shouldFallbackToOpenAI(err)) {
+      console.warn(`Anthropic API failed (${errorMessage}), falling back to OpenAI`);
+      return await callOpenAIAPI(query, openaiKey);
+    }
+    // Otherwise rethrow the original error
+    throw err;
+  }
+}
+
+async function callAnthropicAPI(
+  query: string,
   apiKey: string,
 ): Promise<SearchFilters> {
   const response = await fetch(ANTHROPIC_API_URL, {
@@ -63,7 +86,9 @@ export async function parseNaturalLanguageQuery(
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Claude API error ${response.status}: ${errText}`);
+    const error = new Error(`Claude API error ${response.status}: ${errText}`);
+    (error as Error & { status?: number }).status = response.status;
+    throw error;
   }
 
   const data = (await response.json()) as {
@@ -87,4 +112,60 @@ export async function parseNaturalLanguageQuery(
   } catch (err) {
     throw new Error(`Failed to parse Claude response: ${getErrorMessage(err)}`);
   }
+}
+
+async function callOpenAIAPI(
+  query: string,
+  apiKey: string,
+): Promise<SearchFilters> {
+  const response = await fetch(OPENAI_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GPT_MODEL,
+      max_tokens: MAX_TOKENS,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: `User query: "${query}"` },
+      ],
+      temperature: 0,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenAI API error ${response.status}: ${errText}`);
+  }
+
+  const data = (await response.json()) as {
+    choices: Array<{ message: { content: string } }>;
+  };
+
+  const textBlock = data.choices[0];
+  if (!textBlock) {
+    throw new Error("No text response from OpenAI");
+  }
+
+  try {
+    const parsed = JSON.parse(textBlock.message.content) as SearchFilters;
+    return {
+      whereClause: parsed.whereClause || {},
+      orderBy: parsed.orderBy,
+      explanation: parsed.explanation || "Search results",
+      answer: parsed.answer,
+      answerType: parsed.answerType,
+    };
+  } catch (err) {
+    throw new Error(`Failed to parse OpenAI response: ${getErrorMessage(err)}`);
+  }
+}
+
+function shouldFallbackToOpenAI(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  // Fallback on 401 (unauthorized/no balance), 429 (rate limit), 402 (payment required)
+  const errorMessage = error.message.toLowerCase();
+  return /status (401|402|429)/.test(errorMessage);
 }

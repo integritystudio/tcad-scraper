@@ -100,7 +100,11 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
   let answerType: string | undefined;
 
   try {
-    const parsed = await parseNaturalLanguageQuery(query, c.env.ANTHROPIC_API_KEY);
+    const parsed = await parseNaturalLanguageQuery(
+      query,
+      c.env.ANTHROPIC_API_KEY,
+      c.env.OPENAI_API_KEY,
+    );
     whereClause = parsed.whereClause;
     orderBy = parsed.orderBy;
     explanation = parsed.explanation;
@@ -203,7 +207,11 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
 app.get("/search/test", async (c) => {
   const { parseNaturalLanguageQuery } = await import("../lib/claude.service");
   const testQuery = "properties in Austin";
-  const result = await parseNaturalLanguageQuery(testQuery, c.env.ANTHROPIC_API_KEY);
+  const result = await parseNaturalLanguageQuery(
+    testQuery,
+    c.env.ANTHROPIC_API_KEY,
+    c.env.OPENAI_API_KEY,
+  );
   return c.json({ success: true, message: "Claude API connection successful", testQuery, result });
 });
 
