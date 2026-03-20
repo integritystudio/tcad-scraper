@@ -14,31 +14,8 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import type { Env } from "../bindings";
 import { createPrisma } from "../db";
 import { TCAD_API_URL, UPSERT_CHUNK_SIZE } from "../utils/constants";
-
-interface ScrapeParams {
-  searchTerm: string;
-  year: number;
-  jobId?: string;
-}
-
-interface PropertyData {
-  propertyId: string;
-  name: string;
-  propType: string;
-  city: string | null;
-  propertyAddress: string;
-  assessedValue: number | null;
-  appraisedValue: number;
-  geoId: string | null;
-  description: string | null;
-}
-
-interface UpsertResult {
-  savedCount: number;
-  updatedCount: number;
-  newPropertyIds: string[];
-  totalApiResults: number;
-}
+import type { PropertyData, ScrapeParams } from "../types/property.types";
+import { fetchResultSchema, upsertResultSchema } from "../types/property.types";
 
 export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
   async run(event: WorkflowEvent<ScrapeParams>, step: WorkflowStep) {
@@ -64,13 +41,26 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
       return { jobId: job.id, token };
     });
 
-    // Step 2: Fetch properties from TCAD API (paginated)
-    const rawProperties = await step.do("fetch-properties", async () => {
-      return fetchTCADProperties(token, searchTerm, year);
+    // Step 2: Fetch properties from TCAD API (paginated, stored in KV)
+    const fetchResult = await step.do("fetch-properties", {
+      retries: { limit: 3, delay: "5 seconds", backoff: "exponential" },
+      timeout: "120 seconds",
+    }, async () => {
+      const properties = await fetchTCADProperties(token, searchTerm, year);
+      const kvKey = `scrape:${jobId}:properties`;
+      await this.env.RESPONSE_CACHE.put(kvKey, JSON.stringify(properties), { expirationTtl: 3600 });
+      return fetchResultSchema.parse({
+        kvKey,
+        count: properties.length,
+        totalApiResults: properties.reduce((sum, p) => sum + (p.propertyId ? 1 : 0), 0),
+      });
     });
 
-    // Step 3: Deduplicate
+    // Step 3: Deduplicate (retrieve from KV)
     const properties = await step.do("deduplicate", async () => {
+      const stored = await this.env.RESPONSE_CACHE.get(fetchResult.kvKey);
+      if (!stored) throw new Error(`KV key ${fetchResult.kvKey} not found`);
+      const rawProperties = JSON.parse(stored) as PropertyData[];
       const map = new Map<string, PropertyData>();
       for (const prop of rawProperties) {
         if (prop.propertyId) map.set(prop.propertyId, prop);
@@ -93,12 +83,12 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
         newPropertyIds.push(...result.newPropertyIds);
       }
 
-      return {
+      return upsertResultSchema.parse({
         savedCount,
         updatedCount,
         newPropertyIds,
-        totalApiResults: rawProperties.length,
-      } satisfies UpsertResult;
+        totalApiResults: fetchResult.totalApiResults,
+      });
     });
 
     // Step 5: Update job record + analytics
@@ -161,26 +151,26 @@ async function fetchTCADProperties(
   year: number,
 ): Promise<PropertyData[]> {
   const allProperties: PropertyData[] = [];
-  let pageSize = 1000;
-  let pageNumber = 0;
+  const pageSize = 1000;
   let totalCount = 0;
   const maxPages = 100;
+  const rateLimitDelayMs = 1000;
 
-  do {
-    const body = {
-      searchValue: searchTerm,
-      pYear: String(year),
-      pageSize,
-      pageNumber,
-    };
+  for (let page = 1; page <= maxPages; page++) {
+    const url = `${TCAD_API_URL}?page=${page}&pageSize=${pageSize}`;
+    const body = JSON.stringify({
+      pYear: { operator: "=", value: String(year) },
+      fullTextSearch: { operator: "match", value: searchTerm },
+    });
 
-    const res = await fetch(TCAD_API_URL, {
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        Authorization: token,
       },
-      body: JSON.stringify(body),
+      body,
       signal: AbortSignal.timeout(30_000),
     });
 
@@ -188,16 +178,23 @@ async function fetchTCADProperties(
       throw new Error("TOKEN_EXPIRED");
     }
 
+    if (res.status === 500 || res.status === 502 || res.status === 503) {
+      console.warn(`TCAD API returned ${res.status} for "${searchTerm}" page ${page}`);
+      return allProperties;
+    }
+
     if (!res.ok) {
       throw new Error(`TCAD API returned ${res.status}`);
     }
 
     const data = (await res.json()) as {
-      totalCount?: number;
+      totalProperty?: { propertyCount?: number };
       results?: TCADResult[];
     };
 
-    totalCount = data.totalCount ?? 0;
+    if (page === 1) {
+      totalCount = data.totalProperty?.propertyCount ?? 0;
+    }
     const results = data.results ?? [];
 
     for (const r of results) {
@@ -214,9 +211,13 @@ async function fetchTCADProperties(
       });
     }
 
-    if (results.length < pageSize) break;
-    pageNumber++;
-  } while (allProperties.length < totalCount && pageNumber < maxPages);
+    if (results.length < pageSize || allProperties.length >= totalCount) break;
+
+    // Rate limit delay between pagination requests
+    if (page < maxPages) {
+      await new Promise((resolve) => setTimeout(resolve, rateLimitDelayMs));
+    }
+  }
 
   return allProperties;
 }

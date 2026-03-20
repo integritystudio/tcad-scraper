@@ -57,3 +57,40 @@ export interface AnswerStatistics {
   topCity?: { name: string; count: number };
   propertyTypes?: Array<{ type: string; count: number }>;
 }
+
+// Workflow type schemas
+export const propertyDataSchema = z.object({
+  propertyId: z.string(),
+  name: z.string(),
+  propType: z.string(),
+  city: z.string().nullable(),
+  propertyAddress: z.string(),
+  assessedValue: z.number().nullable(),
+  appraisedValue: z.number(),
+  geoId: z.string().nullable(),
+  description: z.string().nullable(),
+});
+
+export const fetchResultSchema = z.object({
+  kvKey: z.string(),
+  count: z.number(),
+  totalApiResults: z.number(),
+});
+
+export const upsertResultSchema = z.object({
+  savedCount: z.number(),
+  updatedCount: z.number(),
+  newPropertyIds: z.array(z.string()),
+  totalApiResults: z.number(),
+});
+
+export const scrapeParamsSchema = z.object({
+  searchTerm: z.string().min(1),
+  year: z.number(),
+  jobId: z.string().optional(),
+});
+
+export type PropertyData = z.infer<typeof propertyDataSchema>;
+export type FetchResult = z.infer<typeof fetchResultSchema>;
+export type UpsertResult = z.infer<typeof upsertResultSchema>;
+export type ScrapeParams = z.infer<typeof scrapeParamsSchema>;
