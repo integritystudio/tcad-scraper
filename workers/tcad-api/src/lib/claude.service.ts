@@ -6,17 +6,22 @@
  * Supports fallback to OpenAI when Anthropic balance is unavailable.
  */
 
+import { z } from "zod";
 import type { Prisma } from "@prisma/client";
-import type { AnswerType } from "../types/property.types";
 import { getErrorMessage } from "../utils/error-helpers";
 
-interface SearchFilters {
+const searchFiltersSchema = z.object({
+  whereClause: z.record(z.any()),
+  orderBy: z.record(z.any()).optional(),
+  explanation: z.string(),
+  answer: z.string().optional(),
+  answerType: z.enum(["count", "statistical", "descriptive"]).optional(),
+});
+
+export type SearchFilters = z.infer<typeof searchFiltersSchema> & {
   whereClause: Prisma.PropertyWhereInput;
   orderBy?: Prisma.PropertyOrderByWithRelationInput;
-  explanation: string;
-  answer?: string;
-  answerType?: AnswerType;
-}
+};
 
 const CLAUDE_MODEL = "claude-3-haiku-20240307";
 const GPT_MODEL = "gpt-4o-mini";
@@ -101,14 +106,15 @@ async function callAnthropicAPI(
   }
 
   try {
-    const parsed = JSON.parse(textBlock.text) as SearchFilters;
+    const parsed = JSON.parse(textBlock.text);
+    const validated = searchFiltersSchema.parse(parsed);
     return {
-      whereClause: parsed.whereClause || {},
-      orderBy: parsed.orderBy,
-      explanation: parsed.explanation || "Search results",
-      answer: parsed.answer,
-      answerType: parsed.answerType,
-    };
+      whereClause: validated.whereClause || {},
+      orderBy: validated.orderBy,
+      explanation: validated.explanation || "Search results",
+      answer: validated.answer,
+      answerType: validated.answerType,
+    } as SearchFilters;
   } catch (err) {
     throw new Error(`Failed to parse Claude response: ${getErrorMessage(err)}`);
   }
@@ -150,14 +156,15 @@ async function callOpenAIAPI(
   }
 
   try {
-    const parsed = JSON.parse(textBlock.message.content) as SearchFilters;
+    const parsed = JSON.parse(textBlock.message.content);
+    const validated = searchFiltersSchema.parse(parsed);
     return {
-      whereClause: parsed.whereClause || {},
-      orderBy: parsed.orderBy,
-      explanation: parsed.explanation || "Search results",
-      answer: parsed.answer,
-      answerType: parsed.answerType,
-    };
+      whereClause: validated.whereClause || {},
+      orderBy: validated.orderBy,
+      explanation: validated.explanation || "Search results",
+      answer: validated.answer,
+      answerType: validated.answerType,
+    } as SearchFilters;
   } catch (err) {
     throw new Error(`Failed to parse OpenAI response: ${getErrorMessage(err)}`);
   }
