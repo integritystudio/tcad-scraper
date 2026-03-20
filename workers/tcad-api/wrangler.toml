@@ -1,0 +1,58 @@
+name = "tcad-api"
+main = "src/index.ts"
+compatibility_date = "2026-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[vars]
+TCAD_YEAR = "2025"
+FRONTEND_URL = "https://alephatx.info"
+
+# Hyperdrive connection pooler → Render PostgreSQL
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "" # Set after: wrangler hyperdrive create tcad-db --connection-string="$DATABASE_URL"
+
+# Phase 2: Workflows + Queues
+[[workflows]]
+binding = "SCRAPER_WORKFLOW"
+name = "scraper-workflow"
+class_name = "ScraperWorkflow"
+
+[[queues.producers]]
+queue = "tcad-scraper-jobs"
+binding = "SCRAPER_QUEUE"
+
+[[queues.consumers]]
+queue = "tcad-scraper-jobs"
+max_batch_size = 1
+max_retries = 3
+dead_letter_queue = "tcad-scraper-dlq"
+
+# Phase 3: KV namespaces
+# Uncomment after creating KV namespaces:
+#   wrangler kv namespace create tcad-token-cache
+#   wrangler kv namespace create tcad-response-cache
+# [[kv_namespaces]]
+# binding = "TOKEN_CACHE"
+# id = "<token-cache-namespace-id>"
+
+# [[kv_namespaces]]
+# binding = "RESPONSE_CACHE"
+# id = "<response-cache-namespace-id>"
+
+# Phase 3: Cron triggers (uncomment after KV namespaces are configured)
+# [triggers]
+# crons = [
+#   "*/4 * * * *",   # token refresh
+#   "0 * * * *",     # stale job cleanup
+#   "0 3 * * *",     # search term optimization
+#   "0 */6 * * *",   # monitored searches
+# ]
+
+# Phase 5: Production custom domain
+# [[routes]]
+# pattern = "api.alephatx.info/*"
+# zone_name = "alephatx.info"

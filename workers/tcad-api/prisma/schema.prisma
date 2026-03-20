@@ -1,0 +1,116 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Property {
+  id              String   @id @default(uuid())
+  propertyId      String   @map("property_id")
+  name            String
+  propType        String   @map("prop_type") /// TCAD code: A=SFR, B=MFR, C=Vacant, D=Rural, E=Farm, F=Commercial, G=Minerals, H=Industrial, J=Water, L=Misc, M=Mobile, N=Intangible, O=Res Inv, P=Non-Res Inv, S=Special Inv, X=Exempt
+  city            String?
+  propertyAddress String   @map("property_address")
+  assessedValue   Float?   @map("assessed_value")
+  appraisedValue  Float    @map("appraised_value")
+  geoId           String?  @map("geo_id")
+  description     String?  @db.Text
+  searchTerm      String?  @map("search_term")
+  scrapedAt       DateTime @default(now()) @map("scraped_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  year            Int
+
+  @@unique([propertyId, year])
+  @@index([searchTerm, scrapedAt])
+  @@index([propertyId])
+  @@index([city])
+  @@index([propType])
+  @@index([appraisedValue])
+  @@index([year])
+  @@index([city, propType])
+  @@index([city, appraisedValue])
+  @@index([propType, appraisedValue])
+  @@index([city, propType, appraisedValue])
+  @@index([scrapedAt(sort: Desc)])
+  @@index([year, city])
+  @@map("properties")
+}
+
+model ScrapeJob {
+  id              String    @id @default(uuid())
+  searchTerm      String    @map("search_term")
+  status          String
+  resultCount     Int?      @map("result_count")
+  totalApiResults Int?      @map("total_api_results")
+  updatedCount    Int?      @map("updated_count")
+  newPropertyIds  String[]  @map("new_property_ids")
+  error           String?   @db.Text
+  startedAt       DateTime  @default(now()) @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+
+  @@index([status, startedAt])
+  @@index([searchTerm])
+  @@map("scrape_jobs")
+}
+
+model MonitoredSearch {
+  id         String    @id @default(uuid())
+  searchTerm String    @map("search_term") @unique
+  active     Boolean   @default(true)
+  frequency  String    @default("daily")
+  lastRun    DateTime? @map("last_run")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@map("monitored_searches")
+}
+
+model SearchTermAnalytics {
+  id                 String   @id @default(uuid())
+  searchTerm         String   @map("search_term")
+  termLength         Int      @map("term_length")
+  totalSearches      Int      @default(0) @map("total_searches")
+  successfulSearches Int      @default(0) @map("successful_searches")
+  failedSearches     Int      @default(0) @map("failed_searches")
+  totalResults       Int      @default(0) @map("total_results")
+  avgResultsPerSearch Float   @default(0) @map("avg_results_per_search")
+  maxResults         Int      @default(0) @map("max_results")
+  minResults         Int?     @map("min_results")
+  lastSearched       DateTime @map("last_searched")
+  successRate        Float    @default(0) @map("success_rate")
+  efficiency         Float    @default(0)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@unique([searchTerm])
+  @@index([efficiency])
+  @@index([avgResultsPerSearch])
+  @@index([termLength])
+  @@index([lastSearched])
+  @@map("search_term_analytics")
+}
+
+model ApiUsageLog {
+  id           String   @id @default(uuid())
+  queryText    String   @map("query_text") @db.Text
+  queryCost    Float    @map("query_cost")
+  inputTokens  Int      @map("input_tokens")
+  outputTokens Int      @map("output_tokens")
+  model        String
+  environment  String
+  success      Boolean  @default(true)
+  errorMessage String?  @map("error_message") @db.Text
+  responseTime Int?     @map("response_time")
+  timestamp    DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([environment])
+  @@index([success])
+  @@index([model])
+  @@map("api_usage_logs")
+}

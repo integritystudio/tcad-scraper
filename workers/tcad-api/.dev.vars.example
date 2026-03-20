@@ -1,0 +1,9 @@
+# Copy to .dev.vars (never commit .dev.vars)
+# These secrets are injected by wrangler dev
+DATABASE_URL=postgresql://...
+API_KEY=your-api-key
+JWT_SECRET=your-jwt-secret
+ANTHROPIC_API_KEY=sk-ant-...
+SENTRY_DSN=https://...@sentry.io/...
+TOKEN_WORKER_URL=https://tcad-token-refresh.your-account.workers.dev
+TOKEN_WORKER_SECRET=your-worker-secret
