@@ -35,7 +35,7 @@
 		"stats:priority": "tsx src/cli/db-stats.ts priority",
 		"stats:all": "tsx src/cli/db-stats.ts all",
 		"prisma:generate": "doppler run -- prisma generate",
-		"prisma:migrate": "doppler run -- prisma migrate dev",
+		"prisma:migrate": "doppler run -- prisma migrate deploy",
 		"prisma:studio": "doppler run -- prisma studio",
 		"test": "vitest run",
 		"test:watch": "vitest",
