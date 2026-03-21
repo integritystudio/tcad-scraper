@@ -28,7 +28,7 @@ test.describe("Accessibility (axe-core)", () => {
 		await expect(
 			page
 				.getByText("No properties found")
-				.or(page.locator(".results-grid h3").first()),
+				.or(page.getByRole("button", { name: /show details/i }).first()),
 		).toBeVisible({ timeout: 15_000 });
 
 		const results = await new AxeBuilder({ page })

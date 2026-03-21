@@ -57,21 +57,6 @@ apiClient.interceptors.response.use(
 );
 
 // Types for API responses
-export interface ScrapeJobResponse {
-	jobId: string;
-	message: string;
-}
-
-export interface JobStatus {
-	id: string;
-	status: "pending" | "active" | "completed" | "failed" | "delayed" | "waiting";
-	progress?: number;
-	resultCount?: number;
-	error?: string;
-	createdAt: string;
-	completedAt?: string;
-}
-
 export interface PaginatedResponse<T> {
 	data: T[];
 	pagination: {
@@ -92,16 +77,6 @@ export interface PropertyFilters {
 	offset?: number;
 }
 
-export interface ScrapeHistory {
-	id: string;
-	searchTerm: string;
-	status: string;
-	resultCount: number | null;
-	error: string | null;
-	startedAt: string;
-	completedAt: string | null;
-}
-
 export interface PropertyStats {
 	totalProperties: number;
 	totalJobs: number;
@@ -119,100 +94,8 @@ export interface PropertyStats {
 	}>;
 }
 
-export interface MonitoredSearch {
-	id: string;
-	searchTerm: string;
-	active: boolean;
-	frequency: "daily" | "weekly" | "monthly";
-	lastRun: string | null;
-	createdAt: string;
-	updatedAt: string;
-}
-
 // API service methods
 export const propertyAPI = {
-	// Trigger a new scrape job
-	async triggerScrape(searchTerm: string): Promise<ScrapeJobResponse> {
-		const response = await apiClient.post<ScrapeJobResponse>(
-			"/properties/scrape",
-			{
-				searchTerm,
-			},
-		);
-		return response.data;
-	},
-
-	// Check job status
-	async getJobStatus(jobId: string): Promise<JobStatus> {
-		const response = await apiClient.get<JobStatus>(
-			`/properties/jobs/${jobId}`,
-		);
-		return response.data;
-	},
-
-	// Poll job status until completion
-	async pollJobStatus(
-		jobId: string,
-		onProgress?: (status: JobStatus) => void,
-		pollInterval: number = 2000,
-		signal?: AbortSignal,
-	): Promise<JobStatus> {
-		const MAX_POLLS = 900; // 30 min at 2s interval
-		let pollCount = 0;
-
-		return new Promise((resolve, reject) => {
-			let timeoutId: ReturnType<typeof setTimeout>;
-
-			const cleanup = () => signal?.removeEventListener("abort", onAbort);
-
-			const onAbort = () => {
-				clearTimeout(timeoutId);
-				reject(new DOMException("Polling aborted", "AbortError"));
-			};
-
-			if (signal?.aborted) {
-				reject(new DOMException("Polling aborted", "AbortError"));
-				return;
-			}
-
-			signal?.addEventListener("abort", onAbort);
-
-			const checkStatus = async () => {
-				if (signal?.aborted) {
-					cleanup();
-					return;
-				}
-
-				pollCount++;
-				if (pollCount > MAX_POLLS) {
-					cleanup();
-					reject(new Error(`Polling exceeded max attempts (${MAX_POLLS})`));
-					return;
-				}
-
-				try {
-					const status = await this.getJobStatus(jobId);
-
-					if (onProgress) {
-						onProgress(status);
-					}
-
-					if (status.status === "completed" || status.status === "failed") {
-						cleanup();
-						resolve(status);
-					} else if (!signal?.aborted) {
-						timeoutId = setTimeout(checkStatus, pollInterval);
-					}
-				} catch (error: unknown) {
-					cleanup();
-					reject(error);
-				}
-			};
-
-			checkStatus();
-		});
-	},
-
 	// Get properties from database
 	async getProperties(
 		filters?: PropertyFilters,
@@ -261,48 +144,12 @@ export const propertyAPI = {
 		return allProperties;
 	},
 
-	// Get scrape history
-	async getScrapeHistory(
-		limit: number = 20,
-		offset: number = 0,
-	): Promise<PaginatedResponse<ScrapeHistory>> {
-		const response = await apiClient.get<PaginatedResponse<ScrapeHistory>>(
-			"/properties/history",
-			{
-				params: { limit, offset },
-			},
-		);
-		return response.data;
-	},
-
 	// Get statistics
 	async getStats(): Promise<PropertyStats> {
 		const response = await apiClient.get<PropertyStats>("/properties/stats");
 		return response.data;
 	},
 
-	// Add monitored search
-	async addMonitoredSearch(
-		searchTerm: string,
-		frequency: "daily" | "weekly" | "monthly" = "daily",
-	): Promise<MonitoredSearch> {
-		const response = await apiClient.post<{
-			message: string;
-			data: MonitoredSearch;
-		}>("/properties/monitor", {
-			searchTerm,
-			frequency,
-		});
-		return response.data.data;
-	},
-
-	// Get monitored searches
-	async getMonitoredSearches(): Promise<MonitoredSearch[]> {
-		const response = await apiClient.get<{ data: MonitoredSearch[] }>(
-			"/properties/monitor",
-		);
-		return response.data.data;
-	},
 };
 
 // Health check service
@@ -316,13 +163,6 @@ export const healthAPI = {
 		}
 	},
 
-	async checkQueueHealth(): Promise<{
-		status: string;
-		queues: Record<string, unknown>;
-	}> {
-		const response = await apiClient.get("/health/queue");
-		return response.data;
-	},
 };
 
 export default propertyAPI;

@@ -2,11 +2,61 @@ import { expect, test } from "@playwright/test";
 import { PropertyCardPage } from "./pages/PropertyCardPage";
 import { SearchBoxPage } from "./pages/SearchBoxPage";
 
+const MOCK_SEARCH_RESPONSE = {
+	data: [
+		{
+			id: 1,
+			property_id: "R100001",
+			geo_id: "0220010101",
+			name: "John Smith",
+			property_address: "123 Oak Street",
+			city: "Austin",
+			prop_type: "Real",
+			appraised_value: 450000,
+			assessed_value: 400000,
+			description: "LOT 1 BLK A",
+			scraped_at: "2026-01-15T00:00:00Z",
+			updated_at: "2026-01-15T00:00:00Z",
+			created_at: "2025-06-01T00:00:00Z",
+		},
+		{
+			id: 2,
+			property_id: "R100002",
+			geo_id: "0220010102",
+			name: "Jane Doe",
+			property_address: "456 Oak Street",
+			city: "Austin",
+			prop_type: "Real",
+			appraised_value: 380000,
+			assessed_value: 350000,
+			description: "LOT 2 BLK A",
+			scraped_at: "2026-01-15T00:00:00Z",
+			updated_at: "2026-01-15T00:00:00Z",
+			created_at: "2025-06-01T00:00:00Z",
+		},
+	],
+	pagination: { total: 2, limit: 50, offset: 0, hasMore: false },
+	query: {
+		original: "Oak Street",
+		explanation: "Properties on Oak Street",
+	},
+};
+
 /**
  * Tests for expanded PropertyDetails sections.
  * Verifies financial breakdown, identifiers, description, and metadata render correctly.
  */
 test.describe("Property detail sections", () => {
+	test.beforeEach(async ({ page }) => {
+		await page.route("**/api/properties/search**", (route) =>
+			route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify(MOCK_SEARCH_RESPONSE),
+			}),
+		);
+	});
+
 	async function expandFirstResult(page: import("@playwright/test").Page) {
 		const search = new SearchBoxPage(page);
 		const card = new PropertyCardPage(page);
@@ -36,7 +86,7 @@ test.describe("Property detail sections", () => {
 	}) => {
 		await expandFirstResult(page);
 
-		await expect(page.getByText("Property Identifiers").first()).toBeVisible();
+		await expect(page.getByText("Identifiers").first()).toBeVisible();
 		// Property ID and Geo ID labels should be visible
 		await expect(page.getByText(/Property ID/i).first()).toBeVisible();
 		await expect(page.getByText(/Geo ID/i).first()).toBeVisible();
@@ -57,14 +107,11 @@ test.describe("Property detail sections", () => {
 		await search.search("Oak Street");
 		await card.waitForResults();
 
-		// First card should have the key summary elements
-		const firstCard = page.locator(".results-grid").first();
+		// Owner name (h3) — each property card renders an h3 for the owner
+		await expect(page.getByRole("heading", { level: 3 }).first()).toBeVisible();
 
-		// Owner name (h3)
-		await expect(firstCard.locator("h3").first()).toBeVisible();
-
-		// Property type badge
-		await expect(firstCard.locator("[class*='badge']").first()).toBeVisible();
+		// Property type badge — first badge in results is the prop_type badge
+		await expect(page.locator("[class*='badge']").first()).toBeVisible();
 	});
 
 	test("collapse re-hides all detail sections", async ({ page }) => {

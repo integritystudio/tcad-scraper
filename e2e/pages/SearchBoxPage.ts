@@ -15,6 +15,11 @@ export class SearchBoxPage {
 
 	async goto() {
 		await this.page.goto("/");
+		// Disable CSS transitions and animations so elements are immediately stable
+		await this.page.addStyleTag({
+			content:
+				"*, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }",
+		});
 	}
 
 	async fillQuery(query: string) {

@@ -6,13 +6,12 @@ export default defineConfig({
 	base: "/",
 	plugins: [react()],
 	server: {
-		// Use FRONTEND_PORT environment variable with fallback to 3002
-		port: parseInt(process.env.FRONTEND_PORT || "3002", 10),
+		port: parseInt(process.env.FRONTEND_PORT || "5174", 10),
 		proxy: {
 			"/api": {
-				target: "http://localhost:3001",
+				target: "https://api.alephatx.info",
 				changeOrigin: true,
-				secure: false,
+				secure: true,
 			},
 		},
 	},

@@ -7,7 +7,7 @@ import { SearchBoxPage } from "./pages/SearchBoxPage";
  */
 test.describe("AnswerBox for quantitative queries", () => {
 	const MOCK_SEARCH_RESPONSE = {
-		results: [
+		data: [
 			{
 				id: 1,
 				property_id: "R123456",
@@ -24,14 +24,17 @@ test.describe("AnswerBox for quantitative queries", () => {
 				created_at: "2025-06-01T00:00:00Z",
 			},
 		],
-		total: 42,
-		explanation: "Properties on Oak Street",
-		answer: "The average property value on Oak Street is $487,000",
-		answerState: "success",
-		statistics: {
-			avgValue: 487000,
-			totalValue: 20454000,
-			priceRange: { min: 150000, max: 1200000 },
+		pagination: { total: 42, limit: 50, offset: 0, hasMore: false },
+		query: {
+			original: "average value on Oak Street",
+			explanation: "Properties on Oak Street",
+			answer: "The average property value on Oak Street is $487,000",
+			answerType: "statistics",
+			statistics: {
+				avgValue: 487000,
+				totalValue: 20454000,
+				priceRange: { min: 150000, max: 1200000 },
+			},
 		},
 	};
 
@@ -99,9 +102,19 @@ test.describe("AnswerBox for quantitative queries", () => {
 
 	test("shows loading state while processing", async ({ page }) => {
 		const search = new SearchBoxPage(page);
+
+		// Complete the initial load immediately so it doesn't race with the search
+		await page.route("**/api/properties?**", (route) =>
+			route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({ data: [], pagination: { total: 0, limit: 50, offset: 0, hasMore: false } }),
+			}),
+		);
+
 		await search.goto();
 
-		// Hold the response to observe loading
+		// Hold the search response to observe loading
 		let fulfillRoute: (() => void) | undefined;
 		await page.route("**/api/properties/search**", async (route) => {
 			await new Promise<void>((resolve) => {
@@ -135,9 +148,12 @@ test.describe("AnswerBox for quantitative queries", () => {
 				status: 200,
 				contentType: "application/json",
 				body: JSON.stringify({
-					results: MOCK_SEARCH_RESPONSE.results,
-					total: 1,
-					explanation: "Properties matching Oak Street",
+					data: MOCK_SEARCH_RESPONSE.data,
+					pagination: { total: 1, limit: 50, offset: 0, hasMore: false },
+					query: {
+						original: "Oak Street",
+						explanation: "Properties matching Oak Street",
+					},
 				}),
 			}),
 		);
@@ -145,9 +161,9 @@ test.describe("AnswerBox for quantitative queries", () => {
 		await search.search("Oak Street");
 
 		// Results should appear but no Answer box
-		await expect(page.locator(".results-grid h3").first()).toBeVisible({
-			timeout: 10_000,
-		});
+		await expect(
+			page.getByRole("button", { name: /show details/i }).first(),
+		).toBeVisible({ timeout: 10_000 });
 		await expect(
 			page.getByRole("status", { name: /AI-generated answer/i }),
 		).not.toBeVisible();
