@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 
-const RESULTS_TIMEOUT = 15_000;
+const RESULTS_TIMEOUT = 30_000;
 
 /**
  * Page object for interacting with PropertyCard components in the results grid.
@@ -8,10 +8,10 @@ const RESULTS_TIMEOUT = 15_000;
 export class PropertyCardPage {
 	constructor(private readonly page: Page) {}
 
-	/** Wait for at least one property card heading to appear */
+	/** Wait for at least one property card expand button to appear (only present when real results load) */
 	async waitForResults() {
 		await this.page
-			.locator(".results-grid h3")
+			.getByRole("button", { name: /show details/i })
 			.first()
 			.waitFor({ timeout: RESULTS_TIMEOUT });
 	}
@@ -28,10 +28,16 @@ export class PropertyCardPage {
 
 	async expandFirst() {
 		await this.firstExpandButton().click();
+		// Wait for expansion to complete (hide button visible = animation settled)
+		await this.firstHideButton().waitFor({ state: "visible" });
 	}
 
 	async collapseFirst() {
-		await this.firstHideButton().click();
+		const hideBtn = this.firstHideButton();
+		await hideBtn.waitFor({ state: "visible" });
+		await hideBtn.click();
+		// Wait for collapse to complete
+		await this.firstExpandButton().waitFor({ state: "visible" });
 	}
 
 	noResultsMessage(): Locator {

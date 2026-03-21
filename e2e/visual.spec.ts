@@ -31,7 +31,7 @@ test.describe("Visual regression", () => {
 		await expect(
 			page
 				.getByText("No properties found")
-				.or(page.locator(".results-grid h3").first()),
+				.or(page.getByRole("button", { name: /show details/i }).first()),
 		).toBeVisible({ timeout: 15_000 });
 
 		await expect(page).toHaveScreenshot("search-results.png", {

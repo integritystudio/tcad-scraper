@@ -48,7 +48,7 @@
 
 .description {
 	font-size: 0.9375rem;
-	color: var(--neutral-500, #6b7280);
+	color: var(--neutral-600, #4b5563);
 	margin: 0;
 }
 
@@ -90,7 +90,7 @@
 
 .copyright {
 	font-size: 0.875rem;
-	color: var(--neutral-500, #6b7280);
+	color: var(--neutral-600, #4b5563);
 	margin: 0;
 }
 

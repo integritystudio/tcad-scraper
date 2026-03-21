@@ -32,21 +32,35 @@ test.describe("Search happy path", () => {
 		await expect(
 			page
 				.getByText("No properties found")
-				.or(page.locator(".results-grid h3").first()),
+				.or(page.getByRole("button", { name: /show details/i }).first()),
 		).toBeVisible({ timeout: 15_000 });
 	});
 
 	test("search input shows loading state during request", async ({ page }) => {
 		const search = new SearchBoxPage(page);
+
+		// Complete the initial load immediately to prevent race with search loading state
+		await page.route("**/api/properties?**", (route) =>
+			route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({ data: [], pagination: { total: 0, limit: 50, offset: 0, hasMore: false } }),
+			}),
+		);
+
 		await search.goto();
 
-		// Hold API response so we can reliably observe loading state
+		// Hold the search API response to observe loading state
 		let fulfillRoute: (() => void) | undefined;
-		await page.route("**/api/**", async (route) => {
+		await page.route("**/api/properties/search**", async (route) => {
 			await new Promise<void>((resolve) => {
 				fulfillRoute = resolve;
 			});
-			await route.continue();
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({ data: [], pagination: { total: 0, limit: 50, offset: 0, hasMore: false }, query: { original: "Austin properties", explanation: "Search results" } }),
+			});
 		});
 
 		await search.search("Austin properties");
