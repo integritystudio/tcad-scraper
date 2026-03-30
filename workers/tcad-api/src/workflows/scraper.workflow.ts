@@ -237,7 +237,7 @@ function parseNumericValue(val: string | number | undefined | null): number | nu
  *
  * Constraints:
  *  - D1 max 100 bound params per query
- *  - 14 columns per row = max 7 rows per statement (7 x 14 = 98)
+ *  - 15 columns per row (includes id) = max 6 rows per statement (6 x 15 = 90)
  *  - No xmax for insert/update detection — use pre-query EXISTS check
  *
  * Strategy:
@@ -273,12 +273,13 @@ async function bulkUpsert(
 
   for (const micro of microChunks) {
     const placeholders = micro
-      .map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .join(", ");
 
     const params: (string | number | null)[] = [];
     for (const prop of micro) {
       params.push(
+        crypto.randomUUID(),
         prop.propertyId,
         prop.name,
         prop.propType,
@@ -299,7 +300,7 @@ async function bulkUpsert(
     statements.push(
       db.prepare(`
         INSERT INTO properties (
-          property_id, name, prop_type, city, property_address,
+          id, property_id, name, prop_type, city, property_address,
           assessed_value, appraised_value, geo_id, description,
           search_term, year, scraped_at, created_at, updated_at
         )
