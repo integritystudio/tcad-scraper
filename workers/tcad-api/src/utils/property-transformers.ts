@@ -38,8 +38,8 @@ export function transformPropertyToSnakeCase(prop: Property): SnakeCaseProperty 
     description: prop.description,
     search_term: prop.searchTerm,
     year: prop.year,
-    scraped_at: prop.scrapedAt.toISOString(),
-    created_at: prop.createdAt.toISOString(),
-    updated_at: prop.updatedAt.toISOString(),
+    scraped_at: prop.scrapedAt,
+    created_at: prop.createdAt,
+    updated_at: prop.updatedAt,
   };
 }
