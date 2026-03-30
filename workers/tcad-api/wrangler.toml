@@ -1,4 +1,5 @@
 name = "tcad-api"
+account_id = "b3868dd0fd5c0faa7d98aa325a9c2377"
 main = "src/index.ts"
 compatibility_date = "2026-03-01"
 compatibility_flags = ["nodejs_compat"]
