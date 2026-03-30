@@ -5,6 +5,7 @@
  */
 
 import type { Property } from "@prisma/client";
+import { epochToISO } from "./epoch-dates";
 
 export interface SnakeCaseProperty {
   id: string;
@@ -38,8 +39,8 @@ export function transformPropertyToSnakeCase(prop: Property): SnakeCaseProperty 
     description: prop.description,
     search_term: prop.searchTerm,
     year: prop.year,
-    scraped_at: prop.scrapedAt,
-    created_at: prop.createdAt,
-    updated_at: prop.updatedAt,
+    scraped_at: epochToISO(prop.scrapedAt),
+    created_at: epochToISO(prop.createdAt),
+    updated_at: epochToISO(prop.updatedAt),
   };
 }

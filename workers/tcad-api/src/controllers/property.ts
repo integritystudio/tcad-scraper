@@ -240,7 +240,7 @@ app.get("/stats", async (c) => {
     prisma.property.count({ where: yearFilter }),
     prisma.scrapeJob.count(),
     prisma.scrapeJob.count({
-      where: { startedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() } },
+      where: { startedAt: { gte: String(Date.now() - 24 * 60 * 60 * 1000) } },
     }),
     prisma.property.groupBy({
       by: ["city"],

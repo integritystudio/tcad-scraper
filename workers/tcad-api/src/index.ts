@@ -11,6 +11,7 @@ import type { AppEnv, Env } from "./bindings";
 import { apiUsageRoutes } from "./controllers/api-usage";
 import { propertyRoutes } from "./controllers/property";
 import { createPrisma } from "./db";
+import { dateToEpoch, nowEpoch } from "./utils/epoch-dates";
 import { getErrorMessage } from "./utils/error-helpers";
 
 const app = new Hono<AppEnv>();
@@ -136,8 +137,8 @@ async function cleanupStaleJobs(env: Env): Promise<void> {
     const prisma = createPrisma(env.DB);
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const result = await prisma.scrapeJob.updateMany({
-      where: { status: "processing", startedAt: { lt: cutoff.toISOString() } },
-      data: { status: "failed", error: "Stale job cleaned up", completedAt: new Date().toISOString() },
+      where: { status: "processing", startedAt: { lt: dateToEpoch(cutoff) } },
+      data: { status: "failed", error: "Stale job cleaned up", completedAt: nowEpoch() },
     });
     if (result.count > 0) console.log(`Cleaned ${result.count} stale jobs`);
   } catch (err) {
@@ -155,7 +156,7 @@ async function runMonitoredSearches(env: Env): Promise<void> {
       await env.SCRAPER_QUEUE.send({ searchTerm: search.searchTerm, year });
       await prisma.monitoredSearch.update({
         where: { id: search.id },
-        data: { lastRun: new Date().toISOString() },
+        data: { lastRun: nowEpoch(), updatedAt: nowEpoch() },
       });
     }
     console.log(`Enqueued ${searches.length} monitored searches`);

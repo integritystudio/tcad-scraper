@@ -22,7 +22,8 @@ app.get("/stats", async (c) => {
   const daysNum = Math.min(parseInt(daysParam || String(DEFAULT_LOOKBACK_DAYS), 10) || DEFAULT_LOOKBACK_DAYS, 90);
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - daysNum);
-  const where: Prisma.ApiUsageLogWhereInput = { timestamp: { gte: startDate.toISOString() } };
+  const startDateEpoch = String(startDate.getTime());
+  const where: Prisma.ApiUsageLogWhereInput = { timestamp: { gte: startDateEpoch } };
   if (environment) where.environment = environment;
 
   const [totalLogs, successfulLogs, totalCost, usageByDay, usageByModel, recentLogs] =
@@ -39,21 +40,21 @@ app.get("/stats", async (c) => {
         const db = c.env.DB;
         let sql = `
           SELECT
-            date(timestamp) as date,
+            date(CAST(timestamp AS INTEGER) / 1000, 'unixepoch') as date,
             COUNT(*) as count,
             SUM(query_cost) as total_cost,
             COUNT(CASE WHEN success = 1 THEN 1 END) as success_count
           FROM api_usage_logs
           WHERE timestamp >= ?
         `;
-        const params: (string | number)[] = [startDate.toISOString()];
+        const params: (string | number)[] = [startDateEpoch];
 
         if (environment) {
           sql += ` AND environment = ?`;
           params.push(environment);
         }
 
-        sql += ` GROUP BY date(timestamp) ORDER BY date DESC`;
+        sql += ` GROUP BY date(CAST(timestamp AS INTEGER) / 1000, 'unixepoch') ORDER BY date DESC`;
 
         const result = await db.prepare(sql).bind(...params)
           .all<{ date: string; count: number; total_cost: number; success_count: number }>();
@@ -152,10 +153,10 @@ app.get("/alerts", async (c) => {
   const FAILURE_THRESHOLD = 10;
 
   const [todayCost, monthCost, recentFailures] = await Promise.all([
-    prisma.apiUsageLog.aggregate({ where: { timestamp: { gte: today.toISOString() } }, _sum: { queryCost: true } }),
-    prisma.apiUsageLog.aggregate({ where: { timestamp: { gte: thisMonth.toISOString() } }, _sum: { queryCost: true } }),
+    prisma.apiUsageLog.aggregate({ where: { timestamp: { gte: String(today.getTime()) } }, _sum: { queryCost: true } }),
+    prisma.apiUsageLog.aggregate({ where: { timestamp: { gte: String(thisMonth.getTime()) } }, _sum: { queryCost: true } }),
     prisma.apiUsageLog.count({
-      where: { success: false, timestamp: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() } },
+      where: { success: false, timestamp: { gte: String(Date.now() - 24 * 60 * 60 * 1000) } },
     }),
   ]);
 
