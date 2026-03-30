@@ -91,7 +91,7 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
   };
 
   // Import claude service dynamically to keep this file focused
-  const { parseNaturalLanguageQuery } = await import("../lib/claude.service");
+  const { parseNaturalLanguageQuery, sanitizeWhereClause } = await import("../lib/claude.service");
 
   let whereClause: Prisma.PropertyWhereInput;
   let orderBy: Prisma.PropertyOrderByWithRelationInput | undefined;
@@ -105,7 +105,7 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
       c.env.ANTHROPIC_API_KEY,
       c.env.OPENAI_API_KEY,
     );
-    whereClause = parsed.whereClause;
+    whereClause = sanitizeWhereClause(parsed.whereClause) as Prisma.PropertyWhereInput;
     orderBy = parsed.orderBy;
     explanation = parsed.explanation;
     answer = parsed.answer;
@@ -240,7 +240,7 @@ app.get("/stats", async (c) => {
     prisma.property.count({ where: yearFilter }),
     prisma.scrapeJob.count(),
     prisma.scrapeJob.count({
-      where: { startedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+      where: { startedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() } },
     }),
     prisma.property.groupBy({
       by: ["city"],
@@ -275,10 +275,11 @@ app.post("/monitor", apiKeyAuth, validateBody(monitorRequestSchema), async (c) =
     frequency?: string;
   };
 
+  const now = new Date().toISOString();
   const monitoredSearch = await prisma.monitoredSearch.upsert({
     where: { searchTerm },
-    update: { active: true, frequency },
-    create: { searchTerm, frequency },
+    update: { active: true, frequency, updatedAt: now },
+    create: { searchTerm, frequency, createdAt: now, updatedAt: now },
   });
 
   return c.json({ message: "Search term added to monitoring", data: monitoredSearch });
@@ -299,9 +300,9 @@ function buildWhereClause(filters: PropertyFilters): Prisma.PropertyWhereInput {
 
   if (filters.searchTerm) {
     where.OR = [
-      { searchTerm: { contains: filters.searchTerm, mode: "insensitive" } },
-      { name: { contains: filters.searchTerm, mode: "insensitive" } },
-      { propertyAddress: { contains: filters.searchTerm, mode: "insensitive" } },
+      { searchTerm: { contains: filters.searchTerm } },
+      { name: { contains: filters.searchTerm } },
+      { propertyAddress: { contains: filters.searchTerm } },
     ];
   }
 
