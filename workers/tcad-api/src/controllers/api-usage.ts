@@ -1,6 +1,7 @@
 /**
  * API Usage controller — ported from server/src/controllers/api-usage.controller.ts
- * Key changes: Express req/res → Hono context, per-request Prisma, no ::bigint casts.
+ * Key changes: Express req/res → Hono context, per-request Prisma,
+ * raw SQL via D1 prepared statements (replaces Prisma.$queryRaw).
  */
 
 import { Prisma } from "@prisma/client";
@@ -21,8 +22,9 @@ app.get("/stats", async (c) => {
   const daysNum = Math.min(parseInt(daysParam || String(DEFAULT_LOOKBACK_DAYS), 10) || DEFAULT_LOOKBACK_DAYS, 90);
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - daysNum);
+  const startDateISO = startDate.toISOString();
 
-  const where: Prisma.ApiUsageLogWhereInput = { timestamp: { gte: startDate } };
+  const where: Prisma.ApiUsageLogWhereInput = { timestamp: { gte: startDateISO } };
   if (environment) where.environment = environment;
 
   const [totalLogs, successfulLogs, totalCost, usageByDay, usageByModel, recentLogs] =
@@ -34,19 +36,31 @@ app.get("/stats", async (c) => {
         _sum: { queryCost: true, inputTokens: true, outputTokens: true },
         _avg: { queryCost: true, responseTime: true },
       }),
-      // Replaced ::bigint casts with CAST(...) for Hyperdrive compatibility
-      prisma.$queryRaw<Array<{ date: Date; count: bigint; total_cost: number; success_count: bigint }>>`
-        SELECT
-          DATE(timestamp) as date,
-          CAST(COUNT(*) AS bigint) as count,
-          SUM(query_cost) as total_cost,
-          CAST(COUNT(CASE WHEN success THEN 1 END) AS bigint) as success_count
-        FROM api_usage_logs
-        WHERE timestamp >= ${startDate}
-          ${environment ? Prisma.sql`AND environment = ${environment}` : Prisma.empty}
-        GROUP BY DATE(timestamp)
-        ORDER BY date DESC
-      `,
+      // D1 prepared statement (replaces Prisma.$queryRaw with Prisma.sql/Prisma.empty)
+      (async () => {
+        const db = c.env.DB;
+        let sql = `
+          SELECT
+            date(timestamp) as date,
+            COUNT(*) as count,
+            SUM(query_cost) as total_cost,
+            COUNT(CASE WHEN success = 1 THEN 1 END) as success_count
+          FROM api_usage_logs
+          WHERE timestamp >= ?
+        `;
+        const params: (string | number)[] = [startDateISO];
+
+        if (environment) {
+          sql += ` AND environment = ?`;
+          params.push(environment);
+        }
+
+        sql += ` GROUP BY date(timestamp) ORDER BY date DESC`;
+
+        const result = await db.prepare(sql).bind(...params)
+          .all<{ date: string; count: number; total_cost: number; success_count: number }>();
+        return result.results;
+      })(),
       prisma.apiUsageLog.groupBy({
         by: ["model"],
         where,
@@ -87,9 +101,9 @@ app.get("/stats", async (c) => {
     },
     byDay: usageByDay.map((day) => ({
       date: day.date,
-      calls: Number(day.count),
-      cost: `$${day.total_cost.toFixed(COST_DECIMAL_PLACES)}`,
-      successRate: `${((Number(day.success_count) / Number(day.count)) * PERCENT_MULTIPLIER).toFixed(1)}%`,
+      calls: day.count,
+      cost: `$${(day.total_cost ?? 0).toFixed(COST_DECIMAL_PLACES)}`,
+      successRate: `${((day.success_count / day.count) * PERCENT_MULTIPLIER).toFixed(1)}%`,
     })),
     byModel: usageByModel.map((model) => ({
       model: model.model,
@@ -140,10 +154,10 @@ app.get("/alerts", async (c) => {
   const FAILURE_THRESHOLD = 10;
 
   const [todayCost, monthCost, recentFailures] = await Promise.all([
-    prisma.apiUsageLog.aggregate({ where: { timestamp: { gte: today } }, _sum: { queryCost: true } }),
-    prisma.apiUsageLog.aggregate({ where: { timestamp: { gte: thisMonth } }, _sum: { queryCost: true } }),
+    prisma.apiUsageLog.aggregate({ where: { timestamp: { gte: today.toISOString() } }, _sum: { queryCost: true } }),
+    prisma.apiUsageLog.aggregate({ where: { timestamp: { gte: thisMonth.toISOString() } }, _sum: { queryCost: true } }),
     prisma.apiUsageLog.count({
-      where: { success: false, timestamp: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+      where: { success: false, timestamp: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() } },
     }),
   ]);
 
