@@ -6,14 +6,14 @@
  *  1. get-token     — fetch auth token from KV or token worker
  *  2. fetch-props   — paginated TCAD API calls
  *  3. deduplicate   — remove duplicate propertyIds
- *  4. upsert        — bulk upsert to PostgreSQL via Hyperdrive
+ *  4. upsert        — bulk upsert to D1 via micro-chunked prepared statements
  *  5. analytics     — update search_term_analytics
  */
 
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import type { Env } from "../bindings";
 import { createPrisma } from "../db";
-import { TCAD_API_URL, UPSERT_CHUNK_SIZE } from "../utils/constants";
+import { TCAD_API_URL, UPSERT_CHUNK_SIZE, UPSERT_MICRO_CHUNK_SIZE } from "../utils/constants";
 import type { PropertyData, ScrapeParams } from "../types/property.types";
 import { fetchResultSchema, upsertResultSchema } from "../types/property.types";
 
@@ -23,9 +23,13 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 
     // Step 1: Create job record + get auth token
     const { jobId, token } = await step.do("get-token", async () => {
-      const prisma = createPrisma(this.env.HYPERDRIVE);
+      const prisma = createPrisma(this.env.DB);
       const job = await prisma.scrapeJob.create({
-        data: { searchTerm, status: "processing" },
+        data: {
+          searchTerm,
+          status: "processing",
+          startedAt: new Date().toISOString(),
+        },
       });
 
       // Try KV cache first, fall back to token worker
@@ -70,14 +74,13 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 
     // Step 4: Upsert to database (chunked)
     const upsertResult = await step.do("upsert-properties", async () => {
-      const prisma = createPrisma(this.env.HYPERDRIVE);
       let savedCount = 0;
       let updatedCount = 0;
       const newPropertyIds: string[] = [];
 
       for (let i = 0; i < properties.length; i += UPSERT_CHUNK_SIZE) {
         const chunk = properties.slice(i, i + UPSERT_CHUNK_SIZE);
-        const result = await bulkUpsert(prisma, chunk, searchTerm, year);
+        const result = await bulkUpsert(this.env.DB, chunk, searchTerm, year);
         savedCount += result.savedCount;
         updatedCount += result.updatedCount;
         newPropertyIds.push(...result.newPropertyIds);
@@ -93,7 +96,8 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 
     // Step 5: Update job record + analytics
     await step.do("update-analytics", async () => {
-      const prisma = createPrisma(this.env.HYPERDRIVE);
+      const prisma = createPrisma(this.env.DB);
+      const now = new Date().toISOString();
 
       await prisma.scrapeJob.update({
         where: { id: jobId },
@@ -102,8 +106,8 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
           resultCount: upsertResult.savedCount,
           totalApiResults: upsertResult.totalApiResults,
           updatedCount: upsertResult.updatedCount,
-          newPropertyIds: upsertResult.newPropertyIds,
-          completedAt: new Date(),
+          newPropertyIds: JSON.stringify(upsertResult.newPropertyIds),
+          completedAt: now,
         },
       });
 
@@ -114,7 +118,8 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
           totalSearches: { increment: 1 },
           successfulSearches: { increment: 1 },
           totalResults: { increment: upsertResult.savedCount },
-          lastSearched: new Date(),
+          lastSearched: now,
+          updatedAt: now,
         },
         create: {
           searchTerm,
@@ -122,7 +127,9 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
           totalSearches: 1,
           successfulSearches: 1,
           totalResults: upsertResult.savedCount,
-          lastSearched: new Date(),
+          lastSearched: now,
+          createdAt: now,
+          updatedAt: now,
         },
       });
     });
@@ -230,64 +237,117 @@ function parseNumericValue(val: string | number | undefined | null): number | nu
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-// ── Bulk upsert (same SQL as scraper.queue.ts) ───────────────────────
+// ── D1 bulk upsert (replaces PostgreSQL $queryRawUnsafe) ────────────
 
+/**
+ * D1 bulk upsert — replaces PostgreSQL $queryRawUnsafe approach.
+ *
+ * Constraints:
+ *  - D1 max 100 bound params per query
+ *  - 14 columns per row = max 7 rows per statement (7 x 14 = 98)
+ *  - No xmax for insert/update detection — use pre-query EXISTS check
+ *
+ * Strategy:
+ *  1. Query existing property_ids for this batch to detect new vs updated
+ *  2. Execute INSERT...ON CONFLICT in 7-row micro-chunks via db.batch()
+ *  3. Return new/updated counts based on pre-query diff
+ */
 async function bulkUpsert(
-  prisma: ReturnType<typeof createPrisma>,
+  db: D1Database,
   chunk: PropertyData[],
   searchTerm: string,
   year: number,
 ): Promise<{ savedCount: number; updatedCount: number; newPropertyIds: string[] }> {
-  const now = new Date();
-  const valuesClauses: string[] = [];
-  const params: (string | number | Date | null)[] = [];
-  let paramIndex = 1;
+  const now = new Date().toISOString();
 
-  for (const prop of chunk) {
-    valuesClauses.push(
-      `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, ` +
-      `$${paramIndex + 5}, COALESCE($${paramIndex + 6}, 0), $${paramIndex + 7}, $${paramIndex + 8}, ` +
-      `$${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13})`,
-    );
-
-    params.push(
-      prop.propertyId, prop.name, prop.propType, prop.city, prop.propertyAddress,
-      prop.assessedValue, prop.appraisedValue, prop.geoId, prop.description,
-      searchTerm, year, now, now, now,
-    );
-    paramIndex += 14;
+  // Step 1: Find which property_ids already exist (for new vs update tracking)
+  const existingIds = new Set<string>();
+  const idChunks = chunkArray(chunk.map(p => p.propertyId), 50);
+  for (const idChunk of idChunks) {
+    const placeholders = idChunk.map(() => "?").join(", ");
+    const result = await db
+      .prepare(`SELECT property_id FROM properties WHERE year = ? AND property_id IN (${placeholders})`)
+      .bind(year, ...idChunk)
+      .all<{ property_id: string }>();
+    for (const row of result.results) {
+      existingIds.add(row.property_id);
+    }
   }
 
-  const sql = `
-    INSERT INTO properties (
-      property_id, name, prop_type, city, property_address,
-      assessed_value, appraised_value, geo_id, description,
-      search_term, year, scraped_at, created_at, updated_at
-    )
-    VALUES ${valuesClauses.join(", ")}
-    ON CONFLICT (property_id, year) DO UPDATE SET
-      name = EXCLUDED.name,
-      prop_type = EXCLUDED.prop_type,
-      city = EXCLUDED.city,
-      property_address = EXCLUDED.property_address,
-      assessed_value = EXCLUDED.assessed_value,
-      appraised_value = EXCLUDED.appraised_value,
-      geo_id = EXCLUDED.geo_id,
-      description = EXCLUDED.description,
-      search_term = EXCLUDED.search_term,
-      scraped_at = EXCLUDED.scraped_at,
-      updated_at = EXCLUDED.updated_at
-    RETURNING property_id, (xmax = 0) AS inserted
-  `;
+  // Step 2: Upsert in micro-chunks of 7 rows
+  const microChunks = chunkArray(chunk, UPSERT_MICRO_CHUNK_SIZE);
+  const statements: D1PreparedStatement[] = [];
 
-  const result = await prisma.$queryRawUnsafe<
-    { property_id: string; inserted: boolean }[]
-  >(sql, ...params);
+  for (const micro of microChunks) {
+    const placeholders = micro
+      .map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .join(", ");
 
-  const newIds = result.filter((r) => r.inserted).map((r) => r.property_id);
+    const params: (string | number | null)[] = [];
+    for (const prop of micro) {
+      params.push(
+        prop.propertyId,
+        prop.name,
+        prop.propType,
+        prop.city,
+        prop.propertyAddress,
+        prop.assessedValue,
+        prop.appraisedValue ?? 0,
+        prop.geoId,
+        prop.description,
+        searchTerm,
+        year,
+        now,
+        now,
+        now,
+      );
+    }
+
+    statements.push(
+      db.prepare(`
+        INSERT INTO properties (
+          property_id, name, prop_type, city, property_address,
+          assessed_value, appraised_value, geo_id, description,
+          search_term, year, scraped_at, created_at, updated_at
+        )
+        VALUES ${placeholders}
+        ON CONFLICT (property_id, year) DO UPDATE SET
+          name = excluded.name,
+          prop_type = excluded.prop_type,
+          city = excluded.city,
+          property_address = excluded.property_address,
+          assessed_value = excluded.assessed_value,
+          appraised_value = excluded.appraised_value,
+          geo_id = excluded.geo_id,
+          description = excluded.description,
+          search_term = excluded.search_term,
+          scraped_at = excluded.scraped_at,
+          updated_at = excluded.updated_at
+      `).bind(...params)
+    );
+  }
+
+  // D1 batch() executes all statements in a single transaction
+  if (statements.length > 0) {
+    await db.batch(statements);
+  }
+
+  // Step 3: Calculate new vs updated from pre-query diff
+  const newPropertyIds = chunk
+    .map(p => p.propertyId)
+    .filter(id => !existingIds.has(id));
+
   return {
-    savedCount: newIds.length,
-    updatedCount: result.length - newIds.length,
-    newPropertyIds: newIds,
+    savedCount: newPropertyIds.length,
+    updatedCount: chunk.length - newPropertyIds.length,
+    newPropertyIds,
   };
+}
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
 }
