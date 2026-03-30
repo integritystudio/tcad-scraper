@@ -43,13 +43,39 @@ Available fields in the properties table:
 - description (text): property description
 
 Generate a JSON response with these fields:
-1. "whereClause": Prisma where clause as JSON (use "contains" for text searches with "mode": "insensitive", "gte"/"lte" for number ranges)
+1. "whereClause": Prisma where clause as JSON (use "contains" for text searches — do NOT include "mode": "insensitive", use "gte"/"lte" for number ranges)
 2. "orderBy": Prisma orderBy clause (optional)
 3. "explanation": Brief explanation of what you're searching for
 4. "answer": (REQUIRED for quantitative questions) Natural language answer template using {count} and {totalValue} placeholders
 5. "answerType": One of "count", "statistical", or "descriptive"
 
 Respond with ONLY valid JSON, no markdown fences.`;
+
+/**
+ * Remove "mode": "insensitive" from AI-generated where clauses.
+ * D1/SQLite doesn't support Prisma's mode: "insensitive" option.
+ * SQLite LIKE is case-insensitive for ASCII by default.
+ */
+export function sanitizeWhereClause(clause: Record<string, unknown>): Record<string, unknown> {
+  const sanitized = { ...clause };
+  for (const [key, value] of Object.entries(sanitized)) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const obj = value as Record<string, unknown>;
+      if ("mode" in obj && obj.mode === "insensitive") {
+        delete obj.mode;
+      }
+      sanitized[key] = sanitizeWhereClause(obj);
+    }
+    if (Array.isArray(value)) {
+      sanitized[key] = value.map(item =>
+        typeof item === "object" && item !== null
+          ? sanitizeWhereClause(item as Record<string, unknown>)
+          : item
+      );
+    }
+  }
+  return sanitized;
+}
 
 export async function parseNaturalLanguageQuery(
   query: string,
