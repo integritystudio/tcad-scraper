@@ -275,11 +275,10 @@ app.post("/monitor", apiKeyAuth, validateBody(monitorRequestSchema), async (c) =
     frequency?: string;
   };
 
-  const now = new Date().toISOString();
   const monitoredSearch = await prisma.monitoredSearch.upsert({
     where: { searchTerm },
-    update: { active: true, frequency, updatedAt: now },
-    create: { searchTerm, frequency, createdAt: now, updatedAt: now },
+    update: { active: true, frequency },
+    create: { searchTerm, frequency },
   });
 
   return c.json({ message: "Search term added to monitoring", data: monitoredSearch });

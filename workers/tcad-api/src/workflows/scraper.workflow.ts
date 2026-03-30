@@ -25,11 +25,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
     const { jobId, token } = await step.do("get-token", async () => {
       const prisma = createPrisma(this.env.DB);
       const job = await prisma.scrapeJob.create({
-        data: {
-          searchTerm,
-          status: "processing",
-          startedAt: new Date().toISOString(),
-        },
+        data: { searchTerm, status: "processing" },
       });
 
       // Try KV cache first, fall back to token worker
@@ -97,7 +93,6 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
     // Step 5: Update job record + analytics
     await step.do("update-analytics", async () => {
       const prisma = createPrisma(this.env.DB);
-      const now = new Date().toISOString();
 
       await prisma.scrapeJob.update({
         where: { id: jobId },
@@ -107,11 +102,12 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
           totalApiResults: upsertResult.totalApiResults,
           updatedCount: upsertResult.updatedCount,
           newPropertyIds: JSON.stringify(upsertResult.newPropertyIds),
-          completedAt: now,
+          completedAt: new Date().toISOString(),
         },
       });
 
       // Upsert search term analytics
+      const now = new Date().toISOString();
       await prisma.searchTermAnalytics.upsert({
         where: { searchTerm },
         update: {
@@ -119,7 +115,6 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
           successfulSearches: { increment: 1 },
           totalResults: { increment: upsertResult.savedCount },
           lastSearched: now,
-          updatedAt: now,
         },
         create: {
           searchTerm,
@@ -128,8 +123,6 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
           successfulSearches: 1,
           totalResults: upsertResult.savedCount,
           lastSearched: now,
-          createdAt: now,
-          updatedAt: now,
         },
       });
     });
