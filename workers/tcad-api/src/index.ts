@@ -153,10 +153,9 @@ async function runMonitoredSearches(env: Env): Promise<void> {
 
     for (const search of searches) {
       await env.SCRAPER_QUEUE.send({ searchTerm: search.searchTerm, year });
-      const now = new Date().toISOString();
       await prisma.monitoredSearch.update({
         where: { id: search.id },
-        data: { lastRun: now, updatedAt: now },
+        data: { lastRun: new Date().toISOString() },
       });
     }
     console.log(`Enqueued ${searches.length} monitored searches`);

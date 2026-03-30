@@ -22,9 +22,7 @@ app.get("/stats", async (c) => {
   const daysNum = Math.min(parseInt(daysParam || String(DEFAULT_LOOKBACK_DAYS), 10) || DEFAULT_LOOKBACK_DAYS, 90);
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - daysNum);
-  const startDateISO = startDate.toISOString();
-
-  const where: Prisma.ApiUsageLogWhereInput = { timestamp: { gte: startDateISO } };
+  const where: Prisma.ApiUsageLogWhereInput = { timestamp: { gte: startDate.toISOString() } };
   if (environment) where.environment = environment;
 
   const [totalLogs, successfulLogs, totalCost, usageByDay, usageByModel, recentLogs] =
@@ -48,7 +46,7 @@ app.get("/stats", async (c) => {
           FROM api_usage_logs
           WHERE timestamp >= ?
         `;
-        const params: (string | number)[] = [startDateISO];
+        const params: (string | number)[] = [startDate.toISOString()];
 
         if (environment) {
           sql += ` AND environment = ?`;
