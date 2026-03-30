@@ -10,10 +10,11 @@ enabled = true
 TCAD_YEAR = "2025"
 FRONTEND_URL = "https://alephatx.info"
 
-# Hyperdrive connection pooler → Render PostgreSQL
-[[hyperdrive]]
-binding = "HYPERDRIVE"
-id = "e0406d51a79a4440863e0c608390a613"
+# D1 database (replaces Hyperdrive → Render PostgreSQL)
+[[d1_databases]]
+binding = "DB"
+database_name = "tcad-db"
+database_id = "451d4356-10d1-4c1d-adf9-4d4297636343"
 
 # Phase 2: Workflows + Queues
 [[workflows]]

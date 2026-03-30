@@ -2,8 +2,8 @@ import type { PrismaClient } from "@prisma/client";
 
 /** Cloudflare Worker environment bindings */
 export interface Env {
-  // Database (Hyperdrive → Render PostgreSQL)
-  HYPERDRIVE: Hyperdrive;
+  // Database (D1 — replaces Hyperdrive → Render PostgreSQL)
+  DB: D1Database;
 
   // Phase 2: Workflows + Queues
   SCRAPER_WORKFLOW: Workflow;

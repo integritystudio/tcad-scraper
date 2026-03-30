@@ -1,14 +1,11 @@
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaD1 } from "@prisma/adapter-d1";
 import { PrismaClient } from "@prisma/client";
 
 /**
- * Create a PrismaClient bound to Cloudflare Hyperdrive.
- * Must be called per-request — Workers are stateless,
- * and Hyperdrive handles connection pooling.
+ * Create a PrismaClient bound to Cloudflare D1.
+ * Must be called per-request — Workers are stateless.
  */
-export function createPrisma(hyperdrive: Hyperdrive): PrismaClient {
-  const adapter = new PrismaPg({
-    connectionString: hyperdrive.connectionString,
-  });
+export function createPrisma(db: D1Database): PrismaClient {
+  const adapter = new PrismaD1(db);
   return new PrismaClient({ adapter });
 }
