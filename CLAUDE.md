@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: March 20, 2026 | **Version**: 5.0
+**Last Updated**: March 30, 2026 | **Version**: 5.2
 
 ## Project Overview
 
@@ -12,7 +12,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue**: Cloudflare Queues + Workflows (replaced BullMQ + Redis)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (680+ tests)
+- **Testing**: Vitest (680+ tests, 126/126 E2E tests passing via Playwright)
 - **Scale**: 500K+ properties
 
 ```
@@ -38,15 +38,15 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `src/controllers/api-usage.ts` - API usage routes
 - `src/middleware/auth.ts` - API key (`x-api-key`) + JWT (`jose`) auth
 - `src/db.ts` - Prisma + Hyperdrive connection
-- `src/lib/claude.service.ts` - Natural language search (query capped at 500 chars via Zod)
+- `src/lib/claude.service.ts` - Natural language search (Anthropic primary, OpenAI fallback; query capped at 500 chars via Zod)
 - `src/utils/constants.ts` - TCAD_API_URL, chunk sizes, timeouts
 - `wrangler.toml` - Hyperdrive, KV, Queues, Workflows, Crons, route config
 
 ### Legacy Backend (`server/`) — Reference only
-- `src/index.ts` - Express + Sentry + Bull Board (no longer serving production traffic)
-- `src/queues/scraper.queue.ts` - BullMQ job processing (replaced by ScraperWorkflow)
-- `src/services/token-refresh.service.ts` - Token refresh (replaced by KV + cron)
+- `src/index.ts` - Express + Sentry (read-only DB queries, no scraping endpoints)
+- `src/services/search-term-optimizer.ts` - Search term optimization logic
 - `prisma/schema.prisma` - Schema (properties, scrape_jobs, monitored_searches) — still canonical
+- BullMQ queues, token refresh service, schedulers, CLI tools removed (287ca63)
 
 ### Scripts (`scripts/` — root level, run from repo root)
 - `continuous-batch-scraper.ts` - Long-running scraper; `STOP_AT_PROPERTIES` (500K) halt threshold
@@ -58,6 +58,7 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `lib/` - queue-utils, backfill-runner, searched-terms, backfill-utils
 - `requeue/` - Failed job requeue scripts
 - See [scripts/README.md](scripts/README.md) for full reference
+- **Search Term Strategy**: See [SEARCH_TERM_STRATEGY.md](SEARCH_TERM_STRATEGY.md) for Tier 1-4 efficiency breakdown and [SEARCH_TERM_ANALYSIS.md](SEARCH_TERM_ANALYSIS.md) for full ranked term list
 
 ### Infrastructure
 - **API**: Cloudflare Workers at `api.alephatx.info` (route: `api.alephatx.info/*`)
@@ -67,7 +68,6 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - **Queue**: Cloudflare Queues (`tcad-scraper-jobs`, DLQ: `tcad-scraper-dlq`)
 - **Crons**: Token refresh (4min), stale job cleanup (hourly), monitored searches (6hr)
 - **Monitoring**: Sentry + `wrangler tail` + Cloudflare dashboard
-- **Legacy monitoring**: `config/monitoring/` (Grafana, Prometheus, Docker Compose)
 
 ### Project Layout
 ```
@@ -79,7 +79,7 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 ├── scripts/              # CLI tools, batch scripts, backfill, enqueue
 ├── e2e/                  # Playwright E2E tests
 ├── utils/                # Shared constants
-├── config/               # Monitoring, GTM configs
+├── config/               # GTM configs
 ├── shared/               # Shared types
 └── docs/                 # All documentation
 ```
@@ -118,6 +118,7 @@ doppler run -- npx prisma migrate dev
 npm test                     # Unit tests (680+ tests, <5 sec)
 npm run test:integration     # Integration tests
 npm run test:all:coverage    # Full coverage report
+npm run test:e2e             # E2E tests (126 tests, all passing)
 
 # Scraping (via Workers API)
 curl -X POST "https://api.alephatx.info/api/properties/scrape" \
@@ -127,6 +128,10 @@ curl -X POST "https://api.alephatx.info/api/properties/scrape" \
 # Scraping (legacy BullMQ — still works for local dev)
 doppler run -- npx tsx scripts/continuous-batch-scraper.ts
 npm run queue:status
+
+# Search Term Optimization Strategy (March 2026)
+# Tier 1 (15 terms) = 19.6% coverage, Tier 1+2 (50 terms) = 45.1%, Tier 1+2+3 (200 terms) = 92.1%
+# See SEARCH_TERM_STRATEGY.md for full strategy and efficiency metrics
 
 # Backfill Discovery
 doppler run -- npx tsx scripts/generate-next-200-terms.ts          # Dry run
