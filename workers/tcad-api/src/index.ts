@@ -34,13 +34,12 @@ app.use("*", cors({
 
 app.use("*", secureHeaders());
 
-// Attach per-request Prisma client via Hyperdrive
+// Attach per-request Prisma client via D1
 app.use("*", async (c, next) => {
-  const prisma = createPrisma(c.env.HYPERDRIVE);
+  const prisma = createPrisma(c.env.DB);
   c.set("prisma", prisma);
   await next();
-  // Disconnect is handled by Hyperdrive connection pooling; explicit
-  // $disconnect() is not required per-request on Workers.
+  // D1 connections are stateless per-request; no explicit disconnect needed.
 });
 
 // ── Health check ───────────────────────────────────────────────────
@@ -134,11 +133,11 @@ async function refreshToken(env: Env): Promise<void> {
 
 async function cleanupStaleJobs(env: Env): Promise<void> {
   try {
-    const prisma = createPrisma(env.HYPERDRIVE);
+    const prisma = createPrisma(env.DB);
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const result = await prisma.scrapeJob.updateMany({
-      where: { status: "processing", startedAt: { lt: cutoff } },
-      data: { status: "failed", error: "Stale job cleaned up", completedAt: new Date() },
+      where: { status: "processing", startedAt: { lt: cutoff.toISOString() } },
+      data: { status: "failed", error: "Stale job cleaned up", completedAt: new Date().toISOString() },
     });
     if (result.count > 0) console.log(`Cleaned ${result.count} stale jobs`);
   } catch (err) {
@@ -148,15 +147,16 @@ async function cleanupStaleJobs(env: Env): Promise<void> {
 
 async function runMonitoredSearches(env: Env): Promise<void> {
   try {
-    const prisma = createPrisma(env.HYPERDRIVE);
+    const prisma = createPrisma(env.DB);
     const searches = await prisma.monitoredSearch.findMany({ where: { active: true } });
     const year = parseInt(env.TCAD_YEAR, 10) || 2025;
 
     for (const search of searches) {
       await env.SCRAPER_QUEUE.send({ searchTerm: search.searchTerm, year });
+      const now = new Date().toISOString();
       await prisma.monitoredSearch.update({
         where: { id: search.id },
-        data: { lastRun: new Date() },
+        data: { lastRun: now, updatedAt: now },
       });
     }
     console.log(`Enqueued ${searches.length} monitored searches`);
