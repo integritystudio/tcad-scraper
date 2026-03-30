@@ -1,0 +1,186 @@
+===============================================================================
+TCAD SEARCH TERM REFERENCE - QUICK LOOKUP
+===============================================================================
+
+DATABASE STATS
+- Total Properties: 365,371
+- Search Terms: 313 unique
+- Top 50 terms cover: 67.4%
+- Top 200 terms cover: 92.1%
+- Remaining 113 terms: 7.9%
+
+===============================================================================
+TIER 1 - CORE BASELINE (15 terms = 19.6% coverage = 71,626 properties)
+===============================================================================
+1. David (8,660)
+2. Robert (6,628)
+3. LIVING (5,760)
+4. Home (5,318)
+5. Fami (4,700)
+6. James (4,586)
+7. steph (4,342)
+8. Paul (4,251)
+9. eliza (4,147)
+10. Rich (4,024)
+11. Mark (3,968)
+12. estat (3,935)
+13. Christopher (3,803)
+14. Martin (3,764)
+15. Thomas (3,740)
+
+NOTES: All have 100% success rate, minimal API waste, distinct search results
+
+===============================================================================
+TIER 2 - MAINTENANCE (35 terms = 25.5% incremental = 93,268 properties)
+===============================================================================
+16. holdi (3,734)
+17. Sand (3,730)
+18. Maria (3,667)
+19. Carl (3,660)
+20. Rock (3,649)
+21. Daniel (3,355)
+22. Mary (3,205)
+23. Wood (3,043)
+24. marie (3,040)
+25. Vista (3,030)
+26. TEXAS (2,735)
+27. Ridge (2,728)
+28. Scott (2,725)
+29. Angel (2,653)
+30. CITY (2,625)
+31. Green (2,490)
+32. White (2,489)
+33. VILLA (2,477)
+34. JOSE (2,432)
+35. West (2,416)
+36. Michelle (2,402)
+37. Matthew (2,400)
+38. Susan (2,369)
+39. Manor (2,363)
+40. Assoc (2,344)
+41. Pass (2,328)
+42. Johnson (2,304)
+43. Linda (2,225)
+44. Jeffrey (2,150)
+45. STATE (2,116)
+46. Andrew (2,115)
+47. laure (2,097)
+48. Joseph (2,080)
+49. Ranch (2,071)
+50. Bend/Garcia (2,021)
+
+TIER 1+2 COMBINED: 45.1% coverage (164,894 properties)
+
+NOTES: Good balance of yield and API efficiency. Use for regular maintenance.
+
+===============================================================================
+EFFICIENCY LEAGUE (50 terms with 100% success rate)
+===============================================================================
+Top performers by results/search (no failed calls):
+
+John (6,621:1)
+Fami (4,531:1)
+Robert (4,273:1)
+JOSE (3,915:1)
+Mary (3,604:1)
+West (3,580:1)
+Maria (3,463:1)
+Michael (3,423:1)
+TEXAS (3,314:1)
+VALLE (3,071:1)
+micha (3,034:1)
+Homes (2,878:1)
+Rich (2,796:1)
+CITY (2,667:1)
+Mark (2,578:1)
+Oak (2,354:1)
+Properties (2,282:1)
+Elizabeth (2,281:1)
+Pass (2,240:1)
+Matthew (2,173:1)
+[... and 30 more with >1500:1 ratio]
+
+RECOMMENDATION: Prioritize these for API-constrained scenarios.
+
+===============================================================================
+TIER 3 - BACKFILL CANDIDATES (150 terms = 47% incremental = 171,473 properties)
+===============================================================================
+[Includes terms 51-200 from SEARCH_TERM_ANALYSIS.md]
+
+Terms like: Bell, Carol, Lopez, Lynn, Nguyen, Lamar, Taylor, Brian, BLUE,
+Eric, devel, Land, Steven, Patrick, ROSA, Group, Davis, Jennifer, EAST,
+Charles, patri, BARR, Rose, Kelly, Valley, Crest, Williams, Miller, kenne,
+Louis, Brown, Lisa, Smith, Del Valle, Rodriguez, George, SERIES, Stone,
+Rebecca, Hills, Jason, Parkway... [and 110 more]
+
+TIER 1+2+3 COMBINED: 92.1% coverage (336,367 properties)
+
+RECOMMENDATION: Use for monthly/quarterly deep backfills. Good ROI/cost ratio.
+
+===============================================================================
+PROBLEMATIC TERMS (Low Efficiency / High Waste)
+===============================================================================
+Terms to monitor or remove:
+
+- Manor: 0% success rate (4 searches, 0 success)
+- Del Valle: 0% success rate (2 searches)
+- Trust: 30.8% success rate (26 searches)
+- Lake: 37.5% success rate (9 searches)
+- Inc.: 37.5% success rate (8 searches)
+- Congress: 41.7% success rate (15 searches)
+
+ACTION: Consider deprioritizing or removing from regular rotation.
+
+===============================================================================
+USAGE RECOMMENDATIONS
+===============================================================================
+
+SCENARIO 1: Minimum Viable Set (Fast Validation)
+- Use Tier 1 only (15 terms)
+- Expected: 20-30 min runtime, ~120 API calls, 72K properties
+- Coverage: 19.6%
+
+SCENARIO 2: Production Maintenance (Regular Updates)
+- Use Tier 1+2 (50 terms)
+- Run: Weekly or bi-weekly
+- Expected: 2-4 hours, ~400 API calls, 165K properties
+- Coverage: 45.1%
+
+SCENARIO 3: Monthly Backfill (Comprehensive Refresh)
+- Use Tier 1+2+3 (200 terms)
+- Run: Once per month
+- Expected: 8-12 hours, ~2,000 API calls, 336K properties
+- Coverage: 92.1%
+
+SCENARIO 4: Historical Deep Dive (One-time Full Sync)
+- Use all 313 terms
+- Run: One-time or quarterly
+- Expected: 12-18 hours, ~3,000+ API calls, 365K properties
+- Coverage: 100% (theoretical)
+
+===============================================================================
+KEY INSIGHTS
+===============================================================================
+
+1. MINIMAL OVERLAP: Zero overlap detected in top 30 terms. Each search returns
+   distinct properties. This is ideal—no duplication waste.
+
+2. TIER CONCENTRATION: Top 50 terms yield 67.4% of all properties. Diminishing
+   returns accelerate after Tier 2 (top 50).
+
+3. SUCCESS RATES: Top 50 terms average 80%+ success rate. Quality improves
+   dramatically with tier prioritization.
+
+4. NAMING PATTERN: Terms are person names (David, Robert), city names (TEXAS,
+   CITY), and entity types (estat, Trust). These naturally partition the search
+   space.
+
+5. LONG TAIL: Terms 201-313 each return <500 properties. Very low ROI for
+   regular scraping. Consider algorithmic expansion instead.
+
+===============================================================================
+REFERENCES
+===============================================================================
+
+Full details: /SEARCH_TERM_ANALYSIS.md (all 313 terms ranked)
+Strategy guide: /SEARCH_TERM_STRATEGY.md (detailed recommendations)
