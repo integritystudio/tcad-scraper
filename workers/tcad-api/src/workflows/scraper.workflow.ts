@@ -14,6 +14,7 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import type { Env } from "../bindings";
 import { createPrisma } from "../db";
 import { TCAD_API_URL, UPSERT_CHUNK_SIZE } from "../utils/constants";
+import { nowEpoch } from "../utils/epoch-dates";
 import type { PropertyData, ScrapeParams } from "../types/property.types";
 import { fetchResultSchema, upsertResultSchema } from "../types/property.types";
 
@@ -25,7 +26,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
     const { jobId, token } = await step.do("get-token", async () => {
       const prisma = createPrisma(this.env.DB);
       const job = await prisma.scrapeJob.create({
-        data: { searchTerm, status: "processing" },
+        data: { searchTerm, status: "processing", startedAt: nowEpoch() },
       });
 
       // Try KV cache first, fall back to token worker
@@ -103,12 +104,12 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
           totalApiResults: upsertResult.totalApiResults,
           updatedCount: upsertResult.updatedCount,
           newPropertyIds: JSON.stringify(upsertResult.newPropertyIds),
-          completedAt: new Date().toISOString(),
+          completedAt: nowEpoch(),
         },
       });
 
       // Upsert search term analytics
-      const now = new Date().toISOString();
+      const now = nowEpoch();
       await prisma.searchTermAnalytics.upsert({
         where: { searchTerm },
         update: {
@@ -116,6 +117,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
           successfulSearches: { increment: 1 },
           totalResults: { increment: upsertResult.savedCount },
           lastSearched: now,
+          updatedAt: now,
         },
         create: {
           searchTerm,
@@ -124,6 +126,8 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
           successfulSearches: 1,
           totalResults: upsertResult.savedCount,
           lastSearched: now,
+          createdAt: now,
+          updatedAt: now,
         },
       });
     });
@@ -262,7 +266,7 @@ async function bulkUpsert(
   const existingIds = new Set(existing.map(e => e.propertyId));
 
   // Step 2: Upsert via Prisma transaction
-  const now = new Date().toISOString();
+  const now = nowEpoch();
   const upserts = chunk.map(prop =>
     prisma.property.upsert({
       where: { propertyId_year: { propertyId: prop.propertyId, year } },
