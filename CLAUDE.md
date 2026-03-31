@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: March 30, 2026 | **Version**: 5.2
+**Last Updated**: March 30, 2026 | **Version**: 6.0
 
 ## Project Overview
 
@@ -8,7 +8,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 
 - **API**: Cloudflare Workers (Hono) + Workflows — migrated from Express/BullMQ March 2026
 - **Frontend**: React 19 + Vite (GitHub Pages)
-- **Database**: PostgreSQL (Render) via Cloudflare Hyperdrive
+- **Database**: Cloudflare D1 (SQLite at the edge) — migrated from PostgreSQL/Render March 2026
 - **Queue**: Cloudflare Queues + Workflows (replaced BullMQ + Redis)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
@@ -16,11 +16,11 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Scale**: 500K+ properties
 
 ```
-React (5174) → CF Workers (Hono) → Hyperdrive → PostgreSQL (Render)
+React (5174) → CF Workers (Hono) → D1 (SQLite at edge)
                     ↓
                CF Queue → ScraperWorkflow (5 steps)
                     ↓
-               TCAD API → bulk upsert via Hyperdrive
+               TCAD API → Prisma upsert via D1
 ```
 
 **Legacy stack** (still in `server/` for reference): Express + BullMQ + Redis. Production traffic now served by Workers.
@@ -37,15 +37,17 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `src/controllers/property.ts` - Property routes (list, get, scrape, search, history)
 - `src/controllers/api-usage.ts` - API usage routes
 - `src/middleware/auth.ts` - API key (`x-api-key`) + JWT (`jose`) auth
-- `src/db.ts` - Prisma + Hyperdrive connection
-- `src/lib/claude.service.ts` - Natural language search (Anthropic primary, OpenAI fallback; query capped at 500 chars via Zod)
-- `src/utils/constants.ts` - TCAD_API_URL, chunk sizes, timeouts
-- `wrangler.toml` - Hyperdrive, KV, Queues, Workflows, Crons, route config
+- `src/db.ts` - Prisma + D1 connection (`PrismaD1` adapter)
+- `src/lib/claude.service.ts` - Natural language search (Anthropic primary, OpenAI fallback; query capped at 500 chars via Zod) + `sanitizeWhereClause`
+- `src/utils/constants.ts` - TCAD_API_URL, chunk sizes, timeouts, D1 micro-chunk config
+- `src/utils/epoch-dates.ts` - `nowEpoch()`, `epochToISO()`, `dateToEpoch()` — D1 date workaround
+- `src/utils/json-array.ts` - `serializeIds()`/`deserializeIds()` for JSON-serialized arrays
+- `wrangler.toml` - D1, KV, Queues, Workflows, Crons, route config
 
 ### Legacy Backend (`server/`) — Reference only
 - `src/index.ts` - Express + Sentry (read-only DB queries, no scraping endpoints)
 - `src/services/search-term-optimizer.ts` - Search term optimization logic
-- `prisma/schema.prisma` - Schema (properties, scrape_jobs, monitored_searches) — still canonical
+- `prisma/schema.prisma` - Legacy PostgreSQL schema (reference only; canonical schema is `workers/tcad-api/prisma/schema.prisma`)
 - BullMQ queues, token refresh service, schedulers, CLI tools removed (287ca63)
 
 ### Scripts (`scripts/` — root level, run from repo root)
@@ -63,19 +65,20 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 ### Infrastructure
 - **API**: Cloudflare Workers at `api.alephatx.info` (route: `api.alephatx.info/*`)
 - **Frontend**: GitHub Pages at `alephatx.info`
-- **Database**: Render PostgreSQL via Hyperdrive (`e0406d51a79a4440863e0c608390a613`)
+- **Database**: Cloudflare D1 `tcad-db` (`451d4356-10d1-4c1d-adf9-4d4297636343`)
 - **Cache**: Cloudflare KV (TOKEN_CACHE, RESPONSE_CACHE)
 - **Queue**: Cloudflare Queues (`tcad-scraper-jobs`, DLQ: `tcad-scraper-dlq`)
-- **Crons**: Token refresh (4min), stale job cleanup (hourly), monitored searches (6hr)
+- **Crons**: Token refresh (4min), stale job cleanup (hourly), search term optimization (3am), monitored searches (6hr)
 - **Monitoring**: Sentry + `wrangler tail` + Cloudflare dashboard
 
 ### Project Layout
 ```
 ├── workers/tcad-api/     # Production API (CF Workers + Hono)
-│   └── src/              # index, controllers, workflows, middleware, lib
+│   ├── prisma/           # D1/SQLite schema + migrations (canonical)
+│   └── src/              # index, controllers, workflows, middleware, lib, utils
 ├── src/                  # Frontend (React + Vite)
 ├── server/               # Legacy backend (Express + BullMQ + Prisma)
-│   └── prisma/           # Schema + migrations (canonical)
+│   └── prisma/           # Legacy PostgreSQL schema (reference only)
 ├── scripts/              # CLI tools, batch scripts, backfill, enqueue
 ├── e2e/                  # Playwright E2E tests
 ├── utils/                # Shared constants
@@ -110,9 +113,10 @@ npx wrangler tail                                  # Live logs
 npx wrangler workflows instances list scraper-workflow --per-page 10  # Workflow status
 npx wrangler secret put <NAME>                     # Set secret
 
-# Database
-cd server && npx prisma generate
-doppler run -- npx prisma migrate dev
+# Database (D1)
+cd workers/tcad-api && npx prisma generate
+npx wrangler d1 execute tcad-db --remote --command "SELECT COUNT(*) FROM properties"
+npx wrangler d1 execute tcad-db --local --file prisma/migrations/0001_init.sql  # seed local
 
 # Testing
 npm test                     # Unit tests (680+ tests, <5 sec)
@@ -144,13 +148,9 @@ TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts           # 
 TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 1 # Proven analytics terms
 TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 3 # Mine owner names/streets
 
-# Database Queries (run from server/)
-doppler run -- npx tsx --eval "import { PrismaClient } from '@prisma/client'; const p = new PrismaClient(); p.property.count({where:{year:2025}}).then(c=>{console.log('Count:',c);return p.\$disconnect()}).then(()=>process.exit(0));"
-doppler run -- npx tsx --eval "import { PrismaClient } from '@prisma/client'; const p = new PrismaClient(); p.\$queryRaw\`SELECT search_term, total_results, total_searches, success_rate FROM search_term_analytics WHERE total_results > 0 ORDER BY total_results DESC LIMIT 50\`.then(r=>{console.table(r);return p.\$disconnect()}).then(()=>process.exit(0));"
-
-# Queue Management (Legacy BullMQ — dequeue all waiting/failed jobs)
-# ⚠️ Must pause queue first; use try/catch on job.remove()
-npx tsx --eval "import { scraperQueue } from './src/queues/scraper.queue'; (async () => { await scraperQueue.pause(); const waiting = await scraperQueue.getWaiting(0, 500); for (const j of waiting) { try { await j.remove(); } catch(e) {} } const failed = await scraperQueue.getFailed(0, 500); for (const j of failed) { try { await j.remove(); } catch(e) {} } await scraperQueue.resume(); console.log('Cleared', waiting.length, 'waiting +', failed.length, 'failed'); await scraperQueue.close(); process.exit(0); })();"
+# Database Queries (D1 — run from workers/tcad-api/)
+npx wrangler d1 execute tcad-db --remote --command "SELECT COUNT(*) FROM properties WHERE year = 2025"
+npx wrangler d1 execute tcad-db --remote --command "SELECT search_term, total_results, total_searches, success_rate FROM search_term_analytics WHERE total_results > 0 ORDER BY total_results DESC LIMIT 50"
 
 # Workers Queue — view via Cloudflare dashboard or:
 cd workers/tcad-api && npx wrangler queues list
@@ -161,14 +161,17 @@ cd workers/tcad-api && npx wrangler queues list
 ## Architecture Decisions
 
 - **Cloudflare Workers** serves production API (March 2026 migration from Render/Express)
-- **Hyperdrive** connection pools to Render PostgreSQL — no DB migration needed
+- **Cloudflare D1** (SQLite at edge) replaced PostgreSQL/Render/Hyperdrive (March 30, 2026)
+- **Epoch millisecond strings** for all date fields — D1's JS binding auto-converts ISO 8601 TEXT, breaking Prisma. Epoch strings (`"1711773684000"`) are safe. See `utils/epoch-dates.ts`
+- **Prisma `$transaction` with individual upserts** for bulk writes — avoids D1's 100-param limit and handles date serialization correctly
+- **`sanitizeWhereClause`** strips `mode: "insensitive"` from AI-generated Prisma queries (SQLite LIKE is case-insensitive for ASCII by default)
 - **Cloudflare Queues + Workflows** replaced BullMQ + Redis for scrape job processing
 - **Cloudflare KV** replaced Redis for token cache + response cache
 - **Cron Triggers** replaced `node-cron` for scheduled tasks
 - **Bearer tokens** expire ~5 min; cron trigger auto-refreshes to KV (see [docs/TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md))
 - **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses, suburb/city names. Does NOT work with ZIP codes, short terms (<4 chars), compound names, or numeric-only terms
 - **Env vars**: `TCAD_YEAR` (wrangler.toml vars), `UPSERT_CHUNK_SIZE` (500)
-- See [docs/CLOUDFLARE_MIGRATION_PLAN.md](docs/CLOUDFLARE_MIGRATION_PLAN.md) for full migration details
+- See [docs/changelog/2026-03-30.md](docs/changelog/2026-03-30.md) for D1 migration details
 
 ---
 
@@ -184,13 +187,15 @@ Expected response: `{"status":"ok","propertyCount":N,"runtime":"cloudflare-worke
 
 ## Code Standards
 
-- **Prisma selects**: Only use fields from `prisma/schema.prisma`. `SearchTermAnalytics` has `totalSearches`, NOT `searchCount`
+- **Prisma selects**: Only use fields from `workers/tcad-api/prisma/schema.prisma`. `SearchTermAnalytics` has `totalSearches`, NOT `searchCount`
 - **No `any`**: Use `unknown` + type guards. Use `getErrorMessage()` from `utils/error-helpers.ts`
 - **Workers logging**: Use `console.*` (Workers structured logging). Legacy `server/` uses Pino logger
 - **Workers env**: Access via `c.env.X` (Hono context), not `process.env.X`
 - **Auth**: Workers uses `x-api-key` header checked against `env.API_KEY` (value = Doppler `TCAD_API_KEY`). JWT via `jose` (not `jsonwebtoken`)
 - **TCAD API request format**: Body must use `{ pYear: { operator: "=", value }, fullTextSearch: { operator: "match", value } }` with pagination as query params `?page=N&pageSize=N`. Token passed as `Authorization: token` (token already includes "Bearer " prefix from token worker — do NOT add a second "Bearer " prefix). See `server/src/lib/tcad-api-client.ts` for the canonical implementation
-- **BullMQ typing** (legacy): Use `ScraperJob`, `CompletedScraperJob`, `FailedScraperJob` from `types/queue.types.ts`
+- **D1 dates**: Always use `nowEpoch()` for date writes, `epochToISO()` for API responses. Never store ISO 8601 strings — D1 will corrupt them on read
+- **D1 arrays**: `newPropertyIds` is `String` (JSON-serialized). Use `JSON.stringify()` on write, `JSON.parse()` on read
+- **No `mode: "insensitive"`**: SQLite LIKE is case-insensitive for ASCII by default. Prisma + SQLite throws on `mode: "insensitive"`
 
 ---
 
@@ -198,14 +203,15 @@ Expected response: `{"status":"ok","propertyCount":N,"runtime":"cloudflare-worke
 
 | Problem | Steps |
 |---------|-------|
-| DB connection failed | Check Render dashboard; verify Hyperdrive config: `wrangler hyperdrive get tcad-db` |
+| DB connection failed | Check D1 dashboard; `wrangler d1 execute tcad-db --remote --command "SELECT 1"` |
 | TCAD API auth failed | Token expired (5 min); check `wrangler tail` for refresh errors |
 | TCAD API 500 / 0 results | Verify request body format matches `tcad-api-client.ts` (operator format, query string pagination, no double Bearer prefix). TCAD also returns 500 for genuinely empty terms |
 | Workflows stuck | `wrangler workflows instances list scraper-workflow --status running` |
 | Queue not processing | `wrangler queues list`; check consumer in `wrangler tail` |
 | Workers deploy failed | `wrangler deploy --dry-run`; check `npx tsc --noEmit` in `workers/tcad-api/` |
 | API 522/unreachable | Check Cloudflare dashboard; `wrangler tail` for errors |
-| Legacy: Queue stuck | `npm run queue:status`, check Render Redis or server logs |
+| D1 date corruption | Dates stored as ISO 8601 instead of epoch ms; re-scrape affected records |
+| D1 `SQLITE_CONSTRAINT` | Data type mismatch or missing required field in create call |
 
 ---
 

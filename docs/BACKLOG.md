@@ -1,10 +1,25 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-11 (codebase cleanup completed; city names verified; enqueue consolidation research closed)
+**Last Updated**: 2026-03-30 (D1 migration deployed; post-migration polish items added)
 **Status**: 680/680 tests passing | TypeScript clean | Lint clean
 
 ---
 ## Open Items
+
+### D1-01: Prisma create calls missing explicit epoch timestamps
+**Priority**: P2 | **Source**: D1 migration (2026-03-30)
+
+`@default("0")` in the SQLite Prisma schema doesn't auto-populate date fields like PostgreSQL's `@default(now())` did. All `prisma.*.create()` calls need explicit `createdAt: nowEpoch()` and `updatedAt: nowEpoch()` values, otherwise these fields store `"0"` and render as empty strings in API responses. Affected: `scrapeJob.create` (Step 1), `monitoredSearch.upsert` create path, `searchTermAnalytics.upsert` create path, property upsert create path. -- `workers/tcad-api/src/workflows/scraper.workflow.ts`, `workers/tcad-api/src/controllers/property.ts`
+
+### D1-02: Job history endpoint returns raw epoch strings
+**Priority**: P3 | **Source**: D1 migration (2026-03-30)
+
+`GET /api/properties/history` returns `startedAt` and `completedAt` as raw epoch millisecond strings (e.g. `"1774912267251"`) instead of ISO 8601. Add `epochToISO()` transform in the history response mapping if the frontend needs human-readable dates. -- `workers/tcad-api/src/controllers/property.ts`
+
+### D1-03: Rotate Render database password
+**Priority**: P1 | **Source**: D1 migration session (2026-03-30)
+
+The Render PostgreSQL connection string (including password) was exposed in terminal output during the `pg_dump` step. Rotate the password in the Render dashboard and update the Doppler `DATABASE_URL` secret. The Render database is still running as a safety net per the migration plan — keep it active for at least 2 weeks post-cutover.
 
 ---
 
@@ -66,4 +81,4 @@ The get-then-set pattern in `canScheduleJob` has a TOCTOU window where concurren
 
 All completed items migrated to `docs/changelog/` (per-date files).
 
-**Latest migration**: Codebase cleanup audit items migrated to [changelog/2026-03-11.md](changelog/2026-03-11.md)
+**Latest migration**: D1 migration implementation guide migrated to [changelog/2026-03-30.md](changelog/2026-03-30.md)

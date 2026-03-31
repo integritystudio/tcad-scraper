@@ -1,8 +1,8 @@
 # TCAD Scraper
 
-A production-grade web scraping system for automated collection of property tax information from the Travis Central Appraisal District (TCAD) website. Built with TypeScript, Cloudflare Workers (Hono), Prisma, and PostgreSQL with a workflow-based architecture for scalable data collection.
+A production-grade web scraping system for automated collection of property tax information from the Travis Central Appraisal District (TCAD) website. Built with TypeScript, Cloudflare Workers (Hono), Prisma, and Cloudflare D1 (SQLite at the edge) with a workflow-based architecture for scalable data collection.
 
-> **March 2026**: Production API migrated from Express/BullMQ/Render to Cloudflare Workers/Hono/Workflows. See [CLOUDFLARE_MIGRATION_PLAN.md](docs/CLOUDFLARE_MIGRATION_PLAN.md).
+> **March 2026**: Full Cloudflare migration complete. API: Workers/Hono/Workflows. Database: D1 (SQLite, replacing PostgreSQL/Render/Hyperdrive). See [changelog/2026-03-30.md](docs/changelog/2026-03-30.md).
 
 ## Table of Contents
 
@@ -34,7 +34,7 @@ The application uses **API-direct scraping**: direct HTTP calls to the TCAD back
 - **API-Direct Scraping**: High-volume scraping via TCAD API with automatic token refresh
 - **Continuous Batch Scraping**: Automated 24/7 scraping with intelligent, weighted search term generation
 - **Workflow-Based Processing**: Cloudflare Workflows with 5-step scraper pipeline (token, fetch, dedup, upsert, analytics)
-- **Persistent Storage**: PostgreSQL database with Prisma ORM for type-safe data access
+- **Persistent Storage**: Cloudflare D1 (SQLite) with Prisma ORM for type-safe data access
 - **Smart Search Strategies**:
   - Weighted pattern distribution (200+ first names, 500+ last names, 150+ Austin streets)
   - Multiple search patterns: full names, last names, street addresses, numbers, partial matches
@@ -64,10 +64,9 @@ The application uses **API-direct scraping**: direct HTTP calls to the TCAD back
 
 ### Infrastructure
 - **Cloudflare Workers**: Production API at `api.alephatx.info`
-- **Cloudflare Hyperdrive**: Connection pooling to Render PostgreSQL
+- **Cloudflare D1**: SQLite database at the edge (replaced PostgreSQL/Render/Hyperdrive)
 - **Cloudflare KV**: Token cache + response cache (replaced Redis)
 - **Cloudflare Queues + Workflows**: Distributed scrape job processing (replaced BullMQ)
-- **Render PostgreSQL**: Database hosting (unchanged)
 - **GitHub Pages**: Frontend deployed at `alephatx.info`
 - **Sentry**: Error tracking via `@sentry/cloudflare`
 - **Doppler Integration**: Secure secrets management for local dev
@@ -79,15 +78,15 @@ The application uses **API-direct scraping**: direct HTTP calls to the TCAD back
 - **Cloudflare Workflows** for multi-step scrape job processing
 - **Cloudflare Queues** for job distribution
 - **Cloudflare KV** for token + response caching
-- **Cloudflare Hyperdrive** for PostgreSQL connection pooling
-- **Prisma ORM** with `@prisma/adapter-pg` for type-safe database access
+- **Cloudflare D1** (SQLite at the edge) for database
+- **Prisma ORM** with `@prisma/adapter-d1` for type-safe database access
 - **jose** for JWT verification (Workers-compatible)
 - **Zod** for runtime type validation
 - **Anthropic Claude AI** for natural language search parsing
 - **@sentry/cloudflare** for error tracking
 
 ### Infrastructure & DevOps
-- **PostgreSQL 15+** — Render-hosted (remote), accessed via Hyperdrive
+- **Cloudflare D1** — Managed SQLite database (edge reads, single-region writes)
 - **Cloudflare Workers** — Production API with auto-deploy via `wrangler deploy`
 - **Doppler** for local dev secrets management
 - **`wrangler secret`** for Workers production secrets
@@ -106,17 +105,17 @@ The application uses **API-direct scraping**: direct HTTP calls to the TCAD back
 
 ### Deployment Environment
 - **Cloudflare Workers** (API at `api.alephatx.info`)
-- **Render** (PostgreSQL database)
+- **Cloudflare D1** (SQLite database `tcad-db`)
 - **GitHub Pages** (frontend at `alephatx.info`)
 ## Architecture
 
 ### System Overview
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌──────────────┐     ┌─────────────┐
-│  React Frontend │────▶│  CF Workers      │────▶│  Hyperdrive  │────▶│ PostgreSQL  │
-│  (GitHub Pages) │     │  (Hono API)      │     │  (pool)      │     │ (Render)    │
-└─────────────────┘     └──────────────────┘     └──────────────┘     └─────────────┘
+┌─────────────────┐     ┌──────────────────┐     ┌──────────────┐
+│  React Frontend │────▶│  CF Workers      │────▶│  D1 (SQLite) │
+│  (GitHub Pages) │     │  (Hono API)      │     │  (edge)      │
+└─────────────────┘     └──────────────────┘     └──────────────┘
                                │
                                │ CF Queue
                                ▼
@@ -144,7 +143,7 @@ The application uses **API-direct scraping**: direct HTTP calls to the TCAD back
    - **Step 1: get-token** — Fetch auth token from token worker, cache in KV
    - **Step 2: fetch-properties** — Paginated TCAD API calls (1000/page, max 100 pages)
    - **Step 3: deduplicate** — Remove duplicate propertyIds
-   - **Step 4: upsert-properties** — Bulk upsert to PostgreSQL via Hyperdrive (chunks of 500)
+   - **Step 4: upsert-properties** — Prisma upsert to D1 via `$transaction` (chunks of 500)
    - **Step 5: update-analytics** — Update ScrapeJob + SearchTermAnalytics records
 
 3. **Batch Generation** (CLI scripts, run locally)
@@ -208,41 +207,42 @@ tcad-scraper/
 │   │   ├── src/
 │   │   │   ├── index.ts        # Hono app + queue consumer + crons + Sentry
 │   │   │   ├── bindings.d.ts   # Worker env type definitions
-│   │   │   ├── db.ts           # Prisma + Hyperdrive
+│   │   │   ├── db.ts           # Prisma + D1 (PrismaD1 adapter)
 │   │   │   ├── controllers/    # property, api-usage
 │   │   │   ├── middleware/     # auth (API key + JWT via jose)
 │   │   │   ├── workflows/     # ScraperWorkflow (5-step pipeline)
-│   │   │   ├── lib/           # claude.service
-│   │   │   └── utils/         # constants, error-helpers
-│   │   └── wrangler.toml      # Hyperdrive, KV, Queues, Workflows, Crons
+│   │   │   ├── lib/           # claude.service + sanitizeWhereClause
+│   │   │   └── utils/         # constants, epoch-dates, json-array, error-helpers
+│   │   ├── prisma/            # D1/SQLite schema + migrations (canonical)
+│   │   └── wrangler.toml      # D1, KV, Queues, Workflows, Crons
 │   └── tcad-token/             # Cloudflare Worker for token refresh
 ```
 
 ## Database Schema
 
-The application uses PostgreSQL with three main models defined in `server/prisma/schema.prisma`:
+The application uses Cloudflare D1 (SQLite) with five models defined in `workers/tcad-api/prisma/schema.prisma`. Dates are stored as epoch millisecond strings to avoid D1's type coercion on ISO 8601 TEXT values. Arrays are JSON-serialized strings.
 
 ### Property Model
 
-Stores scraped property information with automatic timestamps and comprehensive indexing.
+Stores scraped property information with comprehensive indexing.
 
 ```prisma
 model Property {
-  id              String   @id @default(uuid())
-  propertyId      String   @map("property_id")          // TCAD unique identifier
-  name            String                                 // Owner name
-  propType        String   @map("prop_type")            // Property type
-  city            String?                                // City location
-  propertyAddress String   @map("property_address")     // Full address
-  assessedValue   Float?   @map("assessed_value")       // Tax assessed value
-  appraisedValue  Float    @map("appraised_value")      // Appraised value
-  geoId           String?  @map("geo_id")               // Geographic ID
-  description     String?  @db.Text                      // Legal description
-  searchTerm      String?  @map("search_term")          // Discovery search term
-  scrapedAt       DateTime @default(now()) @map("scraped_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  year            Int                                    // Tax year
+  id              String  @id @default(uuid())
+  propertyId      String  @map("property_id")          // TCAD unique identifier
+  name            String                                // Owner name
+  propType        String  @map("prop_type")             // Property type
+  city            String?                               // City location
+  propertyAddress String  @map("property_address")      // Full address
+  assessedValue   Float?  @map("assessed_value")        // Tax assessed value
+  appraisedValue  Float   @map("appraised_value")       // Appraised value
+  geoId           String? @map("geo_id")                // Geographic ID
+  description     String?                               // Legal description
+  searchTerm      String? @map("search_term")           // Discovery search term
+  scrapedAt       String  @default("0") @map("scraped_at")   // Epoch ms string
+  createdAt       String  @default("0") @map("created_at")   // Epoch ms string
+  updatedAt       String  @default("0") @map("updated_at")   // Epoch ms string
+  year            Int                                   // Tax year
 
   @@unique([propertyId, year])
   @@index([searchTerm, scrapedAt])
@@ -261,16 +261,16 @@ Tracks all scraping operations for monitoring and analytics.
 
 ```prisma
 model ScrapeJob {
-  id              String    @id @default(uuid())
-  searchTerm      String    @map("search_term")
-  status          String    // pending, processing, completed, failed
-  resultCount     Int?      @map("result_count")
-  totalApiResults Int?      @map("total_api_results")    // Raw TCAD API count (before dedup)
-  updatedCount    Int?      @map("updated_count")        // Properties updated (not new)
-  newPropertyIds  String[]  @map("new_property_ids")     // Property IDs for new inserts
-  error           String?   @db.Text
-  startedAt       DateTime  @default(now()) @map("started_at")
-  completedAt     DateTime? @map("completed_at")
+  id              String  @id @default(uuid())
+  searchTerm      String  @map("search_term")
+  status          String                                // pending, processing, completed, failed
+  resultCount     Int?    @map("result_count")
+  totalApiResults Int?    @map("total_api_results")     // Raw TCAD API count (before dedup)
+  updatedCount    Int?    @map("updated_count")         // Properties updated (not new)
+  newPropertyIds  String  @default("[]") @map("new_property_ids")  // JSON-serialized string[]
+  error           String?
+  startedAt       String  @default("0") @map("started_at")   // Epoch ms string
+  completedAt     String? @map("completed_at")               // Epoch ms string
 
   @@index([status, startedAt])
   @@index([searchTerm])
@@ -284,13 +284,13 @@ Enables automated recurring scrapes with configurable frequency.
 
 ```prisma
 model MonitoredSearch {
-  id         String   @id @default(uuid())
-  searchTerm String   @unique @map("search_term")
-  active     Boolean  @default(true)
-  frequency  String   @default("daily")  // daily, weekly, monthly
-  lastRun    DateTime? @map("last_run")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id         String  @id @default(uuid())
+  searchTerm String  @unique @map("search_term")
+  active     Boolean @default(true)
+  frequency  String  @default("daily")                  // daily, weekly, monthly
+  lastRun    String? @map("last_run")                   // Epoch ms string
+  createdAt  String  @default("0") @map("created_at")   // Epoch ms string
+  updatedAt  String  @default("0") @map("updated_at")   // Epoch ms string
 
   @@map("monitored_searches")
 }
@@ -336,67 +336,37 @@ npm install
 
 ### Database Configuration
 
-The application requires a PostgreSQL database. The connection is configured using the `DATABASE_URL` environment variable.
+The application uses Cloudflare D1 (SQLite). No external database connection needed. D1 is configured in `workers/tcad-api/wrangler.toml`.
 
-**Example:**
-`DATABASE_URL="postgresql://user:password@host:port/database"`
+For local development, `wrangler dev` creates a local SQLite file at `.wrangler/state/v3/d1/`.
 
-You can set this environment variable in a `.env` file in the `server/` directory or by using a secrets management tool like Doppler.
-
-If the `DATABASE_URL` is not set, the application will throw an error and refuse to start.
-
-4. **Set up Doppler (recommended for production):**
+4. **Set up Workers secrets:**
 ```bash
-# Install Doppler CLI
-brew install dopplerhq/cli/doppler  # macOS
-# See doppler-setup.md for other platforms
+cd workers/tcad-api
 
-# Login and setup
-doppler login
-cd server
-doppler setup  # Select project and config
-
-# Set required secrets
-doppler secrets set DATABASE_URL="postgresql://user:password@host:5432/tcad_scraper"
-doppler secrets set REDIS_URL="rediss://user:pass@oregon-keyvalue.render.com:6379"
-doppler secrets set JWT_SECRET="your-secure-random-secret"
-doppler secrets set API_KEY="your-api-key"
-doppler secrets set FRONTEND_URL="http://localhost:5174"
-doppler secrets set ANTHROPIC_API_KEY="sk-ant-api03-xxxxx"  # For Claude AI search
+# Set production secrets
+npx wrangler secret put API_KEY
+npx wrangler secret put JWT_SECRET
+npx wrangler secret put ANTHROPIC_API_KEY
+npx wrangler secret put SENTRY_DSN
+npx wrangler secret put TOKEN_WORKER_URL
+npx wrangler secret put TOKEN_WORKER_SECRET
 ```
 
-**Alternative**: Create `.env` file in `server/` directory:
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/tcad_scraper"
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your-secure-random-secret
-API_KEY=your-api-key
-FRONTEND_URL=http://localhost:5174
-FRONTEND_PORT=5174
-ANTHROPIC_API_KEY=sk-ant-api03-xxxxx
-NODE_ENV=development
-PORT=3001
-HOST=localhost
-LOG_LEVEL=info
+5. **Initialize local D1 database:**
+```bash
+cd workers/tcad-api
+npx prisma generate
+npx wrangler d1 execute tcad-db --local --file prisma/migrations/0001_init.sql
 ```
 
-5. **Initialize database:**
+6. **Start the Workers API (local dev):**
 ```bash
-cd server
-doppler run -- npx prisma db push
-# Or without Doppler:
-npx prisma db push
-```
-
-7. **Start the Express API server:**
-```bash
-cd server
-doppler run -- npm run dev
-# Or without Doppler:
+cd workers/tcad-api
 npm run dev
 ```
 
-8. **Start the React frontend** (separate terminal):
+7. **Start the React frontend** (separate terminal):
 ```bash
 # From project root
 npm run dev
@@ -405,10 +375,8 @@ npm run dev
 ### Access Points
 
 - **Frontend UI**: http://localhost:5174
-- **Backend API**: http://localhost:3001/api
-- **Health Check**: http://localhost:3001/health
-- **Bull Dashboard**: http://localhost:3001/admin/queues
-- **Prisma Studio**: Run `npx prisma studio` from server/ (opens on port 5555)
+- **Workers API (local)**: http://localhost:8787
+- **Health Check**: http://localhost:8787/health
 
 ## API Endpoints
 
@@ -611,7 +579,7 @@ npm run prisma:studio              # Open Prisma Studio
 
 ## Docker Services (Optional)
 
-Docker is **not required** for development. PostgreSQL is on Render (accessed via Hyperdrive in production, Doppler in local dev). Redis is no longer needed (replaced by KV).
+Docker is **not required** for development. D1 runs locally via `wrangler dev` (SQLite file). No external database or Redis needed.
 
 ## Deployment
 
@@ -646,69 +614,22 @@ npx wrangler deploy
 - **Live Logs**: `wrangler tail` (from `workers/tcad-api/`)
 - **Sentry**: Error tracking via `@sentry/cloudflare`
 
-### Database Queries
+### Database Queries (D1)
 
-**Check property count (via Prisma):**
 ```bash
-# From server/ directory (requires DATABASE_URL via Doppler or .env)
-cd server
-doppler run -- npx tsx --eval "
-import { PrismaClient } from '@prisma/client';
-const p = new PrismaClient();
-p.property.count({ where: { year: 2025 } })
-  .then(c => { console.log('2025 properties:', c); return p.\$disconnect(); })
-  .then(() => process.exit(0));
-"
-```
+cd workers/tcad-api
 
-**Check property count (via psql):**
-```bash
-psql $DATABASE_URL -c "SELECT year, COUNT(*) FROM properties GROUP BY year ORDER BY year;"
-```
+# Property count
+npx wrangler d1 execute tcad-db --remote --command "SELECT year, COUNT(*) FROM properties GROUP BY year ORDER BY year"
 
-**Top search terms by effectiveness (from `search_term_analytics` table):**
-```bash
-cd server
-doppler run -- npx tsx --eval "
-import { PrismaClient } from '@prisma/client';
-const p = new PrismaClient();
-p.\$queryRaw\`
-  SELECT search_term, total_results, total_searches, successful_searches,
-         avg_results_per_search, max_results, efficiency, success_rate
-  FROM search_term_analytics
-  WHERE last_searched >= '2025-01-01' AND total_results > 0
-  ORDER BY total_results DESC
-  LIMIT 50
-\`.then(r => { console.table(r); return p.\$disconnect(); })
-  .then(() => process.exit(0));
-"
-```
+# Top search terms
+npx wrangler d1 execute tcad-db --remote --command "SELECT search_term, total_results, total_searches, success_rate FROM search_term_analytics WHERE total_results > 0 ORDER BY total_results DESC LIMIT 50"
 
-**Enqueue top search terms for re-scraping:**
-```bash
-# Generate term list and pipe into enqueue script (from repo root)
-# Note: enqueue-terms.ts filters out terms < 4 chars
-echo "Pflugerville
-John
-Mary
-James" | doppler run -- npx tsx scripts/enqueue-terms.ts
-```
+# Recent scrape jobs
+npx wrangler d1 execute tcad-db --remote --command "SELECT search_term, status, result_count, started_at, completed_at FROM scrape_jobs ORDER BY started_at DESC LIMIT 20"
 
-**View recent scrape jobs:**
-```sql
-SELECT search_term, status, result_count, started_at, completed_at
-FROM scrape_jobs
-ORDER BY started_at DESC
-LIMIT 20;
-```
-
-**Property distribution by city:**
-```sql
-SELECT city, COUNT(*) as count
-FROM properties
-WHERE city IS NOT NULL
-GROUP BY city
-ORDER BY count DESC;
+# Property distribution by city
+npx wrangler d1 execute tcad-db --remote --command "SELECT city, COUNT(*) as count FROM properties WHERE city IS NOT NULL GROUP BY city ORDER BY count DESC"
 ```
 
 ## Analytics
@@ -832,33 +753,26 @@ npx wrangler queues list
 curl https://api.alephatx.info/health
 ```
 
-### Database Issues
+### Database Issues (D1)
 
 **Connection errors:**
 ```bash
-# Test database connection
-psql $DATABASE_URL -c "SELECT 1;"
+cd workers/tcad-api
 
-# Check Prisma schema sync
-cd server
-npx prisma db push
+# Test D1 connection
+npx wrangler d1 execute tcad-db --remote --command "SELECT 1"
 
 # Regenerate Prisma client
 npx prisma generate
+
+# Check tables exist
+npx wrangler d1 execute tcad-db --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
 ```
 
-**Slow queries:**
-```bash
-# Check indexes
-psql $DATABASE_URL -c "
-SELECT tablename, indexname, indexdef
-FROM pg_indexes
-WHERE tablename = 'properties';
-"
-
-# Analyze table
-psql $DATABASE_URL -c "ANALYZE properties;"
-```
+**D1-specific issues:**
+- Dates stored as ISO 8601 instead of epoch ms: re-scrape affected records
+- `SQLITE_CONSTRAINT` errors: check for missing required fields in create calls
+- D1 `overloaded` errors: write contention under concurrent scrape load (200-500ms latency, can spike to 3s)
 
 ### Queue Issues
 
@@ -934,13 +848,11 @@ Some TCAD search terms return malformed/truncated JSON responses regardless of s
 See [docs/CHANGELOG.md](docs/CHANGELOG.md) for complete version history.
 
 **Latest** (March 30, 2026):
+- **D1 migration complete** — Database migrated from PostgreSQL (Render/Hyperdrive) to Cloudflare D1 (SQLite at edge). Dates stored as epoch ms strings to avoid D1 type coercion. Bulk upserts via Prisma `$transaction`. See [changelog/2026-03-30.md](docs/changelog/2026-03-30.md)
 - **Legacy stack cleanup** — Removed BullMQ queues, Redis token service, Prometheus/Grafana monitoring, K6 load tests, CLI tools, and render.yaml (~9,800 lines deleted)
-- **KV offload for large scrape results** — Workflow step outputs capped at 1MiB; large terms (e.g. "Trust" with 60K+ results) now stored in RESPONSE_CACHE KV with 1hr TTL
-- **OpenAI fallback for natural language search** — claude.service.ts uses Anthropic primary with OpenAI fallback; Zod runtime validation on AI responses
-- **Integration test safety** — Prevented integration tests from wiping production database
-- **Search Term Efficiency Optimization** — Analyzed 313 unique search terms across 365K properties with zero overlap among top 30 terms. Tier 1-4 strategy: Tier 1 (15 terms) = 19.6% coverage, Tier 1+2 (50 terms) = 45.1%, Tier 1+2+3 (200 terms) = 92.1%
-- **E2E Tests** — All 126 Playwright tests passing (API response shape + route mocking fixes)
-- **Cloudflare Workers migration complete** (Phases 0-5): API, queue processing, caching, and scheduled tasks all running on Workers
+- **KV offload for large scrape results** — Workflow step outputs capped at 1MiB; large terms stored in RESPONSE_CACHE KV with 1hr TTL
+- **Search Term Efficiency Optimization** — Tier 1-4 strategy: Tier 1 (15 terms) = 19.6% coverage, Tier 1+2 (50 terms) = 45.1%, Tier 1+2+3 (200 terms) = 92.1%
+- **Full Cloudflare stack** — All infrastructure on Cloudflare: Workers, D1, KV, Queues, Workflows, Crons
 - 680+ unit tests, 126 E2E tests passing
 
 ## Documentation
@@ -964,6 +876,7 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[SEARCH_TERM_STRATEGY.md](SEARCH_TERM_STRATEGY.md)** - Tier-based search term efficiency strategy with API call estimates
 - **[SEARCH_TERM_ANALYSIS.md](SEARCH_TERM_ANALYSIS.md)** - Full ranked analysis of all 313 search terms with efficiency metrics
 - **[CLOUDFLARE_MIGRATION_PLAN.md](docs/CLOUDFLARE_MIGRATION_PLAN.md)** - Workers migration plan (Phases 0-5, all complete)
+- **[changelog/2026-03-30.md](docs/changelog/2026-03-30.md)** - D1 migration details, decisions, and SQL translation reference
 - **[TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md)** - Token management and auto-refresh
 - **[doppler-setup.md](docs/doppler-setup.md)** - Doppler CLI installation and configuration
 - **[CI-CD.md](docs/CI-CD.md)** - CI/CD pipeline configuration
