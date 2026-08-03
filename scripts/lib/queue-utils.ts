@@ -1,26 +1,28 @@
-/** Shared queue helpers for backfill scripts. */
+/** Shared queue helpers for backfill scripts. Uses Cloudflare Workers API for enqueueing. */
 
-import { config } from "../../server/src/config";
-import { scraperQueue } from "../../server/src/queues/scraper.queue";
 import { getErrorMessage } from "../../server/src/utils/error-helpers";
 
 export const POLL_INTERVAL_MS = 15_000;
 export const BATCH_SIZE = 20;
 
-// No timeout: polls until queue is fully drained. A permanently stalled BullMQ job
-// will block indefinitely. Acceptable for CLI use — Ctrl+C to abort if needed.
+const apiKeyFromEnv = process.env.TCAD_API_KEY;
+const API_URL = "https://api.alephatx.info/api/properties/scrape";
+
+if (!apiKeyFromEnv) {
+	console.error("ERROR: TCAD_API_KEY not set");
+	process.exit(1);
+}
+const API_KEY: string = apiKeyFromEnv;
+
+// Placeholder: Cloudflare Queues don't expose queue depth directly via public API.
+// For now, just log and exit. In production, monitor via Cloudflare dashboard.
 export async function waitForQueueDrain(): Promise<void> {
-	let waiting = await scraperQueue.getWaitingCount();
-	let active = await scraperQueue.getActiveCount();
-	while (waiting > 0 || active > 0) {
-		process.stdout.write(
-			`\r  Queue: ${active} active, ${waiting} waiting...   `,
-		);
-		await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-		waiting = await scraperQueue.getWaitingCount();
-		active = await scraperQueue.getActiveCount();
-	}
-	process.stdout.write("\r  Queue drained.                          \n");
+	console.log(
+		"\n  Note: Queue depth monitoring requires Cloudflare API access.",
+	);
+	console.log(
+		"  Check status via: cd workers/tcad-api && npx wrangler queues list",
+	);
 }
 
 export interface EnqueueLogger {
@@ -44,29 +46,28 @@ export interface BatchEnqueueConfig {
 
 export async function enqueueBatch(
 	terms: string[],
-	userId: string,
+	_userId: string,
 	logger: EnqueueLogger = console,
-	priority?: number,
 ): Promise<number> {
-	const { jobName, defaultJobOptions } = config.queue;
 	let enqueued = 0;
 	for (const term of terms) {
 		try {
-			await scraperQueue.add(
-				jobName,
-				{ searchTerm: term, userId, scheduled: true },
-				{
-					attempts: defaultJobOptions.attempts,
-					backoff: {
-						type: "exponential",
-						delay: defaultJobOptions.backoffDelay,
-					},
-					removeOnComplete: defaultJobOptions.removeOnComplete,
-					removeOnFail: defaultJobOptions.removeOnFail,
-					...(priority !== undefined && { priority }),
+			const res = await fetch(API_URL, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"x-api-key": API_KEY,
 				},
-			);
-			enqueued++;
+				body: JSON.stringify({ searchTerm: term }),
+			});
+
+			if (res.ok) {
+				enqueued++;
+			} else {
+				logger.error(
+					`  Failed to enqueue "${term}": HTTP ${res.status} ${res.statusText}`,
+				);
+			}
 		} catch (error) {
 			logger.error(`  Failed to enqueue "${term}": ${getErrorMessage(error)}`);
 		}
