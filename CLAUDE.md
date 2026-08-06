@@ -51,7 +51,7 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `config/batch-configs.ts` - 10 batch type definitions
 - `lib/` - queue-utils (`enqueueBatch()` via Workers API), backfill-runner, fallback-terms, searched-terms, backfill-utils, search-term-deduplicator, error-helpers, logger
 - See [scripts/README.md](scripts/README.md) for full reference
-- **Search Term Strategy**: See [SEARCH_TERM_STRATEGY.md](SEARCH_TERM_STRATEGY.md) for Tier 1-4 efficiency breakdown and [SEARCH_TERM_ANALYSIS.md](SEARCH_TERM_ANALYSIS.md) for full ranked term list
+- **Search Term Strategy**: See [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md) (canonical) for Tier 1-4 strategy + operations, and [docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json) for per-term yield data
 
 ### Infrastructure
 - **API**: Cloudflare Workers at `api.alephatx.info` (route: `api.alephatx.info/*`)
@@ -137,7 +137,7 @@ curl -X POST "https://api.alephatx.info/api/properties/scrape" \
 
 # Search Term Optimization Strategy (March 2026)
 # Tier 1 (15 terms) = 19.6% coverage, Tier 1+2 (50 terms) = 45.1%, Tier 1+2+3 (200 terms) = 92.1%
-# See SEARCH_TERM_STRATEGY.md for full strategy and efficiency metrics
+# See docs/SEARCH_TERMS.md for full strategy and efficiency metrics
 
 # Backfill Discovery
 doppler run -- npx tsx scripts/generate-next-200-terms.ts          # Dry run

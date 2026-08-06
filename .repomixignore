@@ -18,3 +18,7 @@ playwright-report/
 **/worker-configuration.d.ts
 docs/repomix/
 .condense/
+
+# Local Claude settings and duplicated agent manifests
+**/.claude/settings.local.json
+**/typescript-type-validator.md

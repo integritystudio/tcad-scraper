@@ -1,6 +1,6 @@
 /**
  * Enqueue the first 200 highest-yield search terms to the Workers scrape API.
- * Terms ordered by historical property yield from SEARCH_TERM_ANALYSIS.md.
+ * Terms ordered by historical property yield from docs/SEARCH_TERMS.md.
  *
  * Usage: doppler run -- npx tsx scripts/run-first-200.ts
  */
@@ -17,7 +17,7 @@ if (!apiKeyFromEnv) {
 }
 const API_KEY: string = apiKeyFromEnv;
 
-// Top 200 terms by property yield (Tiers 1-3 from SEARCH_TERM_ANALYSIS.md)
+// Top 200 terms by property yield (Tiers 1-3 from docs/2025_BACKFILL_OPTIMIZATION.json)
 const TERMS: readonly string[] = [
 	// Tier 1: ranks 1-15 (19.6% coverage)
 	"David",

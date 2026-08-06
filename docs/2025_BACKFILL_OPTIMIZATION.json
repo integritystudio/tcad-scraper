@@ -599,11 +599,11 @@
 	},
 
 	"actionable_enqueue_commands": {
-		"description": "Ready-to-run commands for each tier",
-		"tier_1_immediate": "TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-terms.ts David Robert LIVING Home Fami James steph Paul eliza Rich Mark estat Christopher Martin Thomas",
-		"tier_2_weekly": "TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-terms.ts holdi Sand Maria Carl Rock Daniel Mary Wood marie Vista TEXAS Ridge Scott Angel CITY Green White VILLA JOSE West Michelle Matthew Susan Manor Assoc Pass Johnson Linda Jeffrey STATE Andrew laure Joseph Ranch Bend Garcia Kevin Springs Edward Oaks Properties Tran Ryan Bell Carol Lopez Lynn Nguyen Lamar",
-		"tier_3_monthly": "TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-batch.ts next-200-gen",
-		"alternative_script": "For automated generation: TCAD_YEAR=2025 doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue"
+		"description": "Ready-to-run commands for each tier. scripts/enqueue-terms.ts and scripts/enqueue-batch.ts were deleted with the BullMQ removal; enqueue via the Workers API (POST https://api.alephatx.info/api/properties/scrape with x-api-key) — see docs/SEARCH_TERMS.md for the curl loop.",
+		"tier_1_immediate": "for term in David Robert LIVING Home Fami James steph Paul eliza Rich Mark estat Christopher Martin Thomas; do curl -s -X POST https://api.alephatx.info/api/properties/scrape -H 'Content-Type: application/json' -H \"x-api-key: $TCAD_API_KEY\" -d \"{\\\"searchTerm\\\": \\\"$term\\\"}\"; sleep 1; done",
+		"tier_2_weekly": "for term in holdi Sand Maria Carl Rock Daniel Mary Wood marie Vista TEXAS Ridge Scott Angel CITY Green White VILLA JOSE West Michelle Matthew Susan Manor Assoc Pass Johnson Linda Jeffrey STATE Andrew laure Joseph Ranch Bend Garcia Kevin Springs Edward Oaks Properties Tran Ryan Bell Carol Lopez Lynn Nguyen Lamar; do curl -s -X POST https://api.alephatx.info/api/properties/scrape -H 'Content-Type: application/json' -H \"x-api-key: $TCAD_API_KEY\" -d \"{\\\"searchTerm\\\": \\\"$term\\\"}\"; sleep 1; done",
+		"tier_3_monthly": "TCAD_YEAR=2025 doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue",
+		"alternative_script": "Owner-name mining: TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 3"
 	},
 
 	"validation_checks": {
@@ -692,7 +692,7 @@
 	},
 
 	"csv_export_for_bulk_ops": {
-		"description": "Terms ready for bulk enqueue via scripts/enqueue-batch.ts",
+		"description": "Terms ready for bulk enqueue via the Workers API scrape endpoint",
 		"format": "CSV for import into batch-config system",
 		"tier_1_csv": "David,Robert,LIVING,Home,Fami,James,steph,Paul,eliza,Rich,Mark,estat,Christopher,Martin,Thomas",
 		"tier_2_csv": "holdi,Sand,Maria,Carl,Rock,Daniel,Mary,Wood,marie,Vista,TEXAS,Ridge,Scott,Angel,CITY,Green,White,VILLA,JOSE,West,Michelle,Matthew,Susan,Manor,Assoc,Pass,Johnson,Linda,Jeffrey,STATE,Andrew,laure,Joseph,Ranch,Bend,Garcia,Kevin,Springs,Edward,Oaks,Properties,Tran,Ryan,Bell,Carol,Lopez,Lynn,Nguyen,Lamar"

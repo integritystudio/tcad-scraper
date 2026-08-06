@@ -1,6 +1,6 @@
 # Analytics Implementation Guide
 
-**Last Updated:** 2026-03-09
+**Last Updated:** 2026-08-06
 **Status:** ✅ Production Ready
 **Tracking IDs:**
 - Google Analytics 4: `G-J7TL7PQH7S`
@@ -1065,7 +1065,7 @@ All attribution clicks emit `outbound_click` events:
 
 ### GTM Configuration
 
-Google Tag Manager (`G-ECH51H8L2Z`) provides additional tracking:
+Google Tag Manager (`GTM-NR4GGH5K`) provides additional tracking:
 
 | GTM Event | Trigger |
 |-----------|---------|

@@ -829,11 +829,11 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[ANALYTICS.md](docs/ANALYTICS.md)** - Analytics implementation guide (GA4 + Meta Pixel)
 
 ### Technical Documentation
-- **[SEARCH_TERM_STRATEGY.md](SEARCH_TERM_STRATEGY.md)** - Tier-based search term efficiency strategy with API call estimates
-- **[SEARCH_TERM_ANALYSIS.md](SEARCH_TERM_ANALYSIS.md)** - Full ranked analysis of all 313 search terms with efficiency metrics
+- **[docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md)** - Canonical search-term strategy: tiers, backfill operations, metrics
+- **[docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json)** - Per-term yield data and tier arrays
 
 ### Archived Documentation
-Pre-migration docs (Express/BullMQ/Redis/PostgreSQL era) now live in **[docs/archive/](docs/archive/)**: SETUP, TESTING, API, SECURITY, MONITORING, CI-CD, TOKEN_MANAGEMENT, doppler-setup, BRANCH-PROTECTION, TEST-MOCK-PATHS, and the two Cloudflare planning docs.
+Pre-migration docs (Express/BullMQ/Redis/PostgreSQL era) were deleted 2026-08-06; they remain available in git history (formerly `docs/archive/`).
 
 ### Scripts Documentation
 - **[scripts/README.md](scripts/README.md)** - Full scripts inventory and usage
