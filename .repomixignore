@@ -1,4 +1,19 @@
-# Add patterns to ignore here, one per line
-# Example:
-# *.log
-# tmp/
+# Build artifacts and generated files (repomix also respects .gitignore)
+dist/
+**/dist/
+build/
+out/
+.next/
+coverage/
+**/coverage/
+.wrangler/
+**/.wrangler/
+*.tsbuildinfo
+*.min.js
+*.map
+package-lock.json
+**/package-lock.json
+e2e/test-results/
+playwright-report/
+**/worker-configuration.d.ts
+docs/repomix/
