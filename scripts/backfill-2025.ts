@@ -85,7 +85,7 @@ async function getSeedExpansions(allSearched: Set<string>): Promise<string[]> {
 
 // Static high-yield terms (full names/neighborhoods, 5-12 chars, avoid API truncation)
 const STATIC_TERMS = [
-	// First names (unsearched from memory/search-term-candidates.md + generate-search-terms.ts)
+	// First names
 	"Michael",
 	"Christopher",
 	"Paul",

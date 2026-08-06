@@ -28,9 +28,8 @@ export async function runBackfill(cfg: BackfillConfig): Promise<void> {
 		: 2025;
 	if (tcadYear !== 2025) {
 		console.error(`ERROR: TCAD_YEAR is ${tcadYear}, must be 2025.`);
-		console.error(
-			`Run with: TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts`,
-		);
+		const script = process.argv[1] ?? "<script>";
+		console.error(`Run with: TCAD_YEAR=2025 doppler run -- npx tsx ${script}`);
 		process.exit(1);
 	}
 

@@ -213,7 +213,7 @@ export async function analyzeSearchTerms(): Promise<void> {
 	}
 	if (recentTerms.length === 0) {
 		console.log(
-			"   ⚠️ No recent successful scrapes - restart continuous scraper",
+			"   ⚠️ No recent successful scrapes - check wrangler tail, then re-enqueue via generate-next-200-terms.ts --enqueue",
 		);
 	}
 	if (uniqueTerms < 1000) {

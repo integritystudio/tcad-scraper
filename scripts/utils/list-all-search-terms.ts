@@ -1,6 +1,6 @@
 /**
  * Deduplicated inventory of all non-numeric search terms across
- * batch-configs.ts and continuous-batch-scraper.ts.
+ * config/batch-configs.ts and lib/fallback-terms.ts.
  *
  * Importable: `import { getAllSearchTerms } from "./utils/list-all-search-terms"`
  * CLI:        `npx tsx scripts/utils/list-all-search-terms.ts`
@@ -23,7 +23,7 @@ export interface SearchTermInventory {
 	all: string[];
 	/** Terms only in batch-configs.ts */
 	batchOnly: string[];
-	/** Terms only in continuous-batch-scraper.ts FALLBACK_TERMS */
+	/** Terms only in lib/fallback-terms.ts FALLBACK_TERMS */
 	fallbackOnly: string[];
 	/** Terms present in both files */
 	duplicated: string[];
