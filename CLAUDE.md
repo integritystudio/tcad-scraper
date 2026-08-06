@@ -62,7 +62,7 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 ### Infrastructure
 - **API**: Cloudflare Workers at `api.alephatx.info` (route: `api.alephatx.info/*`)
 - **Frontend**: GitHub Pages at `alephatx.info`
-- **Database**: Cloudflare D1 `tcad-db` (`451d4356-10d1-4c1d-adf9-4d4297636343`)
+- **Database**: Cloudflare D1 `tcad-db` (`451d4356-10d1-4c1d-adf9-4d4297636343`); direct queries via `CLOUDFLARE_D1_TOKEN` (Doppler) — see Database commands
 - **Cache**: Cloudflare KV (TOKEN_CACHE, RESPONSE_CACHE)
 - **Queue**: Cloudflare Queues (`tcad-scraper-jobs`, DLQ: `tcad-scraper-dlq`)
 - **Crons**: Token refresh (4min), stale job cleanup (hourly), search term optimization (3am), monitored searches (6hr)
@@ -114,6 +114,16 @@ npx wrangler secret put <NAME>                     # Set secret
 cd workers/tcad-api && npx prisma generate
 npx wrangler d1 execute tcad-db --remote --command "SELECT COUNT(*) FROM properties"
 npx wrangler d1 execute tcad-db --local --file prisma/migrations/0001_init.sql  # seed local
+
+# D1 access when wrangler OAuth is expired — use CLOUDFLARE_D1_TOKEN (Doppler, dev + prd):
+# token "tcad-d1-query" has D1 Read/Write/Metadata Read; the deploy CLOUDFLARE_API_TOKEN can NOT query D1 (7403)
+doppler run -p integrity-studio -c prd -- sh -c \
+  'CLOUDFLARE_API_TOKEN=$CLOUDFLARE_D1_TOKEN npx wrangler d1 execute tcad-db --remote --command "SELECT 1"'
+# or via REST:
+doppler run -p integrity-studio -c prd -- sh -c 'curl -s -X POST \
+  "https://api.cloudflare.com/client/v4/accounts/b3868dd0fd5c0faa7d98aa325a9c2377/d1/database/451d4356-10d1-4c1d-adf9-4d4297636343/query" \
+  -H "Authorization: Bearer $CLOUDFLARE_D1_TOKEN" -H "Content-Type: application/json" \
+  -d "{\"sql\": \"SELECT COUNT(*) FROM properties\"}"'
 
 # Testing
 npm test                     # Unit tests (680+ tests, <5 sec)

@@ -9,7 +9,7 @@ All scripts run from the repo root with `doppler run -- npx tsx scripts/<script>
 Generates build-time constants from the database for use in the frontend.
 
 Instead of making API calls at runtime to fetch the property count, this script:
-1. Connects to the production database at build time
+1. Queries the production D1 database via the Cloudflare REST API (`CLOUDFLARE_D1_TOKEN` from Doppler)
 2. Fetches the current property count
 3. Generates a TypeScript constants file (`src/constants/build.ts`)
 
