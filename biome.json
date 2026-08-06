@@ -14,7 +14,7 @@
 			"!!scripts/lib/*.js",
 			"!!server/src/**/*.js",
 			"!!utils/*.js",
-			"!!.claude/**",
+			"!!.claude",
 			"!!workers/tcad-api/worker-configuration.d.ts"
 		]
 	},
