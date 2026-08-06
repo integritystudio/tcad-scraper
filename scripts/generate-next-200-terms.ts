@@ -9,10 +9,9 @@
  *  5. 4-char prefix gap fill (consonant-vowel patterns not yet searched)
  *
  * Deduplication:
- *  - Uses SearchTermDeduplicator (superset, business suffix, multi-word checks)
  *  - Skips terms where a shorter prefix (4+ chars) was already searched
  *  - Skips multi-word terms where ANY word was already searched
- *  - Loads DB blacklist (zero-yield after 3+ searches)
+ *  - Skips DB-blacklisted terms (zero-yield after 3+ searches)
  *
  * Usage:
  *   doppler run -- npx tsx scripts/generate-next-200-terms.ts
@@ -20,11 +19,14 @@
  */
 
 import { MIN_TERM_LENGTH } from "../utils/constants";
+import { isSupersetOfAny } from "./lib/backfill-utils";
 import { generateCvcvBases } from "./lib/cvcv";
-import { SearchTermDeduplicator } from "./lib/search-term-deduplicator";
 import { prisma } from "./lib/d1-prisma";
 import { enqueueBatch } from "./lib/queue-utils";
-import { getSearchedTermSets } from "./lib/searched-terms";
+import {
+	getBlacklistedTermSet,
+	getSearchedTermSets,
+} from "./lib/searched-terms";
 
 const TARGET_TERM_COUNT = 500;
 
@@ -447,20 +449,9 @@ export async function main(enqueueMode = false) {
 	// 1. Load all already-searched terms (analytics + property searchTerm + recent jobs)
 	const { allSearched: searched } = await getSearchedTermSets();
 
-	// 2. Load blacklisted terms
-	const blacklisted = await prisma.searchTermAnalytics.findMany({
-		where: { successRate: 0, totalSearches: { gte: 3 } },
-		select: { searchTerm: true },
-	});
-	const blacklistSet = new Set(
-		blacklisted.map((b) => b.searchTerm.toLowerCase()),
-	);
-
-	// 3. Initialize deduplicator seeded with all searched terms
-	const deduplicator = new SearchTermDeduplicator(new Set(searched));
-	for (const term of blacklistSet) {
-		deduplicator.forceBlacklist(term);
-	}
+	// 2. Load blacklisted terms (zero-yield after repeated searches — hard
+	// skip; the failed-only carve-out excludes them from allSearched)
+	const blacklistSet = await getBlacklistedTermSet();
 
 	console.error(
 		`Already searched: ${searched.size} | Blacklisted: ${blacklistSet.size}`,
@@ -470,24 +461,9 @@ export async function main(enqueueMode = false) {
 
 	const selected: string[] = [];
 	const selectedSet = new Set<string>();
-	let dedupSkips = 0;
+	let blacklistSkips = 0;
 	let prefixSkips = 0;
 	let multiWordSkips = 0;
-
-	/**
-	 * Check if a candidate term has a shorter prefix (MIN_TERM_LENGTH+ chars)
-	 * already in searched. TCAD search is prefix-based, so "Lago" results are a
-	 * subset of any search that already matched the same owner names via a
-	 * shorter prefix.
-	 */
-	const hasSearchedPrefix = (term: string): boolean => {
-		const lower = term.toLowerCase();
-		// Check all prefixes from MIN_TERM_LENGTH up to term.length - 1
-		for (let len = MIN_TERM_LENGTH; len < lower.length; len++) {
-			if (searched.has(lower.slice(0, len))) return true;
-		}
-		return false;
-	};
 
 	/**
 	 * Check if any word in a multi-word term was already searched individually.
@@ -504,9 +480,16 @@ export async function main(enqueueMode = false) {
 	const addNewTerm = (term: string): boolean => {
 		if (selected.length >= TARGET_TERM_COUNT) return false;
 		if (!term || term.length < MIN_TERM_LENGTH) return false;
-		if (BLOCKED_TERMS.has(term.toLowerCase())) return false;
-		if (searched.has(term.toLowerCase())) return false;
-		if (selectedSet.has(term.toLowerCase())) return false;
+		const lower = term.toLowerCase();
+		if (BLOCKED_TERMS.has(lower)) return false;
+		if (searched.has(lower)) return false;
+		if (selectedSet.has(lower)) return false;
+
+		// Zero-yield after repeated searches — hard skip
+		if (blacklistSet.has(lower)) {
+			blacklistSkips++;
+			return false;
+		}
 
 		// Multi-word: skip if any word was already searched
 		if (hasSearchedWord(term)) {
@@ -514,21 +497,16 @@ export async function main(enqueueMode = false) {
 			return false;
 		}
 
-		// Use deduplicator for superset / business suffix / blacklist checks
-		if (deduplicator.shouldSkipTerm(term)) {
-			dedupSkips++;
-			return false;
-		}
-
-		// Skip if a shorter prefix of this term was already searched
-		if (hasSearchedPrefix(term)) {
+		// Skip if a shorter prefix was already searched — TCAD search is
+		// prefix-based, so "Lago" results are a subset of any search that
+		// already matched the same owners via a shorter prefix
+		if (isSupersetOfAny(lower, searched)) {
 			prefixSkips++;
 			return false;
 		}
 
 		selected.push(term);
-		selectedSet.add(term.toLowerCase());
-		deduplicator.markTermAsUsed(term);
+		selectedSet.add(lower);
 		return true;
 	};
 
@@ -622,7 +600,7 @@ export async function main(enqueueMode = false) {
 
 	// ── Output ───────────────────────────────────────────────────────
 	console.error(
-		`\nSkipped: ${dedupSkips} dedup, ${prefixSkips} prefix overlap, ${multiWordSkips} multi-word overlap`,
+		`\nSkipped: ${blacklistSkips} blacklisted, ${prefixSkips} prefix overlap, ${multiWordSkips} multi-word overlap`,
 	);
 	console.error(`Total: ${selected.length} terms`);
 

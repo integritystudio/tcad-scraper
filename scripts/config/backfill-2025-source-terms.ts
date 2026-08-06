@@ -8,7 +8,7 @@
  *   - Prioritized by expected Travis County property yield
  *
  * Runtime dedup: backfill scripts apply getSearchedTermSets() and
- * isSupersetOfSuccessful() to skip already-searched or redundant terms.
+ * isSupersetOfAny() to skip already-searched or redundant terms.
  *
  * Usage: consumed by batch-configs.ts as the "backfill-2025-source" batch type
  * (enqueued via scripts/lib/queue-utils.ts::enqueueBatch()), or import

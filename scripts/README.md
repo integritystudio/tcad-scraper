@@ -63,10 +63,9 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `lib/backfill-runner.ts` | Shared runner for the backfill scripts (enqueue → drain → count gained). |
 | `lib/mine-2026-terms.ts` | Shared term-mining queries over 2026-only properties (owner first-words, streets, descriptions, two-word names, entity phrases). |
 | `lib/fallback-terms.ts` | Curated fallback search term pool (`FALLBACK_TERMS`). |
-| `lib/searched-terms.ts` | Searched-term lookups (`getSearchedTermSets()`). |
-| `lib/backfill-utils.ts` | Backfill helpers. |
+| `lib/searched-terms.ts` | Searched-term lookups (`getSearchedTermSets()`, `getBlacklistedTermSet()`). |
+| `lib/backfill-utils.ts` | Backfill helpers: `get2025Count()`, prefix dedup filters (`isSupersetOfAny()`, `buildPrefixIndex()`). |
 | `lib/d1-prisma.ts` | Prisma client for scripts, backed by production D1 over HTTP (epoch-ms date strings, SQLite dialect). |
-| `lib/search-term-deduplicator.ts` | Containment checking to skip redundant terms (exact dupes, supersets, too-common). |
 | `lib/error-helpers.ts` | `getErrorMessage()` for `unknown` errors. |
 | `lib/logger.ts` | Console shim for CLI scripts. |
 

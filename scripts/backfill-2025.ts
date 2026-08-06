@@ -16,7 +16,7 @@ import {
 	SEED_MIN_SUCCESS_RATE,
 } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
-import { isSupersetOfSuccessful } from "./lib/backfill-utils";
+import { isSupersetOfAny } from "./lib/backfill-utils";
 import { prisma } from "./lib/d1-prisma";
 import { getSearchedTermSets } from "./lib/searched-terms";
 
@@ -419,7 +419,7 @@ async function getTermsToBackfill(): Promise<string[]> {
 		const lower = term.toLowerCase();
 		if (searched2025.has(lower) || seen.has(lower)) return;
 		if (term.length < MIN_TERM_LENGTH) return;
-		if (isSupersetOfSuccessful(lower, successful)) return;
+		if (isSupersetOfAny(lower, successful)) return;
 		seen.add(lower);
 		result.push(term);
 	}

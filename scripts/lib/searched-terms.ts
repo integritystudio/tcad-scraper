@@ -63,3 +63,20 @@ export async function getSearchedTermSets(): Promise<SearchedTermSets> {
 
 	return { allSearched, searched2025, successful };
 }
+
+/** Failures before a zero-yield term is treated as a permanent dud. */
+const BLACKLIST_MIN_SEARCHES = 3;
+
+/**
+ * Terms searched BLACKLIST_MIN_SEARCHES+ times with zero success — hard skip.
+ * Complements the failed-only carve-out in getSearchedTermSets(): failed-only
+ * terms are generally retryable, but one that failed this many times is not.
+ * Lower-cased for consistent comparison.
+ */
+export async function getBlacklistedTermSet(): Promise<Set<string>> {
+	const rows = await prisma.searchTermAnalytics.findMany({
+		where: { successRate: 0, totalSearches: { gte: BLACKLIST_MIN_SEARCHES } },
+		select: { searchTerm: true },
+	});
+	return new Set(rows.map((r) => r.searchTerm.toLowerCase()));
+}

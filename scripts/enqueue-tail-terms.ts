@@ -15,7 +15,7 @@
 
 import { MIN_TERM_LENGTH } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
-import { isSupersetOfSuccessful } from "./lib/backfill-utils";
+import { isSupersetOfAny } from "./lib/backfill-utils";
 import { prisma } from "./lib/d1-prisma";
 import { mineOwnerFirstWords, mineStreetNames } from "./lib/mine-2026-terms";
 import { getSearchedTermSets } from "./lib/searched-terms";
@@ -57,7 +57,7 @@ async function getTailTerms(): Promise<string[]> {
 			skippedSearched++;
 			return false;
 		}
-		if (isSupersetOfSuccessful(lower, successful)) {
+		if (isSupersetOfAny(lower, successful)) {
 			skippedSupersets++;
 			return false;
 		}

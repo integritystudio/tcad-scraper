@@ -19,8 +19,10 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { generateCvcvBases } from "./lib/cvcv";
-import { prisma } from "./lib/d1-prisma";
-import { getSearchedTermSets } from "./lib/searched-terms";
+import {
+	getBlacklistedTermSet,
+	getSearchedTermSets,
+} from "./lib/searched-terms";
 
 const OUTPUT_PATH = join(__dirname, "..", "data", "valid-5char-terms.txt");
 
@@ -1157,14 +1159,8 @@ async function main() {
 	// 2. Load already-searched terms from DB
 	const { allSearched: searched } = await getSearchedTermSets();
 
-	// Blacklist
-	const blacklisted = await prisma.searchTermAnalytics.findMany({
-		where: { successRate: 0, totalSearches: { gte: 3 } },
-		select: { searchTerm: true },
-	});
-	const blacklistSet = new Set(
-		blacklisted.map((b) => b.searchTerm.toLowerCase()),
-	);
+	// Blacklist (zero-yield after repeated searches — hard skip)
+	const blacklistSet = await getBlacklistedTermSet();
 
 	console.error(
 		`Already searched: ${searched.size} | Blacklisted: ${blacklistSet.size}`,

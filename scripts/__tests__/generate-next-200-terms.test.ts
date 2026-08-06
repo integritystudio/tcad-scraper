@@ -95,4 +95,18 @@ describe("generate-next-200-terms main()", () => {
 		mockEnqueueBatch.mockImplementation(async (terms: unknown) => terms);
 		await expect(main(true)).resolves.toBeUndefined();
 	});
+
+	it("excludes DB-blacklisted terms from selection regardless of stored casing", async () => {
+		// Regression: the retired SearchTermDeduplicator compared original-case
+		// candidates against a lowercased blacklist, so Title-case candidates
+		// slipped through once the failed-only carve-out (c758fba) removed
+		// blacklisted terms from allSearched.
+		mockBlacklistFindMany.mockResolvedValue([{ searchTerm: "Christine" }]);
+
+		await main(true);
+
+		const [terms] = mockEnqueueBatch.mock.calls[0] as [string[]];
+		expect(terms).not.toContain("Christine");
+		expect(terms).toContain("Theresa"); // non-blacklisted sibling still selected
+	});
 });

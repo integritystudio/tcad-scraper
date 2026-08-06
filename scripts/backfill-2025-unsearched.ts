@@ -11,7 +11,7 @@
 
 import { MIN_TERM_LENGTH } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
-import { isSupersetOfSuccessful } from "./lib/backfill-utils";
+import { isSupersetOfAny } from "./lib/backfill-utils";
 import {
 	mineDescriptionFirstWords,
 	mineEntityPhrases,
@@ -43,7 +43,7 @@ async function getUnsearchedTerms(): Promise<string[]> {
 			skippedSearched++;
 			return false;
 		}
-		if (isSupersetOfSuccessful(lower, successful)) {
+		if (isSupersetOfAny(lower, successful)) {
 			skippedSupersets++;
 			return false;
 		}
