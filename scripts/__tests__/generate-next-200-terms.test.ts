@@ -38,13 +38,6 @@ vi.mock("../lib/queue-utils", () => ({
 	enqueueBatch: (...args: unknown[]) => mockEnqueueBatch(...args),
 }));
 
-const mockQueueClose = vi.fn();
-vi.mock("../../server/src/queues/scraper.queue", () => ({
-	scraperQueue: {
-		close: () => mockQueueClose(),
-	},
-}));
-
 import { main } from "../generate-next-200-terms";
 
 beforeEach(() => {
@@ -63,7 +56,6 @@ describe("generate-next-200-terms main()", () => {
 	it("does NOT call enqueueBatch when enqueueMode is false (default)", async () => {
 		await main(false);
 		expect(mockEnqueueBatch).not.toHaveBeenCalled();
-		expect(mockQueueClose).not.toHaveBeenCalled();
 	});
 
 	it("calls enqueueBatch with selected terms and 'next-200-gen' userId when enqueueMode=true", async () => {
@@ -79,19 +71,6 @@ describe("generate-next-200-terms main()", () => {
 		expect(userId).toBe("next-200-gen");
 		expect(Array.isArray(terms)).toBe(true);
 		expect(terms.length).toBeGreaterThan(0);
-	});
-
-	it("calls scraperQueue.close() after enqueue completes", async () => {
-		mockEnqueueBatch.mockResolvedValue(5);
-
-		await main(true);
-
-		expect(mockQueueClose).toHaveBeenCalledOnce();
-	});
-
-	it("does not call scraperQueue.close() when enqueueMode is false", async () => {
-		await main(false);
-		expect(mockQueueClose).not.toHaveBeenCalled();
 	});
 
 	it("resolves without throwing on success path", async () => {

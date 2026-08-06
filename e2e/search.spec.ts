@@ -44,7 +44,10 @@ test.describe("Search happy path", () => {
 			route.fulfill({
 				status: 200,
 				contentType: "application/json",
-				body: JSON.stringify({ data: [], pagination: { total: 0, limit: 50, offset: 0, hasMore: false } }),
+				body: JSON.stringify({
+					data: [],
+					pagination: { total: 0, limit: 50, offset: 0, hasMore: false },
+				}),
 			}),
 		);
 
@@ -59,7 +62,14 @@ test.describe("Search happy path", () => {
 			await route.fulfill({
 				status: 200,
 				contentType: "application/json",
-				body: JSON.stringify({ data: [], pagination: { total: 0, limit: 50, offset: 0, hasMore: false }, query: { original: "Austin properties", explanation: "Search results" } }),
+				body: JSON.stringify({
+					data: [],
+					pagination: { total: 0, limit: 50, offset: 0, hasMore: false },
+					query: {
+						original: "Austin properties",
+						explanation: "Search results",
+					},
+				}),
 			});
 		});
 

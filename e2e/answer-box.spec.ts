@@ -108,7 +108,10 @@ test.describe("AnswerBox for quantitative queries", () => {
 			route.fulfill({
 				status: 200,
 				contentType: "application/json",
-				body: JSON.stringify({ data: [], pagination: { total: 0, limit: 50, offset: 0, hasMore: false } }),
+				body: JSON.stringify({
+					data: [],
+					pagination: { total: 0, limit: 50, offset: 0, hasMore: false },
+				}),
 			}),
 		);
 

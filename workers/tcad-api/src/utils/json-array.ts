@@ -4,14 +4,16 @@
  */
 
 export function serializeIds(ids: string[]): string {
-  return JSON.stringify(ids);
+	return JSON.stringify(ids);
 }
 
 export function deserializeIds(json: string): string[] {
-  try {
-    const parsed: unknown = JSON.parse(json);
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
-  } catch {
-    return [];
-  }
+	try {
+		const parsed: unknown = JSON.parse(json);
+		return Array.isArray(parsed)
+			? parsed.filter((item): item is string => typeof item === "string")
+			: [];
+	} catch {
+		return [];
+	}
 }

@@ -341,7 +341,11 @@ describe("Authentication-Database Integration Tests", () => {
 			expect([400, 401, 429]).toContain(response.status);
 
 			// Response should have error property if body exists and not 401
-			if (response.status !== 401 && response.body && Object.keys(response.body).length > 0) {
+			if (
+				response.status !== 401 &&
+				response.body &&
+				Object.keys(response.body).length > 0
+			) {
 				expect(response.body).toHaveProperty("error");
 			}
 		});

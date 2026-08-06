@@ -565,11 +565,9 @@ export async function main(enqueueMode = false) {
 	}
 
 	if (enqueueMode && selected.length > 0) {
-		const { scraperQueue } = await import("../server/src/queues/scraper.queue");
-		console.error(`\nEnqueuing ${selected.length} terms to BullMQ...`);
+		console.error(`\nEnqueuing ${selected.length} terms via Workers API...`);
 		const queued = await enqueueBatch(selected, "next-200-gen");
 		console.error(`Enqueued ${queued} jobs`);
-		await scraperQueue.close();
 	}
 }
 

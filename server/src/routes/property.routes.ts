@@ -7,7 +7,6 @@ import {
 	validateQuery,
 } from "../middleware/validation.middleware";
 import {
-	historyQuerySchema,
 	monitorRequestSchema,
 	naturalLanguageSearchSchema,
 	propertyFilterSchema,

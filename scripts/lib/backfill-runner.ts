@@ -1,8 +1,6 @@
 /** Generic backfill loop shared by all backfill-2025* scripts. */
 
-import { config } from "../../server/src/config";
 import { prisma } from "../../server/src/lib/prisma";
-import { scraperQueue } from "../../server/src/queues/scraper.queue";
 import { getErrorMessage } from "../../server/src/utils/error-helpers";
 import { TARGET_2025_PROPERTY_COUNT as TARGET_2025_COUNT } from "../../utils/constants";
 import { get2025Count } from "./backfill-utils";
@@ -25,12 +23,13 @@ export async function runBackfill(cfg: BackfillConfig): Promise<void> {
 	const maxZero =
 		cfg.maxConsecutiveZeroBatches ?? DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES;
 
-	if (config.scraper.tcadYear !== 2025) {
+	const tcadYear = process.env.TCAD_YEAR
+		? parseInt(process.env.TCAD_YEAR, 10)
+		: 2025;
+	if (tcadYear !== 2025) {
+		console.error(`ERROR: TCAD_YEAR is ${tcadYear}, must be 2025.`);
 		console.error(
-			`ERROR: TCAD_YEAR is ${config.scraper.tcadYear}, must be 2025.`,
-		);
-		console.error(
-			`Run with: TCAD_YEAR=2025 doppler run -- npx tsx scripts/${cfg.userId}.ts`,
+			`Run with: TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts`,
 		);
 		process.exit(1);
 	}
@@ -117,6 +116,5 @@ export function runBackfillMain(cfg: BackfillConfig): void {
 		})
 		.finally(async () => {
 			await prisma.$disconnect();
-			await scraperQueue.close();
 		});
 }

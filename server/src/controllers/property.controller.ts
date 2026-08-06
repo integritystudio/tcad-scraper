@@ -10,7 +10,6 @@ import type {
 	MonitorRequestBody,
 	NaturalLanguageSearchBody,
 	PropertyFilters,
-	ScrapeRequestBody,
 } from "../types/property.types";
 import { DEFAULT_QUERY_LIMIT } from "../utils/constants";
 import { transformPropertyToSnakeCase } from "../utils/property-transformers";

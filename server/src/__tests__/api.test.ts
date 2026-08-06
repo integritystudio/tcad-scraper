@@ -32,8 +32,8 @@ const checkInfrastructure = async () => {
 	if (isProductionDatabase()) {
 		console.warn(
 			"SKIPPING API integration tests: DATABASE_URL points to a remote/production database. " +
-			"These tests run deleteMany() and would destroy production data. " +
-			"Use a local database instead.",
+				"These tests run deleteMany() and would destroy production data. " +
+				"Use a local database instead.",
 		);
 		return false;
 	}
@@ -294,12 +294,10 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 
 	describe("Monitoring Endpoints", () => {
 		it("POST /api/properties/monitor - should add monitored search or require auth", async () => {
-			const response = await request(app)
-				.post("/api/properties/monitor")
-				.send({
-					searchTerm: "MonitorTest",
-					frequency: "daily",
-				});
+			const response = await request(app).post("/api/properties/monitor").send({
+				searchTerm: "MonitorTest",
+				frequency: "daily",
+			});
 
 			// 200 when auth skipped, 401 when apiKeyAuth enforced
 			expect([200, 401]).toContain(response.status);
@@ -313,12 +311,10 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 		});
 
 		it("POST /api/properties/monitor - should reject invalid frequency or require auth", async () => {
-			const response = await request(app)
-				.post("/api/properties/monitor")
-				.send({
-					searchTerm: "InvalidFreq",
-					frequency: "invalid",
-				});
+			const response = await request(app).post("/api/properties/monitor").send({
+				searchTerm: "InvalidFreq",
+				frequency: "invalid",
+			});
 
 			// 400 validation or 401 auth
 			expect([400, 401]).toContain(response.status);

@@ -1,78 +1,103 @@
 /**
- * Queue Results — show recent completed/failed jobs from BullMQ + DB property count.
+ * Queue Results — show recent scrape jobs + property count from the Workers API.
  *
- * Usage: doppler run -- npx tsx scripts/queue-results.ts [--limit N]
+ * Usage: npx tsx scripts/queue-results.ts [--limit N]
  */
 
-import { prisma } from "../server/src/lib/prisma";
-import { scraperQueue } from "../server/src/queues/scraper.queue";
-import { cacheService } from "../server/src/lib/redis-cache.service";
+export {};
+
+const API_BASE = "https://api.alephatx.info/api/properties";
 
 const limit = Number(
 	process.argv.find((_, i, a) => a[i - 1] === "--limit") ?? 20,
 );
 
-interface JobReturnValue {
-	count: number;
-	properties: { propertyId: string }[];
+interface ScrapeJob {
+	id: string;
 	searchTerm: string;
-	duration: number;
+	status: string;
+	resultCount: number | null;
+	error: string | null;
+	startedAt: string;
+	completedAt: string | null;
+}
+
+interface HistoryResponse {
+	data: ScrapeJob[];
+	pagination: { total: number };
+}
+
+interface StatsResponse {
+	totalProperties: number;
+	totalJobs: number;
+	recentJobs: number;
+}
+
+function formatDate(value: string | null): string {
+	if (!value || value === "0") return "N/A";
+	// Accepts ISO 8601 or epoch-ms strings (pre-ISO-migration API responses)
+	const iso = /^\d+$/.test(value)
+		? new Date(Number(value)).toISOString()
+		: value;
+	return iso.replace("T", " ").slice(0, 19);
+}
+
+async function fetchJson<T>(url: string): Promise<T> {
+	const res = await fetch(url);
+	if (!res.ok) {
+		throw new Error(`GET ${url} failed: HTTP ${res.status} ${res.statusText}`);
+	}
+	return res.json() as Promise<T>;
 }
 
 async function main() {
-	const [waiting, active, completed, failed] = await Promise.all([
-		scraperQueue.getWaitingCount(),
-		scraperQueue.getActiveCount(),
-		scraperQueue.getCompletedCount(),
-		scraperQueue.getFailedCount(),
+	const [stats, history] = await Promise.all([
+		fetchJson<StatsResponse>(`${API_BASE}/stats`),
+		fetchJson<HistoryResponse>(`${API_BASE}/history?limit=${limit}`),
 	]);
 
-	console.log("Queue status:", { waiting, active, completed, failed });
+	const jobs = history.data;
+	const byStatus = new Map<string, number>();
+	for (const j of jobs) {
+		byStatus.set(j.status, (byStatus.get(j.status) ?? 0) + 1);
+	}
 
-	const propertyCount = await prisma.$queryRaw<[{ count: number }]>`
-    SELECT COUNT(*)::int as count FROM properties WHERE year = 2025
-  `;
-	console.log("2025 properties:", propertyCount[0].count);
+	console.log("Job totals:", {
+		allTime: stats.totalJobs,
+		last24h: stats.recentJobs,
+	});
+	console.log(
+		`Last ${jobs.length} jobs by status:`,
+		Object.fromEntries(byStatus),
+	);
+	console.log("Properties:", stats.totalProperties);
 	console.log();
 
-	const recentCompleted = await scraperQueue.getCompleted(0, limit);
-	if (recentCompleted.length) {
-		console.log(`Completed jobs (last ${recentCompleted.length}):`);
-		console.log(
-			`  ${"Term".padEnd(22)}${"Props".padStart(6)}  Duration  Finished`,
-		);
+	const completed = jobs.filter((j) => j.status === "completed");
+	if (completed.length) {
+		console.log(`Completed jobs (last ${completed.length}):`);
+		console.log(`  ${"Term".padEnd(22)}${"Props".padStart(6)}  Finished`);
 		console.log(`  ${"-".repeat(60)}`);
-		for (const j of recentCompleted) {
-			const rv = j.returnvalue as JobReturnValue | undefined;
-			const term = (j.data.searchTerm || "").padEnd(22);
-			const props = String(rv?.properties?.length ?? 0).padStart(6);
-			const dur = rv?.duration
-				? `${(rv.duration / 1000).toFixed(1)}s`.padStart(8)
-				: "     N/A";
-			const fin = j.finishedOn
-				? new Date(j.finishedOn).toISOString().replace("T", " ").slice(0, 19)
-				: "N/A";
-			console.log(`  ${term}${props}  ${dur}  ${fin}`);
+		for (const j of completed) {
+			const term = (j.searchTerm || "").padEnd(22);
+			const props = String(j.resultCount ?? 0).padStart(6);
+			console.log(`  ${term}${props}  ${formatDate(j.completedAt)}`);
 		}
 	} else {
-		console.log("No completed jobs in queue.");
+		console.log("No completed jobs in recent history.");
 	}
 
-	const recentFailed = await scraperQueue.getFailed(0, limit);
-	if (recentFailed.length) {
+	const failed = jobs.filter((j) => j.status === "failed");
+	if (failed.length) {
 		console.log();
-		console.log(`Failed jobs (last ${recentFailed.length}):`);
+		console.log(`Failed jobs (last ${failed.length}):`);
 		console.log(`  ${"Term".padEnd(22)}Error`);
 		console.log(`  ${"-".repeat(60)}`);
-		for (const j of recentFailed) {
-			const term = (j.data.searchTerm || "").padEnd(22);
-			const reason = j.failedReason || "unknown";
-			console.log(`  ${term}${reason}`);
+		for (const j of failed) {
+			const term = (j.searchTerm || "").padEnd(22);
+			console.log(`  ${term}${j.error || "unknown"}`);
 		}
 	}
-
-	await Promise.all([scraperQueue.close(), prisma.$disconnect(), cacheService.disconnect()]);
-	process.exit(0);
 }
 
 main().catch((err) => {

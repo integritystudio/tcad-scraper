@@ -4,16 +4,11 @@ const mockEnqueueBatch = vi.fn();
 const mockWaitForQueueDrain = vi.fn();
 const mockGet2025Count = vi.fn();
 const mockDisconnect = vi.fn();
-const mockClose = vi.fn();
 
 let mockTcadYear = 2025;
 
 vi.mock("../../../server/src/lib/prisma", () => ({
 	prisma: { $disconnect: () => mockDisconnect() },
-}));
-
-vi.mock("../../../server/src/queues/scraper.queue", () => ({
-	scraperQueue: { close: () => mockClose() },
 }));
 
 vi.mock("../../../server/src/config", () => ({

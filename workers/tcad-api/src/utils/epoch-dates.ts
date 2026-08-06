@@ -11,17 +11,17 @@
 
 /** Current time as epoch millisecond string */
 export function nowEpoch(): string {
-  return String(Date.now());
+	return String(Date.now());
 }
 
 /** Epoch millisecond string to ISO 8601 for API responses */
 export function epochToISO(epoch: string): string {
-  const ms = Number(epoch);
-  if (!ms || ms <= 0) return "";
-  return new Date(ms).toISOString();
+	const ms = Number(epoch);
+	if (!ms || ms <= 0) return "";
+	return new Date(ms).toISOString();
 }
 
 /** Date to epoch millisecond string for Prisma writes */
 export function dateToEpoch(date: Date): string {
-  return String(date.getTime());
+	return String(date.getTime());
 }

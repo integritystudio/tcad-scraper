@@ -149,7 +149,6 @@ export const propertyAPI = {
 		const response = await apiClient.get<PropertyStats>("/properties/stats");
 		return response.data;
 	},
-
 };
 
 // Health check service
@@ -162,7 +161,6 @@ export const healthAPI = {
 			return false;
 		}
 	},
-
 };
 
 export default propertyAPI;

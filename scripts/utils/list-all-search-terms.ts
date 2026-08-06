@@ -10,7 +10,7 @@ import {
 	BATCH_CONFIGS,
 	HIGH_RESULT_TERM_SPLITS,
 } from "../config/batch-configs";
-import { FALLBACK_TERMS } from "../continuous-batch-scraper";
+import { FALLBACK_TERMS } from "../lib/fallback-terms";
 
 const NUMERIC_ONLY = /^\d+$/;
 

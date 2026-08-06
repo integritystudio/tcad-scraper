@@ -40,11 +40,14 @@ async function generateBuildConstants() {
 	try {
 		console.log("📊 Initializing Prisma client...");
 		prisma = await importPrismaClient();
+		if (!prisma) {
+			throw new Error("Prisma client unavailable");
+		}
 
 		console.log("📊 Fetching property count from database...");
 
 		// Fetch total property count
-		const totalProperties = await prisma!.property.count();
+		const totalProperties = await prisma.property.count();
 
 		console.log(`✓ Found ${totalProperties.toLocaleString()} properties`);
 

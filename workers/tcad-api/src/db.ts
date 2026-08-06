@@ -6,6 +6,6 @@ import { PrismaClient } from "@prisma/client";
  * Must be called per-request — Workers are stateless.
  */
 export function createPrisma(db: D1Database): PrismaClient {
-  const adapter = new PrismaD1(db);
-  return new PrismaClient({ adapter });
+	const adapter = new PrismaD1(db);
+	return new PrismaClient({ adapter });
 }

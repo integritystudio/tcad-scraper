@@ -9,139 +9,542 @@ const API_KEY = process.env.TCAD_API_KEY;
 const API_URL = "https://api.alephatx.info/api/properties/scrape";
 
 if (!API_KEY) {
-  console.error("TCAD_API_KEY not set");
-  process.exit(1);
+	console.error("TCAD_API_KEY not set");
+	process.exit(1);
 }
 
 async function main() {
-  // Get all currently searched terms
-  const searchedTerms = await prisma.searchTermAnalytics.findMany({
-    select: { searchTerm: true },
-  });
-  const searchedSet = new Set(searchedTerms.map((r) => r.searchTerm.toLowerCase()));
+	// Get all currently searched terms
+	const searchedTerms = await prisma.searchTermAnalytics.findMany({
+		select: { searchTerm: true },
+	});
+	const searchedSet = new Set(
+		searchedTerms.map((r) => r.searchTerm.toLowerCase()),
+	);
 
-  // Comprehensive list of all 313 unique search terms from SEARCH_TERM_ANALYSIS.md
-  // Top 100 by volume + additional high-efficiency terms
-  const allTerms = [
-    // Top 100 by result volume (lines 1-100 from analysis)
-    "David", "Robert", "LIVING", "Home", "Fami", "James", "steph", "Paul", "eliza", "Rich",
-    "Mark", "estat", "Christopher", "Martin", "Thomas", "holdi", "Sand", "Maria", "Carl", "Rock",
-    "Daniel", "Mary", "Wood", "marie", "Vista", "TEXAS", "Ridge", "Scott", "Angel", "CITY",
-    "Green", "White", "VILLA", "JOSE", "West", "Michelle", "Matthew", "Susan", "Manor", "Assoc",
-    "Pass", "Johnson", "Linda", "Jeffrey", "STATE", "Andrew", "laure", "Joseph", "Ranch", "Bend",
-    "Garcia", "Kevin", "Springs", "Edward", "Oaks", "Properties", "Tran", "Ryan", "Bell", "Carol",
-    "Lopez", "Lynn", "Nguyen", "Lamar", "Taylor", "Brian", "BLUE", "Eric", "devel", "Land",
-    "Steven", "Patrick", "ROSA", "Group", "Davis", "Jennifer", "EAST", "Charles", "patri", "BARR",
-    "Rose", "Kelly", "Valley", "Crest", "Williams", "Miller", "kenne", "Louis", "Brown", "Lisa",
-    "Smith", "Del Valle", "Rodriguez", "George", "SERIES", "Stone", "Rebecca", "Hills", "Jason", "Parkway",
+	// Comprehensive list of all 313 unique search terms from SEARCH_TERM_ANALYSIS.md
+	// Top 100 by volume + additional high-efficiency terms
+	const allTerms = [
+		// Top 100 by result volume (lines 1-100 from analysis)
+		"David",
+		"Robert",
+		"LIVING",
+		"Home",
+		"Fami",
+		"James",
+		"steph",
+		"Paul",
+		"eliza",
+		"Rich",
+		"Mark",
+		"estat",
+		"Christopher",
+		"Martin",
+		"Thomas",
+		"holdi",
+		"Sand",
+		"Maria",
+		"Carl",
+		"Rock",
+		"Daniel",
+		"Mary",
+		"Wood",
+		"marie",
+		"Vista",
+		"TEXAS",
+		"Ridge",
+		"Scott",
+		"Angel",
+		"CITY",
+		"Green",
+		"White",
+		"VILLA",
+		"JOSE",
+		"West",
+		"Michelle",
+		"Matthew",
+		"Susan",
+		"Manor",
+		"Assoc",
+		"Pass",
+		"Johnson",
+		"Linda",
+		"Jeffrey",
+		"STATE",
+		"Andrew",
+		"laure",
+		"Joseph",
+		"Ranch",
+		"Bend",
+		"Garcia",
+		"Kevin",
+		"Springs",
+		"Edward",
+		"Oaks",
+		"Properties",
+		"Tran",
+		"Ryan",
+		"Bell",
+		"Carol",
+		"Lopez",
+		"Lynn",
+		"Nguyen",
+		"Lamar",
+		"Taylor",
+		"Brian",
+		"BLUE",
+		"Eric",
+		"devel",
+		"Land",
+		"Steven",
+		"Patrick",
+		"ROSA",
+		"Group",
+		"Davis",
+		"Jennifer",
+		"EAST",
+		"Charles",
+		"patri",
+		"BARR",
+		"Rose",
+		"Kelly",
+		"Valley",
+		"Crest",
+		"Williams",
+		"Miller",
+		"kenne",
+		"Louis",
+		"Brown",
+		"Lisa",
+		"Smith",
+		"Del Valle",
+		"Rodriguez",
+		"George",
+		"SERIES",
+		"Stone",
+		"Rebecca",
+		"Hills",
+		"Jason",
+		"Parkway",
 
-    // Top efficiency performers (100% success rate)
-    "John", "Michael", "VALLE", "micha", "Homes", "Elizabeth", "Oak", "Path", "Spring",
-    "Leander", "Brook", "Sarah", "Lago Vista", "Bee Cave", "Association", "Meadow",
+		// Top efficiency performers (100% success rate)
+		"John",
+		"Michael",
+		"VALLE",
+		"micha",
+		"Homes",
+		"Elizabeth",
+		"Oak",
+		"Path",
+		"Spring",
+		"Leander",
+		"Brook",
+		"Sarah",
+		"Lago Vista",
+		"Bee Cave",
+		"Association",
+		"Meadow",
 
-    // Additional geographic terms
-    "Cedar Park", "Round Rock", "Georgetown", "Hutto", "Taylor", "Jarrell", "Liberty",
-    "Bastrop", "Smithville", "Elgin", "Granger", "Thrall", "Webberville", "Spicewood",
-    "Lakeway", "West Lake", "Dripping Springs", "Marble Falls", "Burnet",
+		// Additional geographic terms
+		"Cedar Park",
+		"Round Rock",
+		"Georgetown",
+		"Hutto",
+		"Taylor",
+		"Jarrell",
+		"Liberty",
+		"Bastrop",
+		"Smithville",
+		"Elgin",
+		"Granger",
+		"Thrall",
+		"Webberville",
+		"Spicewood",
+		"Lakeway",
+		"West Lake",
+		"Dripping Springs",
+		"Marble Falls",
+		"Burnet",
 
-    // Additional person names
-    "Patricia", "Sandra", "Jessica", "Karen", "Nancy", "Betty", "Margaret",
-    "Donald", "Kenneth", "Joshua", "Martinez", "Hernandez", "Sanchez", "Perez",
-    "Torres", "Ramirez", "Chavez", "Gutierrez", "Morales", "Castro", "Mendoza", "Ortiz",
-    "Aguilar", "Medina", "Ramos", "Jackson", "White", "Harris", "Martin", "Thompson",
-    "Moore", "Lee", "Walker", "Hall", "Allen", "Young", "Clark", "King", "Wright",
-    "López", "González", "Moreno", "Flores", "Rivera", "Cruz", "Díaz",
+		// Additional person names
+		"Patricia",
+		"Sandra",
+		"Jessica",
+		"Karen",
+		"Nancy",
+		"Betty",
+		"Margaret",
+		"Donald",
+		"Kenneth",
+		"Joshua",
+		"Martinez",
+		"Hernandez",
+		"Sanchez",
+		"Perez",
+		"Torres",
+		"Ramirez",
+		"Chavez",
+		"Gutierrez",
+		"Morales",
+		"Castro",
+		"Mendoza",
+		"Ortiz",
+		"Aguilar",
+		"Medina",
+		"Ramos",
+		"Jackson",
+		"White",
+		"Harris",
+		"Martin",
+		"Thompson",
+		"Moore",
+		"Lee",
+		"Walker",
+		"Hall",
+		"Allen",
+		"Young",
+		"Clark",
+		"King",
+		"Wright",
+		"López",
+		"González",
+		"Moreno",
+		"Flores",
+		"Rivera",
+		"Cruz",
+		"Díaz",
 
-    // Entity/commercial types
-    "Holdings", "Partners", "Capital", "Financial", "Ventures", "Solutions", "Services",
-    "Management", "Consulting", "Development", "Investments", "Mortgage", "Finance",
-    "Credit", "Bank", "Real Estate", "Property Management", "Investment Trust",
-    "Holding Company", "Partnership", "Corporation", "Limited", "Company", "LLC",
-    "Inc", "Trust", "Estate", "Foundation", "Association", "Organization",
+		// Entity/commercial types
+		"Holdings",
+		"Partners",
+		"Capital",
+		"Financial",
+		"Ventures",
+		"Solutions",
+		"Services",
+		"Management",
+		"Consulting",
+		"Development",
+		"Investments",
+		"Mortgage",
+		"Finance",
+		"Credit",
+		"Bank",
+		"Real Estate",
+		"Property Management",
+		"Investment Trust",
+		"Holding Company",
+		"Partnership",
+		"Corporation",
+		"Limited",
+		"Company",
+		"LLC",
+		"Inc",
+		"Trust",
+		"Estate",
+		"Foundation",
+		"Association",
+		"Organization",
 
-    // Street/area patterns
-    "Hills", "Oak", "Ash", "Elm", "Maple", "Pine", "Cedar", "Spring", "Creek", "Shade",
-    "Ranch", "Park", "Ridge", "Valley", "Mount", "Stone", "Sand", "Silver", "Golden", "Desert",
-    "Lake", "River", "Forest", "Meadow", "Grove", "Garden", "Court", "Circle", "Drive", "Road",
-    "Street", "Avenue", "Boulevard", "Lane", "Way", "Trail", "Path", "Beach", "Bay", "Port",
-    "Harbor", "Marina", "Cove", "Point", "Peak", "Hill", "Summit", "Ridge", "Pass",
+		// Street/area patterns
+		"Hills",
+		"Oak",
+		"Ash",
+		"Elm",
+		"Maple",
+		"Pine",
+		"Cedar",
+		"Spring",
+		"Creek",
+		"Shade",
+		"Ranch",
+		"Park",
+		"Ridge",
+		"Valley",
+		"Mount",
+		"Stone",
+		"Sand",
+		"Silver",
+		"Golden",
+		"Desert",
+		"Lake",
+		"River",
+		"Forest",
+		"Meadow",
+		"Grove",
+		"Garden",
+		"Court",
+		"Circle",
+		"Drive",
+		"Road",
+		"Street",
+		"Avenue",
+		"Boulevard",
+		"Lane",
+		"Way",
+		"Trail",
+		"Path",
+		"Beach",
+		"Bay",
+		"Port",
+		"Harbor",
+		"Marina",
+		"Cove",
+		"Point",
+		"Peak",
+		"Hill",
+		"Summit",
+		"Ridge",
+		"Pass",
 
-    // Numbers and alphanumerics
-    "1", "2", "3", "4", "5", "100", "200", "123", "500", "1000",
+		// Numbers and alphanumerics
+		"1",
+		"2",
+		"3",
+		"4",
+		"5",
+		"100",
+		"200",
+		"123",
+		"500",
+		"1000",
 
-    // Common prefixes and partial matches from frequent searches
-    "A", "B", "C", "E", "F", "G", "H", "L", "M", "N", "P", "R", "S", "T", "V", "W",
+		// Common prefixes and partial matches from frequent searches
+		"A",
+		"B",
+		"C",
+		"E",
+		"F",
+		"G",
+		"H",
+		"L",
+		"M",
+		"N",
+		"P",
+		"R",
+		"S",
+		"T",
+		"V",
+		"W",
 
-    // Additional terms from Tier 3 backfill list (inferred from coverage gaps)
-    "Ace", "Adams", "Alberta", "Alice", "Allison", "Amber", "Amy", "Ana", "Angela", "Ann",
-    "Anna", "Anne", "Annie", "April", "Arden", "Ariana", "Ariel", "Arizona", "Arkansas",
-    "Arthur", "Austin", "Autumn", "Avery", "Azalea", "Barbara", "Barton", "Basil", "Bay",
-    "Beach", "Beatrice", "Beaumont", "Beck", "Beckham", "Bellamy", "Belton", "Benicia",
-    "Benjamin", "Benson", "Bernice", "Bert", "Bertha", "Bessie", "Beth", "Bethany",
-    "Beverly", "Bianca", "Bice", "Billie", "Bingham", "Birch", "Blaine", "Blair", "Blake",
-    "Blakely", "Blanca", "Bland", "Blanton", "Blevins", "Bly", "Boating", "Boatright",
-    "Bob", "Bobbi", "Bobby", "Boggy", "Boerne", "Bonita", "Bonnie", "Booker", "Booth",
-    "Borden", "Boren", "Borg", "Boris", "Botts", "Boucher", "Bowen", "Bowers", "Bowman",
-    "Boyd", "Boyer", "Boyle", "Boyt", "Bradford", "Bradley", "Bradshaw", "Brady", "Bragg",
-    "Brandi", "Brandon", "Brandt", "Brandy", "Bransford", "Braswell", "Bray", "Brayden",
-    "Brazos", "Breaux", "Breckenridge", "Breed", "Breeze", "Brenda", "Brendan", "Brenna",
-    "Brent", "Brenton", "Bret", "Brett", "Brewer", "Brewster", "Brianna", "Briar",
-    "Brick", "Bride", "Bridge", "Bridger", "Bridget", "Bridges", "Brien", "Briggs",
-    "Brigham", "Brigitte", "Bright", "Brighton", "Brinkley", "Brinks", "Briscoe",
-    "Britney", "Brittany", "Britton", "Brix", "Broad", "Broadway", "Brockton", "Brody",
-    "Bromley", "Bronc", "Bronson", "Bronze", "Brooke", "Brookline", "Brooks", "Brookside",
-    "Brookstone", "Broom", "Broome", "Bros", "Bross", "Brothers", "Brougham", "Broughton",
-    "Brough", "Broussard", "Brown", "Brownell", "Brownfield", "Browning", "Brownlee",
-    "Brownsville", "Brownwood", "Browner", "Brownest", "Browny", "Brownyn",
-  ];
+		// Additional terms from Tier 3 backfill list (inferred from coverage gaps)
+		"Ace",
+		"Adams",
+		"Alberta",
+		"Alice",
+		"Allison",
+		"Amber",
+		"Amy",
+		"Ana",
+		"Angela",
+		"Ann",
+		"Anna",
+		"Anne",
+		"Annie",
+		"April",
+		"Arden",
+		"Ariana",
+		"Ariel",
+		"Arizona",
+		"Arkansas",
+		"Arthur",
+		"Austin",
+		"Autumn",
+		"Avery",
+		"Azalea",
+		"Barbara",
+		"Barton",
+		"Basil",
+		"Bay",
+		"Beach",
+		"Beatrice",
+		"Beaumont",
+		"Beck",
+		"Beckham",
+		"Bellamy",
+		"Belton",
+		"Benicia",
+		"Benjamin",
+		"Benson",
+		"Bernice",
+		"Bert",
+		"Bertha",
+		"Bessie",
+		"Beth",
+		"Bethany",
+		"Beverly",
+		"Bianca",
+		"Bice",
+		"Billie",
+		"Bingham",
+		"Birch",
+		"Blaine",
+		"Blair",
+		"Blake",
+		"Blakely",
+		"Blanca",
+		"Bland",
+		"Blanton",
+		"Blevins",
+		"Bly",
+		"Boating",
+		"Boatright",
+		"Bob",
+		"Bobbi",
+		"Bobby",
+		"Boggy",
+		"Boerne",
+		"Bonita",
+		"Bonnie",
+		"Booker",
+		"Booth",
+		"Borden",
+		"Boren",
+		"Borg",
+		"Boris",
+		"Botts",
+		"Boucher",
+		"Bowen",
+		"Bowers",
+		"Bowman",
+		"Boyd",
+		"Boyer",
+		"Boyle",
+		"Boyt",
+		"Bradford",
+		"Bradley",
+		"Bradshaw",
+		"Brady",
+		"Bragg",
+		"Brandi",
+		"Brandon",
+		"Brandt",
+		"Brandy",
+		"Bransford",
+		"Braswell",
+		"Bray",
+		"Brayden",
+		"Brazos",
+		"Breaux",
+		"Breckenridge",
+		"Breed",
+		"Breeze",
+		"Brenda",
+		"Brendan",
+		"Brenna",
+		"Brent",
+		"Brenton",
+		"Bret",
+		"Brett",
+		"Brewer",
+		"Brewster",
+		"Brianna",
+		"Briar",
+		"Brick",
+		"Bride",
+		"Bridge",
+		"Bridger",
+		"Bridget",
+		"Bridges",
+		"Brien",
+		"Briggs",
+		"Brigham",
+		"Brigitte",
+		"Bright",
+		"Brighton",
+		"Brinkley",
+		"Brinks",
+		"Briscoe",
+		"Britney",
+		"Brittany",
+		"Britton",
+		"Brix",
+		"Broad",
+		"Broadway",
+		"Brockton",
+		"Brody",
+		"Bromley",
+		"Bronc",
+		"Bronson",
+		"Bronze",
+		"Brooke",
+		"Brookline",
+		"Brooks",
+		"Brookside",
+		"Brookstone",
+		"Broom",
+		"Broome",
+		"Bros",
+		"Bross",
+		"Brothers",
+		"Brougham",
+		"Broughton",
+		"Brough",
+		"Broussard",
+		"Brown",
+		"Brownell",
+		"Brownfield",
+		"Browning",
+		"Brownlee",
+		"Brownsville",
+		"Brownwood",
+		"Browner",
+		"Brownest",
+		"Browny",
+		"Brownyn",
+	];
 
-  // Remove duplicates and normalize
-  const uniqueTerms = Array.from(new Set(allTerms.map(t => t.trim()))).filter(t => t.length > 0);
+	// Remove duplicates and normalize
+	const uniqueTerms = Array.from(new Set(allTerms.map((t) => t.trim()))).filter(
+		(t) => t.length > 0,
+	);
 
-  // Filter to only unsearched terms
-  const unsearched = uniqueTerms.filter((t) => !searchedSet.has(t.toLowerCase()));
+	// Filter to only unsearched terms
+	const unsearched = uniqueTerms.filter(
+		(t) => !searchedSet.has(t.toLowerCase()),
+	);
 
-  console.log(`Total unique terms: ${uniqueTerms.length}`);
-  console.log(`Already searched: ${searchedSet.size}`);
-  console.log(`Unsearched (non-duplicate): ${unsearched.length}`);
-  console.log(`Enqueueing all ${unsearched.length} unsearched terms...\n`);
+	console.log(`Total unique terms: ${uniqueTerms.length}`);
+	console.log(`Already searched: ${searchedSet.size}`);
+	console.log(`Unsearched (non-duplicate): ${unsearched.length}`);
+	console.log(`Enqueueing all ${unsearched.length} unsearched terms...\n`);
 
-  let successCount = 0;
-  let errorCount = 0;
-  const enqueuedTerms: string[] = [];
+	let successCount = 0;
+	let errorCount = 0;
+	const enqueuedTerms: string[] = [];
 
-  for (const term of unsearched) {
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": API_KEY,
-        },
-        body: JSON.stringify({ searchTerm: term }),
-      });
+	for (const term of unsearched) {
+		try {
+			const res = await fetch(API_URL, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"x-api-key": API_KEY,
+				},
+				body: JSON.stringify({ searchTerm: term }),
+			});
 
-      if (res.ok) {
-        successCount++;
-        enqueuedTerms.push(term);
-        console.log(`✓ ${term}`);
-      } else {
-        errorCount++;
-        console.log(`✗ ${term} (HTTP ${res.status})`);
-      }
-    } catch (err) {
-      errorCount++;
-      console.log(`✗ ${term} (${err})`);
-    }
-  }
+			if (res.ok) {
+				successCount++;
+				enqueuedTerms.push(term);
+				console.log(`✓ ${term}`);
+			} else {
+				errorCount++;
+				console.log(`✗ ${term} (HTTP ${res.status})`);
+			}
+		} catch (err) {
+			errorCount++;
+			console.log(`✗ ${term} (${err})`);
+		}
+	}
 
-  console.log(`\n=== SUMMARY ===`);
-  console.log(`Enqueued: ${successCount}/${unsearched.length} terms`);
-  if (errorCount > 0) console.log(`Errors: ${errorCount}`);
-  console.log(`\nEnqueued terms:\n${enqueuedTerms.join(", ")}`);
+	console.log(`\n=== SUMMARY ===`);
+	console.log(`Enqueued: ${successCount}/${unsearched.length} terms`);
+	if (errorCount > 0) console.log(`Errors: ${errorCount}`);
+	console.log(`\nEnqueued terms:\n${enqueuedTerms.join(", ")}`);
 
-  await prisma.$disconnect();
-  process.exit(errorCount > 0 && successCount === 0 ? 1 : 0);
+	await prisma.$disconnect();
+	process.exit(errorCount > 0 && successCount === 0 ? 1 : 0);
 }
 
 main().catch(console.error);

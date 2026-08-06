@@ -109,9 +109,7 @@ test.describe("Full search-to-details workflow", () => {
 		await page.route("**/api/properties/search**", (route) => {
 			searchCount++;
 			const body =
-				searchCount === 1
-					? MOCK_OAK_STREET_RESPONSE
-					: MOCK_JOHNSON_RESPONSE;
+				searchCount === 1 ? MOCK_OAK_STREET_RESPONSE : MOCK_JOHNSON_RESPONSE;
 			route.fulfill({
 				status: 200,
 				contentType: "application/json",

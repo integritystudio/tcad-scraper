@@ -6,21 +6,21 @@
  * Supports fallback to OpenAI when Anthropic balance is unavailable.
  */
 
-import { z } from "zod";
 import type { Prisma } from "@prisma/client";
+import { z } from "zod";
 import { getErrorMessage } from "../utils/error-helpers";
 
 const searchFiltersSchema = z.object({
-  whereClause: z.record(z.any()),
-  orderBy: z.record(z.any()).optional(),
-  explanation: z.string(),
-  answer: z.string().optional(),
-  answerType: z.enum(["count", "statistical", "descriptive"]).optional(),
+	whereClause: z.record(z.any()),
+	orderBy: z.record(z.any()).optional(),
+	explanation: z.string(),
+	answer: z.string().optional(),
+	answerType: z.enum(["count", "statistical", "descriptive"]).optional(),
 });
 
 export type SearchFilters = z.infer<typeof searchFiltersSchema> & {
-  whereClause: Prisma.PropertyWhereInput;
-  orderBy?: Prisma.PropertyOrderByWithRelationInput;
+	whereClause: Prisma.PropertyWhereInput;
+	orderBy?: Prisma.PropertyOrderByWithRelationInput;
 };
 
 const CLAUDE_MODEL = "claude-3-haiku-20240307";
@@ -56,149 +56,155 @@ Respond with ONLY valid JSON, no markdown fences.`;
  * D1/SQLite doesn't support Prisma's mode: "insensitive" option.
  * SQLite LIKE is case-insensitive for ASCII by default.
  */
-export function sanitizeWhereClause(clause: Record<string, unknown>): Record<string, unknown> {
-  const sanitized = { ...clause };
-  for (const [key, value] of Object.entries(sanitized)) {
-    if (value && typeof value === "object" && !Array.isArray(value)) {
-      const obj = value as Record<string, unknown>;
-      if ("mode" in obj && obj.mode === "insensitive") {
-        delete obj.mode;
-      }
-      sanitized[key] = sanitizeWhereClause(obj);
-    }
-    if (Array.isArray(value)) {
-      sanitized[key] = value.map(item =>
-        typeof item === "object" && item !== null
-          ? sanitizeWhereClause(item as Record<string, unknown>)
-          : item
-      );
-    }
-  }
-  return sanitized;
+export function sanitizeWhereClause(
+	clause: Record<string, unknown>,
+): Record<string, unknown> {
+	const sanitized = { ...clause };
+	for (const [key, value] of Object.entries(sanitized)) {
+		if (value && typeof value === "object" && !Array.isArray(value)) {
+			const obj = value as Record<string, unknown>;
+			if ("mode" in obj && obj.mode === "insensitive") {
+				delete obj.mode;
+			}
+			sanitized[key] = sanitizeWhereClause(obj);
+		}
+		if (Array.isArray(value)) {
+			sanitized[key] = value.map((item) =>
+				typeof item === "object" && item !== null
+					? sanitizeWhereClause(item as Record<string, unknown>)
+					: item,
+			);
+		}
+	}
+	return sanitized;
 }
 
 export async function parseNaturalLanguageQuery(
-  query: string,
-  anthropicKey: string,
-  openaiKey?: string,
+	query: string,
+	anthropicKey: string,
+	openaiKey?: string,
 ): Promise<SearchFilters> {
-  // Try Anthropic first
-  try {
-    return await callAnthropicAPI(query, anthropicKey);
-  } catch (err) {
-    const errorMessage = getErrorMessage(err);
-    // If Anthropic fails with billing/quota error and OpenAI is available, try OpenAI
-    if (openaiKey && shouldFallbackToOpenAI(err)) {
-      console.warn(`Anthropic API failed (${errorMessage}), falling back to OpenAI`);
-      return await callOpenAIAPI(query, openaiKey);
-    }
-    // Otherwise rethrow the original error
-    throw err;
-  }
+	// Try Anthropic first
+	try {
+		return await callAnthropicAPI(query, anthropicKey);
+	} catch (err) {
+		const errorMessage = getErrorMessage(err);
+		// If Anthropic fails with billing/quota error and OpenAI is available, try OpenAI
+		if (openaiKey && shouldFallbackToOpenAI(err)) {
+			console.warn(
+				`Anthropic API failed (${errorMessage}), falling back to OpenAI`,
+			);
+			return await callOpenAIAPI(query, openaiKey);
+		}
+		// Otherwise rethrow the original error
+		throw err;
+	}
 }
 
 async function callAnthropicAPI(
-  query: string,
-  apiKey: string,
+	query: string,
+	apiKey: string,
 ): Promise<SearchFilters> {
-  const response = await fetch(ANTHROPIC_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: MAX_TOKENS,
-      messages: [{ role: "user", content: `${SYSTEM_PROMPT}\n\nUser query: "${query}"` }],
-    }),
-  });
+	const response = await fetch(ANTHROPIC_API_URL, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"x-api-key": apiKey,
+			"anthropic-version": "2023-06-01",
+		},
+		body: JSON.stringify({
+			model: CLAUDE_MODEL,
+			max_tokens: MAX_TOKENS,
+			messages: [
+				{ role: "user", content: `${SYSTEM_PROMPT}\n\nUser query: "${query}"` },
+			],
+		}),
+	});
 
-  if (!response.ok) {
-    const errText = await response.text();
-    const error = new Error(`Claude API error ${response.status}: ${errText}`);
-    (error as Error & { status?: number }).status = response.status;
-    throw error;
-  }
+	if (!response.ok) {
+		const errText = await response.text();
+		const error = new Error(`Claude API error ${response.status}: ${errText}`);
+		(error as Error & { status?: number }).status = response.status;
+		throw error;
+	}
 
-  const data = (await response.json()) as {
-    content: Array<{ type: string; text: string }>;
-  };
+	const data = (await response.json()) as {
+		content: Array<{ type: string; text: string }>;
+	};
 
-  const textBlock = data.content.find((b) => b.type === "text");
-  if (!textBlock) {
-    throw new Error("No text response from Claude");
-  }
+	const textBlock = data.content.find((b) => b.type === "text");
+	if (!textBlock) {
+		throw new Error("No text response from Claude");
+	}
 
-  try {
-    const parsed = JSON.parse(textBlock.text);
-    const validated = searchFiltersSchema.parse(parsed);
-    return {
-      whereClause: validated.whereClause || {},
-      orderBy: validated.orderBy,
-      explanation: validated.explanation || "Search results",
-      answer: validated.answer,
-      answerType: validated.answerType,
-    } as SearchFilters;
-  } catch (err) {
-    throw new Error(`Failed to parse Claude response: ${getErrorMessage(err)}`);
-  }
+	try {
+		const parsed = JSON.parse(textBlock.text);
+		const validated = searchFiltersSchema.parse(parsed);
+		return {
+			whereClause: validated.whereClause || {},
+			orderBy: validated.orderBy,
+			explanation: validated.explanation || "Search results",
+			answer: validated.answer,
+			answerType: validated.answerType,
+		} as SearchFilters;
+	} catch (err) {
+		throw new Error(`Failed to parse Claude response: ${getErrorMessage(err)}`);
+	}
 }
 
 async function callOpenAIAPI(
-  query: string,
-  apiKey: string,
+	query: string,
+	apiKey: string,
 ): Promise<SearchFilters> {
-  const response = await fetch(OPENAI_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: GPT_MODEL,
-      max_tokens: MAX_TOKENS,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `User query: "${query}"` },
-      ],
-      temperature: 0,
-    }),
-  });
+	const response = await fetch(OPENAI_API_URL, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${apiKey}`,
+		},
+		body: JSON.stringify({
+			model: GPT_MODEL,
+			max_tokens: MAX_TOKENS,
+			messages: [
+				{ role: "system", content: SYSTEM_PROMPT },
+				{ role: "user", content: `User query: "${query}"` },
+			],
+			temperature: 0,
+		}),
+	});
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`OpenAI API error ${response.status}: ${errText}`);
-  }
+	if (!response.ok) {
+		const errText = await response.text();
+		throw new Error(`OpenAI API error ${response.status}: ${errText}`);
+	}
 
-  const data = (await response.json()) as {
-    choices: Array<{ message: { content: string } }>;
-  };
+	const data = (await response.json()) as {
+		choices: Array<{ message: { content: string } }>;
+	};
 
-  const textBlock = data.choices[0];
-  if (!textBlock) {
-    throw new Error("No text response from OpenAI");
-  }
+	const textBlock = data.choices[0];
+	if (!textBlock) {
+		throw new Error("No text response from OpenAI");
+	}
 
-  try {
-    const parsed = JSON.parse(textBlock.message.content);
-    const validated = searchFiltersSchema.parse(parsed);
-    return {
-      whereClause: validated.whereClause || {},
-      orderBy: validated.orderBy,
-      explanation: validated.explanation || "Search results",
-      answer: validated.answer,
-      answerType: validated.answerType,
-    } as SearchFilters;
-  } catch (err) {
-    throw new Error(`Failed to parse OpenAI response: ${getErrorMessage(err)}`);
-  }
+	try {
+		const parsed = JSON.parse(textBlock.message.content);
+		const validated = searchFiltersSchema.parse(parsed);
+		return {
+			whereClause: validated.whereClause || {},
+			orderBy: validated.orderBy,
+			explanation: validated.explanation || "Search results",
+			answer: validated.answer,
+			answerType: validated.answerType,
+		} as SearchFilters;
+	} catch (err) {
+		throw new Error(`Failed to parse OpenAI response: ${getErrorMessage(err)}`);
+	}
 }
 
 function shouldFallbackToOpenAI(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  // Fallback on 401 (unauthorized/no balance), 429 (rate limit), 402 (payment required)
-  const errorMessage = error.message.toLowerCase();
-  return /status (401|402|429)/.test(errorMessage);
+	if (!(error instanceof Error)) return false;
+	// Fallback on 401 (unauthorized/no balance), 429 (rate limit), 402 (payment required)
+	const errorMessage = error.message.toLowerCase();
+	return /status (401|402|429)/.test(errorMessage);
 }
