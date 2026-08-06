@@ -4,7 +4,7 @@
 **Status:** ✅ Production Ready
 **Tracking IDs:**
 - Google Analytics 4: `G-J7TL7PQH7S`
-- Google Tag Manager: `G-ECH51H8L2Z`
+- Google Tag Manager: `GTM-NR4GGH5K`
 - Meta Pixel: `25629020546684786`
 
 ---

@@ -1,5 +1,28 @@
 ## Recent Updates
 
+### March 30, 2026 - D1 Migration (PostgreSQL → Cloudflare D1)
+
+- **Database cutover**: Migrated from PostgreSQL/Render/Hyperdrive to Cloudflare D1 (SQLite at edge)
+- **Epoch date workaround**: D1's JS binding auto-converts ISO 8601 TEXT, corrupting dates. All date fields now stored as epoch millisecond strings (`"1711773684000"`); `nowEpoch()` / `epochToISO()` utilities added
+- **Prisma adapter**: Switched to `PrismaD1` adapter; `@default("0")` replaces `@default(now())`
+- **Bulk upsert**: `Prisma.$transaction` with individual upserts to avoid D1's 100-param limit
+- **Array fields**: `newPropertyIds` stored as JSON-serialized string
+
+See [changelog/2026-03-30.md](changelog/2026-03-30.md) for full migration details.
+
+---
+
+### March 20, 2026 - Cloudflare Workers Cutover (Express → Workers)
+
+- **Production API**: Migrated from Express/BullMQ on Render to Cloudflare Workers (Hono) + Workflows
+- **Queue**: Cloudflare Queues + Workflows replaced BullMQ + Redis
+- **Cache**: Cloudflare KV replaced Redis cache
+- **Logging**: Workers `console.*` + Sentry replaced Pino
+- **Route**: `api.alephatx.info/*` served by Workers
+- Legacy `server/` retained as read-only reference
+
+---
+
 ### March 11, 2026 - Backlog Refactoring Completion (M16, M25, M26, M28, M29, M30)
 
 - **Script consolidation**: Unified `getSearchedTermSets()`, `isSupersetOfSuccessful()`, `get2025Count()`, and enqueue utilities across 40+ CLI tools; merged queue-entity-searches variants; ~450 LOC eliminated

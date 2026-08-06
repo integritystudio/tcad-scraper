@@ -31,8 +31,8 @@ Root lint is Biome (`"lint": "biome check ."`) and root has no eslint dependency
 
 "Schema Generator" READMEs are stale: `src/README.md` documents deleted `database.ts`/`query-db.ts` (pg-based) and a pre-rewrite App.tsx; `src/components/README.md` lists deleted `ScrapeManager.tsx`. `src/components/features/PropertySearch/README.md` (2025-11-08) references nonexistent `ExampleQueries.tsx` and links four design docs that don't exist (COMPONENT_IMPLEMENTATION_GUIDE, VISUAL_DESIGN_PLAN, VISUAL_WIREFRAMES, ARCHITECTURE). Re-run the generator or delete the stale files; fix or drop the PropertySearch README links. -- `src/README.md`, `src/components/README.md`, `src/components/features/PropertySearch/README.md`
 
-### AUD-06: docs/CHANGELOG.md stops before the Cloudflare migration
-**Priority**: P3 | **Source**: docs audit (2026-08-06)
+### ~~AUD-06: docs/CHANGELOG.md stops before the Cloudflare migration~~
+**Status**: Done | **Priority**: P3 | **Source**: docs audit (2026-08-06)
 
 The most-recent-first changelog ends at 2026-03-11, omitting the Workers cutover (2026-03-20) and D1 migration (2026-03-30) even though `docs/changelog/2026-03-30.md` exists. Add summary entries pointing at the per-date files. Also `docs/ANALYTICS.md` cites GTM ID `G-ECH51H8L2Z`; `index.html` uses container `GTM-NR4GGH5K` (a `G-` prefix is a GA4 measurement ID, not a GTM container). -- `docs/CHANGELOG.md`, `docs/ANALYTICS.md`
 
