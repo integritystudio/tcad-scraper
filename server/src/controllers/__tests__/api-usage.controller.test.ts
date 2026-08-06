@@ -141,6 +141,33 @@ describe("ApiUsageController", () => {
 			expect(body.summary.averageCost).toBe("$0.000000");
 		});
 
+		it("handles null total_cost from $queryRaw byDay without throwing (TC-13)", async () => {
+			// PostgreSQL SUM returns null when there are no cost rows within the day group
+			const { prismaReadOnly } = await import("../../lib/prisma");
+			(prismaReadOnly.$queryRaw as Mock).mockResolvedValue([
+				{
+					date: new Date("2026-08-01"),
+					count: BigInt(3),
+					total_cost: null,
+					success_count: BigInt(2),
+				},
+			]);
+
+			const req = { query: {} } as Request;
+			const { res, jsonMock, statusMock } = makeRes();
+
+			await controller.getUsageStats(req, res as Response);
+
+			// Should NOT throw — falls back to 0 via ?? 0
+			expect(statusMock).not.toHaveBeenCalled();
+			const body = jsonMock.mock.calls[0][0] as {
+				byDay: Array<{ cost: string; calls: number }>;
+			};
+			expect(body.byDay).toHaveLength(1);
+			expect(body.byDay[0].cost).toBe("$0.000000");
+			expect(body.byDay[0].calls).toBe(3);
+		});
+
 		it("formats response correctly when data is present", async () => {
 			const { prismaReadOnly } = await import("../../lib/prisma");
 			(prismaReadOnly.apiUsageLog.count as Mock)

@@ -153,7 +153,7 @@ export class ApiUsageController {
 			byDay: usageByDay.map((day) => ({
 				date: day.date,
 				calls: Number(day.count),
-				cost: `$${day.total_cost.toFixed(COST_DECIMAL_PLACES)}`,
+				cost: `$${(day.total_cost ?? 0).toFixed(COST_DECIMAL_PLACES)}`,
 				successRate: `${((Number(day.success_count) / Number(day.count)) * PERCENT_MULTIPLIER).toFixed(1)}%`,
 			})),
 			byModel: usageByModel.map((model) => ({
