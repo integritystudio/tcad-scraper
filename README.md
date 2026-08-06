@@ -22,6 +22,28 @@ A production-grade web scraping system for automated collection of property tax 
 - [Documentation](#documentation)
 - [Recent Updates](#recent-updates)
 
+## Quick Start: Enqueueing Scrape Jobs
+
+**For 2025 tax year scraping:**
+
+```bash
+# Enqueue top 100 curated unsearched terms (fastest start)
+doppler run -- npx tsx server/scripts/enqueue-100-terms.ts
+
+# Enqueue analysis-based optimization terms
+doppler run -- npx tsx server/scripts/enqueue-analysis-terms.ts
+
+# Enqueue "tail" terms (low-yield, novel discovery) in all 3 phases
+TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts
+
+# Enqueue Phase 2 only (analytics tail, diminishing returns)
+TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 2
+```
+
+All jobs enqueue via Cloudflare Workers API (`https://api.alephatx.info/api/properties/scrape`). Queue status: `cd workers/tcad-api && npx wrangler queues list`
+
+---
+
 ## Overview
 
 TCAD Scraper is a production application that automates the collection and storage of property tax data from travis.prodigycad.com. The system provides both a REST API and a React frontend for accessing property data, with continuous batch scraping using intelligent search term generation to discover and catalog properties across Travis County.
@@ -328,12 +350,6 @@ cd tcad-scraper
 npm install
 ```
 
-3. **Install server dependencies:**
-```bash
-cd server
-npm install
-```
-
 ### Database Configuration
 
 The application uses Cloudflare D1 (SQLite). No external database connection needed. D1 is configured in `workers/tcad-api/wrangler.toml`.
@@ -437,7 +453,7 @@ curl http://localhost:3001/api/properties/abc-123-def
 
 **Example:**
 ```bash
-curl -X POST http://localhost:3001/api/properties/search \
+curl -X POST http://alephatx.info/api/properties/search \
   -H "Content-Type: application/json" \
   -d '{"query": "properties in Austin worth over 1 million"}'
 ```
@@ -549,9 +565,6 @@ curl "https://api.alephatx.info/api/properties/history?limit=10" \
 ### Batch Enqueue (CLI Scripts)
 
 ```bash
-# Generate and enqueue backfill terms (uses legacy BullMQ)
-doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue
-
 # Config-driven batch types (18 types)
 doppler run -- npx tsx scripts/enqueue-batch.ts <batch-type>
 
@@ -576,10 +589,6 @@ npm run test:integration           # Integration tests
 npm run prisma:generate            # Generate Prisma client
 npm run prisma:studio              # Open Prisma Studio
 ```
-
-## Docker Services (Optional)
-
-Docker is **not required** for development. D1 runs locally via `wrangler dev` (SQLite file). No external database or Redis needed.
 
 ## Deployment
 
@@ -638,11 +647,6 @@ The TCAD Scraper frontend implements comprehensive user behavior tracking using 
 
 ### Tracking Overview
 
-**Active Tracking IDs:**
-- Google Analytics 4: `G-J7TL7PQH7S`
-- Google Tag Manager: `G-ECH51H8L2Z`
-- Meta Pixel: `25629020546684786`
-
 **Events Tracked:**
 1. **Page Views** - Initial application loads
 2. **Search Events** - Property search queries
@@ -665,7 +669,6 @@ The TCAD Scraper frontend implements comprehensive user behavior tracking using 
 
 **Google Analytics 4:**
 - Access: https://analytics.google.com/
-- Property: TCAD Scraper (G-J7TL7PQH7S)
 - Real-time Events: Reports → Real-Time → Events
 - Custom Reports: 4 pre-configured reports (Search Performance, Property Engagement, User Journey Funnel, Error Monitoring)
 
@@ -839,10 +842,6 @@ The TCAD API requires a specific request body format. Using the wrong format ret
 
 The canonical implementation is in `server/src/lib/tcad-api-client.ts`.
 
-### 5. Truncated API Responses
-
-Some TCAD search terms return malformed/truncated JSON responses regardless of specificity. See [docs/truncated-response-terms.md](docs/truncated-response-terms.md) for affected terms and status.
-
 ## Recent Updates
 
 See [docs/CHANGELOG.md](docs/CHANGELOG.md) for complete version history.
@@ -875,11 +874,8 @@ Comprehensive documentation is available in the `docs/` directory:
 ### Technical Documentation
 - **[SEARCH_TERM_STRATEGY.md](SEARCH_TERM_STRATEGY.md)** - Tier-based search term efficiency strategy with API call estimates
 - **[SEARCH_TERM_ANALYSIS.md](SEARCH_TERM_ANALYSIS.md)** - Full ranked analysis of all 313 search terms with efficiency metrics
-- **[CLOUDFLARE_MIGRATION_PLAN.md](docs/CLOUDFLARE_MIGRATION_PLAN.md)** - Workers migration plan (Phases 0-5, all complete)
-- **[changelog/2026-03-30.md](docs/changelog/2026-03-30.md)** - D1 migration details, decisions, and SQL translation reference
 - **[TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md)** - Token management and auto-refresh
 - **[doppler-setup.md](docs/doppler-setup.md)** - Doppler CLI installation and configuration
-- **[CI-CD.md](docs/CI-CD.md)** - CI/CD pipeline configuration
 
 ### Server-Specific Documentation
 - **[server/README.md](server/README.md)** - Server setup, troubleshooting, requeue scripts
@@ -889,7 +885,6 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ## Contributing
 
-Server Configuration and Architecture: Micah Linsay
 Front-end Architecture and initial tcad scraping logic: John Skelton
 Authentication, API, Queue Management & Batch Optimization: Alyshia Ledlie
 

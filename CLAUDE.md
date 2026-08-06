@@ -36,7 +36,7 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `src/workflows/scraper.workflow.ts` - ScraperWorkflow (5 steps: token, fetch, dedup, upsert, analytics)
 - `src/controllers/property.ts` - Property routes (list, get, scrape, search, history)
 - `src/controllers/api-usage.ts` - API usage routes
-- `src/middleware/auth.ts` - API key (`x-api-key`) + JWT (`jose`) auth
+- `src/middleware/auth.ts` - API key (`x-api-key`) auth + Zod validation middleware
 - `src/db.ts` - Prisma + D1 connection (`PrismaD1` adapter)
 - `src/lib/claude.service.ts` - Natural language search (Anthropic primary, OpenAI fallback; query capped at 500 chars via Zod) + `sanitizeWhereClause`
 - `src/utils/constants.ts` - TCAD_API_URL, chunk sizes, timeouts, D1 micro-chunk config
@@ -51,14 +51,11 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - BullMQ queues, token refresh service, schedulers, CLI tools removed (287ca63)
 
 ### Scripts (`scripts/` — root level, run from repo root)
-- `continuous-batch-scraper.ts` - Long-running scraper; `STOP_AT_PROPERTIES` (500K) halt threshold
-- `enqueue-batch.ts` - Config-driven batch enqueue runner
 - `enqueue-tail-terms.ts` - Multi-phase tail term optimizer (analytics + owner-name mining)
-- `generate-next-200-terms.ts` - Generate next candidate terms for backfill
-- `queue-results.ts` - Queue status + recent jobs (`doppler run -- npx tsx scripts/queue-results.ts [--limit N]`)
+- `generate-next-200-terms.ts` - Generate next candidate terms for backfill (`--enqueue` sends to Workers API)
+- `queue-results.ts` - Recent scrape jobs + property count from the Workers API (`npx tsx scripts/queue-results.ts [--limit N]`)
 - `config/batch-configs.ts` - 18 batch type definitions
-- `lib/` - queue-utils, backfill-runner, searched-terms, backfill-utils
-- `requeue/` - Failed job requeue scripts
+- `lib/` - queue-utils (`enqueueBatch()` via Workers API), backfill-runner, fallback-terms, searched-terms, backfill-utils
 - See [scripts/README.md](scripts/README.md) for full reference
 - **Search Term Strategy**: See [SEARCH_TERM_STRATEGY.md](SEARCH_TERM_STRATEGY.md) for Tier 1-4 efficiency breakdown and [SEARCH_TERM_ANALYSIS.md](SEARCH_TERM_ANALYSIS.md) for full ranked term list
 
@@ -129,17 +126,13 @@ curl -X POST "https://api.alephatx.info/api/properties/scrape" \
   -H "Content-Type: application/json" -H "x-api-key: $TCAD_API_KEY" \
   -d '{"searchTerm": "Smith"}'
 
-# Scraping (legacy BullMQ — still works for local dev)
-doppler run -- npx tsx scripts/continuous-batch-scraper.ts
-npm run queue:status
-
 # Search Term Optimization Strategy (March 2026)
 # Tier 1 (15 terms) = 19.6% coverage, Tier 1+2 (50 terms) = 45.1%, Tier 1+2+3 (200 terms) = 92.1%
 # See SEARCH_TERM_STRATEGY.md for full strategy and efficiency metrics
 
 # Backfill Discovery
 doppler run -- npx tsx scripts/generate-next-200-terms.ts          # Dry run
-doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue # Generate and enqueue
+doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue # Generate and enqueue via Workers API
 doppler run -- npx tsx scripts/check-unsearched-terms.ts            # Find unsearched terms
 bash scripts/search-terms-summary.sh                                # Recent search terms table
 
@@ -191,7 +184,7 @@ Expected response: `{"status":"ok","propertyCount":N,"runtime":"cloudflare-worke
 - **No `any`**: Use `unknown` + type guards. Use `getErrorMessage()` from `utils/error-helpers.ts`
 - **Workers logging**: Use `console.*` (Workers structured logging). Legacy `server/` uses Pino logger
 - **Workers env**: Access via `c.env.X` (Hono context), not `process.env.X`
-- **Auth**: Workers uses `x-api-key` header checked against `env.API_KEY` (value = Doppler `TCAD_API_KEY`). JWT via `jose` (not `jsonwebtoken`)
+- **Auth**: Workers uses `x-api-key` header checked against `env.API_KEY` (value = Doppler `TCAD_API_KEY`)
 - **TCAD API request format**: Body must use `{ pYear: { operator: "=", value }, fullTextSearch: { operator: "match", value } }` with pagination as query params `?page=N&pageSize=N`. Token passed as `Authorization: token` (token already includes "Bearer " prefix from token worker — do NOT add a second "Bearer " prefix). See `server/src/lib/tcad-api-client.ts` for the canonical implementation
 - **D1 dates**: Always use `nowEpoch()` for date writes, `epochToISO()` for API responses. Never store ISO 8601 strings — D1 will corrupt them on read
 - **D1 arrays**: `newPropertyIds` is `String` (JSON-serialized). Use `JSON.stringify()` on write, `JSON.parse()` on read

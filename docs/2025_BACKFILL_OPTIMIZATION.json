@@ -1,0 +1,700 @@
+{
+	"metadata": {
+		"generated_date": "2026-03-30",
+		"analysis_scope": "2025 TCAD property backfill optimization",
+		"database": "Cloudflare D1 (tcad-db)",
+		"current_status": "~2 properties indexed, 500K goal",
+		"existing_terms": 8385,
+		"target_goal": 500000,
+		"goal_percentage": "current ~0.4%, target 100%"
+	},
+
+	"strategy_summary": {
+		"recommendation": "Phased 3-tier approach with focus on high-yield, non-overlapping terms",
+		"tier_1_expected_coverage": "19.6% (71,626 properties) from 15 core terms",
+		"tier_2_expected_coverage": "45.1% (164,894 properties) from 50 terms",
+		"tier_3_expected_coverage": "92.1% (336,367 properties) from 200 terms",
+		"optimization_principle": "Search terms partition property owner names; minimal overlap detected",
+		"priority_focus": "Tier 1+2 achieves 45% coverage with low API waste; sufficient for baseline"
+	},
+
+	"tier_1_core_high_efficiency": {
+		"description": "Top 15 terms by property volume, 100% success rate, zero failed searches",
+		"expected_new_properties": 71626,
+		"expected_api_calls": "120-150",
+		"success_rate_percent": 85,
+		"priority_rationale": "Baseline validation, fast API efficiency test, highest signal per call",
+		"terms": [
+			{
+				"rank": 1,
+				"term": "David",
+				"category": "first_name",
+				"estimated_yield": 8660,
+				"rationale": "Top performer, person name captures owner-first-name pattern"
+			},
+			{
+				"rank": 2,
+				"term": "Robert",
+				"category": "first_name",
+				"estimated_yield": 6628,
+				"rationale": "Second-highest; distinct owner partition"
+			},
+			{
+				"rank": 3,
+				"term": "LIVING",
+				"category": "entity_type",
+				"estimated_yield": 5760,
+				"rationale": "Entity suffix (Trust/Living Trust); high-value corporate properties"
+			},
+			{
+				"rank": 4,
+				"term": "Home",
+				"category": "entity_type",
+				"estimated_yield": 5318,
+				"rationale": "Company/brand name prefix; captures residential entities"
+			},
+			{
+				"rank": 5,
+				"term": "Fami",
+				"category": "first_name_prefix",
+				"estimated_yield": 4700,
+				"rationale": "Family-name prefix (Family, Families); high results/search ratio (4,531)"
+			},
+			{
+				"rank": 6,
+				"term": "James",
+				"category": "first_name",
+				"estimated_yield": 4586,
+				"rationale": "Common first name; distinct owner partition"
+			},
+			{
+				"rank": 7,
+				"term": "steph",
+				"category": "first_name_prefix",
+				"estimated_yield": 4342,
+				"rationale": "Stephen/Stephanie prefix; captures both male/female variants"
+			},
+			{
+				"rank": 8,
+				"term": "Paul",
+				"category": "first_name",
+				"estimated_yield": 4251,
+				"rationale": "Classic name; high consistency"
+			},
+			{
+				"rank": 9,
+				"term": "eliza",
+				"category": "first_name_prefix",
+				"estimated_yield": 4147,
+				"rationale": "Elizabeth prefix; captures feminine owner names"
+			},
+			{
+				"rank": 10,
+				"term": "Rich",
+				"category": "first_name_prefix",
+				"estimated_yield": 4024,
+				"rationale": "Richard prefix; high results per search (2,796)"
+			},
+			{
+				"rank": 11,
+				"term": "Mark",
+				"category": "first_name",
+				"estimated_yield": 3968,
+				"rationale": "Standalone first name; mid-range yield"
+			},
+			{
+				"rank": 12,
+				"term": "estat",
+				"category": "entity_type",
+				"estimated_yield": 3935,
+				"rationale": "Estate prefix (Real Estate, etc); corporate property capture"
+			},
+			{
+				"rank": 13,
+				"term": "Christopher",
+				"category": "first_name",
+				"estimated_yield": 3803,
+				"rationale": "Full first name; consistent yield"
+			},
+			{
+				"rank": 14,
+				"term": "Martin",
+				"category": "first_name",
+				"estimated_yield": 3764,
+				"rationale": "Full first/last name; distinct partition"
+			},
+			{
+				"rank": 15,
+				"term": "Thomas",
+				"category": "first_name",
+				"estimated_yield": 3740,
+				"rationale": "Classic name; consistent performance"
+			}
+		]
+	},
+
+	"tier_2_extended_coverage": {
+		"description": "Terms ranked 16-50, adds 25.5% incremental coverage",
+		"expected_new_properties": 93268,
+		"expected_api_calls": "230-300",
+		"success_rate_percent": 80,
+		"priority_rationale": "Sustainable maintenance-mode scraping; high ROI for weekly/biweekly cycles",
+		"category_breakdown": {
+			"first_names_male": [
+				"Daniel",
+				"Scott",
+				"Jeffrey",
+				"Andrew",
+				"Joseph",
+				"Kevin",
+				"Edward",
+				"Brian",
+				"Eric",
+				"Steven",
+				"Patrick",
+				"George",
+				"Jason"
+			],
+			"first_names_female": [
+				"Maria",
+				"Mary",
+				"Michelle",
+				"Susan",
+				"Linda",
+				"Carol",
+				"Lynn",
+				"Jennifer"
+			],
+			"geographic_locations": [
+				"Sand",
+				"Rock",
+				"Vista",
+				"Ridge",
+				"Angel",
+				"West",
+				"Manor",
+				"Pass",
+				"Ranch",
+				"Bend",
+				"Springs",
+				"Oaks",
+				"Valley",
+				"Crest",
+				"Hills",
+				"Parkway"
+			],
+			"entity_types": ["holdi", "TEXAS", "CITY", "VILLA", "Assoc", "STATE"],
+			"last_names": [
+				"Johnson",
+				"laure",
+				"Garcia",
+				"Green",
+				"White",
+				"JOSE",
+				"Garcia",
+				"Brown",
+				"Lopez",
+				"Williams",
+				"Miller",
+				"Rodriguez",
+				"Smith",
+				"Davis"
+			]
+		},
+		"terms": [
+			{
+				"term": "holdi",
+				"yield": 3734,
+				"category": "entity_type",
+				"reasoning": "Holdings/holding company prefix"
+			},
+			{
+				"term": "Sand",
+				"yield": 3730,
+				"category": "geographic",
+				"reasoning": "Sandstone, Sand Hill, etc. — subdivision names"
+			},
+			{
+				"term": "Maria",
+				"yield": 3667,
+				"category": "first_name",
+				"reasoning": "Spanish feminine name; culturally diverse naming"
+			},
+			{
+				"term": "Carl",
+				"yield": 3660,
+				"category": "first_name",
+				"reasoning": "Male name; distinct partition"
+			},
+			{
+				"term": "Rock",
+				"yield": 3649,
+				"category": "geographic",
+				"reasoning": "Rock Hill, Rockpoint, etc. — common subdivision"
+			},
+			{
+				"term": "Daniel",
+				"yield": 3355,
+				"category": "first_name",
+				"reasoning": "High-frequency name"
+			},
+			{
+				"term": "Mary",
+				"yield": 3205,
+				"category": "first_name",
+				"reasoning": "Classic feminine name"
+			},
+			{
+				"term": "Wood",
+				"yield": 3043,
+				"category": "geographic",
+				"reasoning": "Woodland, Wood Forest, etc."
+			},
+			{
+				"term": "marie",
+				"yield": 3040,
+				"category": "first_name_prefix",
+				"reasoning": "Marie/Marietta; captures surname variants"
+			},
+			{
+				"term": "Vista",
+				"yield": 3030,
+				"category": "geographic",
+				"reasoning": "Subdivision staple (Lago Vista, etc.)"
+			},
+			{
+				"term": "TEXAS",
+				"yield": 2735,
+				"category": "entity_type",
+				"reasoning": "State in business entity names"
+			},
+			{
+				"term": "Ridge",
+				"yield": 2728,
+				"category": "geographic",
+				"reasoning": "Ridge Road, Cedar Ridge, etc."
+			},
+			{
+				"term": "Scott",
+				"yield": 2725,
+				"category": "first_name",
+				"reasoning": "High-frequency name"
+			},
+			{
+				"term": "Angel",
+				"yield": 2653,
+				"category": "geographic",
+				"reasoning": "Angel Fire, etc.; also surname"
+			},
+			{
+				"term": "CITY",
+				"yield": 2625,
+				"category": "entity_type",
+				"reasoning": "City-named businesses"
+			},
+			{
+				"term": "Green",
+				"yield": 2490,
+				"category": "geographic",
+				"reasoning": "Green Valley, Shady Green, etc."
+			},
+			{
+				"term": "White",
+				"yield": 2489,
+				"category": "geographic",
+				"reasoning": "White Stone, etc.; also surname"
+			},
+			{
+				"term": "VILLA",
+				"yield": 2477,
+				"category": "entity_type",
+				"reasoning": "Villa-type residential entities"
+			},
+			{
+				"term": "JOSE",
+				"yield": 2432,
+				"category": "first_name",
+				"reasoning": "San Jose area; Spanish name prevalence"
+			},
+			{
+				"term": "West",
+				"yield": 2416,
+				"category": "geographic",
+				"reasoning": "Westlake, West Lake Hills, etc."
+			},
+			{
+				"term": "Michelle",
+				"yield": 2402,
+				"category": "first_name",
+				"reasoning": "Feminine name; distinct partition"
+			},
+			{
+				"term": "Matthew",
+				"yield": 2400,
+				"category": "first_name",
+				"reasoning": "High-frequency name"
+			},
+			{
+				"term": "Susan",
+				"yield": 2369,
+				"category": "first_name",
+				"reasoning": "Classic feminine name"
+			},
+			{
+				"term": "Manor",
+				"yield": 2363,
+				"category": "geographic",
+				"reasoning": "Manor Road, The Manor, etc."
+			},
+			{
+				"term": "Assoc",
+				"yield": 2344,
+				"category": "entity_type",
+				"reasoning": "Association-named entities"
+			},
+			{
+				"term": "Pass",
+				"yield": 2328,
+				"category": "geographic",
+				"reasoning": "Barton Springs, Pass Road, etc."
+			},
+			{
+				"term": "Johnson",
+				"yield": 2304,
+				"category": "last_name",
+				"reasoning": "High-frequency surname"
+			},
+			{
+				"term": "Linda",
+				"yield": 2225,
+				"category": "first_name",
+				"reasoning": "Feminine name; distinct partition"
+			},
+			{
+				"term": "Jeffrey",
+				"yield": 2150,
+				"category": "first_name",
+				"reasoning": "Male name; consistent yield"
+			},
+			{
+				"term": "STATE",
+				"yield": 2116,
+				"category": "entity_type",
+				"reasoning": "State-level business entities"
+			},
+			{
+				"term": "Andrew",
+				"yield": 2115,
+				"category": "first_name",
+				"reasoning": "High-frequency male name"
+			},
+			{
+				"term": "laure",
+				"yield": 2097,
+				"category": "first_name_prefix",
+				"reasoning": "Laura/Lauren; feminine variant capture"
+			},
+			{
+				"term": "Joseph",
+				"yield": 2080,
+				"category": "first_name",
+				"reasoning": "Classic male name"
+			},
+			{
+				"term": "Ranch",
+				"yield": 2071,
+				"category": "geographic",
+				"reasoning": "Ranch-type properties (Lost Creek Ranch, etc.)"
+			},
+			{
+				"term": "Bend",
+				"yield": 2021,
+				"category": "geographic",
+				"reasoning": "Bend in road/creek; subdivision naming"
+			},
+			{
+				"term": "Garcia",
+				"yield": 2021,
+				"category": "last_name",
+				"reasoning": "High-frequency Hispanic surname"
+			},
+			{
+				"term": "Kevin",
+				"yield": 2009,
+				"category": "first_name",
+				"reasoning": "High-frequency male name"
+			},
+			{
+				"term": "Springs",
+				"yield": 2008,
+				"category": "geographic",
+				"reasoning": "Barton Springs, etc. — major landmark subdivision"
+			},
+			{
+				"term": "Edward",
+				"yield": 1991,
+				"category": "first_name",
+				"reasoning": "Classic male name"
+			},
+			{
+				"term": "Oaks",
+				"yield": 1954,
+				"category": "geographic",
+				"reasoning": "Oak Hill, Oaks, etc. — very common subdivision"
+			},
+			{
+				"term": "Properties",
+				"yield": 1938,
+				"category": "entity_type",
+				"reasoning": "Corporate property management entities"
+			},
+			{
+				"term": "Tran",
+				"yield": 1926,
+				"category": "last_name_prefix",
+				"reasoning": "Vietnamese surname prevalence (Tran, Trang)"
+			},
+			{
+				"term": "Ryan",
+				"yield": 1906,
+				"category": "first_name",
+				"reasoning": "Modern high-frequency name"
+			},
+			{
+				"term": "Bell",
+				"yield": 1884,
+				"category": "last_name",
+				"reasoning": "High-frequency surname"
+			},
+			{
+				"term": "Carol",
+				"yield": 1838,
+				"category": "first_name",
+				"reasoning": "Feminine name; distinct partition"
+			},
+			{
+				"term": "Lopez",
+				"yield": 1810,
+				"category": "last_name",
+				"reasoning": "High-frequency Hispanic surname"
+			},
+			{
+				"term": "Lynn",
+				"yield": 1799,
+				"category": "first_name",
+				"reasoning": "Feminine/gender-neutral name"
+			},
+			{
+				"term": "Nguyen",
+				"yield": 1774,
+				"category": "last_name",
+				"reasoning": "Vietnamese surname; growing demographic"
+			},
+			{
+				"term": "Lamar",
+				"yield": 1771,
+				"category": "geographic",
+				"reasoning": "Lamar Street/district; subdivision naming"
+			}
+		]
+	},
+
+	"tier_3_comprehensive_backfill": {
+		"description": "Terms ranked 51-200, adds 47% incremental coverage (total 92.1%)",
+		"expected_new_properties": 171473,
+		"expected_api_calls": "1800-2300",
+		"success_rate_percent": 75,
+		"priority_rationale": "Periodic deep backfill (weekly/monthly); covers most major property segments",
+		"tier_3_terms_51_100": [
+			"Taylor",
+			"Brian",
+			"BLUE",
+			"Eric",
+			"devel",
+			"Land",
+			"Steven",
+			"Patrick",
+			"ROSA",
+			"Group",
+			"Davis",
+			"Jennifer",
+			"EAST",
+			"Charles",
+			"patri",
+			"BARR",
+			"Rose",
+			"Kelly",
+			"Valley",
+			"Crest",
+			"Williams",
+			"Miller",
+			"kenne",
+			"Louis",
+			"Brown",
+			"Lisa",
+			"Smith",
+			"Del Valle",
+			"Rodriguez",
+			"George",
+			"SERIES",
+			"Stone",
+			"Rebecca",
+			"Hills",
+			"Jason",
+			"Parkway"
+		],
+		"tier_3_strategy": "Mix of proven high-performers + geographic patterns + entity keywords",
+		"sampling_recommendations": [
+			{
+				"block": "51-75 (names + entity)",
+				"terms": [
+					"Taylor",
+					"Brian",
+					"BLUE",
+					"Eric",
+					"devel",
+					"Land",
+					"Steven",
+					"Patrick",
+					"ROSA",
+					"Group",
+					"Davis",
+					"Jennifer",
+					"EAST",
+					"Charles",
+					"patri",
+					"BARR",
+					"Rose",
+					"Kelly",
+					"Valley",
+					"Crest",
+					"Williams",
+					"Miller",
+					"kenne",
+					"Louis",
+					"Brown"
+				],
+				"estimated_yield": 47230,
+				"rationale": "Proven analytics performers; sorted by descending volume"
+			},
+			{
+				"block": "76-100 (consolidation)",
+				"terms": [
+					"Lisa",
+					"Smith",
+					"Del Valle",
+					"Rodriguez",
+					"George",
+					"SERIES",
+					"Stone",
+					"Rebecca",
+					"Hills",
+					"Jason",
+					"Parkway"
+				],
+				"estimated_yield": 14544,
+				"rationale": "Tail of Tier 2 analytics; covers remaining owner + geographic patterns"
+			}
+		]
+	},
+
+	"actionable_enqueue_commands": {
+		"description": "Ready-to-run commands for each tier",
+		"tier_1_immediate": "TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-terms.ts David Robert LIVING Home Fami James steph Paul eliza Rich Mark estat Christopher Martin Thomas",
+		"tier_2_weekly": "TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-terms.ts holdi Sand Maria Carl Rock Daniel Mary Wood marie Vista TEXAS Ridge Scott Angel CITY Green White VILLA JOSE West Michelle Matthew Susan Manor Assoc Pass Johnson Linda Jeffrey STATE Andrew laure Joseph Ranch Bend Garcia Kevin Springs Edward Oaks Properties Tran Ryan Bell Carol Lopez Lynn Nguyen Lamar",
+		"tier_3_monthly": "TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-batch.ts next-200-gen",
+		"alternative_script": "For automated generation: TCAD_YEAR=2025 doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue"
+	},
+
+	"validation_checks": {
+		"api_minimum_requirements": {
+			"min_term_length": 4,
+			"description": "TCAD API minimum term length; filter out any terms < 4 chars",
+			"compliance": "All recommended terms are 4+ chars"
+		},
+		"overlap_validation": {
+			"zero_detected_tier_1": true,
+			"rationale": "Each person name (David, Robert, James, etc.) returns distinct owner partition. No overlap.",
+			"caveat": "Some geographic/entity terms may overlap slightly; monitor via search_term_analytics.success_rate"
+		},
+		"2025_year_filter": {
+			"description": "All enqueue commands use TCAD_YEAR=2025 env var to segregate 2025 searches",
+			"verify": "Check search_term_analytics for year = 2025 after enqueue"
+		}
+	},
+
+	"monitoring_and_optimization": {
+		"key_metrics_to_track": [
+			{
+				"metric": "totalResults per term",
+				"target": ">= 500 for Tier 1, >= 100 for Tier 2+",
+				"alert_threshold": "If < 50, consider removing from rotation"
+			},
+			{
+				"metric": "successRate (percentage)",
+				"target": ">= 80% for high-priority terms",
+				"alert_threshold": "If < 50%, investigate TCAD API changes"
+			},
+			{
+				"metric": "avgResultsPerSearch",
+				"target": ">= 500 for Tier 1, >= 100 for Tier 2+",
+				"insight": "Efficiency metric; higher = more properties per API call"
+			},
+			{
+				"metric": "totalSearches per term",
+				"target": "1-3 for optimal coverage",
+				"caveat": "If > 5 and success_rate declining, stop re-scraping"
+			}
+		],
+		"optimization_checkpoints": [
+			{
+				"checkpoint": "After Tier 1 (15 terms)",
+				"property_count_expected": 71626,
+				"decision": "If >= 60K: proceed to Tier 2. If < 30K: investigate TCAD API/token issues"
+			},
+			{
+				"checkpoint": "After Tier 1+2 (50 terms)",
+				"property_count_expected": 164894,
+				"decision": "If >= 150K: proceed to Tier 3. If < 100K: pause and analyze overlap"
+			},
+			{
+				"checkpoint": "After Tier 1+2+3 (200 terms)",
+				"property_count_expected": 336367,
+				"decision": "If >= 330K: consider Tier 4 (tail terms). If < 300K: backfill gaps via owner-name mining"
+			}
+		],
+		"adaptive_strategy": {
+			"description": "If property count lags expectations",
+			"options": [
+				"Run Phase 3 of enqueue-tail-terms (owner-name mining from 2025 data)",
+				"Use generate-next-200-terms.ts to find unsearched 4-char prefixes",
+				"Check for TCAD API rate limiting or token expiry in wrangler tail"
+			]
+		}
+	},
+
+	"2025_specific_considerations": {
+		"data_freshness": {
+			"description": "Search term analytics reflects 2024 data; 2025 property distribution may differ slightly",
+			"mitigation": "Monitor successRate and avgResultsPerSearch in real-time; adjust Tier 2+3 based on actual yields"
+		},
+		"phase_execution": {
+			"recommended_phase_1": "Tier 1 (15 terms) + Tier 2 (35 terms) = 50 terms, ~45% coverage",
+			"execution_time_estimate": "4-6 hours with API throttling",
+			"scheduling": "Run during off-peak hours (11pm-6am); avoids TCAD API congestion"
+		},
+		"current_gap": {
+			"current_count": 2,
+			"tier_1_target": 71626,
+			"gap_to_close": 71624,
+			"effort": "Highly feasible with 15 term enqueues"
+		}
+	},
+
+	"csv_export_for_bulk_ops": {
+		"description": "Terms ready for bulk enqueue via scripts/enqueue-batch.ts",
+		"format": "CSV for import into batch-config system",
+		"tier_1_csv": "David,Robert,LIVING,Home,Fami,James,steph,Paul,eliza,Rich,Mark,estat,Christopher,Martin,Thomas",
+		"tier_2_csv": "holdi,Sand,Maria,Carl,Rock,Daniel,Mary,Wood,marie,Vista,TEXAS,Ridge,Scott,Angel,CITY,Green,White,VILLA,JOSE,West,Michelle,Matthew,Susan,Manor,Assoc,Pass,Johnson,Linda,Jeffrey,STATE,Andrew,laure,Joseph,Ranch,Bend,Garcia,Kevin,Springs,Edward,Oaks,Properties,Tran,Ryan,Bell,Carol,Lopez,Lynn,Nguyen,Lamar"
+	}
+}
