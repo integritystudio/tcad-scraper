@@ -38,7 +38,12 @@ const YIELD_BAND_LOW = 100;
 const YIELD_BAND_HIGH = 1000;
 const YIELD_BAND_REF_DB_ROWS = 260_000;
 
-/** Count existing D1 rows matching each term (name or address substring). */
+/**
+ * Count existing D1 rows matching each term (name or address substring).
+ * Uses $queryRawUnsafe because the SUM(CASE ...) column list can't be
+ * parameterized; terms are internal (curated lists + generated prefixes)
+ * and both quotes and LIKE wildcards are escaped.
+ */
 async function scoreTermsByDbMatches(
 	terms: string[],
 ): Promise<Map<string, number>> {
@@ -47,13 +52,18 @@ async function scoreTermsByDbMatches(
 		const chunk = terms.slice(i, i + YIELD_SCORE_CHUNK_SIZE);
 		const cols = chunk
 			.map((t, j) => {
-				const esc = t.replace(/'/g, "''");
-				return `SUM(CASE WHEN name LIKE '%${esc}%' OR property_address LIKE '%${esc}%' THEN 1 ELSE 0 END) AS c${j}`;
+				const esc = t.replace(/'/g, "''").replace(/[\\%_]/g, "\\$&");
+				return `SUM(CASE WHEN name LIKE '%${esc}%' ESCAPE '\\' OR property_address LIKE '%${esc}%' ESCAPE '\\' THEN 1 ELSE 0 END) AS c${j}`;
 			})
 			.join(", ");
 		const [row] = await prisma.$queryRawUnsafe<
 			Array<Record<string, number | bigint | null>>
 		>(`SELECT ${cols} FROM properties`);
+		if (!row) {
+			console.error(`Yield scoring: empty result for chunk at ${i}; scoring 0`);
+			chunk.forEach((t) => scores.set(t, 0));
+			continue;
+		}
 		chunk.forEach((t, j) => scores.set(t, Number(row[`c${j}`] ?? 0)));
 	}
 	return scores;
