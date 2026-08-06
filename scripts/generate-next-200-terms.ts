@@ -19,6 +19,7 @@
  *   doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue
  */
 
+import { MIN_TERM_LENGTH } from "../utils/constants";
 import { SearchTermDeduplicator } from "./lib/search-term-deduplicator";
 import { prisma } from "./lib/d1-prisma";
 import { enqueueBatch } from "./lib/queue-utils";
@@ -473,14 +474,15 @@ export async function main(enqueueMode = false) {
 	let multiWordSkips = 0;
 
 	/**
-	 * Check if a candidate term has a shorter prefix (4+ chars) already in searched.
-	 * TCAD search is prefix-based, so "Lago" results are a subset of any search
-	 * that already matched the same owner names via a shorter prefix.
+	 * Check if a candidate term has a shorter prefix (MIN_TERM_LENGTH+ chars)
+	 * already in searched. TCAD search is prefix-based, so "Lago" results are a
+	 * subset of any search that already matched the same owner names via a
+	 * shorter prefix.
 	 */
 	const hasSearchedPrefix = (term: string): boolean => {
 		const lower = term.toLowerCase();
-		// Check all prefixes from 4 chars up to term.length - 1
-		for (let len = 4; len < lower.length; len++) {
+		// Check all prefixes from MIN_TERM_LENGTH up to term.length - 1
+		for (let len = MIN_TERM_LENGTH; len < lower.length; len++) {
 			if (searched.has(lower.slice(0, len))) return true;
 		}
 		return false;
@@ -493,12 +495,14 @@ export async function main(enqueueMode = false) {
 	const hasSearchedWord = (term: string): boolean => {
 		const words = term.split(/\s+/);
 		if (words.length < 2) return false;
-		return words.some((w) => w.length >= 4 && searched.has(w.toLowerCase()));
+		return words.some(
+			(w) => w.length >= MIN_TERM_LENGTH && searched.has(w.toLowerCase()),
+		);
 	};
 
 	const addNewTerm = (term: string): boolean => {
 		if (selected.length >= TARGET_TERM_COUNT) return false;
-		if (!term || term.length < 4) return false;
+		if (!term || term.length < MIN_TERM_LENGTH) return false;
 		if (BLOCKED_TERMS.has(term.toLowerCase())) return false;
 		if (searched.has(term.toLowerCase())) return false;
 		if (selectedSet.has(term.toLowerCase())) return false;
@@ -530,7 +534,7 @@ export async function main(enqueueMode = false) {
 	// For re-scrape candidates (already in searched set — skip prefix check)
 	const addRescrape = (term: string): boolean => {
 		if (selected.length >= TARGET_TERM_COUNT) return false;
-		if (!term || term.length < 4) return false;
+		if (!term || term.length < MIN_TERM_LENGTH) return false;
 		if (BLOCKED_TERMS.has(term.toLowerCase())) return false;
 		if (blacklistSet.has(term.toLowerCase())) return false;
 		if (selectedSet.has(term.toLowerCase())) return false;
