@@ -1,5 +1,19 @@
 ## Recent Updates
 
+### August 6, 2026 - Documentation Audit & Code Cleanup
+
+- **CI Coverage**: Added GitHub Actions jobs for `workers/tcad-api/` (TypeScript, vitest, dry-run deploy) and E2E tests (Playwright)
+- **Search term strategy**: Unified contradictory docs; confirmed Tier 1 (15 first names) is primary strategy; updated script references
+- **Dead code cleanup**: Removed root `.eslintrc.json` (Biome is the formatter); updated stale schema READMEs; clarified formatter in CI docs
+- **GTM/GA4 mismatch**: Fixed analytics config (GTM container ID vs GA4 measurement ID)
+- **Type safety**: Expanded root `tsc --noEmit` to check `scripts/`, `utils/`, `shared/`, `e2e/` (not just `src/`)
+- **D1 timestamps**: Verified all Prisma create paths use `nowEpoch()` for epoch millisecond initialization
+- **Test coverage**: Added tests for API usage controller, auth logging, naturalLanguageSearch DB failure path, and connection health checks
+
+See [changelog/2026-08-06.md](changelog/2026-08-06.md) for full audit details.
+
+---
+
 ### March 30, 2026 - D1 Migration (PostgreSQL → Cloudflare D1)
 
 - **Database cutover**: Migrated from PostgreSQL/Render/Hyperdrive to Cloudflare D1 (SQLite at edge)
