@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/cloudflare";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
+import { HttpStatus } from "../../../utils/http-errors";
 import type { AppEnv, Env } from "./bindings";
 import { apiUsageRoutes } from "./controllers/api-usage";
 import { propertyRoutes } from "./controllers/property";
@@ -59,7 +60,10 @@ app.get("/health", async (c) => {
 			runtime: "cloudflare-workers",
 		});
 	} catch (err) {
-		return c.json({ status: "error", error: getErrorMessage(err) }, 503);
+		return c.json(
+			{ status: "error", error: getErrorMessage(err) },
+			HttpStatus.SERVICE_UNAVAILABLE,
+		);
 	}
 });
 
@@ -73,10 +77,13 @@ app.route("/api/usage", apiUsageRoutes);
 app.onError((err, c) => {
 	console.error("Unhandled error:", err);
 	Sentry.captureException(err);
-	return c.json({ error: "Internal server error" }, 500);
+	return c.json(
+		{ error: "Internal server error" },
+		HttpStatus.INTERNAL_SERVER_ERROR,
+	);
 });
 
-app.notFound((c) => c.json({ error: "Not found" }, 404));
+app.notFound((c) => c.json({ error: "Not found" }, HttpStatus.NOT_FOUND));
 
 // ── Queue consumer (Phase 2) ──────────────────────────────────────
 

@@ -5,6 +5,7 @@
 
 import type { Prisma } from "@prisma/client";
 import { Hono } from "hono";
+import { HttpStatus } from "../../../../utils/http-errors";
 import type { AppEnv } from "../bindings";
 import { apiKeyAuth, validateBody, validateQuery } from "../middleware/auth";
 import type {
@@ -54,7 +55,7 @@ app.get("/jobs/:jobId", async (c) => {
 
 	const job = await prisma.scrapeJob.findUnique({ where: { id: jobId } });
 	if (!job) {
-		return c.json({ error: "Job not found" }, 404);
+		return c.json({ error: "Job not found" }, HttpStatus.NOT_FOUND);
 	}
 
 	return c.json({
@@ -138,7 +139,7 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
 				error: "AI service unavailable",
 				message: "Unable to process natural language query.",
 			},
-			503,
+			HttpStatus.SERVICE_UNAVAILABLE,
 		);
 	}
 
@@ -235,7 +236,10 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
 			},
 		});
 	} catch {
-		return c.json({ error: "Database query failed" }, 503);
+		return c.json(
+			{ error: "Database query failed" },
+			HttpStatus.SERVICE_UNAVAILABLE,
+		);
 	}
 });
 

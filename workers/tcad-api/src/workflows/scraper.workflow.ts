@@ -15,6 +15,13 @@ import {
 	type WorkflowEvent,
 	type WorkflowStep,
 } from "cloudflare:workers";
+import {
+	API_CLIENT_TIMEOUT_MS,
+	DEFAULT_QUERY_LIMIT,
+	MAX_QUERY_LIMIT as TCAD_PAGE_SIZE,
+} from "../../../../utils/constants";
+import { HttpStatus } from "../../../../utils/http-errors";
+import { DURATION_MS, TIME_MS } from "../../../../utils/units";
 import type { Env } from "../bindings";
 import { createPrisma } from "../db";
 import type { PropertyData, ScrapeParams } from "../types/property.types";
@@ -38,7 +45,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 			// Phase 3: const cached = await this.env.TOKEN_CACHE.get("tcad-token");
 			const res = await fetch(this.env.TOKEN_WORKER_URL, {
 				headers: { Authorization: `Bearer ${this.env.TOKEN_WORKER_SECRET}` },
-				signal: AbortSignal.timeout(10_000),
+				signal: AbortSignal.timeout(DURATION_MS.TEN_SECONDS),
 			});
 			if (!res.ok) throw new Error(`Token worker returned ${res.status}`);
 			const { token } = (await res.json()) as {
@@ -189,13 +196,10 @@ async function fetchTCADProperties(
 	year: number,
 ): Promise<PropertyData[]> {
 	const allProperties: PropertyData[] = [];
-	const pageSize = 1000;
 	let totalCount = 0;
-	const maxPages = 100;
-	const rateLimitDelayMs = 1000;
 
-	for (let page = 1; page <= maxPages; page++) {
-		const url = `${TCAD_API_URL}?page=${page}&pageSize=${pageSize}`;
+	for (let page = 1; page <= DEFAULT_QUERY_LIMIT; page++) {
+		const url = `${TCAD_API_URL}?page=${page}&pageSize=${TCAD_PAGE_SIZE}`;
 		const body = JSON.stringify({
 			pYear: { operator: "=", value: String(year) },
 			fullTextSearch: { operator: "match", value: searchTerm },
@@ -209,14 +213,18 @@ async function fetchTCADProperties(
 				Authorization: token,
 			},
 			body,
-			signal: AbortSignal.timeout(30_000),
+			signal: AbortSignal.timeout(API_CLIENT_TIMEOUT_MS),
 		});
 
-		if (res.status === 401) {
+		if (res.status === HttpStatus.UNAUTHORIZED) {
 			throw new Error("TOKEN_EXPIRED");
 		}
 
-		if (res.status === 500 || res.status === 502 || res.status === 503) {
+		if (
+			res.status === HttpStatus.INTERNAL_SERVER_ERROR ||
+			res.status === HttpStatus.BAD_GATEWAY ||
+			res.status === HttpStatus.SERVICE_UNAVAILABLE
+		) {
 			console.warn(
 				`TCAD API returned ${res.status} for "${searchTerm}" page ${page}`,
 			);
@@ -251,11 +259,12 @@ async function fetchTCADProperties(
 			});
 		}
 
-		if (results.length < pageSize || allProperties.length >= totalCount) break;
+		if (results.length < TCAD_PAGE_SIZE || allProperties.length >= totalCount)
+			break;
 
 		// Rate limit delay between pagination requests
-		if (page < maxPages) {
-			await new Promise((resolve) => setTimeout(resolve, rateLimitDelayMs));
+		if (page < DEFAULT_QUERY_LIMIT) {
+			await new Promise((resolve) => setTimeout(resolve, TIME_MS.SECOND));
 		}
 	}
 

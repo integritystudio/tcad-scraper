@@ -8,6 +8,7 @@
 
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { HttpStatus } from "../../../../utils/http-errors";
 import { getErrorMessage } from "../utils/error-helpers";
 
 const searchFiltersSchema = z.object({
@@ -202,7 +203,11 @@ async function callOpenAIAPI(
 	}
 }
 
-const FALLBACK_STATUSES = [401, 402, 429];
+const FALLBACK_STATUSES: readonly number[] = [
+	HttpStatus.UNAUTHORIZED,
+	HttpStatus.PAYMENT_REQUIRED,
+	HttpStatus.TOO_MANY_REQUESTS,
+];
 
 function shouldFallbackToOpenAI(error: unknown): boolean {
 	if (!(error instanceof Error)) return false;

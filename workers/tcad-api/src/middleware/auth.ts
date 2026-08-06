@@ -4,6 +4,7 @@
  */
 
 import type { MiddlewareHandler } from "hono";
+import { HttpStatus } from "../../../../utils/http-errors";
 import type { AppEnv } from "../bindings";
 import { getErrorMessage } from "../utils/error-helpers";
 
@@ -15,7 +16,10 @@ export const apiKeyAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
 	const apiKey = c.req.header("x-api-key");
 
 	if (!apiKey || apiKey !== c.env.API_KEY) {
-		return c.json({ error: "Unauthorized - Invalid API key" }, 401);
+		return c.json(
+			{ error: "Unauthorized - Invalid API key" },
+			HttpStatus.UNAUTHORIZED,
+		);
 	}
 
 	return next();
