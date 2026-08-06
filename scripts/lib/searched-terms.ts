@@ -19,7 +19,7 @@ export interface SearchedTermSets {
 export async function getSearchedTermSets(): Promise<SearchedTermSets> {
 	const [analyticsRows, propTermRows, recentJobs] = await Promise.all([
 		prisma.searchTermAnalytics.findMany({
-			select: { searchTerm: true, totalResults: true },
+			select: { searchTerm: true, totalResults: true, successfulSearches: true },
 		}),
 		prisma.property.groupBy({
 			by: ["searchTerm"],
@@ -36,6 +36,11 @@ export async function getSearchedTermSets(): Promise<SearchedTermSets> {
 	const allSearched = new Set<string>();
 	const successful = new Set<string>();
 	for (const r of analyticsRows) {
+		// A term whose every attempt failed does not count as searched — the
+		// March/April 2026 infra failures otherwise hid top-yield terms (David,
+		// LIVING, Smith, ...) from the generator forever. Failed-only terms
+		// become eligible again once outside the recent-jobs window.
+		if (r.successfulSearches === 0 && r.totalResults === 0) continue;
 		const lower = r.searchTerm.toLowerCase();
 		allSearched.add(lower);
 		if (r.totalResults > 0) successful.add(lower);
