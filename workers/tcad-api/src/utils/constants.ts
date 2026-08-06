@@ -1,17 +1,7 @@
 /**
- * Worker constants — subset of server/src/utils/constants.ts
- * that are needed in the Cloudflare Worker context.
+ * Worker-specific constants. Values shared with the rest of the repo
+ * live in utils/constants.ts at the repo root.
  */
-
-// ── TCAD year ───────────────────────────────────────────────────────
-export const DEFAULT_TCAD_YEAR = 2025;
-
-// ── Default limits ──────────────────────────────────────────────────
-export const DEFAULT_QUERY_LIMIT = 100;
-export const MAX_QUERY_LIMIT = 1000;
-export const LOG_PAGE_SIZE = 50;
-export const DAYS_PER_WEEK = 7;
-export const MAX_LOOKBACK_DAYS = 90;
 
 // ── TCAD API ────────────────────────────────────────────────────────
 export const TCAD_API_URL =
@@ -32,7 +22,3 @@ export const UPSERT_MICRO_CHUNK_SIZE = Math.floor(
 // ── Cache TTL ───────────────────────────────────────────────────────
 export const RESPONSE_CACHE_TTL_SECONDS = 300;
 export const TOKEN_CACHE_TTL_SECONDS = 270;
-
-// ── Formatting ──────────────────────────────────────────────────────
-export const PERCENT_MULTIPLIER = 100;
-export const COST_DECIMAL_PLACES = 6;

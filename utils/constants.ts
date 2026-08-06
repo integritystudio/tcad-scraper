@@ -54,6 +54,7 @@ export const DEFAULT_RATE_LIMIT_DELAY_MS = DURATION_MS.FIVE_SECONDS;
 export const PROGRESS_LOG_INTERVAL = 100;
 export const LOG_PAGE_SIZE = 50;
 export const MAX_QUERY_LIMIT = 1000;
+export const MAX_LOOKBACK_DAYS = 90;
 
 // ── Recent jobs lookback ─────────────────────────────────────────────
 export const RECENT_JOBS_LOOKBACK_MS = DAYS_PER_WEEK * TIME_MS.DAY;

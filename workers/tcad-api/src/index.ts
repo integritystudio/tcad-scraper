@@ -14,7 +14,7 @@ import { propertyRoutes } from "./controllers/property";
 import { createPrisma } from "./db";
 import { dateToEpoch, nowEpoch } from "./utils/epoch-dates";
 import { getErrorMessage } from "./utils/error-helpers";
-import { TIME_MS } from "./utils/units";
+import { TIME_MS } from "../../../utils/units";
 
 const app = new Hono<AppEnv>();
 

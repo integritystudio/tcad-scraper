@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { DEFAULT_QUERY_LIMIT } from "../utils/constants";
+import { DEFAULT_QUERY_LIMIT } from "../../../../utils/constants";
 
 const MIN_TERM_LENGTH = 4;
 

@@ -5,7 +5,9 @@
 
 import type { Prisma } from "@prisma/client";
 import { Hono } from "hono";
+import { DEFAULT_QUERY_LIMIT } from "../../../../utils/constants";
 import { HttpStatus } from "../../../../utils/http-errors";
+import { TIME_MS } from "../../../../utils/units";
 import type { AppEnv } from "../bindings";
 import { apiKeyAuth, validateBody, validateQuery } from "../middleware/auth";
 import type {
@@ -20,10 +22,8 @@ import {
 	propertyFilterSchema,
 	scrapeRequestSchema,
 } from "../types/property.types";
-import { DEFAULT_QUERY_LIMIT } from "../utils/constants";
 import { epochToISO, nowEpoch } from "../utils/epoch-dates";
 import { transformPropertyToSnakeCase } from "../utils/property-transformers";
-import { TIME_MS } from "../utils/units";
 
 // TODO: Update to 2026 when TCAD publishes 2026 appraised values
 const DISPLAY_YEAR = 2025;
