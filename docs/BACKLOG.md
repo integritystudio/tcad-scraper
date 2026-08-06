@@ -21,10 +21,10 @@ No workflow runs Playwright despite "126/126 E2E passing" claims in README/CLAUD
 
 `docs/search_results.md` (2026-03-20, pre-D1 data) concludes "skip all common first names" while `docs/2025_BACKFILL_QUICK_REFERENCE.md` and `docs/2025_BACKFILL_OPTIMIZATION.json` (2026-03-30) make first names the entire Tier 1. Decide which analysis wins, cross-reference or archive the loser. Also: the Quick Reference's primary Tier 1/2 command `npx tsx scripts/enqueue-terms.ts` references a deleted script — replace with `generate-next-200-terms.ts --enqueue` or `lib/queue-utils.ts::enqueueBatch()`. -- `docs/search_results.md`, `docs/2025_BACKFILL_QUICK_REFERENCE.md`
 
-### AUD-04: .eslintrc.json is dead at root but load-bearing for server/
-**Priority**: P3 | **Source**: root audit (2026-08-06)
+### AUD-04: Root .eslintrc.json is dead — delete it
+**Priority**: P3 | **Source**: root audit (2026-08-06; corrected by post-commit review)
 
-Root lint is Biome (`"lint": "biome check ."`); root has no eslint dependency, so `.eslintrc.json` is unrunnable from root — but `server/`'s `npm run lint` resolves config by walking up to it (server has no eslint config of its own). Give `server/` its own `eslint.config.js`, then delete the root file. Also rename `ci.yml`'s "Run ESLint (Root)" step, which actually runs Biome with `continue-on-error: true`. -- `.eslintrc.json`, `server/package.json`, `.github/workflows/ci.yml:43-49`
+Root lint is Biome (`"lint": "biome check ."`) and root has no eslint dependency, so `.eslintrc.json` is unrunnable from root. `server/` has its own `server/.eslintrc.json` with `"root": true`, so server's lint never reads the root file either — it can simply be deleted. Also rename `ci.yml`'s "Run ESLint (Root)" step, which actually runs Biome with `continue-on-error: true`. -- `.eslintrc.json`, `.github/workflows/ci.yml:43-49`
 
 ### AUD-05: Auto-generated schema READMEs describe deleted files
 **Priority**: P3 | **Source**: src.xml audit (2026-08-06)
