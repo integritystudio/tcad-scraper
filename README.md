@@ -172,6 +172,7 @@ The application uses **API-direct scraping**: direct HTTP calls to the TCAD back
 4. **Cron Triggers** (Cloudflare)
    - Token refresh (every 4 min)
    - Stale job cleanup (hourly)
+   - Search term optimization (daily, 3am)
    - Monitored search execution (every 6 hours)
 
 ## Project Structure
@@ -196,20 +197,7 @@ tcad-scraper/
 │   ├── utils/                  # list-all-search-terms
 │   └── repomix/                # Repomix tooling
 ├── utils/                      # Shared constants (constants.ts)
-├── server/                     # Legacy backend (Express + Prisma, reference only)
-│   ├── prisma/                 # Schema + migrations (canonical location)
-│   ├── scripts/                # DB setup, test infra, verification
-│   └── src/
-│       ├── index.ts            # Express + Sentry (read-only DB queries)
-│       ├── config/             # App config + Swagger
-│       ├── controllers/        # Route handlers (property, api-usage)
-│       ├── lib/                # Core services (tcad-api-client, claude, redis-cache, metrics)
-│       ├── middleware/         # Auth, error, validation, xcontroller
-│       ├── routes/             # Express routes
-│       ├── services/           # code-complexity, search-term-optimizer
-│       ├── types/              # TypeScript types (property, queue)
-│       └── utils/              # error-helpers, json-ld, timing
-├── shared/                     # Shared types (index.ts, json-ld.utils.ts)
+├── shared/                     # Shared types (index.ts, property.types.ts, json-ld.utils.ts)
 ├── src/                        # Frontend (React 19 + Vite)
 │   ├── components/
 │   │   ├── features/PropertySearch/  # Search UI, PropertyCard, AnswerBox
@@ -217,7 +205,6 @@ tcad-scraper/
 │   │   └── ui/                       # Badge, Button, Card, Icon, Input, LoadingSkeleton
 │   ├── hooks/                  # usePropertySearch, useAnalytics, usePagination
 │   ├── lib/                    # analytics, api-config, sentry, xcontroller
-│   ├── services/               # api.service
 │   └── utils/                  # formatters, helpers
 ├── workers/
 │   ├── tcad-api/               # Production API (CF Workers + Hono)
@@ -328,7 +315,7 @@ model MonitoredSearch {
 
 ### Prerequisites
 
-- **Node.js 20+** and npm
+- **Node.js 22** (pinned in `.node-version`) and npm
 - **Doppler CLI** (for secrets management — all credentials are remote)
 
 ### Installation
@@ -350,7 +337,7 @@ The application uses Cloudflare D1 (SQLite). No external database connection nee
 
 For local development, `wrangler dev` creates a local SQLite file at `.wrangler/state/v3/d1/`.
 
-4. **Set up Workers secrets:**
+3. **Set up Workers secrets:**
 ```bash
 cd workers/tcad-api
 
@@ -363,20 +350,20 @@ npx wrangler secret put TOKEN_WORKER_URL
 npx wrangler secret put TOKEN_WORKER_SECRET
 ```
 
-5. **Initialize local D1 database:**
+4. **Initialize local D1 database:**
 ```bash
 cd workers/tcad-api
 npx prisma generate
 npx wrangler d1 execute tcad-db --local --file prisma/migrations/0001_init.sql
 ```
 
-6. **Start the Workers API (local dev):**
+5. **Start the Workers API (local dev):**
 ```bash
 cd workers/tcad-api
 npm run dev
 ```
 
-7. **Start the React frontend** (separate terminal):
+6. **Start the React frontend** (separate terminal):
 ```bash
 # From project root
 npm run dev
@@ -541,8 +528,8 @@ curl "https://api.alephatx.info/api/properties/history?limit=10" \
 ### Batch Enqueue (CLI Scripts)
 
 ```bash
-# Config-driven batch types (18 types)
-doppler run -- npx tsx scripts/enqueue-batch.ts <batch-type>
+# Generate and enqueue next 200 candidate terms
+doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue
 
 # Tail term optimizer
 TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts
@@ -559,11 +546,9 @@ Tokens expire every ~5 minutes. In Workers, a cron trigger refreshes tokens ever
 npm run dev                        # Local dev server (wrangler dev)
 npm run deploy                     # Deploy to Cloudflare
 
-# Server (from server/, legacy)
-npm test                           # Unit tests (Vitest, 680+ tests)
-npm run test:integration           # Integration tests
-npm run prisma:generate            # Generate Prisma client
-npm run prisma:studio              # Open Prisma Studio
+# Frontend / scripts (from repo root)
+npx vitest run                     # Frontend unit tests (130 tests)
+npx vitest run --dir scripts --config /dev/null  # Scripts tests (29 tests)
 ```
 
 ## Deployment
@@ -657,8 +642,8 @@ The TCAD Scraper frontend implements comprehensive user behavior tracking using 
 ### Implementation
 
 Analytics are implemented using:
-- **Core Library**: `src/lib/analytics.ts` (201 lines)
-- **React Hook**: `src/hooks/useAnalytics.ts` (58 lines)
+- **Core Library**: `src/lib/analytics.ts`
+- **React Hook**: `src/hooks/useAnalytics.ts`
 - **Error Boundary**: `src/components/ErrorBoundary.tsx`
 - **Tracking Scripts**: Loaded in `index.html` (GA4 + Meta Pixel)
 
@@ -666,13 +651,12 @@ Components with integrated tracking:
 - `App.tsx` - Page view tracking
 - `PropertySearchContainer.tsx` - Search and results tracking
 - `PropertyCard.tsx` - Property view tracking
-- `ExampleQueries.tsx` - Example click tracking
 
 ### Documentation
 
 For complete analytics implementation details, dashboard configuration, troubleshooting, and privacy compliance:
 
-📖 **[docs/ANALYTICS.md](docs/ANALYTICS.md)** - Comprehensive analytics guide (1,052 lines)
+📖 **[docs/ANALYTICS.md](docs/ANALYTICS.md)** - Comprehensive analytics guide
 
 Includes:
 - Event tracking reference with parameters
@@ -816,7 +800,7 @@ The TCAD API requires a specific request body format. Using the wrong format ret
 - **Auth header**: `Authorization: <token>` — token from token worker already includes "Bearer " prefix
 - **Response shape**: `{ totalProperty: { propertyCount: N }, results: [...] }`
 
-The live implementation is `workers/tcad-api/src/workflows/scraper.workflow.ts`; `server/src/lib/tcad-api-client.ts` is the original reference implementation.
+The live implementation is `workers/tcad-api/src/workflows/scraper.workflow.ts` (the original `server/src/lib/tcad-api-client.ts` reference implementation lives in git history).
 
 ## Recent Updates
 
@@ -828,7 +812,7 @@ See [docs/CHANGELOG.md](docs/CHANGELOG.md) for complete version history.
 - **KV offload for large scrape results** — Workflow step outputs capped at 1MiB; large terms stored in RESPONSE_CACHE KV with 1hr TTL
 - **Search Term Efficiency Optimization** — Tier 1-4 strategy: Tier 1 (15 terms) = 19.6% coverage, Tier 1+2 (50 terms) = 45.1%, Tier 1+2+3 (200 terms) = 92.1%
 - **Full Cloudflare stack** — All infrastructure on Cloudflare: Workers, D1, KV, Queues, Workflows, Crons
-- 680+ unit tests (legacy `server/` suite) + frontend unit tests, 126 E2E tests passing
+- 130 frontend + 29 scripts + 16 workers unit tests, 126 E2E tests passing
 
 ## Documentation
 
@@ -851,8 +835,7 @@ Comprehensive documentation is available in the `docs/` directory:
 ### Archived Documentation
 Pre-migration docs (Express/BullMQ/Redis/PostgreSQL era) now live in **[docs/archive/](docs/archive/)**: SETUP, TESTING, API, SECURITY, MONITORING, CI-CD, TOKEN_MANAGEMENT, doppler-setup, BRANCH-PROTECTION, TEST-MOCK-PATHS, and the two Cloudflare planning docs.
 
-### Server-Specific Documentation
-- **[server/README.md](server/README.md)** - Server setup, troubleshooting, requeue scripts
+### Scripts Documentation
 - **[scripts/README.md](scripts/README.md)** - Full scripts inventory and usage
 
 ---

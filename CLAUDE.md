@@ -12,7 +12,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue**: Cloudflare Queues + Workflows (replaced BullMQ + Redis)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (130 frontend + 16 workers tests; 680+ legacy server tests; 126/126 E2E via Playwright)
+- **Testing**: Vitest (130 frontend + 29 scripts + 16 workers tests; 126/126 E2E via Playwright)
 - **Scale**: 170K+ properties in D1 (2025 tax year; count via `/health`)
 
 ```
@@ -23,7 +23,7 @@ React (5174) → CF Workers (Hono) → D1 (SQLite at edge)
                TCAD API → Prisma upsert via D1
 ```
 
-**Legacy stack** (still in `server/` for reference): Express + BullMQ + Redis. Production traffic now served by Workers.
+**Legacy stack**: the Express/BullMQ/Redis `server/` directory was removed August 2026 (shared utilities moved to `scripts/lib/` and `shared/types/`). The original implementations live in git history.
 
 All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler project**: `integrity-studio` | **Config**: `dev` / `prod`.
 
@@ -44,18 +44,12 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `src/utils/json-array.ts` - `serializeIds()`/`deserializeIds()` for JSON-serialized arrays
 - `wrangler.toml` - D1, KV, Queues, Workflows, Crons, route config
 
-### Legacy Backend (`server/`) — Reference only
-- `src/index.ts` - Express + Sentry (read-only DB queries, no scraping endpoints)
-- `src/services/search-term-optimizer.ts` - Search term optimization logic
-- `prisma/schema.prisma` - Legacy PostgreSQL schema (reference only; canonical schema is `workers/tcad-api/prisma/schema.prisma`)
-- BullMQ queues, token refresh service, schedulers, CLI tools removed (287ca63)
-
 ### Scripts (`scripts/` — root level, run from repo root)
 - `enqueue-tail-terms.ts` - Multi-phase tail term optimizer (analytics + owner-name mining)
 - `generate-next-200-terms.ts` - Generate next candidate terms for backfill (`--enqueue` sends to Workers API)
 - `queue-results.ts` - Recent scrape jobs + property count from the Workers API (`npx tsx scripts/queue-results.ts [--limit N]`)
-- `config/batch-configs.ts` - 19 batch type definitions
-- `lib/` - queue-utils (`enqueueBatch()` via Workers API), backfill-runner, fallback-terms, searched-terms, backfill-utils
+- `config/batch-configs.ts` - 10 batch type definitions
+- `lib/` - queue-utils (`enqueueBatch()` via Workers API), backfill-runner, fallback-terms, searched-terms, backfill-utils, search-term-deduplicator, error-helpers, logger
 - See [scripts/README.md](scripts/README.md) for full reference
 - **Search Term Strategy**: See [SEARCH_TERM_STRATEGY.md](SEARCH_TERM_STRATEGY.md) for Tier 1-4 efficiency breakdown and [SEARCH_TERM_ANALYSIS.md](SEARCH_TERM_ANALYSIS.md) for full ranked term list
 
@@ -74,8 +68,6 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 │   ├── prisma/           # D1/SQLite schema + migrations (canonical)
 │   └── src/              # index, controllers, workflows, middleware, lib, utils
 ├── src/                  # Frontend (React + Vite)
-├── server/               # Legacy backend (Express + BullMQ + Prisma)
-│   └── prisma/           # Legacy PostgreSQL schema (reference only)
 ├── scripts/              # CLI tools, batch scripts, backfill, enqueue
 ├── e2e/                  # Playwright E2E tests
 ├── utils/                # Shared constants
@@ -84,13 +76,20 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 └── docs/                 # All documentation
 ```
 
+### Efficient Code Reads (repomix packs)
+Regenerate with `npm run repomix` (outputs in `docs/repomix/`; also retrains the zstd dict in `.condense/`):
+- `token-tree.txt` — per-file token counts; check first to decide what's worth reading
+- `compressed.xml` — structure-only (tree-sitter: signatures/types, no bodies) for architecture questions
+- `full.xml` — grep for `## File: <path>` markers to jump to specific files without opening each one
+- `.condense/dict_typescript.zdict` is a zstd *compression* dictionary (storage only) — it cannot make reads cheaper; don't use it for that
+
 ---
 
 ## Git Commands
 
-**Always use absolute paths or run from repo root.** Tests run from `server/`, so `git add server/src/...` resolves to `server/server/src/...`. Use:
+**Always use absolute paths or run from repo root.** Commands run from subdirectories (e.g. `workers/tcad-api/`) make relative `git add` paths resolve wrong. Use:
 ```bash
-git -C /Users/alyshialedlie/code/is-public-sites/tcad-scraper add server/src/file.ts
+git -C /Users/alyshialedlie/code/is-public-sites/tcad-scraper add workers/tcad-api/src/file.ts
 ```
 
 ---
@@ -101,7 +100,6 @@ git -C /Users/alyshialedlie/code/is-public-sites/tcad-scraper add server/src/fil
 # Dev
 npm install && doppler run -- npm run dev          # Frontend
 cd workers/tcad-api && npm run dev                  # Workers API (local)
-cd server && npm install && doppler run -- npm run dev  # Legacy backend
 
 # Workers Management
 cd workers/tcad-api
@@ -129,9 +127,8 @@ doppler run -p integrity-studio -c prd -- sh -c 'curl -s -X POST \
 npx vitest run               # Frontend unit tests (130 tests, <5 sec; `npm test` = watch mode)
 npm run test:coverage        # Frontend coverage report
 npm run test:e2e             # E2E tests (126 tests, all passing)
-cd workers/tcad-api && npm test        # Workers tests
-cd server && npm test                  # Legacy server suite (680+ tests)
-cd server && npm run test:integration  # Legacy integration tests
+cd workers/tcad-api && npm test        # Workers tests (16 tests)
+npx vitest run --dir scripts --config /dev/null  # Scripts tests (29 tests)
 
 # Scraping (via Workers API)
 curl -X POST "https://api.alephatx.info/api/properties/scrape" \
@@ -194,10 +191,10 @@ Expected response: `{"status":"ok","propertyCount":N,"runtime":"cloudflare-worke
 
 - **Prisma selects**: Only use fields from `workers/tcad-api/prisma/schema.prisma`. `SearchTermAnalytics` has `totalSearches`, NOT `searchCount`
 - **No `any`**: Use `unknown` + type guards. Use `getErrorMessage()` from `utils/error-helpers.ts`
-- **Workers logging**: Use `console.*` (Workers structured logging). Legacy `server/` uses Pino logger
+- **Workers logging**: Use `console.*` (Workers structured logging). CLI scripts use the console shim in `scripts/lib/logger.ts`
 - **Workers env**: Access via `c.env.X` (Hono context), not `process.env.X`
 - **Auth**: Workers uses `x-api-key` header checked against `env.API_KEY` (value = Doppler `TCAD_API_KEY`)
-- **TCAD API request format**: Body must use `{ pYear: { operator: "=", value }, fullTextSearch: { operator: "match", value } }` with pagination as query params `?page=N&pageSize=N`. Token passed as `Authorization: token` (token already includes "Bearer " prefix from token worker — do NOT add a second "Bearer " prefix). See `server/src/lib/tcad-api-client.ts` for the canonical implementation
+- **TCAD API request format**: Body must use `{ pYear: { operator: "=", value }, fullTextSearch: { operator: "match", value } }` with pagination as query params `?page=N&pageSize=N`. Token passed as `Authorization: token` (token already includes "Bearer " prefix from token worker — do NOT add a second "Bearer " prefix). The canonical implementation is `workers/tcad-api/src/workflows/scraper.workflow.ts` (the original `server/src/lib/tcad-api-client.ts` reference lives in git history)
 - **D1 dates**: Always use `nowEpoch()` for date writes, `epochToISO()` for API responses. Never store ISO 8601 strings — D1 will corrupt them on read
 - **D1 arrays**: `newPropertyIds` is `String` (JSON-serialized). Use `JSON.stringify()` on write, `JSON.parse()` on read
 - **No `mode: "insensitive"`**: SQLite LIKE is case-insensitive for ASCII by default. Prisma + SQLite throws on `mode: "insensitive"`
