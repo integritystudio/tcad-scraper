@@ -31,10 +31,10 @@ Consolidates the former `SEARCH_TERM_STRATEGY.md`, `SEARCH_TERM_ANALYSIS.md`, `S
 **Tier 1** (baseline / fast validation):
 David (8,660), Robert (6,628), LIVING (5,760), Home (5,318), Fami (4,700), James (4,586), steph (4,342), Paul (4,251), eliza (4,147), Rich (4,024), Mark (3,968), estat (3,935), Christopher (3,803), Martin (3,764), Thomas (3,740)
 
-**Tier 2** (maintenance mode):
-holdi, Sand, Maria, Carl, Rock, Daniel, Mary, Wood, marie, Vista, TEXAS, Ridge, Scott, Angel, CITY, Green, White, VILLA, JOSE, West, Michelle, Matthew, Susan, Manor, Assoc, Pass, Johnson, Linda, Jeffrey, STATE, Andrew, laure, Joseph, Ranch, Bend, Garcia
+**Tier 2** (maintenance mode, ranks 16-50):
+holdi, Sand, Maria, Carl, Rock, Daniel, Mary, Wood, marie, Vista, TEXAS, Ridge, Scott, Angel, CITY, Green, White, VILLA, JOSE, West, Michelle, Matthew, Susan, Manor, Assoc, Pass, Johnson, Linda, Jeffrey, STATE, Andrew, laure, Joseph, Ranch, Bend
 
-**Tier 3** (periodic deep backfills): ranks 51-200 — full list with yields in the [data file](2025_BACKFILL_OPTIMIZATION.json).
+**Tier 3** (periodic deep backfills): ranks 51-200, starting at Garcia — full list with yields in the [data file](2025_BACKFILL_OPTIMIZATION.json). Note: the data file's `tier_2` array and `tier_2_weekly` command use an extended 49-term Tier 2 (ranks 16-64); the 35-term definition here is canonical.
 
 **Tier 4**: extreme diminishing returns; skip unless targeting 100% coverage. Prefer algorithmic generation (owner-name mining) instead.
 
