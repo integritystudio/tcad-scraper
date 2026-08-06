@@ -10,9 +10,12 @@ import type { AppEnv } from "../bindings";
 import {
 	COST_DECIMAL_PLACES,
 	DAYS_PER_WEEK as LOOKBACK_DAYS,
+	LOG_PAGE_SIZE,
 	MAX_LOOKBACK_DAYS,
+	MAX_QUERY_LIMIT,
 	PERCENT_MULTIPLIER,
 } from "../utils/constants";
+import { TIME_MS } from "../utils/units";
 
 const app = new Hono<AppEnv>();
 
@@ -22,10 +25,7 @@ app.get("/stats", async (c) => {
 	const daysParam = c.req.query("days");
 	const environment = c.req.query("environment");
 
-	const daysNum = Math.min(
-		parseInt(daysParam ?? "", 10) || LOOKBACK_DAYS,
-		MAX_LOOKBACK_DAYS,
-	);
+	const daysNum = Math.min(Number(daysParam) || LOOKBACK_DAYS, MAX_LOOKBACK_DAYS);
 	const startDate = new Date();
 	startDate.setDate(startDate.getDate() - daysNum);
 	const startDateEpoch = String(startDate.getTime());
@@ -154,8 +154,8 @@ app.get("/stats", async (c) => {
 app.get("/logs", async (c) => {
 	const prisma = c.get("prisma");
 	const limitNum = Math.min(
-		parseInt(c.req.query("limit") || "50", 10) || 50,
-		1000,
+		Number(c.req.query("limit")) || LOG_PAGE_SIZE,
+		MAX_QUERY_LIMIT,
 	);
 	const offsetNum = parseInt(c.req.query("offset") || "0", 10) || 0;
 	const environment = c.req.query("environment");
@@ -211,7 +211,7 @@ app.get("/alerts", async (c) => {
 		prisma.apiUsageLog.count({
 			where: {
 				success: false,
-				timestamp: { gte: String(Date.now() - 24 * 60 * 60 * 1000) },
+				timestamp: { gte: String(Date.now() - TIME_MS.DAY) },
 			},
 		}),
 	]);

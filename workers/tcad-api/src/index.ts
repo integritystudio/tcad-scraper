@@ -13,6 +13,7 @@ import { propertyRoutes } from "./controllers/property";
 import { createPrisma } from "./db";
 import { dateToEpoch, nowEpoch } from "./utils/epoch-dates";
 import { getErrorMessage } from "./utils/error-helpers";
+import { TIME_MS } from "./utils/units";
 
 const app = new Hono<AppEnv>();
 
@@ -151,7 +152,7 @@ async function refreshToken(env: Env): Promise<void> {
 async function cleanupStaleJobs(env: Env): Promise<void> {
 	try {
 		const prisma = createPrisma(env.DB);
-		const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+		const cutoff = new Date(Date.now() - TIME_MS.DAY);
 		const result = await prisma.scrapeJob.updateMany({
 			where: { status: "processing", startedAt: { lt: dateToEpoch(cutoff) } },
 			data: {

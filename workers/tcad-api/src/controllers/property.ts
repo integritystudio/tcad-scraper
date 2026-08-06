@@ -22,6 +22,7 @@ import {
 import { DEFAULT_QUERY_LIMIT } from "../utils/constants";
 import { epochToISO, nowEpoch } from "../utils/epoch-dates";
 import { transformPropertyToSnakeCase } from "../utils/property-transformers";
+import { TIME_MS } from "../utils/units";
 
 // TODO: Update to 2026 when TCAD publishes 2026 appraised values
 const DISPLAY_YEAR = 2025;
@@ -292,7 +293,7 @@ app.get("/stats", async (c) => {
 			prisma.property.count({ where: yearFilter }),
 			prisma.scrapeJob.count(),
 			prisma.scrapeJob.count({
-				where: { startedAt: { gte: String(Date.now() - 24 * 60 * 60 * 1000) } },
+				where: { startedAt: { gte: String(Date.now() - TIME_MS.DAY) } },
 			}),
 			prisma.property.groupBy({
 				by: ["city"],
