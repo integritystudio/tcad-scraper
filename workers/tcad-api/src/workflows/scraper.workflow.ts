@@ -30,6 +30,17 @@ import { TCAD_API_URL, UPSERT_CHUNK_SIZE } from "../utils/constants";
 import { nowEpoch } from "../utils/epoch-dates";
 import { getErrorMessage } from "../utils/error-helpers";
 
+/** Derive success_rate from the just-incremented counters (Prisma upserts can't compute across columns). */
+async function recomputeSuccessRate(
+	prisma: ReturnType<typeof createPrisma>,
+	searchTerm: string,
+): Promise<void> {
+	await prisma.$executeRaw`
+		UPDATE search_term_analytics
+		SET success_rate = CAST(successful_searches AS REAL) / total_searches
+		WHERE search_term = ${searchTerm} AND total_searches > 0`;
+}
+
 export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 	async run(event: WorkflowEvent<ScrapeParams>, step: WorkflowStep) {
 		const { searchTerm, year } = event.payload;
@@ -155,6 +166,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 						updatedAt: now,
 					},
 				});
+				await recomputeSuccessRate(prisma, searchTerm);
 			});
 
 			return upsertResult;
@@ -170,6 +182,28 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 						completedAt: nowEpoch(),
 					},
 				});
+
+				// Record the failure in analytics so successRate reflects reality
+				const now = nowEpoch();
+				await prisma.searchTermAnalytics.upsert({
+					where: { searchTerm },
+					update: {
+						totalSearches: { increment: 1 },
+						failedSearches: { increment: 1 },
+						lastSearched: now,
+						updatedAt: now,
+					},
+					create: {
+						searchTerm,
+						termLength: searchTerm.length,
+						totalSearches: 1,
+						failedSearches: 1,
+						lastSearched: now,
+						createdAt: now,
+						updatedAt: now,
+					},
+				});
+				await recomputeSuccessRate(prisma, searchTerm);
 			});
 			throw err;
 		}
