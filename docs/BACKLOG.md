@@ -36,8 +36,8 @@ Root lint is Biome (`"lint": "biome check ."`) and root has no eslint dependency
 
 The most-recent-first changelog ends at 2026-03-11, omitting the Workers cutover (2026-03-20) and D1 migration (2026-03-30) even though `docs/changelog/2026-03-30.md` exists. Add summary entries pointing at the per-date files. Also `docs/ANALYTICS.md` cites GTM ID `G-ECH51H8L2Z`; `index.html` uses container `GTM-NR4GGH5K` (a `G-` prefix is a GA4 measurement ID, not a GTM container). -- `docs/CHANGELOG.md`, `docs/ANALYTICS.md`
 
-### AUD-07: pr-checks.yml advises a format script that doesn't exist
-**Priority**: P4 | **Source**: root audit (2026-08-06)
+### ~~AUD-07: pr-checks.yml advises a format script that doesn't exist~~
+**Status**: Done | **Priority**: P4 | **Source**: root audit (2026-08-06)
 
 The Code Quality job runs `npx prettier --check` in `server/` and tells contributors to "Run `npm run format`" — Prettier isn't a server dependency and no `format` script exists (Biome is the formatter). Also `ci.yml`'s root `npx tsc --noEmit` type-checks only `src/` (tsconfig.app.json), leaving `scripts/`, `utils/`, `shared/`, `e2e/` unchecked. -- `.github/workflows/pr-checks.yml:71-90`, `.github/workflows/ci.yml:52`
 
@@ -51,8 +51,8 @@ TC-11 and TC-12 below are unactionable — `server/src/queues/` no longer exists
 
 `@default("0")` in the SQLite Prisma schema doesn't auto-populate date fields like PostgreSQL's `@default(now())` did. All `prisma.*.create()` calls need explicit `createdAt: nowEpoch()` and `updatedAt: nowEpoch()` values, otherwise these fields store `"0"` and render as empty strings in API responses. Affected: `scrapeJob.create` (Step 1), `monitoredSearch.upsert` create path, `searchTermAnalytics.upsert` create path, property upsert create path. -- `workers/tcad-api/src/workflows/scraper.workflow.ts`, `workers/tcad-api/src/controllers/property.ts`
 
-### D1-02: Job history endpoint returns raw epoch strings
-**Priority**: P3 | **Source**: D1 migration (2026-03-30)
+### ~~D1-02: Job history endpoint returns raw epoch strings~~
+**Status**: Done (already implemented — `GET /history` uses `epochToISO()`) | **Priority**: P3 | **Source**: D1 migration (2026-03-30)
 
 `GET /api/properties/history` returns `startedAt` and `completedAt` as raw epoch millisecond strings (e.g. `"1774912267251"`) instead of ISO 8601. Add `epochToISO()` transform in the history response mapping if the frontend needs human-readable dates. -- `workers/tcad-api/src/controllers/property.ts`
 

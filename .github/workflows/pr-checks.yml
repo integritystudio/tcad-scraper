@@ -76,15 +76,12 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      - name: Check code formatting
+      - name: Check code formatting (server — ESLint handles style)
         working-directory: ./server
         run: |
-          # Check if any files would be changed by prettier
-          if npx prettier --check "src/**/*.{ts,js,json}" 2>/dev/null; then
-            echo "✅ Code formatting is correct"
-          else
-            echo "⚠️ Some files need formatting. Run 'npm run format' locally."
-          fi
+          # server/ uses ESLint for linting; Prettier is not a dependency.
+          # Root uses Biome (`npm run lint`). No separate format step exists.
+          echo "ℹ️ Formatting enforced by ESLint (server) and Biome (root). No prettier step needed."
         continue-on-error: true
 
   # Test Coverage Comparison

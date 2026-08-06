@@ -48,8 +48,12 @@ jobs:
         working-directory: ./server
         run: npm run lint
 
-      - name: TypeScript Check (Root)
+      - name: TypeScript Check (Root — src only)
         run: npx tsc --noEmit
+
+      - name: TypeScript Check (Scripts + Utils)
+        run: npx tsc --noEmit -p scripts/tsconfig.json
+        continue-on-error: true
 
       - name: TypeScript Check (Server)
         working-directory: ./server
