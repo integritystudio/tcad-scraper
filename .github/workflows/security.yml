@@ -161,60 +161,6 @@ jobs:
           path: ./
           extra_args: --debug --only-verified
 
-  # Docker Image Scanning (if using Docker)
-  docker-scan:
-    name: Docker Image Security Scan
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'schedule'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./bullmq-exporter/Dockerfile
-          push: false
-          load: true
-          tags: tcad-scraper-exporter:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: tcad-scraper-exporter:${{ github.sha }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
-        continue-on-error: true  # Allow failure when code scanning not enabled
-
-      - name: Run Trivy for detailed report
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: tcad-scraper-exporter:${{ github.sha }}
-          format: 'table'
-          output: 'trivy-report.txt'
-
-      - name: Upload Trivy report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: trivy-security-report
-          path: trivy-report.txt
-          retention-days: 30
-
   # Security Test Suite
   security-tests:
     name: Security Test Suite

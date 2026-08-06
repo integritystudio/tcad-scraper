@@ -59,8 +59,9 @@ jobs:
             # Get VITE_API_URL from Doppler or use production default
             export VITE_API_URL=$(doppler secrets get VITE_API_URL --plain --project integrity-studio --config prd 2>/dev/null || echo "https://api.alephatx.info/api")
 
-            # Get DATABASE_URL for build-time constant generation
-            export DATABASE_URL=$(doppler secrets get DATABASE_URL --plain --project integrity-studio --config prd 2>/dev/null || echo "")
+            # Get CLOUDFLARE_D1_TOKEN for build-time constant generation
+            # (scripts/generate-build-constants.ts queries D1 via the REST API)
+            export CLOUDFLARE_D1_TOKEN=$(doppler secrets get CLOUDFLARE_D1_TOKEN --plain --project integrity-studio --config prd 2>/dev/null || echo "")
           else
             # Fallback if Doppler token is not available
             export VITE_API_URL="https://api.alephatx.info/api"
@@ -68,9 +69,6 @@ jobs:
 
           echo "Building with API_URL: $VITE_API_URL"
           echo "Frontend Port: $FRONTEND_PORT"
-
-          # Install server dependencies for Prisma client (needed for build-time script)
-          cd server && npm ci && npx prisma generate && cd ..
 
           # Run build (prebuild script will generate constants from database)
           npm run build
