@@ -77,6 +77,44 @@ Checkpoints: after Tier 1 expect ~71K (proceed if ≥60K); after Tier 1+2 ~165K 
 
 Prune terms with <10 properties after 2+ searches or success rate <50%.
 
+### Per-term yield with duplicates filtered out
+
+`scrape_jobs.result_count` is the post-dedup count (ScraperWorkflow step 3 drops
+properties already in D1 before upsert), so this ranks terms by genuinely-new
+properties; `total_api_results` is the raw TCAD result count for contrast:
+
+```sql
+SELECT search_term,
+       SUM(COALESCE(result_count, 0))      AS new_properties,
+       SUM(COALESCE(total_api_results, 0)) AS api_results
+FROM scrape_jobs
+WHERE status = 'completed'
+GROUP BY search_term
+ORDER BY new_properties DESC
+LIMIT 20;
+```
+
+The gap between the two columns is overlap with properties other terms already
+found (2026-08-06 batch: ~40-60% new for most terms). `search_term_analytics.total_results`
+mirrors the deduped count, not the raw one.
+
+### Predicting yield for unsearched terms
+
+TCAD `fullTextSearch` matches substrings, so a candidate term's match count
+against rows already in D1 is proportional to its frequency in TCAD's full
+dataset — rank unsearched candidates by it (one scan per ~25 terms):
+
+```sql
+SELECT SUM(CASE WHEN name LIKE '%Teve%' OR property_address LIKE '%Teve%' THEN 1 ELSE 0 END) AS teve,
+       SUM(CASE WHEN name LIKE '%Susa%' OR property_address LIKE '%Susa%' THEN 1 ELSE 0 END) AS susa
+       -- ... one SUM(CASE ...) column per candidate
+FROM properties;
+```
+
+Used 2026-08-06 to pick the top 20 of 500 generator candidates (`Teve` matched
+2,678 existing rows ≈ Steve/Stevens substrings). High in-DB counts also mean
+more dedup overlap, so treat it as a ranking, not an absolute yield estimate.
+
 ## Term Constraints (TCAD API)
 
 - 4+ characters minimum; 4-6 char terms are the volume sweet spot
