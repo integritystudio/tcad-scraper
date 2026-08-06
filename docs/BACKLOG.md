@@ -16,8 +16,8 @@ No workflow builds, tests, type-checks, or deploys `workers/tcad-api/` — zero 
 
 No workflow runs Playwright despite "126/126 E2E passing" claims in README/CLAUDE.md. Add a Playwright job (or drop the claim). -- `.github/workflows/`, `playwright.config.ts`
 
-### AUD-03: Search-term strategy docs contradict each other on first names
-**Priority**: P2 | **Source**: docs audit (2026-08-06)
+### ~~AUD-03: Search-term strategy docs contradict each other on first names~~
+**Status**: Done | **Priority**: P2 | **Source**: docs audit (2026-08-06)
 
 `docs/search_results.md` (2026-03-20, pre-D1 data) concludes "skip all common first names" while `docs/2025_BACKFILL_QUICK_REFERENCE.md` and `docs/2025_BACKFILL_OPTIMIZATION.json` (2026-03-30) make first names the entire Tier 1. Decide which analysis wins, cross-reference or archive the loser. Also: the Quick Reference's primary Tier 1/2 command `npx tsx scripts/enqueue-terms.ts` references a deleted script — replace with `generate-next-200-terms.ts --enqueue` or `lib/queue-utils.ts::enqueueBatch()`. -- `docs/search_results.md`, `docs/2025_BACKFILL_QUICK_REFERENCE.md`
 

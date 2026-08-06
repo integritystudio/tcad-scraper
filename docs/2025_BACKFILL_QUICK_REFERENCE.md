@@ -1,8 +1,14 @@
 # 2025 TCAD Backfill - Quick Reference
 
-**Generated**: 2026-03-30  
+**Generated**: 2026-03-30 | **Updated**: 2026-08-06
 **Target**: 500K properties (currently ~2)  
 **Strategy**: Phased 3-tier non-overlapping search terms
+
+> **Note on first-name strategy**: `docs/search_results.md` (2026-03-20, pre-D1) concluded
+> "skip common first names." That analysis used the legacy PostgreSQL dataset and is superseded
+> by this document. The post-D1 backfill data (2026-03-30) shows first names form the highest-
+> yield Tier 1 terms (David: 8,660; Robert: 6,628; etc.). `search_results.md` is retained as
+> historical reference only.
 
 ## Tier 1: Immediate (15 terms)
 **Coverage**: 71,626 properties (19.6%)  
@@ -11,9 +17,15 @@
 **Success Rate**: 85%
 
 ```bash
-TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-terms.ts \
-  David Robert LIVING Home Fami James steph Paul eliza Rich Mark \
-  estat Christopher Martin Thomas
+# scripts/enqueue-terms.ts was deleted (BullMQ removal). Use the Workers API directly:
+for term in David Robert LIVING Home Fami James steph Paul eliza Rich Mark estat Christopher Martin Thomas; do
+  doppler run -p integrity-studio -c prd -- sh -c \
+    "curl -s -X POST https://api.alephatx.info/api/properties/scrape \
+      -H 'Content-Type: application/json' \
+      -H \"x-api-key: \$TCAD_API_KEY\" \
+      -d \"{\\\"searchTerm\\\": \\\"$term\\\"}\" | jq -r '.message // .error'"
+  sleep 1
+done
 ```
 
 **Top 3 Terms**:
@@ -28,11 +40,15 @@ TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-terms.ts \
 **Success Rate**: 80%
 
 ```bash
-TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-terms.ts \
-  holdi Sand Maria Carl Rock Daniel Mary Wood marie Vista TEXAS \
-  Ridge Scott Angel CITY Green White VILLA JOSE West Michelle \
-  Matthew Susan Manor Assoc Pass Johnson Linda Jeffrey STATE \
-  Andrew laure Joseph Ranch Bend Garcia
+# Use the Workers API directly (scripts/enqueue-terms.ts was deleted):
+for term in holdi Sand Maria Carl Rock Daniel Mary Wood marie Vista TEXAS Ridge Scott Angel CITY Green White VILLA JOSE West Michelle Matthew Susan Manor Assoc Pass Johnson Linda Jeffrey STATE Andrew laure Joseph Ranch Bend Garcia; do
+  doppler run -p integrity-studio -c prd -- sh -c \
+    "curl -s -X POST https://api.alephatx.info/api/properties/scrape \
+      -H 'Content-Type: application/json' \
+      -H \"x-api-key: \$TCAD_API_KEY\" \
+      -d \"{\\\"searchTerm\\\": \\\"$term\\\"}\" | jq -r '.message // .error'"
+  sleep 1
+done
 ```
 
 **Pattern**: First names + geographic subdivisions + entity types

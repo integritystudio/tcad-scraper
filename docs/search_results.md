@@ -1,5 +1,10 @@
 # Search Term Optimization Analysis
 
+> **Superseded** (2026-08-06): This analysis (2026-03-20) is pre-D1-migration and pre-backfill.
+> Its recommendation to "skip common first names" is overridden by the post-D1 backfill data
+> (see `docs/2025_BACKFILL_QUICK_REFERENCE.md` and `SEARCH_TERM_STRATEGY.md`), which shows
+> first names are Tier 1 terms (highest yield). Retained as historical reference only.
+
 **Date**: 2026-03-20 | **Source**: `search_term_analytics` table (8,445 rows)
 
 ## Overview
