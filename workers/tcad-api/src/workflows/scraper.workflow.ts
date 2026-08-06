@@ -30,15 +30,27 @@ import { TCAD_API_URL, UPSERT_CHUNK_SIZE } from "../utils/constants";
 import { nowEpoch } from "../utils/epoch-dates";
 import { getErrorMessage } from "../utils/error-helpers";
 
-/** Derive success_rate from the just-incremented counters (Prisma upserts can't compute across columns). */
+/**
+ * Derive success_rate from the just-incremented counters (Prisma upserts can't
+ * compute across columns). Never throws: a failure here at the end of a
+ * non-idempotent step would make the Workflows retry re-run the counter
+ * increments, double-counting the search.
+ */
 async function recomputeSuccessRate(
 	prisma: ReturnType<typeof createPrisma>,
 	searchTerm: string,
 ): Promise<void> {
-	await prisma.$executeRaw`
-		UPDATE search_term_analytics
-		SET success_rate = CAST(successful_searches AS REAL) / total_searches
-		WHERE search_term = ${searchTerm} AND total_searches > 0`;
+	try {
+		await prisma.$executeRaw`
+			UPDATE search_term_analytics
+			SET success_rate = CAST(successful_searches AS REAL) / total_searches
+			WHERE search_term = ${searchTerm} AND total_searches > 0`;
+	} catch (err) {
+		console.error("Failed to recompute success_rate", {
+			searchTerm,
+			error: getErrorMessage(err),
+		});
+	}
 }
 
 export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
