@@ -1,10 +1,50 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-03-30 (D1 migration deployed; post-migration polish items added)
-**Status**: 680/680 tests passing | TypeScript clean | Lint clean
+**Last Updated**: 2026-08-06 (docs/root audit; stale docs archived, dead code pruned)
+**Status**: 130 frontend + 16 workers + 680 legacy server tests passing | TypeScript clean | Lint clean
 
 ---
 ## Open Items
+
+### AUD-01: No CI coverage for workers/tcad-api (production API)
+**Priority**: P1 | **Source**: docs/root audit (2026-08-06)
+
+No workflow builds, tests, type-checks, or deploys `workers/tcad-api/` — zero `wrangler deploy` steps, zero `workers/**` paths in any job. Meanwhile `ci.yml` spins up Postgres 16 + Redis 7 service containers and runs `prisma migrate deploy` against the non-canonical legacy `server/prisma/` schema, `integration-tests.yml` triggers only on `server/**` paths, and `pr-checks.yml`'s changed-file categories have no `workers/**` entry. The entire production surface is ungated; deploys are manual. Add a workers job (tsc + vitest + `wrangler deploy --dry-run`) and retire or clearly label the legacy-stack jobs. -- `.github/workflows/ci.yml`, `integration-tests.yml`, `pr-checks.yml`
+
+### AUD-02: E2E suite never runs in CI
+**Priority**: P2 | **Source**: docs/root audit (2026-08-06)
+
+No workflow runs Playwright despite "126/126 E2E passing" claims in README/CLAUDE.md. Add a Playwright job (or drop the claim). -- `.github/workflows/`, `playwright.config.ts`
+
+### AUD-03: Search-term strategy docs contradict each other on first names
+**Priority**: P2 | **Source**: docs audit (2026-08-06)
+
+`docs/search_results.md` (2026-03-20, pre-D1 data) concludes "skip all common first names" while `docs/2025_BACKFILL_QUICK_REFERENCE.md` and `docs/2025_BACKFILL_OPTIMIZATION.json` (2026-03-30) make first names the entire Tier 1. Decide which analysis wins, cross-reference or archive the loser. Also: the Quick Reference's primary Tier 1/2 command `npx tsx scripts/enqueue-terms.ts` references a deleted script — replace with `generate-next-200-terms.ts --enqueue` or `lib/queue-utils.ts::enqueueBatch()`. -- `docs/search_results.md`, `docs/2025_BACKFILL_QUICK_REFERENCE.md`
+
+### AUD-04: .eslintrc.json is dead at root but load-bearing for server/
+**Priority**: P3 | **Source**: root audit (2026-08-06)
+
+Root lint is Biome (`"lint": "biome check ."`); root has no eslint dependency, so `.eslintrc.json` is unrunnable from root — but `server/`'s `npm run lint` resolves config by walking up to it (server has no eslint config of its own). Give `server/` its own `eslint.config.js`, then delete the root file. Also rename `ci.yml`'s "Run ESLint (Root)" step, which actually runs Biome with `continue-on-error: true`. -- `.eslintrc.json`, `server/package.json`, `.github/workflows/ci.yml:43-49`
+
+### AUD-05: Auto-generated schema READMEs describe deleted files
+**Priority**: P3 | **Source**: src.xml audit (2026-08-06)
+
+"Schema Generator" READMEs are stale: `src/README.md` documents deleted `database.ts`/`query-db.ts` (pg-based) and a pre-rewrite App.tsx; `src/components/README.md` lists deleted `ScrapeManager.tsx`. `src/components/features/PropertySearch/README.md` (2025-11-08) references nonexistent `ExampleQueries.tsx` and links four design docs that don't exist (COMPONENT_IMPLEMENTATION_GUIDE, VISUAL_DESIGN_PLAN, VISUAL_WIREFRAMES, ARCHITECTURE). Re-run the generator or delete the stale files; fix or drop the PropertySearch README links. -- `src/README.md`, `src/components/README.md`, `src/components/features/PropertySearch/README.md`
+
+### AUD-06: docs/CHANGELOG.md stops before the Cloudflare migration
+**Priority**: P3 | **Source**: docs audit (2026-08-06)
+
+The most-recent-first changelog ends at 2026-03-11, omitting the Workers cutover (2026-03-20) and D1 migration (2026-03-30) even though `docs/changelog/2026-03-30.md` exists. Add summary entries pointing at the per-date files. Also `docs/ANALYTICS.md` cites GTM ID `G-ECH51H8L2Z`; `index.html` uses container `GTM-NR4GGH5K` (a `G-` prefix is a GA4 measurement ID, not a GTM container). -- `docs/CHANGELOG.md`, `docs/ANALYTICS.md`
+
+### AUD-07: pr-checks.yml advises a format script that doesn't exist
+**Priority**: P4 | **Source**: root audit (2026-08-06)
+
+The Code Quality job runs `npx prettier --check` in `server/` and tells contributors to "Run `npm run format`" — Prettier isn't a server dependency and no `format` script exists (Biome is the formatter). Also `ci.yml`'s root `npx tsc --noEmit` type-checks only `src/` (tsconfig.app.json), leaving `scripts/`, `utils/`, `shared/`, `e2e/` unchecked. -- `.github/workflows/pr-checks.yml:71-90`, `.github/workflows/ci.yml:52`
+
+### AUD-08: Legacy TC-10..TC-18 items reference deleted server/src/queues
+**Priority**: P4 | **Source**: docs audit (2026-08-06)
+
+TC-11 and TC-12 below are unactionable — `server/src/queues/` no longer exists (BullMQ removal, 287ca63). Close them or re-scope to the Workers queue consumer. -- this file
 
 ### D1-01: Prisma create calls missing explicit epoch timestamps
 **Priority**: P2 | **Source**: D1 migration (2026-03-30)
