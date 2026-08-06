@@ -202,9 +202,12 @@ async function callOpenAIAPI(
 	}
 }
 
+const FALLBACK_STATUSES = [401, 402, 429];
+
 function shouldFallbackToOpenAI(error: unknown): boolean {
 	if (!(error instanceof Error)) return false;
 	// Fallback on 401 (unauthorized/no balance), 429 (rate limit), 402 (payment required)
-	const errorMessage = error.message.toLowerCase();
-	return /status (401|402|429)/.test(errorMessage);
+	const status = (error as Error & { status?: number }).status;
+	if (status !== undefined) return FALLBACK_STATUSES.includes(status);
+	return /error (401|402|429)/.test(error.message.toLowerCase());
 }
