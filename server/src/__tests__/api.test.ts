@@ -12,7 +12,11 @@ import type { Express } from "express";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DISPLAY_YEAR } from "../controllers/property.controller";
-import { isDatabaseAvailable, isRedisAvailable } from "./test-utils";
+import {
+	expectStatusIn,
+	isDatabaseAvailable,
+	isRedisAvailable,
+} from "./test-utils";
 
 /** Refuse to run destructive tests against a production/remote database. */
 function isProductionDatabase(): boolean {
@@ -95,7 +99,7 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 		it("GET /health/token - should return token refresh status", async () => {
 			const response = await request(app).get("/health/token");
 
-			expect([200, 503]).toContain(response.status);
+			expectStatusIn(response, [200, 503]);
 			expect(response.body).toHaveProperty("status");
 			expect(response.body).toHaveProperty("tokenRefresh");
 		});
@@ -205,7 +209,7 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 				.send({ searchTerm: "TestOwner" });
 
 			// 202 when auth skipped in dev/test, 401 when apiKeyAuth enforced
-			expect([202, 401]).toContain(response.status);
+			expectStatusIn(response, [202, 401]);
 
 			if (response.status === 202) {
 				expect(response.body).toHaveProperty("jobId");
@@ -220,7 +224,7 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 				.send({ searchTerm: "" });
 
 			// 400 validation or 401 auth
-			expect([400, 401]).toContain(response.status);
+			expectStatusIn(response, [400, 401]);
 
 			if (response.status === 400) {
 				expect(response.body).toHaveProperty("error");
@@ -233,7 +237,7 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 				.send({});
 
 			// 400 validation or 401 auth
-			expect([400, 401]).toContain(response.status);
+			expectStatusIn(response, [400, 401]);
 
 			if (response.status === 400) {
 				expect(response.body).toHaveProperty("error");
@@ -300,7 +304,7 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 			});
 
 			// 200 when auth skipped, 401 when apiKeyAuth enforced
-			expect([200, 401]).toContain(response.status);
+			expectStatusIn(response, [200, 401]);
 
 			if (response.status === 200) {
 				expect(response.body).toHaveProperty("message");
@@ -317,7 +321,7 @@ describe.skipIf(!(await checkInfrastructure()))("API Integration Tests", () => {
 			});
 
 			// 400 validation or 401 auth
-			expect([400, 401]).toContain(response.status);
+			expectStatusIn(response, [400, 401]);
 
 			if (response.status === 400) {
 				expect(response.body).toHaveProperty("error");

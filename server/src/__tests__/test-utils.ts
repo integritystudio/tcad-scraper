@@ -142,6 +142,26 @@ export function isFrontendBuilt(): boolean {
 }
 
 /**
+ * Assert that a response status matches one of the expected statuses.
+ *
+ * Used for endpoints where auth enforcement varies by environment —
+ * e.g. scrape/monitor return 200 without auth and 401 with it (TC-17).
+ *
+ * @example
+ * expectStatusIn(response, [200, 401]);
+ */
+export function expectStatusIn(
+	response: { status: number },
+	statuses: number[],
+): void {
+	if (!statuses.includes(response.status)) {
+		throw new Error(
+			`Expected response status to be one of [${statuses.join(", ")}] but got ${response.status}`,
+		);
+	}
+}
+
+/**
  * Check if remote database is configured
  * Required for integration tests against Render database
  */

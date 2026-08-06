@@ -103,13 +103,13 @@ The `naturalLanguageSearch` method now returns 503 on both Claude API failure an
 
 `auth-database.integration.test.ts` fails when `DATABASE_URL` falls back to `localhost:5432` (test setup.ts:46-49). The test imports `prisma` directly and calls `prisma.property.deleteMany()` in `afterAll`, which crashes if the DB is unreachable. Consider adding a `beforeAll` connection check that skips the suite (like the existing `isRedisAvailable` pattern) instead of letting Prisma throw. -- `server/src/__tests__/auth-database.integration.test.ts`
 
-### TC-16: integration test coverage artifact path was misconfigured (2026-03-11)
-**Priority**: P4 | **Source**: CI run 22975946334
+### ~~TC-16: integration test coverage artifact path was misconfigured (2026-03-11)~~
+**Status**: Done (verified — `reportsDirectory: "./coverage/integration"` present in vitest.integration.config.ts) | **Priority**: P4 | **Source**: CI run 22975946334
 
 `vitest.integration.config.ts` had `coverage.enabled: false` with no `reportsDirectory`, so `npm run test:integration:coverage` produced no output at `./server/coverage/integration/`. Fixed in `8864406` — verify CI produces artifacts on next run. -- `server/vitest.integration.config.ts`
 
-### TC-17: scrape endpoint auth expectations brittle across environments (2026-03-11)
-**Priority**: P3 | **Source**: 5 consecutive CI failures (commits 996d19b–b4ba3b2)
+### ~~TC-17: scrape endpoint auth expectations brittle across environments (2026-03-11)~~
+**Status**: Done | **Priority**: P3 | **Source**: 5 consecutive CI failures (commits 996d19b–b4ba3b2)
 
 `api.test.ts` scrape and monitor endpoint tests hardcoded `expect(status).toBe(200)` but the endpoints return 401 when `apiKeyAuth` is enforced (which Doppler prod config enables). Required iterative fixes to accept `[200, 401]`. Consider extracting a shared helper like `expectStatusOneOf(response, [200, 401])` or conditionally setting auth headers based on the test environment config. -- `server/src/__tests__/api.test.ts`
 
