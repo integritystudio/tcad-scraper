@@ -13,7 +13,7 @@ import { config } from "../config";
 import app from "../index";
 import { prisma } from "../lib/prisma";
 import { generateToken } from "../middleware/auth";
-import { isRedisAvailable } from "./test-utils";
+import { isDatabaseAvailable, isRedisAvailable } from "./test-utils";
 
 // Check Redis once at module level
 let redisAvailable = false;
@@ -23,7 +23,13 @@ const checkRedis = async () => {
 };
 await checkRedis();
 
-describe("Authentication-Database Integration Tests", () => {
+// Check DB once at module level — skip entire suite if unreachable (TC-15)
+const dbAvailable = await isDatabaseAvailable(5000);
+
+// Skip the entire suite when DB is not reachable instead of crashing in afterAll (TC-15)
+const describe_db = dbAvailable ? describe : describe.skip;
+
+describe_db("Authentication-Database Integration Tests", () => {
 	let validToken: string;
 	let expiredToken: string;
 	const testUserId = "test-user-123";

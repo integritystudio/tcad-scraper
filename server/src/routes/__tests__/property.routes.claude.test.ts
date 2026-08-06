@@ -338,6 +338,29 @@ describe("Property Routes - Claude Search", () => {
 			expect(response.body).toHaveProperty("message");
 		});
 
+		test("should return 503 when database query fails (TC-10)", async () => {
+			const mockResult = {
+				whereClause: { city: "Austin" },
+				explanation: "Searching for properties in Austin",
+			};
+
+			(claudeSearchService.parseNaturalLanguageQuery as Mock).mockResolvedValue(
+				mockResult,
+			);
+
+			const { prismaReadOnly } = await import("../../lib/prisma");
+			prismaReadOnly.property.findMany.mockRejectedValue(
+				new Error("DB connection lost"),
+			);
+
+			const response = await request(app)
+				.post("/api/properties/search")
+				.send({ query: "properties in Austin" });
+
+			expect(response.status).toBe(503);
+			expect(response.body).toHaveProperty("error", "Database query failed");
+		});
+
 		test("should work with fallback when Claude fails", async () => {
 			// Mock Claude to use fallback
 			const fallbackResult = {

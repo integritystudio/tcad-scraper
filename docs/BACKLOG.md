@@ -72,13 +72,13 @@ The Render PostgreSQL connection string (including password) was exposed in term
 
 ## Test Coverage Gaps (2026-03-10, L25–L35 session)
 
-### TC-18: test-api-direct.ts needs modernization (2026-03-11)
-**Priority**: P4 | **Source**: codebase-analyzer cleanup
+### ~~TC-18: test-api-direct.ts needs modernization (2026-03-11)~~
+**Status**: Done — deleted. Pre-production exploration script with hardcoded URLs and emoji logging; superseded by `tcad-api-client.ts`. | **Priority**: P4 | **Source**: codebase-analyzer cleanup
 
 `test-api-direct.ts` (moved from `src/` to `server/src/__tests__/`) is an early exploration script that brute-forces TCAD API endpoints. It predates the production `tcad-api-client.ts` and uses hardcoded URLs, emoji logging, and `error.message` without type narrowing. Decide whether to convert into a proper integration test against `tcad-api-client.ts` or delete entirely. -- `server/src/__tests__/test-api-direct.ts`
 
-### TC-10: naturalLanguageSearch DB failure path untested
-**Priority**: P3 | **Source**: L27 implementation + code review
+### ~~TC-10: naturalLanguageSearch DB failure path untested~~
+**Status**: Done | **Priority**: P3 | **Source**: L27 implementation + code review
 
 The `naturalLanguageSearch` method now returns 503 on both Claude API failure and DB failure, but only the Claude failure path is tested (via `property.routes.claude.test.ts` "should handle errors gracefully"). No test exercises the DB try/catch branch (`"Database query failed"` response). Mock `prismaReadOnly.property.findMany` to throw and assert 503 with `error: "Database query failed"`. -- `server/src/controllers/property.controller.ts`
 
@@ -98,8 +98,8 @@ The `naturalLanguageSearch` method now returns 503 on both Claude API failure an
 
 `optionalAuth` now calls `logger.debug()` on JWT verification failure, but no test asserts the log message is emitted. Add a test that passes an invalid token and verifies `logger.debug` was called with the error context. -- `server/src/middleware/auth.ts`
 
-### TC-15: auth-database integration test requires live DB (2026-03-11)
-**Priority**: P3 | **Source**: integration test failure during CI setup
+### ~~TC-15: auth-database integration test requires live DB (2026-03-11)~~
+**Status**: Done | **Priority**: P3 | **Source**: integration test failure during CI setup
 
 `auth-database.integration.test.ts` fails when `DATABASE_URL` falls back to `localhost:5432` (test setup.ts:46-49). The test imports `prisma` directly and calls `prisma.property.deleteMany()` in `afterAll`, which crashes if the DB is unreachable. Consider adding a `beforeAll` connection check that skips the suite (like the existing `isRedisAvailable` pattern) instead of letting Prisma throw. -- `server/src/__tests__/auth-database.integration.test.ts`
 
