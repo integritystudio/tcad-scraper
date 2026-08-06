@@ -537,7 +537,7 @@ TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts
 
 ### TCAD API Token Management
 
-Tokens expire every ~5 minutes. In Workers, a cron trigger refreshes tokens every 4 minutes and caches in KV. See [TOKEN_MANAGEMENT.md](docs/archive/TOKEN_MANAGEMENT.md) (archived — describes the legacy server flow).
+Tokens expire every ~5 minutes. In Workers, a cron trigger refreshes tokens every 4 minutes and caches in KV.
 
 ### Available npm Scripts
 

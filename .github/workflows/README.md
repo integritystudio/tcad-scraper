@@ -152,18 +152,16 @@ Add Slack notifications by setting `SLACK_WEBHOOK` secret.
 
 ## Resources
 
-- [Complete CI/CD Documentation](../../docs/archive/CI-CD.md)
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [Workflow Syntax](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions)
 
 ## Support
 
 For workflow issues:
-1. Check [CI/CD Documentation](../../docs/archive/CI-CD.md)
-2. Review workflow logs
-3. Open issue with `ci` label
-4. Tag @devops team
+1. Review workflow logs
+2. Open issue with `ci` label
+3. Tag @devops team
 
 ---
 
-*For detailed information, see [docs/CI-CD.md](../../docs/archive/CI-CD.md)*
+*The detailed CI/CD guide (`docs/archive/CI-CD.md`) was deleted 2026-08-06; see git history if needed.*
