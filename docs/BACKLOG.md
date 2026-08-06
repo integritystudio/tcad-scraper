@@ -88,13 +88,13 @@ The `naturalLanguageSearch` method now returns 503 on both Claude API failure an
 ### ~~TC-12: canScheduleJob TOCTOU race condition untested~~
 **Status**: Closed — unactionable. `server/src/queues/scraper.queue.ts` was deleted (BullMQ removal, 287ca63). CF Workflows handle idempotency at the platform level. -- `server/src/queues/scraper.queue.ts`
 
-### TC-13: api-usage.controller has no unit tests
-**Priority**: P3 | **Source**: L32 implementation
+### ~~TC-13: api-usage.controller has no unit tests~~
+**Status**: Done | **Priority**: P3 | **Source**: L32 implementation
 
 `ApiUsageController` has no dedicated test file. The `typeof` guards on `days`, `environment`, `limit`, and `offset` are untested. The `$queryRaw` parameterization via `Prisma.sql` is also untested. Additionally, `day.total_cost.toFixed(6)` (line ~146) has a potential null-dereference if `SUM(query_cost)` returns null — a test should cover this edge case. -- `server/src/controllers/api-usage.controller.ts`
 
-### TC-14: optionalAuth debug log emission untested
-**Priority**: P4 | **Source**: L31 implementation
+### ~~TC-14: optionalAuth debug log emission untested~~
+**Status**: Done | **Priority**: P4 | **Source**: L31 implementation
 
 `optionalAuth` now calls `logger.debug()` on JWT verification failure, but no test asserts the log message is emitted. Add a test that passes an invalid token and verifies `logger.debug` was called with the error context. -- `server/src/middleware/auth.ts`
 

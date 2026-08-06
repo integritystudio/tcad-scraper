@@ -18,6 +18,16 @@ import {
 	optionalAuth,
 } from "../auth";
 
+// Mock logger so we can assert debug calls (TC-14)
+vi.mock("../../lib/logger", () => ({
+	default: {
+		debug: vi.fn(),
+		info: vi.fn(),
+		warn: vi.fn(),
+		error: vi.fn(),
+	},
+}));
+
 // Save original config values for restore
 const originalEnv = { ...config.env };
 const originalAuth = {
@@ -262,6 +272,20 @@ describe("Auth Middleware", () => {
 
 			expect(mockNext).toHaveBeenCalled();
 			expect(mockReq.user).toBeUndefined();
+		});
+
+		it("should call logger.debug when JWT verification fails (TC-14)", async () => {
+			const logger = (await import("../../lib/logger")).default;
+			mockReq.headers = { authorization: "Bearer invalid-token-value" };
+
+			optionalAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+			expect(mockNext).toHaveBeenCalled();
+			expect(mockReq.user).toBeUndefined();
+			expect(logger.debug).toHaveBeenCalledWith(
+				expect.objectContaining({ err: expect.anything() }),
+				"optionalAuth: invalid JWT token, continuing unauthenticated",
+			);
 		});
 	});
 
