@@ -13,7 +13,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
 - **Testing**: Vitest (130 frontend + 29 scripts + 16 workers tests; 126/126 E2E via Playwright)
-- **Scale**: 170K+ properties in D1 (2025 tax year; count via `/health`)
+- **Scale**: 260K+ properties in D1 (2025 tax year; live count via `/health`)
 
 ```
 React (5174) → CF Workers (Hono) → D1 (SQLite at edge)
@@ -25,7 +25,7 @@ React (5174) → CF Workers (Hono) → D1 (SQLite at edge)
 
 **Legacy stack**: the Express/BullMQ/Redis `server/` directory was removed August 2026 (shared utilities moved to `scripts/lib/` and `shared/types/`); original implementations live in git history.
 
-All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler project**: `integrity-studio` | **Config**: `dev` / `prod`.
+All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler project**: `integrity-studio` | **Configs**: `dev` / `prd` (also `stg`, `dev_personal`).
 
 ---
 
@@ -42,14 +42,15 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `src/utils/constants.ts` - TCAD_API_URL, chunk sizes, timeouts, D1 micro-chunk config
 - `src/utils/epoch-dates.ts` - `nowEpoch()`, `epochToISO()`, `dateToEpoch()` — D1 date workaround
 - `src/utils/json-array.ts` - `serializeIds()`/`deserializeIds()` for JSON-serialized arrays
+- `src/utils/` also has `error-helpers.ts` (`getErrorMessage()`) and `property-transformers.ts`
 - `wrangler.toml` - D1, KV, Queues, Workflows, Crons, route config
 
 ### Scripts (`scripts/` — root level, run from repo root)
 - `enqueue-tail-terms.ts` - Multi-phase tail term optimizer (analytics + owner-name mining)
-- `generate-next-200-terms.ts` - Generate next candidate terms for backfill (`--enqueue` sends to Workers API)
+- `generate-next-200-terms.ts` - Generate next candidate terms for backfill, ranked by predicted yield (in-DB match frequency; drops near-zero matchers). `--enqueue` sends to Workers API
 - `queue-results.ts` - Recent scrape jobs + property count from the Workers API (`npx tsx scripts/queue-results.ts [--limit N]`)
-- `config/batch-configs.ts` - 10 batch type definitions
-- `lib/` - queue-utils (`enqueueBatch()` via Workers API), backfill-runner, fallback-terms, searched-terms, backfill-utils, search-term-deduplicator, error-helpers, logger
+- `config/batch-configs.ts` - 19 batch type definitions
+- `lib/` - queue-utils (`enqueueBatch()` via Workers API), d1-prisma (Prisma over D1 HTTP — production data access for scripts), backfill-runner, fallback-terms, searched-terms, backfill-utils, search-term-deduplicator, error-helpers, logger
 - See [scripts/README.md](scripts/README.md) for full reference
 - **Search Term Strategy**: See [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md) (canonical) for Tier 1-4 strategy, coverage metrics + operations, and [docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json) for per-term yield data
 

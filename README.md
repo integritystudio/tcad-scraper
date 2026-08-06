@@ -118,7 +118,7 @@ D1 conventions (rationale in [CLAUDE.md](CLAUDE.md#architecture-decisions)):
 - **Dates are epoch-millisecond strings** (`"1711773684000"`) — D1's JS binding corrupts ISO 8601 TEXT values
 - **Arrays are JSON-serialized strings** (e.g. `ScrapeJob.newPropertyIds`)
 
-**Scale**: 170K+ properties for tax year 2025 (live count via [`/health`](https://api.alephatx.info/health)). Coverage tiers, per-term yields, and scraping-rate metrics: [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md) and [docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json).
+**Scale**: 260K+ properties for tax year 2025 (live count via [`/health`](https://api.alephatx.info/health)). Coverage tiers, per-term yields, and scraping-rate metrics: [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md) and [docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json).
 
 ## Getting Started
 
