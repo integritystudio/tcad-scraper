@@ -324,6 +324,8 @@ async function bulkUpsert(
 				searchTerm,
 				year,
 				scrapedAt: now,
+				createdAt: now,
+				updatedAt: now,
 			},
 			update: {
 				name: prop.name,

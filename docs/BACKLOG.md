@@ -46,8 +46,8 @@ The Code Quality job runs `npx prettier --check` in `server/` and tells contribu
 
 TC-11 and TC-12 below are unactionable — `server/src/queues/` no longer exists (BullMQ removal, 287ca63). Close them or re-scope to the Workers queue consumer. -- this file
 
-### D1-01: Prisma create calls missing explicit epoch timestamps
-**Priority**: P2 | **Source**: D1 migration (2026-03-30)
+### ~~D1-01: Prisma create calls missing explicit epoch timestamps~~
+**Status**: Done | **Priority**: P2 | **Source**: D1 migration (2026-03-30)
 
 `@default("0")` in the SQLite Prisma schema doesn't auto-populate date fields like PostgreSQL's `@default(now())` did. All `prisma.*.create()` calls need explicit `createdAt: nowEpoch()` and `updatedAt: nowEpoch()` values, otherwise these fields store `"0"` and render as empty strings in API responses. Affected: `scrapeJob.create` (Step 1), `monitoredSearch.upsert` create path, `searchTermAnalytics.upsert` create path, property upsert create path. -- `workers/tcad-api/src/workflows/scraper.workflow.ts`, `workers/tcad-api/src/controllers/property.ts`
 

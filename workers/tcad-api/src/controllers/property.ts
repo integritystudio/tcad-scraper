@@ -20,7 +20,7 @@ import {
 	scrapeRequestSchema,
 } from "../types/property.types";
 import { DEFAULT_QUERY_LIMIT } from "../utils/constants";
-import { epochToISO } from "../utils/epoch-dates";
+import { epochToISO, nowEpoch } from "../utils/epoch-dates";
 import { transformPropertyToSnakeCase } from "../utils/property-transformers";
 
 // TODO: Update to 2026 when TCAD publishes 2026 appraised values
@@ -331,10 +331,11 @@ app.post(
 			frequency?: string;
 		};
 
+		const now = nowEpoch();
 		const monitoredSearch = await prisma.monitoredSearch.upsert({
 			where: { searchTerm },
-			update: { active: true, frequency },
-			create: { searchTerm, frequency },
+			update: { active: true, frequency, updatedAt: now },
+			create: { searchTerm, frequency, createdAt: now, updatedAt: now },
 		});
 
 		return c.json({
