@@ -8,8 +8,7 @@
  *      2  corporation
  *   omit  standard priority (all others)
  *
- * Usage: npx tsx scripts/enqueue-batch.ts <batchType>
- * Example: npx tsx scripts/enqueue-batch.ts llc
+ * Consumed via enqueueBatch() in scripts/lib/queue-utils.ts
  */
 
 import type { BatchEnqueueConfig } from "../lib/queue-utils";

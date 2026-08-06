@@ -12,7 +12,7 @@
 import type {
 	PaginatedPropertyResponse,
 	PropertyAPI,
-} from "../../server/src/types/property.types";
+} from "./property.types";
 
 // ============================================================================
 // Type Definitions for JSON-LD

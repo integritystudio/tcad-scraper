@@ -10,7 +10,7 @@ vi.mock("../d1-prisma", () => ({
 	epochAgo: (ms: number) => String(Date.now() - ms),
 }));
 
-vi.mock("../../../server/src/utils/error-helpers", () => ({
+vi.mock("../error-helpers", () => ({
 	getErrorMessage: (e: unknown) => (e instanceof Error ? e.message : String(e)),
 }));
 

@@ -1,6 +1,6 @@
 /** Generic backfill loop shared by all backfill-2025* scripts. */
 
-import { getErrorMessage } from "../../server/src/utils/error-helpers";
+import { getErrorMessage } from "./error-helpers";
 import { TARGET_2025_PROPERTY_COUNT as TARGET_2025_COUNT } from "../../utils/constants";
 import { get2025Count } from "./backfill-utils";
 import { prisma } from "./d1-prisma";

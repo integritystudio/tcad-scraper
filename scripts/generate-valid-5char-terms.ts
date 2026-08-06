@@ -17,17 +17,11 @@
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { prisma } from "./lib/d1-prisma";
 import { getSearchedTermSets } from "./lib/searched-terms";
 
-const OUTPUT_PATH = join(
-	__dirname,
-	"..",
-	"..",
-	"data",
-	"valid-5char-terms.txt",
-);
+const OUTPUT_PATH = join(__dirname, "..", "data", "valid-5char-terms.txt");
 
 // ── Curated name lists ─────────────────────────────────────────────────
 
@@ -1332,7 +1326,7 @@ async function main() {
 	console.error(`Total unique terms: ${sorted.length}`);
 
 	// 4. Write output
-	mkdirSync(join(__dirname, "..", "..", "data"), { recursive: true });
+	mkdirSync(dirname(OUTPUT_PATH), { recursive: true });
 	writeFileSync(OUTPUT_PATH, `${sorted.join("\n")}\n`);
 	console.error(`Written to: ${OUTPUT_PATH}`);
 

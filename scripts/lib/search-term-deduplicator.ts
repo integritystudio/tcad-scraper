@@ -5,7 +5,7 @@
  * useful variations that might yield unique results.
  */
 
-import { MIN_TERM_LENGTH } from "../utils/constants";
+import { MIN_TERM_LENGTH } from "../../utils/constants";
 
 export interface DeduplicationStats {
 	exactDuplicates: number;

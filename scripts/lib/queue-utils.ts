@@ -1,6 +1,6 @@
 /** Shared queue helpers for backfill scripts. Uses Cloudflare Workers API for enqueueing. */
 
-import { getErrorMessage } from "../../server/src/utils/error-helpers";
+import { getErrorMessage } from "./error-helpers";
 
 export const POLL_INTERVAL_MS = 15_000;
 export const BATCH_SIZE = 20;

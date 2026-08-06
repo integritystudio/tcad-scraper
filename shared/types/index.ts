@@ -4,8 +4,10 @@
  * This file provides a single point of import for all shared types used across
  * the TCAD scraper application (frontend, backend, and utilities).
  *
- * Property types live in server/src/types/property.types.ts (canonical source).
+ * Property API types live in ./property.types.ts (canonical source).
  */
+
+export * from "./property.types";
 
 // Re-export JSON-LD utilities
 export * from "./json-ld.utils";
