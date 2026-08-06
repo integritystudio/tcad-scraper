@@ -40,7 +40,7 @@ jobs:
         working-directory: ./server
         run: npm ci || npm install
 
-      - name: Run ESLint (Root)
+      - name: Run Biome (Root)
         run: npm run lint --if-present
         continue-on-error: true
 
