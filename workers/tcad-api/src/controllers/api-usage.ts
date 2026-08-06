@@ -7,9 +7,12 @@
 import type { Prisma } from "@prisma/client";
 import { Hono } from "hono";
 import type { AppEnv } from "../bindings";
-import { COST_DECIMAL_PLACES, PERCENT_MULTIPLIER } from "../utils/constants";
-
-const DEFAULT_LOOKBACK_DAYS = 7;
+import {
+	COST_DECIMAL_PLACES,
+	DAYS_PER_WEEK as LOOKBACK_DAYS,
+	MAX_LOOKBACK_DAYS,
+	PERCENT_MULTIPLIER,
+} from "../utils/constants";
 
 const app = new Hono<AppEnv>();
 
@@ -20,9 +23,8 @@ app.get("/stats", async (c) => {
 	const environment = c.req.query("environment");
 
 	const daysNum = Math.min(
-		parseInt(daysParam || String(DEFAULT_LOOKBACK_DAYS), 10) ||
-			DEFAULT_LOOKBACK_DAYS,
-		90,
+		parseInt(daysParam ?? "", 10) || LOOKBACK_DAYS,
+		MAX_LOOKBACK_DAYS,
 	);
 	const startDate = new Date();
 	startDate.setDate(startDate.getDate() - daysNum);

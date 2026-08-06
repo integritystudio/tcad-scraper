@@ -8,6 +8,8 @@ export const DEFAULT_TCAD_YEAR = 2025;
 
 // ── Default limits ──────────────────────────────────────────────────
 export const DEFAULT_QUERY_LIMIT = 100;
+export const DAYS_PER_WEEK = 7;
+export const MAX_LOOKBACK_DAYS = 90;
 
 // ── TCAD API ────────────────────────────────────────────────────────
 export const TCAD_API_URL =
