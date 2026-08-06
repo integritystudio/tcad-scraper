@@ -72,7 +72,7 @@ export class ApiUsageController {
 				Array<{
 					date: Date;
 					count: bigint;
-					total_cost: number;
+					total_cost: number | null;
 					success_count: bigint;
 				}>
 			>`
