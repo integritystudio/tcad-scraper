@@ -10,9 +10,9 @@
  * Runtime dedup: backfill scripts apply getSearchedTermSets() and
  * isSupersetOfSuccessful() to skip already-searched or redundant terms.
  *
- * Usage:
- *   npx tsx scripts/enqueue-batch.ts backfill-2025-source
- *   import { BACKFILL_2025_SOURCE_TERMS } from "./config/backfill-2025-source-terms";
+ * Usage: consumed by batch-configs.ts as the "backfill-2025-source" batch type
+ * (enqueued via scripts/lib/queue-utils.ts::enqueueBatch()), or import
+ * BACKFILL_2025_SOURCE_TERMS directly.
  */
 
 export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
