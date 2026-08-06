@@ -11,8 +11,8 @@
 
 No workflow builds, tests, type-checks, or deploys `workers/tcad-api/` — zero `wrangler deploy` steps, zero `workers/**` paths in any job. Meanwhile `ci.yml` spins up Postgres 16 + Redis 7 service containers and runs `prisma migrate deploy` against the non-canonical legacy `server/prisma/` schema, `integration-tests.yml` triggers only on `server/**` paths, and `pr-checks.yml`'s changed-file categories have no `workers/**` entry. The entire production surface is ungated; deploys are manual. Add a workers job (tsc + vitest + `wrangler deploy --dry-run`) and retire or clearly label the legacy-stack jobs. -- `.github/workflows/ci.yml`, `integration-tests.yml`, `pr-checks.yml`
 
-### AUD-02: E2E suite never runs in CI
-**Priority**: P2 | **Source**: docs/root audit (2026-08-06)
+### ~~AUD-02: E2E suite never runs in CI~~
+**Status**: Done | **Priority**: P2 | **Source**: docs/root audit (2026-08-06)
 
 No workflow runs Playwright despite "126/126 E2E passing" claims in README/CLAUDE.md. Add a Playwright job (or drop the claim). -- `.github/workflows/`, `playwright.config.ts`
 
