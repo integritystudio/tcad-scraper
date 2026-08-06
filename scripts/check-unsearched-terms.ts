@@ -3,7 +3,7 @@
  * Uses batched EXISTS queries to avoid full table scans.
  * Usage: doppler run -- npx tsx scripts/check-unsearched-terms.ts
  */
-import { prisma } from "../server/src/lib/prisma";
+import { prisma } from "./lib/d1-prisma";
 import { getAllSearchTerms } from "./utils/list-all-search-terms";
 
 async function check() {
@@ -19,11 +19,10 @@ async function check() {
 		const batch = allTerms.slice(i, i + BATCH);
 		const results = await Promise.all(
 			batch.map(async (term) => {
-				const rows = await prisma.$queryRawUnsafe<{ found: boolean }[]>(
-					`SELECT EXISTS(SELECT 1 FROM properties WHERE search_term = $1 AND year = 2025) as found`,
-					term,
-				);
-				return { term, found: rows[0].found };
+				// SQLite EXISTS returns 0/1, not boolean
+				const rows = await prisma.$queryRaw<{ found: number }[]>`
+					SELECT EXISTS(SELECT 1 FROM properties WHERE search_term = ${term} AND year = 2025) as found`;
+				return { term, found: rows[0].found !== 0 };
 			}),
 		);
 		for (const r of results) {

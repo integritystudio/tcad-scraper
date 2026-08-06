@@ -5,7 +5,6 @@
  * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025.ts
  */
 
-import { prisma } from "../server/src/lib/prisma";
 import {
 	ALPHABET,
 	DENSE_AVG_RESULTS_THRESHOLD,
@@ -18,6 +17,7 @@ import {
 } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
 import { isSupersetOfSuccessful } from "./lib/backfill-utils";
+import { prisma } from "./lib/d1-prisma";
 import { getSearchedTermSets } from "./lib/searched-terms";
 
 async function getDenseExpansions(allSearched: Set<string>): Promise<string[]> {
@@ -392,7 +392,7 @@ async function getTermsToBackfill(): Promise<string[]> {
 	const terms2026 = await prisma.$queryRaw<
 		Array<{ search_term: string; cnt: number }>
 	>`
-    SELECT search_term, COUNT(*)::int as cnt
+    SELECT search_term, COUNT(*) as cnt
     FROM properties
     WHERE year = 2026
     GROUP BY search_term

@@ -11,8 +11,8 @@
  */
 
 import logger from "../server/src/lib/logger";
-import { prisma } from "../server/src/lib/prisma";
 import { getErrorMessage } from "../server/src/utils/error-helpers";
+import { prisma } from "./lib/d1-prisma";
 
 interface ErrorStats {
 	errorMessage: string;
@@ -30,7 +30,7 @@ interface FailureAnalysis {
 	recentFailures: Array<{
 		searchTerm: string;
 		error: string | null;
-		completedAt: Date | null;
+		completedAt: string | null; // epoch-ms string (D1 date encoding)
 	}>;
 }
 
@@ -137,7 +137,7 @@ async function main() {
 
 		for (const failure of analysis.recentFailures) {
 			const timestamp = failure.completedAt
-				? failure.completedAt.toISOString()
+				? new Date(Number(failure.completedAt)).toISOString()
 				: "N/A";
 			logger.info(`[${timestamp}] "${failure.searchTerm}"`);
 			logger.info(`  Error: ${failure.error || "Unknown"}`);

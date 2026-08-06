@@ -8,19 +8,19 @@
  * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025-proven.ts
  */
 
-import { prisma } from "../server/src/lib/prisma";
 import {
 	RECENT_JOBS_LOOKBACK_DAYS,
 	RECENT_JOBS_LOOKBACK_MS,
 } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
+import { epochAgo, prisma } from "./lib/d1-prisma";
 
 const MIN_2026_YIELD = 100;
 
 async function getProvenTerms(): Promise<string[]> {
 	// Terms that yielded 100+ properties in 2026 but have 0 in 2025
 	const terms = await prisma.$queryRaw<Array<{ term: string; y26: number }>>`
-    SELECT p26.search_term as term, p26.cnt::int as y26
+    SELECT p26.search_term as term, p26.cnt as y26
     FROM (
       SELECT search_term, COUNT(DISTINCT property_id) as cnt
       FROM properties WHERE year = 2026
@@ -38,7 +38,7 @@ async function getProvenTerms(): Promise<string[]> {
 	// Also exclude terms already attempted today (scrape_jobs)
 	const recentJobs = await prisma.scrapeJob.findMany({
 		where: {
-			startedAt: { gte: new Date(Date.now() - RECENT_JOBS_LOOKBACK_MS) },
+			startedAt: { gte: epochAgo(RECENT_JOBS_LOOKBACK_MS) },
 		},
 		select: { searchTerm: true },
 	});

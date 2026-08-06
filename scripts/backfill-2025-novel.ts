@@ -9,9 +9,9 @@
  * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025-novel.ts
  */
 
-import { prisma } from "../server/src/lib/prisma";
 import { MIN_TERM_LENGTH } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
+import { prisma } from "./lib/d1-prisma";
 import { getSearchedTermSets } from "./lib/searched-terms";
 
 const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
@@ -51,14 +51,17 @@ async function getNovelTerms(): Promise<string[]> {
 	const firstWords = await prisma.$queryRaw<
 		Array<{ word: string; cnt: number }>
 	>`
-    SELECT SPLIT_PART(p.name, ' ', 1) as word, COUNT(DISTINCT p.property_id)::int as cnt
-    FROM properties p
-    WHERE p.year = 2026
-    AND p.property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-    AND LENGTH(SPLIT_PART(p.name, ' ', 1)) >= ${MIN_TERM_LENGTH}
-    AND SPLIT_PART(p.name, ' ', 1) ~ '^[A-Za-z]'
-    GROUP BY SPLIT_PART(p.name, ' ', 1)
-    HAVING COUNT(DISTINCT p.property_id) >= ${MIN_PROPS_PER_TERM}
+    WITH words AS (
+      SELECT property_id, substr(name, 1, instr(name || ' ', ' ') - 1) AS word
+      FROM properties
+      WHERE year = 2026
+      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+    )
+    SELECT word, COUNT(DISTINCT property_id) as cnt
+    FROM words
+    WHERE LENGTH(word) >= ${MIN_TERM_LENGTH} AND word GLOB '[A-Za-z]*'
+    GROUP BY word
+    HAVING COUNT(DISTINCT property_id) >= ${MIN_PROPS_PER_TERM}
     ORDER BY cnt DESC`;
 	for (const w of firstWords)
 		candidates.push({ term: w.word, yield: w.cnt, source: "owner" });
@@ -69,15 +72,22 @@ async function getNovelTerms(): Promise<string[]> {
 	const streets = await prisma.$queryRaw<
 		Array<{ street: string; cnt: number }>
 	>`
-    SELECT SPLIT_PART(property_address, ' ', 2) as street,
-           COUNT(DISTINCT property_id)::int as cnt
-    FROM properties
-    WHERE year = 2026
-    AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-    AND property_address IS NOT NULL
-    AND LENGTH(SPLIT_PART(property_address, ' ', 2)) >= ${MIN_TERM_LENGTH}
-    AND SPLIT_PART(property_address, ' ', 2) ~ '^[A-Za-z]'
-    GROUP BY SPLIT_PART(property_address, ' ', 2)
+    WITH rests AS (
+      SELECT property_id,
+             substr(property_address || ' ', instr(property_address || ' ', ' ') + 1) AS rest
+      FROM properties
+      WHERE year = 2026
+      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+      AND property_address IS NOT NULL
+    ),
+    words AS (
+      SELECT property_id, substr(rest, 1, instr(rest || ' ', ' ') - 1) AS street
+      FROM rests
+    )
+    SELECT street, COUNT(DISTINCT property_id) as cnt
+    FROM words
+    WHERE LENGTH(street) >= ${MIN_TERM_LENGTH} AND street GLOB '[A-Za-z]*'
+    GROUP BY street
     HAVING COUNT(DISTINCT property_id) >= ${MIN_PROPS_PER_TERM}
     ORDER BY cnt DESC`;
 	for (const s of streets)
@@ -87,15 +97,19 @@ async function getNovelTerms(): Promise<string[]> {
 	// ── Source 3: Description first-words from 2026-only properties ────
 	console.log("  Mining description keywords...");
 	const descs = await prisma.$queryRaw<Array<{ word: string; cnt: number }>>`
-    SELECT SPLIT_PART(p.description, ' ', 1) as word, COUNT(DISTINCT p.property_id)::int as cnt
-    FROM properties p
-    WHERE p.year = 2026
-    AND p.property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-    AND p.description IS NOT NULL
-    AND LENGTH(SPLIT_PART(p.description, ' ', 1)) >= ${MIN_TERM_LENGTH}
-    AND SPLIT_PART(p.description, ' ', 1) ~ '^[A-Za-z]'
-    GROUP BY SPLIT_PART(p.description, ' ', 1)
-    HAVING COUNT(DISTINCT p.property_id) >= ${MIN_PROPS_PER_TERM}
+    WITH words AS (
+      SELECT property_id,
+             substr(description, 1, instr(description || ' ', ' ') - 1) AS word
+      FROM properties
+      WHERE year = 2026
+      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+      AND description IS NOT NULL
+    )
+    SELECT word, COUNT(DISTINCT property_id) as cnt
+    FROM words
+    WHERE LENGTH(word) >= ${MIN_TERM_LENGTH} AND word GLOB '[A-Za-z]*'
+    GROUP BY word
+    HAVING COUNT(DISTINCT property_id) >= ${MIN_PROPS_PER_TERM}
     ORDER BY cnt DESC`;
 	for (const d of descs)
 		candidates.push({ term: d.word, yield: d.cnt, source: "desc" });
@@ -106,16 +120,24 @@ async function getNovelTerms(): Promise<string[]> {
 	const twoWords = await prisma.$queryRaw<
 		Array<{ phrase: string; cnt: number }>
 	>`
-    SELECT CONCAT(SPLIT_PART(p.name, ' ', 1), ' ', SPLIT_PART(p.name, ' ', 2)) as phrase,
-           COUNT(DISTINCT p.property_id)::int as cnt
-    FROM properties p
-    WHERE p.year = 2026
-    AND p.property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-    AND LENGTH(SPLIT_PART(p.name, ' ', 1)) >= ${MIN_TERM_LENGTH}
-    AND LENGTH(SPLIT_PART(p.name, ' ', 2)) >= 2
-    AND SPLIT_PART(p.name, ' ', 1) ~ '^[A-Za-z]'
+    WITH split1 AS (
+      SELECT property_id,
+             substr(name, 1, instr(name || ' ', ' ') - 1) AS w1,
+             substr(name || ' ', instr(name || ' ', ' ') + 1) AS rest
+      FROM properties
+      WHERE year = 2026
+      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+    ),
+    split2 AS (
+      SELECT property_id, w1, substr(rest, 1, instr(rest || ' ', ' ') - 1) AS w2
+      FROM split1
+    )
+    SELECT w1 || ' ' || w2 as phrase, COUNT(DISTINCT property_id) as cnt
+    FROM split2
+    WHERE LENGTH(w1) >= ${MIN_TERM_LENGTH} AND LENGTH(w2) >= 2
+    AND w1 GLOB '[A-Za-z]*'
     GROUP BY phrase
-    HAVING COUNT(DISTINCT p.property_id) >= ${MIN_PROPS_PER_TERM}
+    HAVING COUNT(DISTINCT property_id) >= ${MIN_PROPS_PER_TERM}
     ORDER BY cnt DESC`;
 	for (const t of twoWords)
 		candidates.push({ term: t.phrase, yield: t.cnt, source: "two-word" });

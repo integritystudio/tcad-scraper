@@ -19,8 +19,8 @@
  *   doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue
  */
 
-import { prisma } from "../server/src/lib/prisma";
 import { SearchTermDeduplicator } from "../server/src/lib/search-term-deduplicator";
+import { prisma } from "./lib/d1-prisma";
 import { enqueueBatch } from "./lib/queue-utils";
 import { getSearchedTermSets } from "./lib/searched-terms";
 

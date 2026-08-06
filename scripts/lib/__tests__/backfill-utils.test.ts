@@ -3,8 +3,9 @@ import { MIN_TERM_LENGTH } from "../../../utils/constants";
 
 const mockQueryRaw = vi.fn();
 
-vi.mock("../../../server/src/lib/prisma", () => ({
+vi.mock("../d1-prisma", () => ({
 	prisma: { $queryRaw: (...args: unknown[]) => mockQueryRaw(...args) },
+	epochAgo: (ms: number) => String(Date.now() - ms),
 }));
 
 import { get2025Count, isSupersetOfSuccessful } from "../backfill-utils";

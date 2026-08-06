@@ -13,10 +13,10 @@
  *        TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 2
  */
 
-import { prisma } from "../server/src/lib/prisma";
 import { MIN_TERM_LENGTH } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
 import { isSupersetOfSuccessful } from "./lib/backfill-utils";
+import { prisma } from "./lib/d1-prisma";
 import { getSearchedTermSets } from "./lib/searched-terms";
 
 const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
@@ -98,14 +98,17 @@ async function getTailTerms(): Promise<string[]> {
 		const ownerNames = await prisma.$queryRaw<
 			Array<{ word: string; cnt: number }>
 		>`
-			SELECT SPLIT_PART(p.name, ' ', 1) AS word,
-			       COUNT(DISTINCT p.property_id)::int AS cnt
-			FROM properties p
-			WHERE p.year = 2026
-			  AND p.property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-			  AND LENGTH(SPLIT_PART(p.name, ' ', 1)) >= ${MIN_TERM_LENGTH}
-			GROUP BY SPLIT_PART(p.name, ' ', 1)
-			HAVING COUNT(DISTINCT p.property_id) >= 5
+			WITH words AS (
+			  SELECT property_id, substr(name, 1, instr(name || ' ', ' ') - 1) AS word
+			  FROM properties
+			  WHERE year = 2026
+			    AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+			)
+			SELECT word, COUNT(DISTINCT property_id) AS cnt
+			FROM words
+			WHERE LENGTH(word) >= ${MIN_TERM_LENGTH}
+			GROUP BY word
+			HAVING COUNT(DISTINCT property_id) >= 5
 			ORDER BY cnt DESC`;
 		for (const row of ownerNames) addTerm(row.word);
 
@@ -113,14 +116,22 @@ async function getTailTerms(): Promise<string[]> {
 		const streets = await prisma.$queryRaw<
 			Array<{ street: string; cnt: number }>
 		>`
-			SELECT SPLIT_PART(property_address, ' ', 2) AS street,
-			       COUNT(DISTINCT property_id)::int AS cnt
-			FROM properties
-			WHERE year = 2026
-			  AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-			  AND property_address IS NOT NULL
-			  AND LENGTH(SPLIT_PART(property_address, ' ', 2)) >= ${MIN_TERM_LENGTH}
-			GROUP BY SPLIT_PART(property_address, ' ', 2)
+			WITH rests AS (
+			  SELECT property_id,
+			         substr(property_address || ' ', instr(property_address || ' ', ' ') + 1) AS rest
+			  FROM properties
+			  WHERE year = 2026
+			    AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+			    AND property_address IS NOT NULL
+			),
+			words AS (
+			  SELECT property_id, substr(rest, 1, instr(rest || ' ', ' ') - 1) AS street
+			  FROM rests
+			)
+			SELECT street, COUNT(DISTINCT property_id) AS cnt
+			FROM words
+			WHERE LENGTH(street) >= ${MIN_TERM_LENGTH}
+			GROUP BY street
 			HAVING COUNT(DISTINCT property_id) >= 5
 			ORDER BY cnt DESC`;
 		for (const row of streets) addTerm(row.street);

@@ -10,7 +10,9 @@
  * Run: doppler run -- npx tsx scripts/analyze-search-terms.ts
  */
 
-import { prisma } from "../server/src/lib/prisma";
+import { epochAgo, prisma } from "./lib/d1-prisma";
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Approximate total TCAD property count — update periodically from https://tcad.org/
 // Used for coverage percentage and threshold checks only; staleness won't affect scraping.
@@ -118,13 +120,13 @@ export async function analyzeSearchTerms(): Promise<void> {
 		{
 			search_term: string;
 			result_count: number;
-			completed_at: Date;
+			completed_at: string; // epoch-ms string (D1 date encoding)
 		}[]
 	>`
     SELECT search_term, result_count, completed_at
     FROM scrape_jobs
     WHERE status = 'completed'
-      AND completed_at > NOW() - INTERVAL '30 days'
+      AND completed_at > ${epochAgo(THIRTY_DAYS_MS)}
       AND result_count > 0
     ORDER BY completed_at DESC
     LIMIT 10
@@ -135,7 +137,7 @@ export async function analyzeSearchTerms(): Promise<void> {
 	} else {
 		recentTerms.forEach((term, i) => {
 			console.log(
-				`   ${i + 1}. "${term.search_term}": ${term.result_count} props (${term.completed_at.toLocaleDateString()})`,
+				`   ${i + 1}. "${term.search_term}": ${term.result_count} props (${new Date(Number(term.completed_at)).toLocaleDateString()})`,
 			);
 		});
 	}
@@ -225,14 +227,13 @@ export async function analyzeSearchTerms(): Promise<void> {
 }
 
 async function countTermsMatching(patterns: string[]): Promise<number> {
-	// Use parameterized query to avoid SQL injection
-	const likePatterns = patterns.map((p) => `%${p}%`);
-	const result = await prisma.$queryRaw<{ count: bigint }[]>`
-    SELECT COUNT(DISTINCT search_term) as count
-    FROM scrape_jobs
-    WHERE search_term ILIKE ANY(${likePatterns})
-  `;
-	return Number(result[0].count);
+	// SQLite LIKE is ASCII case-insensitive by default (no ILIKE / ANY)
+	const rows = await prisma.scrapeJob.findMany({
+		where: { OR: patterns.map((p) => ({ searchTerm: { contains: p } })) },
+		distinct: ["searchTerm"],
+		select: { searchTerm: true },
+	});
+	return rows.length;
 }
 
 if (require.main === module) {

@@ -5,20 +5,9 @@ const mockWaitForQueueDrain = vi.fn();
 const mockGet2025Count = vi.fn();
 const mockDisconnect = vi.fn();
 
-let mockTcadYear = 2025;
-
-vi.mock("../../../server/src/lib/prisma", () => ({
+vi.mock("../d1-prisma", () => ({
 	prisma: { $disconnect: () => mockDisconnect() },
-}));
-
-vi.mock("../../../server/src/config", () => ({
-	config: {
-		scraper: {
-			get tcadYear() {
-				return mockTcadYear;
-			},
-		},
-	},
+	epochAgo: (ms: number) => String(Date.now() - ms),
 }));
 
 vi.mock("../../../server/src/utils/error-helpers", () => ({
@@ -50,14 +39,12 @@ import {
 const TEST_TARGET_COUNT = 100;
 const _TEST_BATCH_SIZE = 3;
 const EXPECTED_DEFAULT_MAX_ZERO_BATCHES = 3; // must match backfill-runner.ts
-const BACKFILL_YEAR = 2025;
 const WRONG_YEAR = 2026;
 const BELOW_TARGET = 50;
 const ENQUEUE_RETURN_COUNT = 3;
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	mockTcadYear = BACKFILL_YEAR;
 	delete process.env.TCAD_YEAR;
 	mockEnqueueBatch.mockResolvedValue(ENQUEUE_RETURN_COUNT);
 	mockWaitForQueueDrain.mockResolvedValue(undefined);

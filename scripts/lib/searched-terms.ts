@@ -1,7 +1,7 @@
 /** Shared utility for loading already-searched term sets across backfill and generation scripts. */
 
-import { prisma } from "../../server/src/lib/prisma";
 import { RECENT_JOBS_LOOKBACK_MS } from "../../utils/constants";
+import { epochAgo, prisma } from "./d1-prisma";
 
 export interface SearchedTermSets {
 	/** All analytics terms + year=2025 properties + recent jobs. Use as the general "already tried" gate. */
@@ -27,7 +27,7 @@ export async function getSearchedTermSets(): Promise<SearchedTermSets> {
 		}),
 		prisma.scrapeJob.findMany({
 			where: {
-				startedAt: { gte: new Date(Date.now() - RECENT_JOBS_LOOKBACK_MS) },
+				startedAt: { gte: epochAgo(RECENT_JOBS_LOOKBACK_MS) },
 			},
 			select: { searchTerm: true },
 		}),

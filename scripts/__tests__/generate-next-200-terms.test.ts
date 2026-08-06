@@ -17,7 +17,8 @@ function dispatchAnalyticsFindMany(...args: unknown[]) {
 	return mockAnalyticsFindMany(...args);
 }
 
-vi.mock("../../server/src/lib/prisma", () => ({
+vi.mock("../lib/d1-prisma", () => ({
+	epochAgo: (ms: number) => String(Date.now() - ms),
 	prisma: {
 		searchTermAnalytics: {
 			findMany: (...args: unknown[]) => dispatchAnalyticsFindMany(...args),

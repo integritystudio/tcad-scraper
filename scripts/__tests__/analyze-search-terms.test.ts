@@ -1,19 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockScrapeJobCount = vi.fn();
+const mockScrapeJobFindMany = vi.fn();
 const mockPropertyCount = vi.fn();
 const mockQueryRaw = vi.fn();
 
-vi.mock("../../server/src/lib/prisma", () => ({
+vi.mock("../lib/d1-prisma", () => ({
 	prisma: {
 		scrapeJob: {
 			count: (...args: unknown[]) => mockScrapeJobCount(...args),
+			findMany: (...args: unknown[]) => mockScrapeJobFindMany(...args),
 		},
 		property: {
 			count: (...args: unknown[]) => mockPropertyCount(...args),
 		},
 		$queryRaw: (...args: unknown[]) => mockQueryRaw(...args),
 	},
+	epochAgo: (ms: number) => String(Date.now() - ms),
 }));
 
 import { analyzeSearchTerms } from "../analyze-search-terms";
@@ -36,13 +39,14 @@ function setupDefaultMocks(overrides: { propertyCount?: number } = {}) {
 	// 2. top 20 terms query → []
 	// 3. always-failing terms → []
 	// 4. recent terms (last 30 days) → []
-	// 5-9. countTermsMatching (5 categories) → [{count: 0n}] each
 	mockQueryRaw
 		.mockResolvedValueOnce([{ count: BigInt(42) }]) // unique terms
 		.mockResolvedValueOnce([]) // topTerms
 		.mockResolvedValueOnce([]) // failingTerms
-		.mockResolvedValueOnce([]) // recentTerms
-		.mockResolvedValue([{ count: BigInt(0) }]); // countTermsMatching (5 calls)
+		.mockResolvedValueOnce([]); // recentTerms
+
+	// countTermsMatching (5 categories) uses scrapeJob.findMany with distinct
+	mockScrapeJobFindMany.mockResolvedValue([]);
 }
 
 beforeEach(() => {

@@ -18,7 +18,7 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { prisma } from "../server/src/lib/prisma";
+import { prisma } from "./lib/d1-prisma";
 import { getSearchedTermSets } from "./lib/searched-terms";
 
 const OUTPUT_PATH = join(
