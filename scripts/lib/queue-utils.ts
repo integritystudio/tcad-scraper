@@ -39,7 +39,10 @@ function sleep(ms: number): Promise<void> {
 }
 
 function toEpochMs(value: string): number {
-	return /^\d+$/.test(value) ? Number(value) : Date.parse(value);
+	const ms = /^\d+$/.test(value) ? Number(value) : Date.parse(value);
+	// NaN would compare false against the recency cutoff and count a
+	// malformed startedAt as a fresh terminal job; treat it as stale instead
+	return Number.isNaN(ms) ? 0 : ms;
 }
 
 /**
