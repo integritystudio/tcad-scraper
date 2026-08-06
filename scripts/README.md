@@ -36,7 +36,6 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `backfill-2025-proven.ts` | Terms that yielded 100+ properties in 2026 but none in 2025. |
 | `backfill-2025-unsearched.ts` | Owner/entity/street names mined from 2026-only properties, minus supersets and already-searched terms. |
 | `backfill-2025-novel.ts` | Never-searched owner names mined from 2026-only properties (e.g. NGUYEN, MARTINEZ). |
-| `run-first-200.ts` | Enqueue the 200 highest-yield terms from docs/SEARCH_TERMS.md. |
 | `enqueue-tail-terms.ts` | Multi-phase tail term optimizer: 1 = unscraped analytics terms, 2 = analytics tail, 3 = owner-name mining. `--phase N`. |
 
 ## Analysis
@@ -48,7 +47,6 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `generate-next-200-terms.ts` | Generate the next 200 candidate terms (5-tier priority: unsearched names, geographic, prefix expansions, re-scrape, gap fill); `--enqueue` sends them to the Workers API. |
 | `generate-valid-5char-terms.ts` | Generate 5-letter terms from real names/companies/streets (dictionary + census + curated lists), filtering already-searched and blacklisted; writes `data/valid-5char-terms.txt`. |
 | `check-unsearched-terms.ts` | Find inventory terms not yet searched for current year. Uses batched EXISTS queries. |
-| `test-import-paths.ts` | Validate that import statements across the project resolve to real files. |
 
 ## Config
 
