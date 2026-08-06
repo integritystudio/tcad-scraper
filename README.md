@@ -574,7 +574,7 @@ TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts
 
 ### TCAD API Token Management
 
-Tokens expire every ~5 minutes. In Workers, a cron trigger refreshes tokens every 4 minutes and caches in KV. See [TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md).
+Tokens expire every ~5 minutes. In Workers, a cron trigger refreshes tokens every 4 minutes and caches in KV. See [TOKEN_MANAGEMENT.md](docs/archive/TOKEN_MANAGEMENT.md) (archived — describes the legacy server flow).
 
 ### Available npm Scripts
 
@@ -859,8 +859,6 @@ See [docs/CHANGELOG.md](docs/CHANGELOG.md) for complete version history.
 Comprehensive documentation is available in the `docs/` directory:
 
 ### Primary Documentation
-- **[SETUP.md](docs/SETUP.md)** - Installation and setup guide
-- **[TESTING.md](docs/TESTING.md)** - Testing strategy and test execution (Vitest)
 - **[CHANGELOG.md](docs/CHANGELOG.md)** - Version history and detailed changes
 - **[BACKLOG.md](docs/BACKLOG.md)** - Technical debt and open items tracking
 
@@ -869,13 +867,13 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ### API & Monitoring
 - **[ANALYTICS.md](docs/ANALYTICS.md)** - Analytics implementation guide (GA4 + Meta Pixel)
-- **[API.md](docs/API.md)** - API documentation
 
 ### Technical Documentation
 - **[SEARCH_TERM_STRATEGY.md](SEARCH_TERM_STRATEGY.md)** - Tier-based search term efficiency strategy with API call estimates
 - **[SEARCH_TERM_ANALYSIS.md](SEARCH_TERM_ANALYSIS.md)** - Full ranked analysis of all 313 search terms with efficiency metrics
-- **[TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md)** - Token management and auto-refresh
-- **[doppler-setup.md](docs/doppler-setup.md)** - Doppler CLI installation and configuration
+
+### Archived Documentation
+Pre-migration docs (Express/BullMQ/Redis/PostgreSQL era) now live in **[docs/archive/](docs/archive/)**: SETUP, TESTING, API, SECURITY, MONITORING, CI-CD, TOKEN_MANAGEMENT, doppler-setup, BRANCH-PROTECTION, TEST-MOCK-PATHS, and the two Cloudflare planning docs.
 
 ### Server-Specific Documentation
 - **[server/README.md](server/README.md)** - Server setup, troubleshooting, requeue scripts

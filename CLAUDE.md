@@ -171,7 +171,7 @@ cd workers/tcad-api && npx wrangler queues list
 - **Cloudflare Queues + Workflows** replaced BullMQ + Redis for scrape job processing
 - **Cloudflare KV** replaced Redis for token cache + response cache
 - **Cron Triggers** replaced `node-cron` for scheduled tasks
-- **Bearer tokens** expire ~5 min; cron trigger auto-refreshes to KV (see [docs/TOKEN_MANAGEMENT.md](docs/TOKEN_MANAGEMENT.md))
+- **Bearer tokens** expire ~5 min; cron trigger auto-refreshes to KV (see [docs/archive/TOKEN_MANAGEMENT.md](docs/archive/TOKEN_MANAGEMENT.md) — archived, describes the legacy server flow)
 - **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses, suburb/city names. Does NOT work with ZIP codes, short terms (<4 chars), compound names, or numeric-only terms
 - **Env vars**: `TCAD_YEAR` (wrangler.toml vars), `UPSERT_CHUNK_SIZE` (500)
 - See [docs/changelog/2026-03-30.md](docs/changelog/2026-03-30.md) for D1 migration details
