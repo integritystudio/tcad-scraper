@@ -1,6 +1,6 @@
 # PropertySearch Component Documentation
 
-**Last Updated:** November 8, 2025
+**Last Updated:** August 6, 2026
 
 ## Table of Contents
 
@@ -50,18 +50,17 @@ PropertySearchContainer
         │   └── CardBody
         │       ├── Icon + Address
         │       ├── Summary (Appraised value)
-        │       ├── ExpandButton ⭐ NEW
-        │       └── PropertyDetails ⭐ NEW
-        │           ├── FinancialSection ⭐ NEW
+        │       ├── ExpandButton
+        │       └── PropertyDetails
+        │           ├── FinancialSection
         │           │   ├── SectionHeader
         │           │   └── ValueComparison
-        │           ├── IdentifiersSection ⭐ NEW
-        │           │   ├── SectionHeader
-        │           │   └── IdentifierList
-        │           ├── DescriptionSection ⭐ NEW
+        │           ├── IdentifiersSection
+        │           │   └── SectionHeader
+        │           ├── DescriptionSection
         │           │   ├── SectionHeader
         │           │   └── TruncatedText
-        │           └── MetadataSection ⭐ NEW
+        │           └── MetadataSection
         │               ├── SectionHeader (with FreshnessIndicator)
         │               └── TimestampList
         └── Analytics tracking (useEffect hook)
@@ -76,21 +75,21 @@ src/components/features/PropertySearch/
 ├── SearchBox.tsx
 ├── SearchResults.tsx
 ├── AnswerBox.tsx
-├── PropertyCard.tsx (updated)
-├── PropertyCard.module.css (updated)
+├── PropertyCard.tsx
+├── PropertyCard.module.css
 │
-├── components/ ⭐ NEW
+├── components/
 │   └── ExpandButton/
 │       ├── index.ts
 │       ├── ExpandButton.tsx
 │       └── ExpandButton.module.css
 │
-└── PropertyDetails/ ⭐ NEW
+└── PropertyDetails/
     ├── index.ts
     ├── PropertyDetails.tsx
     ├── PropertyDetails.module.css
     │
-    ├── sections/ ⭐ NEW
+    ├── sections/
     │   ├── FinancialSection.tsx
     │   ├── FinancialSection.module.css
     │   ├── IdentifiersSection.tsx
@@ -100,7 +99,7 @@ src/components/features/PropertySearch/
     │   ├── MetadataSection.tsx
     │   └── MetadataSection.module.css
     │
-    └── components/ ⭐ NEW
+    └── components/
         ├── SectionHeader.tsx
         ├── SectionHeader.module.css
         ├── ValueComparison.tsx
@@ -112,11 +111,6 @@ src/components/features/PropertySearch/
         ├── FreshnessIndicator.tsx
         └── FreshnessIndicator.module.css
 ```
-
-**File Count:**
-- **29 new files created**
-- **2 files modified**
-- **Total lines of code:** ~1,500+ (components + styles + types)
 
 ---
 
@@ -155,7 +149,7 @@ EXPANDED (On Click):
 │ 📍 123 Main Street, Austin   [Hide▲]│
 │                                    │
 │ ┌────────────────────────────────┐ │
-│ │ 💰 FINANCIAL BREAKDOWN         │ │
+│ │ 💰 Financial Breakdown         │ │
 │ │ Appraised Value    $450,000    │ │
 │ │ Assessed Value     $435,000    │ │
 │ │ Difference    -$15,000 (-3.3%) │ │
@@ -556,7 +550,6 @@ All text meets WCAG AA standards:
 
 - **Stacked layout**: Sections display vertically
 - **Full-width buttons**: Expand button spans card width
-- **Abbreviated values**: "$450k" instead of "$450,000"
 - **Larger touch targets**: 44px minimum (iOS standard)
 - **Collapsed sections**: Default to collapsed on mobile
 
@@ -806,95 +799,62 @@ import { FixedSizeList } from 'react-window';
 
 ### Unit Tests
 
-**Test File:** `PropertyCard.test.tsx`
+**Test File:** `src/components/__tests__/PropertyCard.test.tsx` (Vitest + Testing Library)
 
 ```typescript
 import { render, screen, fireEvent } from '@testing-library/react';
-import { PropertyCard } from './PropertyCard';
+import { PropertyCard } from '../features/PropertySearch/PropertyCard';
 
-describe('PropertyCard', () => {
-  const mockProperty = {
-    id: '1',
-    property_id: 'R123456',
-    name: 'John Smith',
-    prop_type: 'RESIDENTIAL',
-    city: 'Austin',
-    property_address: '123 Main Street',
-    assessed_value: 435000,
-    appraised_value: 450000,
-    geo_id: null,
-    description: null,
-    search_term: null,
-    scraped_at: '2025-01-15T10:00:00Z',
-    created_at: '2025-01-01T00:00:00Z',
-    updated_at: '2025-01-15T10:00:00Z',
-  };
+it('renders collapsed by default', () => {
+  render(<PropertyCard property={mockProperty} />);
+  expect(screen.getByText('Show Details')).toBeInTheDocument();
+  expect(screen.queryByText('Financial Breakdown')).not.toBeInTheDocument();
+});
 
-  it('renders collapsed by default', () => {
-    render(<PropertyCard property={mockProperty} />);
-    expect(screen.getByText('Show Details')).toBeInTheDocument();
-    expect(screen.queryByText('FINANCIAL BREAKDOWN')).not.toBeInTheDocument();
-  });
+it('expands when button is clicked', async () => {
+  render(<PropertyCard property={mockProperty} />);
 
-  it('expands when button is clicked', () => {
-    render(<PropertyCard property={mockProperty} />);
-
-    const expandButton = screen.getByText('Show Details');
+  const expandButton = screen.getByRole('button', { name: /show details/i });
+  await act(async () => {
     fireEvent.click(expandButton);
-
-    expect(screen.getByText('Hide Details')).toBeInTheDocument();
-    expect(screen.getByText('FINANCIAL BREAKDOWN')).toBeInTheDocument();
   });
 
-  it('calculates value difference correctly', () => {
-    render(<PropertyCard property={mockProperty} defaultExpanded />);
-
-    expect(screen.getByText(/15,000/)).toBeInTheDocument();
-    expect(screen.getByText(/-3.3%/)).toBeInTheDocument();
-  });
+  expect(screen.getByText('Hide Details')).toBeInTheDocument();
+  expect(screen.getByText('Financial Breakdown')).toBeInTheDocument();
 });
 ```
 
+See the test file for the full suite (collapsed state, expanded sections, analytics tracking, accessibility attributes). Run with `npx vitest run` from the repo root.
+
 ### Accessibility Tests
 
+Automated WCAG 2.1 A/AA checks run in E2E via `@axe-core/playwright` (`e2e/accessibility.spec.ts`):
+
 ```typescript
-import { axe, toHaveNoViolations } from 'jest-axe';
+import AxeBuilder from '@axe-core/playwright';
 
-expect.extend(toHaveNoViolations);
+const results = await new AxeBuilder({ page })
+  .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+  .analyze();
 
-it('should have no accessibility violations', async () => {
-  const { container } = render(<PropertyCard property={mockProperty} />);
-  const results = await axe(container);
-  expect(results).toHaveNoViolations();
-});
+expect(results.violations).toEqual([]);
 ```
 
 ### Visual Regression Tests
 
-Using Storybook + Chromatic:
+Playwright's built-in screenshot comparison (`e2e/visual.spec.ts`). Baselines live in `e2e/visual.spec.ts-snapshots/`; update after intentional UI changes:
 
-```typescript
-// PropertyCard.stories.tsx
-export const Default = () => (
-  <PropertyCard property={mockProperty} />
-);
-
-export const Expanded = () => (
-  <PropertyCard property={mockProperty} defaultExpanded />
-);
-
-export const MissingData = () => (
-  <PropertyCard property={{ ...mockProperty, assessed_value: null }} />
-);
+```bash
+npx playwright test e2e/visual.spec.ts --update-snapshots
 ```
 
 ---
 
 ## Related Documentation
 
-- **[Main README](../../../README.md)** - Project overview and getting started
-- **[CLAUDE.md](../../../CLAUDE.md)** - Development commands and architecture
-- **[docs/CHANGELOG.md](../../../docs/CHANGELOG.md)** - Release history
+- **[Main README](../../../../README.md)** - Project overview and getting started
+- **[CLAUDE.md](../../../../CLAUDE.md)** - Development commands and architecture
+- **[docs/CHANGELOG.md](../../../../docs/CHANGELOG.md)** - Release history
 
 > Note: COMPONENT_IMPLEMENTATION_GUIDE.md, VISUAL_DESIGN_PLAN.md, VISUAL_WIREFRAMES.md,
 > and the standalone ARCHITECTURE.md were removed. See CLAUDE.md for current architecture.
@@ -923,10 +883,7 @@ export const MissingData = () => (
 - PropertyCard.module.css - Added responsive styles
 
 **Documentation:**
-- Created this comprehensive README
-- Created implementation guide
-- Created visual design plan
-- Created wireframes document
+- Created this README
 
 ---
 
@@ -934,11 +891,5 @@ export const MissingData = () => (
 
 For questions or issues related to the PropertySearch components:
 
-1. **Check Documentation**: Review this README and related design docs
-2. **Code Examples**: See COMPONENT_IMPLEMENTATION_GUIDE.md for templates
-3. **Visual Reference**: Check VISUAL_WIREFRAMES.md for interaction patterns
-4. **Architecture**: Review ARCHITECTURE.md for system context
-
----
-
-**Built with ❤️ by the TCAD Scraper Team**
+1. **Check Documentation**: Review this README
+2. **Architecture**: See [CLAUDE.md](../../../../CLAUDE.md) for system context and development commands
