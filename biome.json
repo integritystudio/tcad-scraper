@@ -10,7 +10,12 @@
 			"**",
 			"!!**/dist",
 			"!!docs/repo-summary.json",
-			"!!server/data/*.json"
+			"!!server/data/*.json",
+			"!!scripts/lib/*.js",
+			"!!server/src/**/*.js",
+			"!!utils/*.js",
+			"!!.claude/**",
+			"!!workers/tcad-api/worker-configuration.d.ts"
 		]
 	},
 	"formatter": {
@@ -22,7 +27,7 @@
 		"rules": {
 			"recommended": true,
 			"complexity": {
-				"noArguments": "off"
+				"noArguments": "on"
 			},
 			"a11y": {
 				"noSvgWithoutTitle": "warn",
@@ -38,9 +43,9 @@
 				"noNonNullAssertion": "warn"
 			},
 			"correctness": {
-				"noUnusedVariables": "warn",
-				"noInvalidUseBeforeDeclaration": "warn",
-				"useExhaustiveDependencies": "warn"
+				"noUnusedVariables": "error",
+				"noInvalidUseBeforeDeclaration": "error",
+				"useExhaustiveDependencies": "error"
 			}
 		}
 	},
@@ -58,6 +63,16 @@
 		}
 	},
 	"overrides": [
+		{
+			"includes": ["index.html"],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"noArguments": "off"
+					}
+				}
+			}
+		},
 		{
 			"includes": ["server/src/**/*.ts", "shared/**/*.ts"],
 			"linter": {
