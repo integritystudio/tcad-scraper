@@ -1,6 +1,6 @@
 /**
  * Authentication middleware for Hono on Cloudflare Workers.
- * Ported from server/src/middleware/auth.ts — uses `jose` instead of `jsonwebtoken`.
+ * Ported from server/src/middleware/auth.ts (x-api-key only; the legacy JWT path was dropped).
  */
 
 import type { MiddlewareHandler } from "hono";

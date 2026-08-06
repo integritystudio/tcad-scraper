@@ -1,8 +1,7 @@
 {
-	"name": "project",
+	"name": "tcad-scraper",
 	"version": "1.0.0",
-	"description": "A web scraping tool built with  TypeScript for extracting property tax information from the Travis Central Appraisal District (TCAD) website.",
-	"main": "scraper.js",
+	"description": "A web scraping tool built with TypeScript for extracting property tax information from the Travis Central Appraisal District (TCAD) website.",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
@@ -21,18 +20,11 @@
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
-		"@bull-board/api": "^6.14.0",
-		"@bull-board/express": "^6.14.0",
 		"@playwright/test": "^1.56.1",
 		"@sentry/react": "^10.27.0",
 		"@types/node": "^24.9.2",
 		"@vitejs/plugin-react": "^5.0.4",
-		"axios": "^1.13.2",
-		"bullmq": "^5.62.0",
-		"cheerio": "^1.1.2",
-		"ioredis": "5.4.1",
 		"mixpanel-browser": "^2.72.0",
-		"pg": "^8.16.3",
 		"react": "^19.2.0",
 		"react-dom": "^19.2.0",
 		"vite": "^7.1.11"
