@@ -9,9 +9,9 @@ on:
 
 jobs:
   e2e:
-    name: Playwright E2E (Chromium)
+    name: Playwright E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -27,10 +27,12 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps
 
       - name: Run E2E tests
-        run: npm run test:e2e -- --project=chromium
+        # VITE_API_URL points to production — tests are read-only UI checks
+        # against the public property search API; no data mutation occurs.
+        run: npm run test:e2e
         env:
           CI: true
           VITE_API_URL: https://api.alephatx.info/api
