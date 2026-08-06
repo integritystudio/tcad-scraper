@@ -104,6 +104,28 @@ describe("waitForQueueDrain", () => {
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
+	it("treats an unparseable startedAt as stale and keeps polling", async () => {
+		const now = Date.now();
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				historyResponse([
+					{ searchTerm: "Alpha", status: "completed", startedAt: "not-a-date" },
+				]),
+			)
+			.mockResolvedValueOnce(
+				historyResponse([job("Alpha", "completed", now + 1_000)]),
+			);
+		vi.stubGlobal("fetch", fetchMock);
+
+		const drained = waitForQueueDrain(["Alpha"], now, { error: vi.fn() });
+		await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+		await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+		await drained;
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
 	it("keeps polling while jobs are still processing", async () => {
 		const now = Date.now();
 		const fetchMock = vi
