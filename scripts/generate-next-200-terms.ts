@@ -20,6 +20,7 @@
  */
 
 import { MIN_TERM_LENGTH } from "../utils/constants";
+import { generateCvcvBases } from "./lib/cvcv";
 import { SearchTermDeduplicator } from "./lib/search-term-deduplicator";
 import { prisma } from "./lib/d1-prisma";
 import { enqueueBatch } from "./lib/queue-utils";
@@ -603,20 +604,9 @@ export async function main(enqueueMode = false) {
 	console.error(`Tier 4 (re-scrape high-yield): ${tier4Count}`);
 
 	// ── TIER 5: 4-char prefix gap fill ───────────────────────────────
-	const vowels = "aeiou";
-	const consonants = "bcdfghjklmnpqrstvwxyz";
 	let tier5Count = 0;
 
-	const prefixes: string[] = [];
-	for (const c1 of consonants) {
-		for (const v1 of vowels) {
-			for (const c2 of consonants) {
-				for (const v2 of vowels) {
-					prefixes.push(c1 + v1 + c2 + v2);
-				}
-			}
-		}
-	}
+	const prefixes = generateCvcvBases();
 	// Fisher-Yates shuffle to avoid alphabetical bias
 	for (let i = prefixes.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));

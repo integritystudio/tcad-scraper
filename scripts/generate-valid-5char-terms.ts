@@ -18,6 +18,7 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { generateCvcvBases } from "./lib/cvcv";
 import { prisma } from "./lib/d1-prisma";
 import { getSearchedTermSets } from "./lib/searched-terms";
 
@@ -1283,25 +1284,16 @@ async function main() {
 	const results = new Set<string>();
 
 	// 3a. CVCV base expansion (append a-z, keep if valid name)
-	const vowels = "aeiou";
-	const consonants = "bcdfghjklmnpqrstvwxyz";
 	let expansionHits = 0;
 
-	for (const c1 of consonants) {
-		for (const v1 of vowels) {
-			for (const c2 of consonants) {
-				for (const v2 of vowels) {
-					const base = c1 + v1 + c2 + v2;
-					for (let ch = 97; ch <= 122; ch++) {
-						const candidate = base + String.fromCharCode(ch);
-						if (!validNames.has(candidate)) continue;
-						if (searched.has(candidate)) continue;
-						if (blacklistSet.has(candidate)) continue;
-						results.add(candidate);
-						expansionHits++;
-					}
-				}
-			}
+	for (const base of generateCvcvBases()) {
+		for (let ch = 97; ch <= 122; ch++) {
+			const candidate = base + String.fromCharCode(ch);
+			if (!validNames.has(candidate)) continue;
+			if (searched.has(candidate)) continue;
+			if (blacklistSet.has(candidate)) continue;
+			results.add(candidate);
+			expansionHits++;
 		}
 	}
 
