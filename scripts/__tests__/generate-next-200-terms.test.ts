@@ -63,7 +63,7 @@ beforeEach(() => {
 	mockScrapeJobFindMany.mockResolvedValue([]);
 	mockQueryRawUnsafe.mockResolvedValue([YIELD_CHUNK_ROW]);
 	mockPropertyCount.mockResolvedValue(260_000);
-	mockEnqueueBatch.mockResolvedValue(0);
+	mockEnqueueBatch.mockResolvedValue([]);
 });
 
 describe("generate-next-200-terms main()", () => {
@@ -73,7 +73,7 @@ describe("generate-next-200-terms main()", () => {
 	});
 
 	it("calls enqueueBatch with selected terms and 'next-200-gen' userId when enqueueMode=true", async () => {
-		mockEnqueueBatch.mockResolvedValue(5);
+		mockEnqueueBatch.mockImplementation(async (terms: unknown) => terms);
 
 		await main(true);
 
@@ -92,7 +92,7 @@ describe("generate-next-200-terms main()", () => {
 	});
 
 	it("resolves without throwing when enqueue succeeds", async () => {
-		mockEnqueueBatch.mockResolvedValue(10);
+		mockEnqueueBatch.mockImplementation(async (terms: unknown) => terms);
 		await expect(main(true)).resolves.toBeUndefined();
 	});
 });

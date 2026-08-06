@@ -50,7 +50,7 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `generate-next-200-terms.ts` - Generate next candidate terms for backfill, ranked by predicted yield (in-DB match frequency; drops near-zero matchers). `--enqueue` sends to Workers API
 - `queue-results.ts` - Recent scrape jobs + property count from the Workers API (`npx tsx scripts/queue-results.ts [--limit N]`)
 - `config/batch-configs.ts` - 19 batch type definitions
-- `lib/` - queue-utils (`enqueueBatch()` via Workers API), d1-prisma (Prisma over D1 HTTP — production data access for scripts), backfill-runner, fallback-terms, searched-terms, backfill-utils, search-term-deduplicator, error-helpers, logger
+- `lib/` - queue-utils (`enqueueBatch()` + `waitForQueueDrain()` via Workers API), d1-prisma (Prisma over D1 HTTP — production data access for scripts), backfill-runner, fallback-terms, searched-terms, backfill-utils, search-term-deduplicator, error-helpers, logger
 - See [scripts/README.md](scripts/README.md) for full reference
 - **Search Term Strategy**: See [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md) (canonical) for Tier 1-4 strategy, coverage metrics + operations, and [docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json) for per-term yield data
 

@@ -59,8 +59,8 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 
 | File | Purpose |
 |------|---------|
-| `lib/queue-utils.ts` | `enqueueBatch()` — HTTP enqueue via the Workers API. |
-| `lib/backfill-runner.ts` | Shared runner for the backfill scripts. |
+| `lib/queue-utils.ts` | `enqueueBatch()` — HTTP enqueue via the Workers API; `waitForQueueDrain()` — polls `/history` until the batch's jobs reach completed/failed (10m timeout). |
+| `lib/backfill-runner.ts` | Shared runner for the backfill scripts (enqueue → drain → count gained). |
 | `lib/fallback-terms.ts` | Curated fallback search term pool (`FALLBACK_TERMS`). |
 | `lib/searched-terms.ts` | Searched-term lookups (`getSearchedTermSets()`). |
 | `lib/backfill-utils.ts` | Backfill helpers. |

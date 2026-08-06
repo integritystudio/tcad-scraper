@@ -17,7 +17,7 @@ vi.mock("../error-helpers", () => ({
 // vi.mock factories are hoisted — must use literals, not const references
 vi.mock("../queue-utils", () => ({
 	enqueueBatch: (...args: unknown[]) => mockEnqueueBatch(...args),
-	waitForQueueDrain: () => mockWaitForQueueDrain(),
+	waitForQueueDrain: (...args: unknown[]) => mockWaitForQueueDrain(...args),
 	BATCH_SIZE: 3,
 }));
 
@@ -41,12 +41,12 @@ const _TEST_BATCH_SIZE = 3;
 const EXPECTED_DEFAULT_MAX_ZERO_BATCHES = 3; // must match backfill-runner.ts
 const WRONG_YEAR = 2026;
 const BELOW_TARGET = 50;
-const ENQUEUE_RETURN_COUNT = 3;
 
 beforeEach(() => {
 	vi.clearAllMocks();
 	delete process.env.TCAD_YEAR;
-	mockEnqueueBatch.mockResolvedValue(ENQUEUE_RETURN_COUNT);
+	// enqueueBatch resolves to the terms the API accepted — default: all of them
+	mockEnqueueBatch.mockImplementation(async (terms: unknown) => terms);
 	mockWaitForQueueDrain.mockResolvedValue(undefined);
 });
 
@@ -93,6 +93,20 @@ describe("runBackfill", () => {
 			"test-backfill",
 		);
 		expect(mockWaitForQueueDrain).toHaveBeenCalledTimes(1);
+		expect(mockWaitForQueueDrain).toHaveBeenCalledWith(
+			["alpha", "bravo", "charlie"],
+			expect.any(Number),
+		);
+	});
+
+	it("skips waitForQueueDrain when no terms were accepted by the API", async () => {
+		mockGet2025Count.mockResolvedValue(BELOW_TARGET);
+		mockEnqueueBatch.mockResolvedValue([]);
+
+		await runBackfill(makeCfg());
+
+		expect(mockEnqueueBatch).toHaveBeenCalled();
+		expect(mockWaitForQueueDrain).not.toHaveBeenCalled();
 	});
 
 	it("processes all batches when zero-result but not enough to trigger stop", async () => {

@@ -69,10 +69,13 @@ export async function runBackfill(cfg: BackfillConfig): Promise<void> {
 		console.log(`--- Batch ${batchNum} (${batch.length} terms) ---`);
 		console.log(`  Terms: ${batch.join(", ")}`);
 
+		const enqueuedAtMs = Date.now();
 		const enqueued = await enqueueBatch(batch, cfg.userId);
-		console.log(`  Enqueued: ${enqueued}`);
+		console.log(`  Enqueued: ${enqueued.length}/${batch.length}`);
 
-		await waitForQueueDrain();
+		if (enqueued.length > 0) {
+			await waitForQueueDrain(enqueued, enqueuedAtMs);
+		}
 
 		const newCount = await get2025Count();
 		const gained = newCount - current;
