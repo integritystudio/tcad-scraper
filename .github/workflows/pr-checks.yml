@@ -76,12 +76,15 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      - name: Check code formatting (server — ESLint handles style)
+      - name: Check server formatting (ESLint — no style rules currently)
         working-directory: ./server
         run: |
-          # server/ uses ESLint for linting; Prettier is not a dependency.
-          # Root uses Biome (`npm run lint`). No separate format step exists.
-          echo "ℹ️ Formatting enforced by ESLint (server) and Biome (root). No prettier step needed."
+          # Prettier is not a server/ dependency and `npm run format` does not exist.
+          # server/ ESLint (plugin:@typescript-eslint/recommended) enforces correctness
+          # but not whitespace/style formatting. Root uses Biome (`npm run lint`).
+          # TODO: Add @typescript-eslint/stylistic or Prettier to server/ if consistent
+          # formatting becomes a PR requirement.
+          echo "ℹ️ Style enforcement: Biome (root), ESLint correctness only (server). No formatting gate."
         continue-on-error: true
 
   # Test Coverage Comparison

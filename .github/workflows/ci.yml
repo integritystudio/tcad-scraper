@@ -51,10 +51,6 @@ jobs:
       - name: TypeScript Check (Root — src only)
         run: npx tsc --noEmit
 
-      - name: TypeScript Check (Scripts + Utils)
-        run: npx tsc --noEmit -p scripts/tsconfig.json
-        continue-on-error: true
-
       - name: TypeScript Check (Server)
         working-directory: ./server
         run: npx tsc --noEmit
@@ -246,6 +242,11 @@ jobs:
       - name: TypeScript Check (workers)
         working-directory: ./workers/tcad-api
         run: npx tsc --noEmit
+
+      - name: TypeScript Check (scripts + utils)
+        # scripts/tsconfig.json paths reference workers/tcad-api/node_modules/@prisma/client
+        # so this step must run after workers npm ci + prisma generate above
+        run: npx tsc --noEmit -p scripts/tsconfig.json
 
       - name: Run Workers tests
         working-directory: ./workers/tcad-api
