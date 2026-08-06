@@ -41,7 +41,6 @@ The PropertySearch feature provides a comprehensive property data viewing interf
 ```
 PropertySearchContainer
 ├── SearchBox
-├── ExampleQueries
 └── SearchResults
     └── PropertyCard (multiple instances)
         ├── Card (UI component)
@@ -72,11 +71,11 @@ PropertySearchContainer
 
 ```
 src/components/features/PropertySearch/
-├── README.md ⭐ (this file)
+├── README.md (this file)
 ├── PropertySearchContainer.tsx
 ├── SearchBox.tsx
 ├── SearchResults.tsx
-├── ExampleQueries.tsx
+├── AnswerBox.tsx
 ├── PropertyCard.tsx (updated)
 ├── PropertyCard.module.css (updated)
 │
@@ -893,11 +892,12 @@ export const MissingData = () => (
 
 ## Related Documentation
 
-- **[COMPONENT_IMPLEMENTATION_GUIDE.md](../../../COMPONENT_IMPLEMENTATION_GUIDE.md)** - Detailed implementation templates
-- **[VISUAL_DESIGN_PLAN.md](../../../VISUAL_DESIGN_PLAN.md)** - Complete design system and patterns
-- **[VISUAL_WIREFRAMES.md](../../../VISUAL_WIREFRAMES.md)** - ASCII wireframes and interaction flows
-- **[ARCHITECTURE.md](../../../ARCHITECTURE.md)** - System architecture overview
 - **[Main README](../../../README.md)** - Project overview and getting started
+- **[CLAUDE.md](../../../CLAUDE.md)** - Development commands and architecture
+- **[docs/CHANGELOG.md](../../../docs/CHANGELOG.md)** - Release history
+
+> Note: COMPONENT_IMPLEMENTATION_GUIDE.md, VISUAL_DESIGN_PLAN.md, VISUAL_WIREFRAMES.md,
+> and the standalone ARCHITECTURE.md were removed. See CLAUDE.md for current architecture.
 
 ---
 

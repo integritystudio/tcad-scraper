@@ -26,8 +26,8 @@ No workflow runs Playwright despite "126/126 E2E passing" claims in README/CLAUD
 
 Root lint is Biome (`"lint": "biome check ."`) and root has no eslint dependency, so `.eslintrc.json` is unrunnable from root. `server/` has its own `server/.eslintrc.json` with `"root": true`, so server's lint never reads the root file either — it can simply be deleted. Also rename `ci.yml`'s "Run ESLint (Root)" step, which actually runs Biome with `continue-on-error: true`. -- `.eslintrc.json`, `.github/workflows/ci.yml:43-49`
 
-### AUD-05: Auto-generated schema READMEs describe deleted files
-**Priority**: P3 | **Source**: src.xml audit (2026-08-06)
+### ~~AUD-05: Auto-generated schema READMEs describe deleted files~~
+**Status**: Done | **Priority**: P3 | **Source**: src.xml audit (2026-08-06)
 
 "Schema Generator" READMEs are stale: `src/README.md` documents deleted `database.ts`/`query-db.ts` (pg-based) and a pre-rewrite App.tsx; `src/components/README.md` lists deleted `ScrapeManager.tsx`. `src/components/features/PropertySearch/README.md` (2025-11-08) references nonexistent `ExampleQueries.tsx` and links four design docs that don't exist (COMPONENT_IMPLEMENTATION_GUIDE, VISUAL_DESIGN_PLAN, VISUAL_WIREFRAMES, ARCHITECTURE). Re-run the generator or delete the stale files; fix or drop the PropertySearch README links. -- `src/README.md`, `src/components/README.md`, `src/components/features/PropertySearch/README.md`
 
