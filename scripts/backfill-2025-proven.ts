@@ -8,10 +8,8 @@
  * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025-proven.ts
  */
 
-import {
-	RECENT_JOBS_LOOKBACK_DAYS,
-	RECENT_JOBS_LOOKBACK_MS,
-} from "../utils/constants";
+import { RECENT_JOBS_LOOKBACK_MS } from "../utils/constants";
+import { TIME_MS } from "../utils/units";
 import { runBackfillMain } from "./lib/backfill-runner";
 import { epochAgo, prisma } from "./lib/d1-prisma";
 
@@ -58,7 +56,7 @@ async function getProvenTerms(): Promise<string[]> {
 		`  Proven terms (${MIN_2026_YIELD}+ yield in 2026, 0 in 2025): ${terms.length}`,
 	);
 	console.log(
-		`  Skipped (attempted in last ${RECENT_JOBS_LOOKBACK_DAYS} days): ${skipped}`,
+		`  Skipped (attempted in last ${RECENT_JOBS_LOOKBACK_MS / TIME_MS.DAY} days): ${skipped}`,
 	);
 	console.log(`  Queued: ${result.length}`);
 	return result;

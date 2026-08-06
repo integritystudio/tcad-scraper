@@ -2,6 +2,10 @@
  * Application constants
  */
 
+import { TIME_MS, DURATION_MS } from "./units";
+export * from "./http-errors";
+
+
 export const PROPERTY_TYPES = [
 	"Residential",
 	"Commercial",
@@ -41,10 +45,16 @@ export const DEFAULT_TCAD_YEAR = 2025;
 // and lowthreshold scripts. See CLAUDE.md "Scale: 500K+ properties".
 export const TARGET_2025_PROPERTY_COUNT = 500_000;
 
+// ── Default limits & intervals ─────────────────────────────────────
+export const DAYS_PER_WEEK = 7;
+export const DAYS_PER_MONTH = 30;
+export const DEFAULT_QUERY_LIMIT = 100;
+export const DEFAULT_RETRY_DELAY_MS = DURATION_MS.TWO_SECONDS;
+export const DEFAULT_RATE_LIMIT_DELAY_MS = DURATION_MS.FIVE_SECONDS;
+export const PROGRESS_LOG_INTERVAL = 100;
+
 // ── Recent jobs lookback ─────────────────────────────────────────────
-export const RECENT_JOBS_LOOKBACK_DAYS = 7;
-export const RECENT_JOBS_LOOKBACK_MS =
-	RECENT_JOBS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
+export const RECENT_JOBS_LOOKBACK_MS = DAYS_PER_WEEK * TIME_MS.DAY;
 
 // ── Term generation thresholds ───────────────────────────────────────
 export const MIN_TERM_LENGTH = 4;
@@ -61,31 +71,22 @@ export const SEED_MIN_SUCCESS_RATE = 0.5;
 export const SEED_MIN_AVG_RESULTS = 100;
 
 // ── Time ────────────────────────────────────────────────────────────
-export const MS_PER_SECOND = 1000;
-export const SECONDS_PER_MINUTE = 60;
-export const MS_PER_MINUTE = SECONDS_PER_MINUTE * MS_PER_SECOND;
+export const MS_PER_MINUTE = TIME_MS.MINUTE;
 
 // ── Retention ───────────────────────────────────────────────────────
-export const SCRAPE_JOB_RETENTION_DAYS = 30;
-export const QUEUE_RETENTION_DAYS = 7;
+export const SCRAPE_JOB_RETENTION_DAYS = DAYS_PER_MONTH;
+export const QUEUE_RETENTION_DAYS = DAYS_PER_WEEK;
 
 // ── Formatting ─────────────────────────────────────────────────────
 export const PERCENT_MULTIPLIER = 100;
 export const COST_DECIMAL_PLACES = 6;
 export const LOG_SEPARATOR_WIDTH = 60;
 
-// ── Default limits & intervals ─────────────────────────────────────
-export const DEFAULT_LOOKBACK_DAYS = 7;
-export const DEFAULT_QUERY_LIMIT = 100;
-export const DEFAULT_RETRY_DELAY_MS = 2000;
-export const DEFAULT_RATE_LIMIT_DELAY_MS = 5000;
-export const PROGRESS_LOG_INTERVAL = 100;
-
 // ── Network ─────────────────────────────────────────────────────────
-export const API_CLIENT_TIMEOUT_MS = 30_000;
+export const API_CLIENT_TIMEOUT_MS = DURATION_MS.THIRTY_SECONDS;
 
 // ── CLI formatting ──────────────────────────────────────────────────
 export const BATCH_TYPE_COL_WIDTH = 16;
 
 // ── Test timeouts ───────────────────────────────────────────────────
-export const REDIS_AVAILABILITY_TIMEOUT_MS = 3000;
+export const REDIS_AVAILABILITY_TIMEOUT_MS = DURATION_MS.THREE_SECONDS;

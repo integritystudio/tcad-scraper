@@ -1,0 +1,25 @@
+/**
+ * Supported units of time. 
+ */
+
+export const TIME_MS = {
+  MS: 1,
+  SECOND: 1_000,
+  MINUTE: 60_000,
+  HOUR: 3_600_000,
+  DAY: 86_400_000,
+  WEEK: 604_800_000,
+} as const;
+
+export const DURATION_MS = {
+  TWO_SECONDS: 2_000,
+  THREE_SECONDS: 3_000,
+  FIVE_SECONDS: 5_000,
+  TEN_SECONDS: 10_000,
+  THIRTY_SECONDS: 30_000,
+  TWO_MINUTES: 120_000,
+  FIVE_MINUTES: 300_000,
+  TEN_MINUTES: 600_000,
+} as const;
+
+
