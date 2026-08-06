@@ -68,54 +68,16 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        working-directory: ./server
         run: npm ci
 
-      - name: Run ESLint with annotations
-        working-directory: ./server
+      - name: Run Biome (lint + format)
         run: npm run lint
-        continue-on-error: true
-
-      - name: Check server formatting (ESLint — no style rules currently)
-        working-directory: ./server
-        run: |
-          # Prettier is not a server/ dependency and `npm run format` does not exist.
-          # server/ ESLint (plugin:@typescript-eslint/recommended) enforces correctness
-          # but not whitespace/style formatting. Root uses Biome (`npm run lint`).
-          # TODO: Add @typescript-eslint/stylistic or Prettier to server/ if consistent
-          # formatting becomes a PR requirement.
-          echo "ℹ️ Style enforcement: Biome (root), ESLint correctness only (server). No formatting gate."
         continue-on-error: true
 
   # Test Coverage Comparison
   test-coverage:
     name: Test Coverage Report
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: tcad_scraper_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
 
     steps:
       - name: Checkout code
@@ -128,36 +90,19 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        working-directory: ./server
         run: npm ci
 
-      - name: Generate Prisma Client
-        working-directory: ./server
-        run: npx prisma generate
-
-      - name: Run Prisma Migrations
-        working-directory: ./server
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tcad_scraper_test
-        run: npx prisma migrate deploy
-
       - name: Run tests with coverage
-        working-directory: ./server
-        env:
-          NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tcad_scraper_test
-          DATABASE_READ_ONLY_URL: postgresql://postgres:postgres@localhost:5432/tcad_scraper_test
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-          SENTRY_DSN: ""
-          CLAUDE_API_KEY: "test-key"
         run: npm run test:coverage
 
       - name: Generate Coverage Summary
         id: coverage
         run: |
-          cd server
-          COVERAGE=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
+          if [ -f coverage/coverage-summary.json ]; then
+            COVERAGE=$(jq -r '.total.lines.pct' coverage/coverage-summary.json)
+          else
+            COVERAGE="n/a"
+          fi
           echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
           echo "Coverage: $COVERAGE%"
 
@@ -224,8 +169,8 @@ jobs:
         uses: tj-actions/changed-files@v44
         with:
           files_yaml: |
-            server:
-              - 'server/**'
+            workers:
+              - 'workers/**'
             frontend:
               - 'src/**'
               - 'vite.config.ts'
@@ -239,7 +184,7 @@ jobs:
               - '**/package.json'
               - '**/package-lock.json'
             database:
-              - 'server/prisma/**'
+              - 'workers/tcad-api/prisma/**'
             tests:
               - '**/__tests__/**'
               - '**/*.test.ts'
@@ -252,8 +197,8 @@ jobs:
           script: |
             const changedAreas = [];
 
-            if ('${{ steps.changed-files.outputs.server_any_changed }}' === 'true') {
-              changedAreas.push('🔧 Server/Backend');
+            if ('${{ steps.changed-files.outputs.workers_any_changed }}' === 'true') {
+              changedAreas.push('🔧 Workers/Backend');
             }
             if ('${{ steps.changed-files.outputs.frontend_any_changed }}' === 'true') {
               changedAreas.push('🎨 Frontend');

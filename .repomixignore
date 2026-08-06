@@ -17,3 +17,4 @@ e2e/test-results/
 playwright-report/
 **/worker-configuration.d.ts
 docs/repomix/
+.condense/

@@ -69,24 +69,12 @@ jobs:
           fi
         continue-on-error: true
 
-      - name: Run npm audit (Server)
-        working-directory: ./server
-        run: |
-          npm audit --audit-level=high --json > npm-audit-server.json || true
-          if [ -s npm-audit-server.json ]; then
-            echo "## Server Dependencies Audit" >> $GITHUB_STEP_SUMMARY
-            npm audit --audit-level=high >> $GITHUB_STEP_SUMMARY || true
-          fi
-        continue-on-error: true
-
       - name: Upload audit results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: npm-audit-reports
-          path: |
-            npm-audit-root.json
-            server/npm-audit-server.json
+          path: npm-audit-root.json
           retention-days: 30
 
   # OWASP Dependency Check
@@ -161,37 +149,6 @@ jobs:
           path: ./
           extra_args: --debug --only-verified
 
-  # Security Test Suite
-  security-tests:
-    name: Security Test Suite
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: './server/package-lock.json'
-
-      - name: Install dependencies
-        working-directory: ./server
-        run: npm ci
-
-      - name: Run security tests
-        working-directory: ./server
-        env:
-          NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
-          DATABASE_READ_ONLY_URL: postgresql://postgres:postgres@localhost:5432/test
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-        run: npm run test:security
-        continue-on-error: true
-
   # License Compliance Check
   license-check:
     name: License Compliance
@@ -207,11 +164,6 @@ jobs:
           node-version: '20'
 
       - name: Install root dependencies
-        run: npm ci
-        continue-on-error: false
-
-      - name: Install server dependencies
-        working-directory: ./server
         run: npm ci
         continue-on-error: false
 
@@ -233,7 +185,7 @@ jobs:
   security-summary:
     name: Security Scan Summary
     runs-on: ubuntu-latest
-    needs: [codeql, dependency-scan, owasp-dependency-check, secret-scan, security-tests]
+    needs: [codeql, dependency-scan, owasp-dependency-check, secret-scan]
     if: always()
 
     steps:
@@ -247,7 +199,6 @@ jobs:
           echo "| Dependency Scan | ${{ needs.dependency-scan.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| OWASP Check | ${{ needs.owasp-dependency-check.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Secret Scan | ${{ needs.secret-scan.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security Tests | ${{ needs.security-tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Check for critical failures

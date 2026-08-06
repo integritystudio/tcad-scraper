@@ -14,4 +14,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/repomix-full.sh"
 "$SCRIPT_DIR/repomix-compressed.sh"
 
+# Retrain the zstd dictionary on current tracked TypeScript so it never drifts
+# from the corpus (a stale dictionary silently degrades and can embed deleted code).
+if command -v zstd >/dev/null 2>&1; then
+  REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+  DICT_PATH="$REPO_ROOT/.condense/dictionaries/dict_typescript.zdict"
+  (cd "$REPO_ROOT" && git ls-files -z '*.ts' '*.tsx' \
+    | xargs -0 zstd --train --maxdict=65536 -o "$DICT_PATH" -f -q)
+  echo "Retrained $DICT_PATH"
+else
+  echo "zstd not found; skipped dictionary retrain" >&2
+fi
+
 echo "All repomix outputs regenerated in docs/repomix/"
