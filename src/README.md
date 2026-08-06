@@ -7,10 +7,9 @@ Frontend source — React 19 + Vite. Production served from GitHub Pages.
 ## Subdirectories
 
 - `components/` — UI components (features, layout, ui)
-- `constants/` — Shared frontend constants
+- `constants/` — Generated build-time constants (`build.ts` via `scripts/generate-build-constants.ts`; gitignored)
 - `hooks/` — Custom React hooks
-- `lib/` — Client-side utilities
-- `services/` — API client services
+- `lib/` — Client-side utilities (analytics, api-config, sentry, xcontroller)
 - `types/` — TypeScript types
 - `utils/` — Utility functions
 

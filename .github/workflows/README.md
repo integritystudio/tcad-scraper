@@ -1,166 +1,32 @@
 # GitHub Actions Workflows
 
-This directory contains all CI/CD workflows for the TCAD Scraper project.
+CI/CD workflows for the TCAD Scraper project.
 
 ## Workflows Overview
 
-| Workflow | File | Trigger | Purpose |
-|----------|------|---------|---------|
-| **CI Pipeline** | `ci.yml` | Push, PR | Runs tests, linting, builds |
-| **E2E Tests** | `e2e.yml` | Push, PR | Playwright end-to-end tests |
-| **PR Checks** | `pr-checks.yml` | PRs | PR-specific validation |
-| **Security Scanning** | `security.yml` | Push, PR, Schedule | Security scans |
-| **Deployment** | `deploy.yml` | Push to main | Deploy to GitHub Pages |
+| Workflow | File | Trigger | Purpose | Runtime |
+|----------|------|---------|---------|---------|
+| **CI Pipeline** | `ci.yml` | Push, PR | Tests, linting, builds | ~6-8 min |
+| **E2E Tests** | `e2e.yml` | Push, PR, manual | Playwright end-to-end tests | — |
+| **PR Checks** | `pr-checks.yml` | PRs | PR-specific validation | ~5-8 min |
+| **Security Scanning** | `security.yml` | Push, PR, schedule, manual | Security scans | ~15-20 min |
+| **Deployment** | `deploy.yml` | Push to main, manual | Deploy frontend to GitHub Pages | ~3-5 min |
 
-## Quick Reference
+## Jobs per Workflow
 
-### CI Pipeline (`ci.yml`)
+- **`ci.yml`**: Lint & Type Check (Biome + tsc, OS matrix) → Unit Tests (Vitest + coverage) → Build Verification → Workers CI (tsc + tests + wrangler dry-run) → Security (npm audit) → `ci-success` gate
+- **`pr-checks.yml`**: PR validation (title format, merge conflicts), code quality (Biome), test coverage (PR comment), changed-files analysis, bundle size, summary
+- **`security.yml`**: CodeQL, dependency scan (npm audit), OWASP CVE check, secret scan (TruffleHog), license check, summary
+- **`deploy.yml`**: Vite build → GitHub Pages deploy (concurrency-gated on the `pages` group)
 
-Fast test and build pipeline with 5 jobs:
+Workflows with `workflow_dispatch` (e2e, security, deploy) can be run manually from the Actions tab.
 
-1. **Lint & Type Check** - Biome + tsc (multi-platform)
-2. **Unit Tests** - Vitest frontend tests with coverage
-3. **Build Verification** - Frontend build
-4. **Workers CI** - tsc + tests + wrangler dry-run for the production API
-5. **Security Checks** - npm audit
-
-**Runtime**: ~6-8 minutes
-
-### PR Checks (`pr-checks.yml`)
-
-PR-specific validation and reporting:
-
-1. **PR Validation** - Title format, merge conflicts
-2. **Code Quality** - Biome
-3. **Test Coverage** - Coverage report with PR comment
-4. **Changed Files** - Analyze affected areas
-5. **Bundle Size** - Frontend bundle size check
-
-**Runtime**: ~5-8 minutes
-
-### Security Scanning (`security.yml`)
-
-Comprehensive security analysis:
-
-1. **CodeQL** - Static code analysis
-2. **Dependency Scan** - npm audit
-3. **OWASP Check** - Known CVEs
-4. **Secret Scan** - TruffleHog
-5. **License Check** - License compliance
-
-**Runtime**: ~15-20 minutes (scheduled scans only)
-
-### Deployment (`deploy.yml`)
-
-Frontend deployment to GitHub Pages:
-
-1. **Build** - Build frontend with Vite
-2. **Deploy** - Deploy to GitHub Pages
-
-**Runtime**: ~3-5 minutes
-
-## Workflow Status
-
-Check workflow status:
-- [Actions Tab](../../actions)
-- Status badges (add to README)
-
-## Common Tasks
-
-### Manually Trigger Workflow
-
-Several workflows can be triggered manually:
-
-**Security Scanning**:
-1. Go to Actions tab
-2. Select "Security Scanning"
-3. Click "Run workflow"
-4. Choose branch and run
-
-### View Workflow Logs
-
-1. Go to Actions tab
-2. Click on workflow run
-3. Click on job name
-4. Expand steps to view logs
-
-### Download Artifacts
-
-Workflows upload artifacts for debugging:
-1. Go to workflow run
-2. Scroll to "Artifacts" section
-3. Download desired artifact
-
-## Configuration
-
-### Required Secrets
-
-Add these in repository settings:
+## Required Secrets
 
 | Secret | Required | Purpose |
 |--------|----------|---------|
-| `DOPPLER_TOKEN_PROD` | Yes | Access Doppler secrets (prd config) |
+| `DOPPLER_TOKEN_PROD` | Yes | Access Doppler secrets (prd config) — provides `VITE_API_URL`, `CLOUDFLARE_D1_TOKEN` at build time |
 | `CODECOV_TOKEN` | No | Upload coverage to Codecov |
-
-### Environment Variables
-
-Workflows use these test environment variables:
-- `VITE_API_URL=https://api.example.com` (build verification)
-
-## Development
-
-### Best Practices
-
-1. **Keep workflows DRY** - Use reusable workflows for common tasks
-2. **Use caching** - Cache npm packages to speed up runs
-3. **Fail fast** - Set `fail-fast: true` in matrix builds
-4. **Meaningful names** - Use descriptive job and step names
-5. **Concurrency** - Cancel in-progress runs when new commits pushed
-
-## Troubleshooting
-
-### Workflow Not Triggering
-
-- Check trigger conditions in `on:` section
-- Verify branch names match
-- Check if workflow is disabled
-
-### Tests Failing in CI
-
-- Check service container health
-- Verify environment variables
-- Review detailed logs
-- Download coverage artifact
-
-### Permission Errors
-
-- Check workflow permissions
-- Verify required secrets exist
-- Check branch protection rules
-
-## Monitoring
-
-### Notifications
-
-Configure notifications in GitHub settings:
-- Settings → Notifications → Actions
-- Enable email for workflow failures
-
-### Slack Integration (Optional)
-
-Add Slack notifications by setting `SLACK_WEBHOOK` secret.
-
-## Resources
-
-- [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [Workflow Syntax](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions)
-
-## Support
-
-For workflow issues:
-1. Review workflow logs
-2. Open issue with `ci` label
-3. Tag @devops team
 
 ---
 
