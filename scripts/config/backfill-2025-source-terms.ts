@@ -443,5 +443,3 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Williamson",
 	"Hays County",
 ];
-
-export const BACKFILL_2025_TERM_COUNT = BACKFILL_2025_SOURCE_TERMS.length;

@@ -120,8 +120,6 @@ export interface BatchEnqueueConfig {
 	terms: string[];
 	/** User ID for job attribution */
 	userId: string;
-	/** Job priority (default: undefined) */
-	priority?: number;
 	/** Additional log messages to display after initial logs */
 	extraLogs?: () => void;
 }

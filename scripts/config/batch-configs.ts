@@ -2,12 +2,6 @@
  * Centralized batch enqueue configurations.
  * Each config defines terms for a specific search category.
  *
- * Priority scale (BullMQ convention: lower number = higher priority):
- *   -100  ultra-high-priority (processed first)
- *      1  high-priority, priority-terms
- *      2  corporation
- *   omit  standard priority (all others)
- *
  * Consumed via enqueueBatch() in scripts/lib/queue-utils.ts
  */
 
@@ -70,7 +64,6 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Enterprises",
 		],
 		userId: "corporation-batch-enqueue",
-		priority: 2,
 	},
 
 	commercial: {
@@ -210,7 +203,6 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 		emoji: "🔥",
 		terms: ["Boulevard", "Way", "Terrace", "Michelle"],
 		userId: "high-priority-batch-enqueue",
-		priority: 1,
 	},
 
 	"priority-terms": {
@@ -218,7 +210,6 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 		emoji: "🎯",
 		terms: ["Lake", "River", "Pecan", "Maple", "Oak", "Mount", "Limited"],
 		userId: "priority-terms-batch-enqueue",
-		priority: 1,
 	},
 
 	"ultra-high-priority": {
@@ -237,7 +228,6 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Point",
 		],
 		userId: "ultra-high-priority-batch-enqueue",
-		priority: -100,
 	},
 
 	"hispanic-surnames": {
@@ -686,7 +676,3 @@ export const HIGH_RESULT_TERM_SPLITS: ReadonlyMap<string, readonly string[]> =
 		// Estate (5051 max_results) → specific entity patterns
 		["Estate", ["Estate of", "Estates at", "Estate Trust"]],
 	]);
-
-export function getAvailableBatchTypes(): string[] {
-	return Object.keys(BATCH_CONFIGS);
-}
