@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "wrangler dev",
 		"deploy": "wrangler deploy",
+		"test": "vitest run",
 		"generate": "prisma generate",
 		"tail": "wrangler tail",
 		"types": "wrangler types"
@@ -22,6 +23,7 @@
 		"@cloudflare/workers-types": "^4.20260301.0",
 		"prisma": "^7.6.0",
 		"typescript": "^5.9.0",
+		"vitest": "^4.1.10",
 		"wrangler": "^4.0.0"
 	}
 }
