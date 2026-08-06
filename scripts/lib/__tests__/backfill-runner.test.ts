@@ -58,6 +58,7 @@ const ENQUEUE_RETURN_COUNT = 3;
 beforeEach(() => {
 	vi.clearAllMocks();
 	mockTcadYear = BACKFILL_YEAR;
+	delete process.env.TCAD_YEAR;
 	mockEnqueueBatch.mockResolvedValue(ENQUEUE_RETURN_COUNT);
 	mockWaitForQueueDrain.mockResolvedValue(undefined);
 });
@@ -168,7 +169,7 @@ describe("runBackfill", () => {
 	});
 
 	it("calls process.exit(1) when TCAD_YEAR is not 2025", async () => {
-		mockTcadYear = WRONG_YEAR;
+		process.env.TCAD_YEAR = String(WRONG_YEAR);
 		const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
 			throw new Error("process.exit");
 		});
@@ -177,6 +178,8 @@ describe("runBackfill", () => {
 			await runBackfill(makeCfg());
 		} catch {
 			// process.exit mock throws
+		} finally {
+			delete process.env.TCAD_YEAR;
 		}
 
 		expect(exitSpy).toHaveBeenCalledWith(1);

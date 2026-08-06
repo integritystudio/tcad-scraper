@@ -29,14 +29,6 @@ vi.mock("../../lib/redis-cache.service", () => ({
 }));
 
 // Mock Queue
-vi.mock("../../queues/scraper.queue", () => ({
-	scraperQueue: {
-		add: vi.fn().mockResolvedValue({ id: "123" }),
-		getJob: vi.fn().mockResolvedValue(null),
-	},
-	canScheduleJob: vi.fn().mockResolvedValue(true),
-}));
-
 // Mock Prisma
 vi.mock("../../lib/prisma", () => ({
 	prisma: {

@@ -1,12 +1,12 @@
 /**
- * Security Tests for XController Implementation
+ * Security Tests for XController JSON-for-HTML encoding.
+ *
+ * HTTP-level security-header tests (CSP, HSTS, etc.) were removed with the
+ * Express entrypoint; those headers are now the Workers API's responsibility.
  */
 
-import request from "supertest";
 import { describe, expect, test } from "vitest";
-import app from "../index";
 import { encodeJsonForHtml } from "../middleware/xcontroller.middleware";
-import { HTTP_STATUS } from "../utils/constants";
 
 describe("Security Tests", () => {
 	describe("XSS Prevention", () => {
@@ -62,144 +62,6 @@ describe("Security Tests", () => {
 			const encoded = encodeJsonForHtml(malicious);
 
 			expect(encoded).not.toContain("<script>");
-		});
-	});
-
-	describe("CSP Compliance", () => {
-		test("should have CSP header on frontend routes", async () => {
-			const response = await request(app).get("/");
-			const csp = response.headers["content-security-policy"];
-
-			expect(csp).toBeDefined();
-			expect(csp).toContain("default-src");
-			expect(csp).toContain("script-src");
-		});
-
-		test("should require nonce for inline scripts", async () => {
-			const response = await request(app).get("/");
-			const csp = response.headers["content-security-policy"];
-
-			expect(csp).toContain("'nonce-");
-			expect(csp).not.toContain("'unsafe-inline'");
-		});
-
-		test("should block frame embedding", async () => {
-			const response = await request(app).get("/");
-			const csp = response.headers["content-security-policy"];
-
-			expect(csp).toContain("frame-ancestors");
-			expect(response.headers["x-frame-options"]).toBe("DENY");
-		});
-
-		test("should restrict script sources", async () => {
-			const response = await request(app).get("/");
-			const csp = response.headers["content-security-policy"];
-
-			expect(csp).toContain("script-src 'self'");
-			expect(csp).not.toContain("'unsafe-eval'");
-		});
-
-		test("should have consistent nonce across page", async () => {
-			const response = await request(app).get("/");
-
-			// Extract all nonces from HTML
-			const htmlNonces = response.text.match(/nonce="([^"]+)"/g);
-			expect(htmlNonces).toBeTruthy();
-			expect(htmlNonces?.length).toBeGreaterThan(0);
-
-			// All should be the same nonce
-			const uniqueNonces = new Set(htmlNonces);
-			expect(uniqueNonces.size).toBe(1);
-		});
-	});
-
-	describe("Security Headers", () => {
-		test("should set X-Content-Type-Options to prevent MIME sniffing", async () => {
-			const response = await request(app).get("/");
-			expect(response.headers["x-content-type-options"]).toBe("nosniff");
-		});
-
-		test("should set X-Frame-Options to prevent clickjacking", async () => {
-			const response = await request(app).get("/");
-			expect(response.headers["x-frame-options"]).toBe("DENY");
-		});
-
-		test("should set X-XSS-Protection", async () => {
-			const response = await request(app).get("/");
-			expect(response.headers["x-xss-protection"]).toBe("1; mode=block");
-		});
-
-		test("should set Referrer-Policy", async () => {
-			const response = await request(app).get("/");
-			expect(response.headers["referrer-policy"]).toBe(
-				"strict-origin-when-cross-origin",
-			);
-		});
-
-		test("should not expose sensitive headers", async () => {
-			const response = await request(app).get("/");
-
-			expect(response.headers["x-powered-by"]).toBeUndefined();
-			expect(response.headers.server).toBeUndefined();
-		});
-	});
-
-	describe("Sensitive Data Protection", () => {
-		test("should not expose database credentials", async () => {
-			const response = await request(app).get("/");
-			const text = response.text.toLowerCase();
-
-			expect(text).not.toContain("database_url");
-			expect(text).not.toContain("db_password");
-			expect(text).not.toContain("postgres://");
-		});
-
-		test("should not expose API keys", async () => {
-			const response = await request(app).get("/");
-			const text = response.text.toLowerCase();
-
-			expect(text).not.toContain("api_key");
-			expect(text).not.toContain("secret_key");
-			expect(text).not.toContain("access_token");
-		});
-
-		test("should not expose private keys", async () => {
-			const response = await request(app).get("/");
-			const text = response.text.toLowerCase();
-
-			expect(text).not.toContain("private_key");
-			expect(text).not.toContain("-----begin");
-		});
-
-		test("should only expose safe environment variables", async () => {
-			const response = await request(app).get("/");
-
-			const dataMatch = response.text.match(
-				/<script type="application\/json" id="initial-data"[^>]*>\s*({[\s\S]*?})\s*<\/script>/,
-			);
-
-			if (dataMatch) {
-				const data = JSON.parse(dataMatch[1]);
-
-				// Should have safe data
-				expect(data).toHaveProperty("apiUrl");
-				expect(data).toHaveProperty("environment");
-
-				// Should not have sensitive data
-				expect(data).not.toHaveProperty("databaseUrl");
-				expect(data).not.toHaveProperty("apiKey");
-				expect(data).not.toHaveProperty("secret");
-			}
-		});
-	});
-
-	describe("HTTPS and Transport Security", () => {
-		test("should not set HSTS in development", async () => {
-			const response = await request(app).get("/");
-			// In development, HSTS should not be set
-			if (process.env.NODE_ENV !== "production") {
-				expect(response.headers["strict-transport-security"]).toBeUndefined();
-			}
 		});
 	});
 
@@ -298,29 +160,4 @@ describe("Security Tests", () => {
 		});
 	});
 
-	describe("Regression Tests", () => {
-		test("should maintain backward compatibility", async () => {
-			const response = await request(app).get("/");
-
-			// Should still serve HTML
-			expect(response.status).toBe(HTTP_STATUS.OK);
-			expect(response.headers["content-type"]).toContain("text/html");
-
-			// Should have required elements
-			expect(response.text).toContain("<!DOCTYPE html>");
-			expect(response.text).toContain('<div id="root">');
-		});
-
-		test("should not break API routes", async () => {
-			const response = await request(app).get("/api/properties/stats");
-
-			// Should respond (even if with error)
-			expect(response.status).toBeDefined();
-
-			// Should not serve HTML for API routes
-			if (response.status === HTTP_STATUS.OK) {
-				expect(response.headers["content-type"]).not.toContain("text/html");
-			}
-		});
-	});
 });

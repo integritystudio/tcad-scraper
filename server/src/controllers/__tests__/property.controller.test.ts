@@ -3,15 +3,6 @@ import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import { DISPLAY_YEAR, PropertyController } from "../property.controller";
 
 // Mock dependencies with proper structure
-vi.mock("../../queues/scraper.queue", () => ({
-	scraperQueue: {
-		add: vi.fn(),
-		getJob: vi.fn(),
-		clean: vi.fn(),
-	},
-	canScheduleJob: vi.fn(),
-}));
-
 vi.mock("../../lib/prisma", () => ({
 	prisma: {
 		property: {
@@ -68,8 +59,6 @@ describe("PropertyController", () => {
 	let statusMock: Mock;
 
 	// Import mocked modules
-	let scraperQueue: Record<string, ReturnType<typeof vi.fn>>;
-	let canScheduleJob: ReturnType<typeof vi.fn>;
 	let prisma: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
 	let prismaReadOnly: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
 	let claudeSearchService: Record<string, ReturnType<typeof vi.fn>>;
@@ -96,10 +85,6 @@ describe("PropertyController", () => {
 		};
 
 		// Import mocked modules
-		const scraperQueueModule = await import("../../queues/scraper.queue");
-		scraperQueue = scraperQueueModule.scraperQueue;
-		canScheduleJob = scraperQueueModule.canScheduleJob;
-
 		const prismaModule = await import("../../lib/prisma");
 		prisma = prismaModule.prisma;
 		prismaReadOnly = prismaModule.prismaReadOnly;
@@ -112,133 +97,6 @@ describe("PropertyController", () => {
 
 		// Create controller instance
 		controller = new PropertyController();
-	});
-
-	describe("scrapeProperties", () => {
-		it("should queue a scrape job successfully", async () => {
-			const searchTerm = "Smith";
-			mockReq.body = { searchTerm };
-
-			// Mock canScheduleJob to allow
-			canScheduleJob.mockResolvedValue(true);
-
-			// Mock queue add
-			const mockJobId = "job-123";
-			scraperQueue.add = vi.fn().mockResolvedValue({
-				id: mockJobId,
-			});
-
-			await controller.scrapeProperties(
-				mockReq as Request,
-				mockRes as Response,
-			);
-
-			expect(canScheduleJob).toHaveBeenCalledWith(searchTerm);
-			expect(scraperQueue.add).toHaveBeenCalledWith(
-				"scrape-properties",
-				{ searchTerm },
-				{ delay: 0, attempts: 3 },
-			);
-			expect(statusMock).toHaveBeenCalledWith(202);
-			expect(jsonMock).toHaveBeenCalledWith({
-				jobId: mockJobId,
-				message: "Scrape job queued successfully",
-			});
-		});
-
-		it("should return 429 when rate limited", async () => {
-			const searchTerm = "Smith";
-			mockReq.body = { searchTerm };
-
-			// Mock canScheduleJob to deny
-			canScheduleJob.mockResolvedValue(false);
-
-			await controller.scrapeProperties(
-				mockReq as Request,
-				mockRes as Response,
-			);
-
-			expect(canScheduleJob).toHaveBeenCalledWith(searchTerm);
-			expect(scraperQueue.add).not.toHaveBeenCalled();
-			expect(statusMock).toHaveBeenCalledWith(429);
-			expect(jsonMock).toHaveBeenCalledWith({
-				error:
-					"Rate limit exceeded. Please wait before scraping the same search term again.",
-			});
-		});
-	});
-
-	describe("getJobStatus", () => {
-		it("should return job status for completed job", async () => {
-			const jobId = "job-123";
-			mockReq.params = { jobId };
-
-			const mockJob = {
-				id: jobId,
-				timestamp: Date.now(),
-				finishedOn: Date.now() + 5000,
-				getState: vi.fn().mockResolvedValue("completed"),
-				progress: vi.fn().mockReturnValue(100),
-				returnvalue: { count: 42 },
-				failedReason: null,
-			};
-
-			scraperQueue.getJob = vi.fn().mockResolvedValue(mockJob);
-
-			await controller.getJobStatus(mockReq as Request, mockRes as Response);
-
-			expect(scraperQueue.getJob).toHaveBeenCalledWith(jobId);
-			expect(jsonMock).toHaveBeenCalledWith({
-				id: jobId,
-				status: "completed",
-				progress: 100,
-				resultCount: 42,
-				error: null,
-				createdAt: expect.any(Date),
-				completedAt: expect.any(Date),
-			});
-		});
-
-		it("should return job status for failed job", async () => {
-			const jobId = "job-456";
-			mockReq.params = { jobId };
-
-			const mockJob = {
-				id: jobId,
-				timestamp: Date.now(),
-				finishedOn: null,
-				getState: vi.fn().mockResolvedValue("failed"),
-				progress: vi.fn().mockReturnValue(50),
-				returnvalue: null,
-				failedReason: "Network timeout",
-			};
-
-			scraperQueue.getJob = vi.fn().mockResolvedValue(mockJob);
-
-			await controller.getJobStatus(mockReq as Request, mockRes as Response);
-
-			expect(jsonMock).toHaveBeenCalledWith({
-				id: jobId,
-				status: "failed",
-				progress: 50,
-				resultCount: undefined,
-				error: "Network timeout",
-				createdAt: expect.any(Date),
-				completedAt: null,
-			});
-		});
-
-		it("should return 404 when job not found", async () => {
-			const jobId = "nonexistent";
-			mockReq.params = { jobId };
-
-			scraperQueue.getJob = vi.fn().mockResolvedValue(null);
-
-			await controller.getJobStatus(mockReq as Request, mockRes as Response);
-
-			expect(statusMock).toHaveBeenCalledWith(404);
-			expect(jsonMock).toHaveBeenCalledWith({ error: "Job not found" });
-		});
 	});
 
 	describe("getProperties", () => {
