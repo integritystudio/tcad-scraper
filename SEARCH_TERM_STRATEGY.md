@@ -10,7 +10,7 @@ Analyzed 313 search terms across 365,371 properties. Results show **significant 
 |--------|-------|
 | Total unique properties | 365,371 |
 | Unique search terms | 313 |
-| Top 50 terms coverage | 67.4% of DB |
+| Top 50 terms coverage | 45.1% of DB |
 | Top 100 terms coverage | 67.4% of DB |
 | Top 200 terms coverage | 92.1% of DB |
 | Remaining terms (213-313) | ~8% of DB |

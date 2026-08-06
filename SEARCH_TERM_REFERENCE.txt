@@ -5,7 +5,7 @@ TCAD SEARCH TERM REFERENCE - QUICK LOOKUP
 DATABASE STATS
 - Total Properties: 365,371
 - Search Terms: 313 unique
-- Top 50 terms cover: 67.4%
+- Top 50 terms cover: 45.1%
 - Top 200 terms cover: 92.1%
 - Remaining 113 terms: 7.9%
 
@@ -165,8 +165,8 @@ KEY INSIGHTS
 1. MINIMAL OVERLAP: Zero overlap detected in top 30 terms. Each search returns
    distinct properties. This is ideal—no duplication waste.
 
-2. TIER CONCENTRATION: Top 50 terms yield 67.4% of all properties. Diminishing
-   returns accelerate after Tier 2 (top 50).
+2. TIER CONCENTRATION: Top 50 terms yield 45.1% of all properties (top 100:
+   67.4%). Diminishing returns accelerate after Tier 2 (top 50).
 
 3. SUCCESS RATES: Top 50 terms average 80%+ success rate. Quality improves
    dramatically with tier prioritization.

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: March 30, 2026 | **Version**: 6.0
+**Last Updated**: August 6, 2026 | **Version**: 6.1
 
 ## Project Overview
 
@@ -12,8 +12,8 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue**: Cloudflare Queues + Workflows (replaced BullMQ + Redis)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (680+ tests, 126/126 E2E tests passing via Playwright)
-- **Scale**: 500K+ properties
+- **Testing**: Vitest (130 frontend + 16 workers tests; 680+ legacy server tests; 126/126 E2E via Playwright)
+- **Scale**: 170K+ properties in D1 (2025 tax year; count via `/health`)
 
 ```
 React (5174) → CF Workers (Hono) → D1 (SQLite at edge)
@@ -54,7 +54,7 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `enqueue-tail-terms.ts` - Multi-phase tail term optimizer (analytics + owner-name mining)
 - `generate-next-200-terms.ts` - Generate next candidate terms for backfill (`--enqueue` sends to Workers API)
 - `queue-results.ts` - Recent scrape jobs + property count from the Workers API (`npx tsx scripts/queue-results.ts [--limit N]`)
-- `config/batch-configs.ts` - 18 batch type definitions
+- `config/batch-configs.ts` - 19 batch type definitions
 - `lib/` - queue-utils (`enqueueBatch()` via Workers API), backfill-runner, fallback-terms, searched-terms, backfill-utils
 - See [scripts/README.md](scripts/README.md) for full reference
 - **Search Term Strategy**: See [SEARCH_TERM_STRATEGY.md](SEARCH_TERM_STRATEGY.md) for Tier 1-4 efficiency breakdown and [SEARCH_TERM_ANALYSIS.md](SEARCH_TERM_ANALYSIS.md) for full ranked term list
@@ -125,11 +125,13 @@ doppler run -p integrity-studio -c prd -- sh -c 'curl -s -X POST \
   -H "Authorization: Bearer $CLOUDFLARE_D1_TOKEN" -H "Content-Type: application/json" \
   -d "{\"sql\": \"SELECT COUNT(*) FROM properties\"}"'
 
-# Testing
-npm test                     # Unit tests (680+ tests, <5 sec)
-npm run test:integration     # Integration tests
-npm run test:all:coverage    # Full coverage report
+# Testing (from repo root)
+npx vitest run               # Frontend unit tests (130 tests, <5 sec; `npm test` = watch mode)
+npm run test:coverage        # Frontend coverage report
 npm run test:e2e             # E2E tests (126 tests, all passing)
+cd workers/tcad-api && npm test        # Workers tests
+cd server && npm test                  # Legacy server suite (680+ tests)
+cd server && npm run test:integration  # Legacy integration tests
 
 # Scraping (via Workers API)
 curl -X POST "https://api.alephatx.info/api/properties/scrape" \

@@ -217,12 +217,12 @@ Generated: 2026-03-21T03:44:00.219Z
 
 ## ACTIONABLE RECOMMENDATIONS
 
-1. **Minimum viable set**: Top 50 terms cover ~67% of database
+1. **Minimum viable set**: Top 50 terms cover ~45% of database
    - These are highest-yield terms with documented success
    - Minimal overlap expected (search terms are distinct categories)
    - Estimated API calls: ~500-1000 searches
 
-2. **Comprehensive set**: Top 200 terms cover ~80% of database
+2. **Comprehensive set**: Top 200 terms cover ~92% of database
    - Includes person names, place names, entity types
    - Still manageable volume for regular scraping
    - Estimated API calls: ~2000-3000 searches
