@@ -12,8 +12,18 @@
 import { MIN_TERM_LENGTH } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
 import { isSupersetOfSuccessful } from "./lib/backfill-utils";
-import { prisma } from "./lib/d1-prisma";
+import {
+	mineDescriptionFirstWords,
+	mineEntityPhrases,
+	mineOwnerFirstWords,
+	mineStreetNames,
+	mineTwoWordOwnerNames,
+} from "./lib/mine-2026-terms";
 import { getSearchedTermSets } from "./lib/searched-terms";
+
+const MIN_PROPS_PER_TERM = 5;
+// Entity phrases and description keywords are noisier sources — higher bar.
+const MIN_PROPS_PER_NOISY_TERM = 10;
 
 async function getUnsearchedTerms(): Promise<string[]> {
 	const {
@@ -44,124 +54,44 @@ async function getUnsearchedTerms(): Promise<string[]> {
 
 	// ── Source 1: Owner first-words from 2026-only properties ──────────
 	console.log("  Mining owner first-words from 2026-only properties...");
-	const firstWords = await prisma.$queryRaw<
-		Array<{ word: string; cnt: number }>
-	>`
-    WITH words AS (
-      SELECT property_id, substr(name, 1, instr(name || ' ', ' ') - 1) AS word
-      FROM properties
-      WHERE year = 2026
-      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-    )
-    SELECT word, COUNT(DISTINCT property_id) as cnt
-    FROM words
-    WHERE LENGTH(word) >= ${MIN_TERM_LENGTH}
-    GROUP BY word
-    HAVING COUNT(DISTINCT property_id) >= 5
-    ORDER BY cnt DESC`;
-	for (const w of firstWords) addTerm(w.word);
+	const firstWords = await mineOwnerFirstWords({
+		minCount: MIN_PROPS_PER_TERM,
+	});
+	for (const w of firstWords) addTerm(w.term);
 	console.log(`    First-words added: ${result.length}`);
 
 	// ── Source 2: Entity two-word phrases ──────────────────────────────
 	const prevCount = result.length;
 	console.log("  Mining entity two-word phrases...");
-	const twoWords = await prisma.$queryRaw<
-		Array<{ phrase: string; cnt: number }>
-	>`
-    WITH split1 AS (
-      SELECT property_id,
-             substr(name, 1, instr(name || ' ', ' ') - 1) AS w1,
-             substr(name || ' ', instr(name || ' ', ' ') + 1) AS rest
-      FROM properties
-      WHERE year = 2026
-      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-      AND (name LIKE '%LLC%' OR name LIKE '%INC%' OR name LIKE '%LP%'
-           OR name LIKE '%LTD%' OR name LIKE '%TRUST%')
-    )
-    SELECT w1 || ' ' || substr(rest, 1, instr(rest || ' ', ' ') - 1) as phrase,
-           COUNT(DISTINCT property_id) as cnt
-    FROM split1
-    GROUP BY phrase
-    HAVING COUNT(DISTINCT property_id) >= 10
-    ORDER BY cnt DESC`;
-	for (const t of twoWords) addTerm(t.phrase);
+	const twoWords = await mineEntityPhrases({
+		minCount: MIN_PROPS_PER_NOISY_TERM,
+	});
+	for (const t of twoWords) addTerm(t.term);
 	console.log(`    Entity phrases added: ${result.length - prevCount}`);
 
 	// ── Source 3: Street names from 2026-only properties ───────────────
 	const prevCount2 = result.length;
 	console.log("  Mining street names...");
-	const streets = await prisma.$queryRaw<
-		Array<{ street: string; cnt: number }>
-	>`
-    WITH rests AS (
-      SELECT property_id,
-             substr(property_address || ' ', instr(property_address || ' ', ' ') + 1) AS rest
-      FROM properties
-      WHERE year = 2026
-      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-      AND property_address IS NOT NULL
-    ),
-    words AS (
-      SELECT property_id, substr(rest, 1, instr(rest || ' ', ' ') - 1) AS street
-      FROM rests
-    )
-    SELECT street, COUNT(DISTINCT property_id) as cnt
-    FROM words
-    WHERE LENGTH(street) >= ${MIN_TERM_LENGTH}
-    GROUP BY street
-    HAVING COUNT(DISTINCT property_id) >= 5
-    ORDER BY cnt DESC`;
-	for (const s of streets) addTerm(s.street);
+	const streets = await mineStreetNames({ minCount: MIN_PROPS_PER_TERM });
+	for (const s of streets) addTerm(s.term);
 	console.log(`    Street names added: ${result.length - prevCount2}`);
 
 	// ── Source 4: Full owner names (first + second word) for all 2026-only ─
 	const prevCount3 = result.length;
 	console.log("  Mining full owner names (two-word, non-entity)...");
-	const fullNames = await prisma.$queryRaw<
-		Array<{ phrase: string; cnt: number }>
-	>`
-    WITH split1 AS (
-      SELECT property_id,
-             substr(name, 1, instr(name || ' ', ' ') - 1) AS w1,
-             substr(name || ' ', instr(name || ' ', ' ') + 1) AS rest
-      FROM properties
-      WHERE year = 2026
-      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-    ),
-    split2 AS (
-      SELECT property_id, w1, substr(rest, 1, instr(rest || ' ', ' ') - 1) AS w2
-      FROM split1
-    )
-    SELECT w1 || ' ' || w2 as phrase, COUNT(DISTINCT property_id) as cnt
-    FROM split2
-    WHERE LENGTH(w1) >= ${MIN_TERM_LENGTH} AND LENGTH(w2) >= 2
-    GROUP BY phrase
-    HAVING COUNT(DISTINCT property_id) >= 5
-    ORDER BY cnt DESC`;
-	for (const n of fullNames) addTerm(n.phrase);
+	const fullNames = await mineTwoWordOwnerNames({
+		minCount: MIN_PROPS_PER_TERM,
+	});
+	for (const n of fullNames) addTerm(n.term);
 	console.log(`    Full names added: ${result.length - prevCount3}`);
 
 	// ── Source 5: Description first-words from 2026-only properties ────
 	const prevCount4 = result.length;
 	console.log("  Mining description keywords...");
-	const descriptions = await prisma.$queryRaw<
-		Array<{ word: string; cnt: number }>
-	>`
-    WITH words AS (
-      SELECT property_id,
-             substr(description, 1, instr(description || ' ', ' ') - 1) AS word
-      FROM properties
-      WHERE year = 2026
-      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-      AND description IS NOT NULL
-    )
-    SELECT word, COUNT(DISTINCT property_id) as cnt
-    FROM words
-    WHERE LENGTH(word) >= ${MIN_TERM_LENGTH}
-    GROUP BY word
-    HAVING COUNT(DISTINCT property_id) >= 10
-    ORDER BY cnt DESC`;
-	for (const d of descriptions) addTerm(d.word);
+	const descriptions = await mineDescriptionFirstWords({
+		minCount: MIN_PROPS_PER_NOISY_TERM,
+	});
+	for (const d of descriptions) addTerm(d.term);
 	console.log(`    Description keywords added: ${result.length - prevCount4}`);
 
 	console.log(

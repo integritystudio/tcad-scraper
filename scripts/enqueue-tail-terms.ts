@@ -17,9 +17,23 @@ import { MIN_TERM_LENGTH } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
 import { isSupersetOfSuccessful } from "./lib/backfill-utils";
 import { prisma } from "./lib/d1-prisma";
+import { mineOwnerFirstWords, mineStreetNames } from "./lib/mine-2026-terms";
 import { getSearchedTermSets } from "./lib/searched-terms";
 
 const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
+const MIN_PROPS_PER_TERM = 5;
+
+/** All analytics terms that ever yielded results, ordered by total_results DESC. */
+async function fetchAnalyticsTermsByYield(): Promise<string[]> {
+	const rows = await prisma.$queryRaw<
+		Array<{ search_term: string; total_results: number }>
+	>`
+		SELECT search_term, total_results
+		FROM search_term_analytics
+		WHERE total_results > 0
+		ORDER BY total_results DESC`;
+	return rows.map((r) => r.search_term);
+}
 
 /** Parse --phase flag (1, 2, or 3). Default: run all phases sequentially. */
 function parsePhaseArg(): number | null {
@@ -53,39 +67,20 @@ async function getTailTerms(): Promise<string[]> {
 	}
 
 	const phase = parsePhaseArg();
-	const runPhase1 = phase === null || phase === 1;
-	const runPhase2 = phase === null || phase === 2;
 	const runPhase3 = phase === null || phase === 3;
 
-	// ── Phase 1: Unscrapped analytics terms (proven yielders) ─────────
-	if (runPhase1) {
+	// ── Phases 1 & 2: analytics terms by total_results DESC ───────────
+	// Both phases run the same query — Phase 1 already adds every yielding
+	// analytics term in tail order, so Phase 2 only runs standalone when
+	// --phase 2 is passed (the flag exists to target either label).
+	if (phase === null || phase === 1 || phase === 2) {
 		const prevCount = result.length;
-		console.log("  Phase 1: Unscrapped analytics terms (proven yielders)...");
-		const analyticsTerms = await prisma.$queryRaw<
-			Array<{ search_term: string; total_results: number }>
-		>`
-			SELECT search_term, total_results
-			FROM search_term_analytics
-			WHERE total_results > 0
-			ORDER BY total_results DESC`;
-		for (const row of analyticsTerms) addTerm(row.search_term);
-		console.log(`    Added: ${result.length - prevCount} terms`);
-	}
-
-	// ── Phase 2: Analytics tail (all remaining by total_results) ──────
-	// Phase 1 already adds all analytics terms ordered by total_results,
-	// so Phase 2 only runs standalone when --phase 2 is passed.
-	if (runPhase2 && phase === 2) {
-		const prevCount = result.length;
-		console.log("  Phase 2: Analytics tail terms...");
-		const tailTerms = await prisma.$queryRaw<
-			Array<{ search_term: string; total_results: number }>
-		>`
-			SELECT search_term, total_results
-			FROM search_term_analytics
-			WHERE total_results > 0
-			ORDER BY total_results DESC`;
-		for (const row of tailTerms) addTerm(row.search_term);
+		console.log(
+			phase === 2
+				? "  Phase 2: Analytics tail terms..."
+				: "  Phase 1: Unscrapped analytics terms (proven yielders)...",
+		);
+		for (const term of await fetchAnalyticsTermsByYield()) addTerm(term);
 		console.log(`    Added: ${result.length - prevCount} terms`);
 	}
 
@@ -95,46 +90,14 @@ async function getTailTerms(): Promise<string[]> {
 		console.log("  Phase 3: Mining owner names from 2026-only properties...");
 
 		// First words of owner names on 2026 properties missing from 2025
-		const ownerNames = await prisma.$queryRaw<
-			Array<{ word: string; cnt: number }>
-		>`
-			WITH words AS (
-			  SELECT property_id, substr(name, 1, instr(name || ' ', ' ') - 1) AS word
-			  FROM properties
-			  WHERE year = 2026
-			    AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-			)
-			SELECT word, COUNT(DISTINCT property_id) AS cnt
-			FROM words
-			WHERE LENGTH(word) >= ${MIN_TERM_LENGTH}
-			GROUP BY word
-			HAVING COUNT(DISTINCT property_id) >= 5
-			ORDER BY cnt DESC`;
-		for (const row of ownerNames) addTerm(row.word);
+		const ownerNames = await mineOwnerFirstWords({
+			minCount: MIN_PROPS_PER_TERM,
+		});
+		for (const row of ownerNames) addTerm(row.term);
 
 		// Street names from 2026-only properties
-		const streets = await prisma.$queryRaw<
-			Array<{ street: string; cnt: number }>
-		>`
-			WITH rests AS (
-			  SELECT property_id,
-			         substr(property_address || ' ', instr(property_address || ' ', ' ') + 1) AS rest
-			  FROM properties
-			  WHERE year = 2026
-			    AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-			    AND property_address IS NOT NULL
-			),
-			words AS (
-			  SELECT property_id, substr(rest, 1, instr(rest || ' ', ' ') - 1) AS street
-			  FROM rests
-			)
-			SELECT street, COUNT(DISTINCT property_id) AS cnt
-			FROM words
-			WHERE LENGTH(street) >= ${MIN_TERM_LENGTH}
-			GROUP BY street
-			HAVING COUNT(DISTINCT property_id) >= 5
-			ORDER BY cnt DESC`;
-		for (const row of streets) addTerm(row.street);
+		const streets = await mineStreetNames({ minCount: MIN_PROPS_PER_TERM });
+		for (const row of streets) addTerm(row.term);
 		console.log(`    Added: ${result.length - prevCount} terms`);
 	}
 

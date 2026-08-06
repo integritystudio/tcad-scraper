@@ -11,7 +11,12 @@
 
 import { MIN_TERM_LENGTH } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
-import { prisma } from "./lib/d1-prisma";
+import {
+	mineDescriptionFirstWords,
+	mineOwnerFirstWords,
+	mineStreetNames,
+	mineTwoWordOwnerNames,
+} from "./lib/mine-2026-terms";
 import { getSearchedTermSets } from "./lib/searched-terms";
 
 const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
@@ -46,101 +51,34 @@ async function getNovelTerms(): Promise<string[]> {
 	// Collect all candidates with their yields from all sources
 	const candidates: CandidateTerm[] = [];
 
+	const mineOpts = { minCount: MIN_PROPS_PER_TERM, alphaOnly: true };
+
 	// ── Source 1: Owner first-words from 2026-only properties ──────────
 	console.log("  Mining owner first-words from 2026-only properties...");
-	const firstWords = await prisma.$queryRaw<
-		Array<{ word: string; cnt: number }>
-	>`
-    WITH words AS (
-      SELECT property_id, substr(name, 1, instr(name || ' ', ' ') - 1) AS word
-      FROM properties
-      WHERE year = 2026
-      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-    )
-    SELECT word, COUNT(DISTINCT property_id) as cnt
-    FROM words
-    WHERE LENGTH(word) >= ${MIN_TERM_LENGTH} AND word GLOB '[A-Za-z]*'
-    GROUP BY word
-    HAVING COUNT(DISTINCT property_id) >= ${MIN_PROPS_PER_TERM}
-    ORDER BY cnt DESC`;
+	const firstWords = await mineOwnerFirstWords(mineOpts);
 	for (const w of firstWords)
-		candidates.push({ term: w.word, yield: w.cnt, source: "owner" });
+		candidates.push({ term: w.term, yield: w.count, source: "owner" });
 	console.log(`    First-words mined: ${firstWords.length}`);
 
 	// ── Source 2: Street names from 2026-only properties ───────────────
 	console.log("  Mining street names from 2026-only properties...");
-	const streets = await prisma.$queryRaw<
-		Array<{ street: string; cnt: number }>
-	>`
-    WITH rests AS (
-      SELECT property_id,
-             substr(property_address || ' ', instr(property_address || ' ', ' ') + 1) AS rest
-      FROM properties
-      WHERE year = 2026
-      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-      AND property_address IS NOT NULL
-    ),
-    words AS (
-      SELECT property_id, substr(rest, 1, instr(rest || ' ', ' ') - 1) AS street
-      FROM rests
-    )
-    SELECT street, COUNT(DISTINCT property_id) as cnt
-    FROM words
-    WHERE LENGTH(street) >= ${MIN_TERM_LENGTH} AND street GLOB '[A-Za-z]*'
-    GROUP BY street
-    HAVING COUNT(DISTINCT property_id) >= ${MIN_PROPS_PER_TERM}
-    ORDER BY cnt DESC`;
+	const streets = await mineStreetNames(mineOpts);
 	for (const s of streets)
-		candidates.push({ term: s.street, yield: s.cnt, source: "street" });
+		candidates.push({ term: s.term, yield: s.count, source: "street" });
 	console.log(`    Street names mined: ${streets.length}`);
 
 	// ── Source 3: Description first-words from 2026-only properties ────
 	console.log("  Mining description keywords...");
-	const descs = await prisma.$queryRaw<Array<{ word: string; cnt: number }>>`
-    WITH words AS (
-      SELECT property_id,
-             substr(description, 1, instr(description || ' ', ' ') - 1) AS word
-      FROM properties
-      WHERE year = 2026
-      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-      AND description IS NOT NULL
-    )
-    SELECT word, COUNT(DISTINCT property_id) as cnt
-    FROM words
-    WHERE LENGTH(word) >= ${MIN_TERM_LENGTH} AND word GLOB '[A-Za-z]*'
-    GROUP BY word
-    HAVING COUNT(DISTINCT property_id) >= ${MIN_PROPS_PER_TERM}
-    ORDER BY cnt DESC`;
+	const descs = await mineDescriptionFirstWords(mineOpts);
 	for (const d of descs)
-		candidates.push({ term: d.word, yield: d.cnt, source: "desc" });
+		candidates.push({ term: d.term, yield: d.count, source: "desc" });
 	console.log(`    Description keywords mined: ${descs.length}`);
 
 	// ── Source 4: Two-word owner names from 2026-only properties ───────
 	console.log("  Mining two-word owner names...");
-	const twoWords = await prisma.$queryRaw<
-		Array<{ phrase: string; cnt: number }>
-	>`
-    WITH split1 AS (
-      SELECT property_id,
-             substr(name, 1, instr(name || ' ', ' ') - 1) AS w1,
-             substr(name || ' ', instr(name || ' ', ' ') + 1) AS rest
-      FROM properties
-      WHERE year = 2026
-      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
-    ),
-    split2 AS (
-      SELECT property_id, w1, substr(rest, 1, instr(rest || ' ', ' ') - 1) AS w2
-      FROM split1
-    )
-    SELECT w1 || ' ' || w2 as phrase, COUNT(DISTINCT property_id) as cnt
-    FROM split2
-    WHERE LENGTH(w1) >= ${MIN_TERM_LENGTH} AND LENGTH(w2) >= 2
-    AND w1 GLOB '[A-Za-z]*'
-    GROUP BY phrase
-    HAVING COUNT(DISTINCT property_id) >= ${MIN_PROPS_PER_TERM}
-    ORDER BY cnt DESC`;
+	const twoWords = await mineTwoWordOwnerNames(mineOpts);
 	for (const t of twoWords)
-		candidates.push({ term: t.phrase, yield: t.cnt, source: "two-word" });
+		candidates.push({ term: t.term, yield: t.count, source: "two-word" });
 	console.log(`    Two-word names mined: ${twoWords.length}`);
 
 	// ── Sort all candidates globally by yield DESC ─────────────────────
