@@ -101,8 +101,8 @@ mirrors the deduped count, not the raw one.
 ### Predicting yield for unsearched terms
 
 TCAD `fullTextSearch` matches substrings, so a candidate term's match count
-against rows already in D1 is proportional to its frequency in TCAD's full
-dataset — rank unsearched candidates by it (one scan per ~25 terms):
+against rows already in D1 estimates its frequency in TCAD's full dataset
+(one scan per ~25 terms):
 
 ```sql
 SELECT SUM(CASE WHEN name LIKE '%Teve%' OR property_address LIKE '%Teve%' THEN 1 ELSE 0 END) AS teve,
@@ -111,9 +111,19 @@ SELECT SUM(CASE WHEN name LIKE '%Teve%' OR property_address LIKE '%Teve%' THEN 1
 FROM properties;
 ```
 
-Used 2026-08-06 to pick the top 20 of 500 generator candidates (`Teve` matched
-2,678 existing rows ≈ Steve/Stevens substrings). High in-DB counts also mean
-more dedup overlap, so treat it as a ranking, not an absolute yield estimate.
+**Do NOT enqueue the top of this ranking as-is.** In-DB frequency measures two
+opposing things at once: TCAD-side abundance AND how much of that abundance is
+already captured. Measured 2026-08-06 (top 20 of 500 candidates enqueued by
+raw rank): the #1 term `Teve` (2,678 in-DB matches ≈ Steve/Stevens) yielded 3
+new properties — its matches were exactly the rows other terms already found —
+while mid-band terms `Para` (264), `Lowe` (660), `Delo` (218) yielded 282, 212,
+and 204. Extreme counts in either direction were busts (`Susa` 2,277 → 0;
+`Fire` 380 → 0; `Lava` 322 → 0 — common-word noise).
+
+Practical guidance: use the scan to drop zero/near-zero matchers, then prefer
+the middle of the frequency band (~100–1,000 matches on a ~260K-row DB). A
+better predictor would subtract matches already attributable to a searched
+superstring/overlapping term before ranking — not yet implemented.
 
 ## Term Constraints (TCAD API)
 

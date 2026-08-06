@@ -26,6 +26,68 @@ import { getSearchedTermSets } from "./lib/searched-terms";
 
 const TARGET_TERM_COUNT = 500;
 
+// ── Yield scoring (see docs/SEARCH_TERMS.md → "Predicting yield") ────
+// In-DB match frequency measures TCAD-side abundance AND existing coverage,
+// so the extremes are busts: near-zero matchers don't exist in TCAD either,
+// and very high matchers are already captured by overlapping terms. The
+// mid-band yields best (measured 2026-08-06: Teve 2,678 matches → 3 new;
+// Para 264 matches → 282 new). Band bounds scale with current DB size.
+const YIELD_SCORE_CHUNK_SIZE = 25;
+const YIELD_MIN_MATCHES = 5;
+const YIELD_BAND_LOW = 100;
+const YIELD_BAND_HIGH = 1000;
+const YIELD_BAND_REF_DB_ROWS = 260_000;
+
+/** Count existing D1 rows matching each term (name or address substring). */
+async function scoreTermsByDbMatches(
+	terms: string[],
+): Promise<Map<string, number>> {
+	const scores = new Map<string, number>();
+	for (let i = 0; i < terms.length; i += YIELD_SCORE_CHUNK_SIZE) {
+		const chunk = terms.slice(i, i + YIELD_SCORE_CHUNK_SIZE);
+		const cols = chunk
+			.map((t, j) => {
+				const esc = t.replace(/'/g, "''");
+				return `SUM(CASE WHEN name LIKE '%${esc}%' OR property_address LIKE '%${esc}%' THEN 1 ELSE 0 END) AS c${j}`;
+			})
+			.join(", ");
+		const [row] = await prisma.$queryRawUnsafe<
+			Array<Record<string, number | bigint | null>>
+		>(`SELECT ${cols} FROM properties`);
+		chunk.forEach((t, j) => scores.set(t, Number(row[`c${j}`] ?? 0)));
+	}
+	return scores;
+}
+
+/**
+ * Drop near-zero matchers and order the rest mid-band first. Returns the
+ * filtered list; logs what was dropped.
+ */
+async function rankByPredictedYield(terms: string[]): Promise<string[]> {
+	const scores = await scoreTermsByDbMatches(terms);
+	const dbRows = Number(await prisma.property.count());
+	const scale = dbRows / YIELD_BAND_REF_DB_ROWS;
+	const low = YIELD_BAND_LOW * scale;
+	const high = YIELD_BAND_HIGH * scale;
+
+	const kept = terms.filter((t) => (scores.get(t) ?? 0) >= YIELD_MIN_MATCHES);
+	// 0 = mid-band (best), 1 = below band, 2 = above band (most overlap)
+	const bandRank = (n: number): number =>
+		n >= low && n <= high ? 0 : n < low ? 1 : 2;
+	kept.sort((a, b) => {
+		const sa = scores.get(a) ?? 0;
+		const sb = scores.get(b) ?? 0;
+		return bandRank(sa) - bandRank(sb) || sb - sa;
+	});
+
+	console.error(
+		`\nYield scoring: kept ${kept.length}/${terms.length} ` +
+			`(dropped ${terms.length - kept.length} with <${YIELD_MIN_MATCHES} in-DB matches; ` +
+			`band ${Math.round(low)}-${Math.round(high)} on ${dbRows} rows)`,
+	);
+	return kept;
+}
+
 // Terms that cause TCAD API timeouts or truncated responses — hard skip
 const BLOCKED_TERMS = new Set([
 	"street",
@@ -560,13 +622,15 @@ export async function main(enqueueMode = false) {
 	);
 	console.error(`Total: ${selected.length} terms`);
 
-	for (const term of selected) {
+	const ranked = await rankByPredictedYield(selected);
+
+	for (const term of ranked) {
 		console.log(term);
 	}
 
-	if (enqueueMode && selected.length > 0) {
-		console.error(`\nEnqueuing ${selected.length} terms via Workers API...`);
-		const queued = await enqueueBatch(selected, "next-200-gen");
+	if (enqueueMode && ranked.length > 0) {
+		console.error(`\nEnqueuing ${ranked.length} terms via Workers API...`);
+		const queued = await enqueueBatch(ranked, "next-200-gen");
 		console.error(`Enqueued ${queued} jobs`);
 	}
 }

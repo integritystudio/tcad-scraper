@@ -5,7 +5,16 @@ const mockBlacklistFindMany = vi.fn();
 const mockGroupBy = vi.fn();
 const mockDisconnect = vi.fn();
 const mockQueryRaw = vi.fn();
+const mockQueryRawUnsafe = vi.fn();
+const mockPropertyCount = vi.fn();
 const mockScrapeJobFindMany = vi.fn();
+
+// Yield-scoring chunk result: every candidate scores mid-band so none are
+// dropped and tie-stable sort preserves selection order.
+const MID_BAND_SCORE = 150;
+const YIELD_CHUNK_ROW = Object.fromEntries(
+	Array.from({ length: 25 }, (_, j) => [`c${j}`, MID_BAND_SCORE]),
+);
 
 // Dispatch searchTermAnalytics.findMany by argument shape:
 //   - analytics call (getSearchedTermSets): select only, no where.successRate
@@ -25,11 +34,13 @@ vi.mock("../lib/d1-prisma", () => ({
 		},
 		property: {
 			groupBy: (...args: unknown[]) => mockGroupBy(...args),
+			count: (...args: unknown[]) => mockPropertyCount(...args),
 		},
 		scrapeJob: {
 			findMany: (...args: unknown[]) => mockScrapeJobFindMany(...args),
 		},
 		$queryRaw: (...args: unknown[]) => mockQueryRaw(...args),
+		$queryRawUnsafe: (...args: unknown[]) => mockQueryRawUnsafe(...args),
 		$disconnect: () => mockDisconnect(),
 	},
 }));
@@ -50,6 +61,8 @@ beforeEach(() => {
 	mockBlacklistFindMany.mockResolvedValue([]);
 	mockGroupBy.mockResolvedValue([]);
 	mockScrapeJobFindMany.mockResolvedValue([]);
+	mockQueryRawUnsafe.mockResolvedValue([YIELD_CHUNK_ROW]);
+	mockPropertyCount.mockResolvedValue(260_000);
 	mockEnqueueBatch.mockResolvedValue(0);
 });
 
