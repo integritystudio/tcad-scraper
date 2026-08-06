@@ -41,10 +41,10 @@ The most-recent-first changelog ends at 2026-03-11, omitting the Workers cutover
 
 The Code Quality job runs `npx prettier --check` in `server/` and tells contributors to "Run `npm run format`" — Prettier isn't a server dependency and no `format` script exists (Biome is the formatter). Also `ci.yml`'s root `npx tsc --noEmit` type-checks only `src/` (tsconfig.app.json), leaving `scripts/`, `utils/`, `shared/`, `e2e/` unchecked. -- `.github/workflows/pr-checks.yml:71-90`, `.github/workflows/ci.yml:52`
 
-### AUD-08: Legacy TC-10..TC-18 items reference deleted server/src/queues
-**Priority**: P4 | **Source**: docs audit (2026-08-06)
+### ~~AUD-08: Legacy TC-10..TC-18 items reference deleted server/src/queues~~
+**Status**: Done | **Priority**: P4 | **Source**: docs audit (2026-08-06)
 
-TC-11 and TC-12 below are unactionable — `server/src/queues/` no longer exists (BullMQ removal, 287ca63). Close them or re-scope to the Workers queue consumer. -- this file
+TC-11 and TC-12 closed below (unactionable — `server/src/queues/` no longer exists).
 
 ### ~~D1-01: Prisma create calls missing explicit epoch timestamps~~
 **Status**: Done | **Priority**: P2 | **Source**: D1 migration (2026-03-30)
@@ -82,15 +82,11 @@ The Render PostgreSQL connection string (including password) was exposed in term
 
 The `naturalLanguageSearch` method now returns 503 on both Claude API failure and DB failure, but only the Claude failure path is tested (via `property.routes.claude.test.ts` "should handle errors gracefully"). No test exercises the DB try/catch branch (`"Database query failed"` response). Mock `prismaReadOnly.property.findMany` to throw and assert 503 with `error: "Database query failed"`. -- `server/src/controllers/property.controller.ts`
 
-### TC-11: scrapeProperties job.id guard untested
-**Priority**: P4 | **Source**: L28 implementation
+### ~~TC-11: scrapeProperties job.id guard untested~~
+**Status**: Closed — unactionable. `server/src/queues/` was deleted (BullMQ removal, 287ca63). Queue logic now lives in CF Workflows (`scraper.workflow.ts`). -- `server/src/controllers/property.controller.ts`
 
-The `if (!job.id)` guard returns 500 when BullMQ produces a job without an ID. No test covers this path. Mock `scraperQueue.add()` to return `{ id: undefined }` and assert 500 response. -- `server/src/controllers/property.controller.ts`
-
-### TC-12: canScheduleJob TOCTOU race condition untested
-**Priority**: P4 | **Source**: L29 code review (low finding)
-
-The get-then-set pattern in `canScheduleJob` has a TOCTOU window where concurrent requests for the same term can both observe `null` from `cacheService.get()` and both return `true`. No test covers this scenario. Consider using Redis `SET NX PX` (atomic set-if-not-exists with TTL) or add a test documenting the limitation. -- `server/src/queues/scraper.queue.ts`
+### ~~TC-12: canScheduleJob TOCTOU race condition untested~~
+**Status**: Closed — unactionable. `server/src/queues/scraper.queue.ts` was deleted (BullMQ removal, 287ca63). CF Workflows handle idempotency at the platform level. -- `server/src/queues/scraper.queue.ts`
 
 ### TC-13: api-usage.controller has no unit tests
 **Priority**: P3 | **Source**: L32 implementation
