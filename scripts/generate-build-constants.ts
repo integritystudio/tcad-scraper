@@ -19,8 +19,11 @@ const CLOUDFLARE_ACCOUNT_ID = "b3868dd0fd5c0faa7d98aa325a9c2377";
 const D1_DATABASE_ID = "451d4356-10d1-4c1d-adf9-4d4297636343";
 const D1_QUERY_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query`;
 
-// Last known count as of Aug 5, 2026 (D1)
-const HARDCODED_FALLBACK_COUNT = 170320;
+// Last known count as of Aug 6, 2026 (D1).
+// Refresh: doppler run -p integrity-studio -c prd -- sh -c \
+//   'CLOUDFLARE_API_TOKEN=$CLOUDFLARE_D1_TOKEN npx wrangler d1 execute tcad-db \
+//    --remote --command "SELECT COUNT(*) FROM properties WHERE year = 2025"'
+const HARDCODED_FALLBACK_COUNT = 260_000;
 
 interface D1QueryResponse {
 	success: boolean;
