@@ -7,6 +7,7 @@ import type {
 	AnswerType,
 	Property,
 } from "../types";
+import { getErrorMessage } from "../utils/error-helpers";
 
 interface SearchResult {
 	data: Property[];
@@ -128,9 +129,7 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 			}
 		} catch (err: unknown) {
 			if (err instanceof DOMException && err.name === "AbortError") return;
-			const errorMessage =
-				err instanceof Error ? err.message : "An error occurred";
-			setError(errorMessage);
+			setError(getErrorMessage(err, "An error occurred"));
 			setResults([]);
 			setAnswerState("error");
 		} finally {
@@ -175,9 +174,7 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 				}
 			} catch (err: unknown) {
 				if (err instanceof DOMException && err.name === "AbortError") return;
-				const errorMessage =
-					err instanceof Error ? err.message : "Failed to load properties";
-				setError(errorMessage);
+				setError(getErrorMessage(err, "Failed to load properties"));
 			} finally {
 				setLoading(false);
 				setInitialLoad(false);
