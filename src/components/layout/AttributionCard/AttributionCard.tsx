@@ -3,6 +3,7 @@
  * Touchpoint 2: Appears after initial interaction, primary conversion driver
  */
 import { useAnalytics } from "../../../hooks";
+import { Card, CardBody, CardFooter } from "../../ui/Card";
 import styles from "./AttributionCard.module.css";
 
 const _INTEGRITY_STUDIO_URL = "https://integritystudio.ai";
@@ -38,7 +39,11 @@ export const AttributionCard = () => {
 	};
 
 	return (
-		<aside className={styles.card} aria-labelledby="attribution-heading">
+		<Card
+			className={styles.card}
+			role="complementary"
+			aria-labelledby="attribution-heading"
+		>
 			<div className={styles.iconWrapper} aria-hidden="true">
 				<svg
 					className={styles.icon}
@@ -56,15 +61,17 @@ export const AttributionCard = () => {
 				</svg>
 			</div>
 			<div className={styles.content}>
-				<h2 id="attribution-heading" className={styles.heading}>
-					About This Tool
-				</h2>
-				<p className={styles.description}>
-					TCAD Property Explorer is a showcase project by{" "}
-					<strong>Integrity Studio</strong>&mdash;we build custom data
-					extraction and automation tools for businesses.
-				</p>
-				<div className={styles.actions}>
+				<CardBody>
+					<h2 id="attribution-heading" className={styles.heading}>
+						About This Tool
+					</h2>
+					<p className={styles.description}>
+						TCAD Property Explorer is a showcase project by{" "}
+						<strong>Integrity Studio</strong>&mdash;we build custom data
+						extraction and automation tools for businesses.
+					</p>
+				</CardBody>
+				<CardFooter className={styles.actions}>
 					<a
 						href="https://integritystudio.ai/features"
 						target="_blank"
@@ -89,8 +96,8 @@ export const AttributionCard = () => {
 							&#8599;
 						</span>
 					</a>
-				</div>
+				</CardFooter>
 			</div>
-		</aside>
+		</Card>
 	);
 };

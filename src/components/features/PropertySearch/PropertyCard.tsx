@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAnalytics, useFormatting } from "../../../hooks";
 import type { Property } from "../../../types";
 import { Badge } from "../../ui/Badge";
-import { Card, CardBody, CardHeader } from "../../ui/Card";
+import { Card, CardBody, CardFooter, CardHeader } from "../../ui/Card";
 import { Icon } from "../../ui/Icon";
 import { ExpandButton } from "./components/ExpandButton";
 import styles from "./PropertyCard.module.css";
@@ -46,25 +46,25 @@ export const PropertyCard = ({
 					{property.city && `, ${property.city}`}
 				</div>
 
-				<div className={styles.summary}>
-					<div className={styles.detailItem}>
-						<span className={styles.detailLabel}>Appraised Value</span>
-						<span className={styles.detailValue}>
-							{formatCurrency(property.appraised_value)}
-						</span>
-					</div>
-
-					<div className={styles.expandButtonContainer}>
-						<ExpandButton
-							isExpanded={isExpanded}
-							onToggle={handleToggleExpand}
-							size="sm"
-						/>
-					</div>
-				</div>
-
 				<PropertyDetails property={property} isExpanded={isExpanded} />
 			</CardBody>
+
+			<CardFooter className={styles.summary}>
+				<div className={styles.detailItem}>
+					<span className={styles.detailLabel}>Appraised Value</span>
+					<span className={styles.detailValue}>
+						{formatCurrency(property.appraised_value)}
+					</span>
+				</div>
+
+				<div className={styles.expandButtonContainer}>
+					<ExpandButton
+						isExpanded={isExpanded}
+						onToggle={handleToggleExpand}
+						size="sm"
+					/>
+				</div>
+			</CardFooter>
 		</Card>
 	);
 };
