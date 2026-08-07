@@ -20,7 +20,16 @@ export async function runMain(
 		console.error("Fatal:", getErrorMessage(err));
 		exitCode = 1;
 	} finally {
-		if (disconnectPrisma) await prisma.$disconnect();
+		if (disconnectPrisma) {
+			try {
+				await prisma.$disconnect();
+			} catch (err) {
+				console.error(
+					"Warning: Prisma disconnect failed:",
+					getErrorMessage(err),
+				);
+			}
+		}
 	}
 	// Only force-exit on failure — process.exit() on the happy path risks
 	// truncating pending stdout/stderr writes; a clean run exits 0 naturally.
