@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BUILD_CONSTANTS } from "../../../constants/build";
 import { useAnalytics, usePropertySearch } from "../../../hooks";
 import { AttributionCard, HeaderBadge } from "../../layout";
@@ -21,14 +21,17 @@ export const PropertySearchContainer = () => {
 	const { logSearch, logSearchResults, logError } = useAnalytics();
 	const [searchQuery, setSearchQuery] = useState("");
 
-	const handleSearch = async (query: string) => {
-		setSearchQuery(query);
+	const handleSearch = useCallback(
+		async (query: string) => {
+			setSearchQuery(query);
 
-		// Track search initiation
-		logSearch(query);
+			// Track search initiation
+			logSearch(query);
 
-		await search(query);
-	};
+			await search(query);
+		},
+		[search, logSearch],
+	);
 
 	// Track search results when they change
 	useEffect(() => {

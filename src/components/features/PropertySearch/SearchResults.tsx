@@ -14,11 +14,15 @@ const RESULTS_PER_PAGE = 12;
 
 interface PaginatedResultsGridProps {
 	results: Property[];
+	loading?: boolean;
 }
 
 // Keyed by searchQuery in the parent so a new search remounts this and
 // resets pagination to page 1, instead of reaching for an effect.
-const PaginatedResultsGrid = ({ results }: PaginatedResultsGridProps) => {
+const PaginatedResultsGrid = ({
+	results,
+	loading,
+}: PaginatedResultsGridProps) => {
 	const {
 		currentPage,
 		totalPages,
@@ -49,7 +53,7 @@ const PaginatedResultsGrid = ({ results }: PaginatedResultsGridProps) => {
 					<div className={styles.pageControls}>
 						<Button
 							onClick={goToPrevPage}
-							disabled={!canGoPrev}
+							disabled={!canGoPrev || loading}
 							variant="outline"
 						>
 							Previous
@@ -59,7 +63,7 @@ const PaginatedResultsGrid = ({ results }: PaginatedResultsGridProps) => {
 						</span>
 						<Button
 							onClick={goToNextPage}
-							disabled={!canGoNext}
+							disabled={!canGoNext || loading}
 							variant="outline"
 						>
 							Next
@@ -146,7 +150,11 @@ export const SearchResults = ({
 				</div>
 			)}
 
-			<PaginatedResultsGrid key={searchQuery} results={results} />
+			<PaginatedResultsGrid
+				key={searchQuery}
+				results={results}
+				loading={loading}
+			/>
 		</div>
 	);
 };
