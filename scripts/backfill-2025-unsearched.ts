@@ -9,9 +9,8 @@
  * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025-unsearched.ts
  */
 
-import { MIN_TERM_LENGTH } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
-import { isSupersetOfAny } from "./lib/backfill-utils";
+import { createTermCollector } from "./lib/backfill-utils";
 import {
 	mineDescriptionFirstWords,
 	mineEntityPhrases,
@@ -31,26 +30,10 @@ async function getUnsearchedTerms(): Promise<string[]> {
 		successful,
 		searched2025,
 	} = await getSearchedTermSets();
-	const seen = new Set<string>();
-	const result: string[] = [];
-	let skippedSupersets = 0;
-	let skippedSearched = 0;
-
-	function addTerm(term: string): boolean {
-		if (term.length < MIN_TERM_LENGTH) return false;
-		const lower = term.toLowerCase();
-		if (searched.has(lower) || searched2025.has(lower) || seen.has(lower)) {
-			skippedSearched++;
-			return false;
-		}
-		if (isSupersetOfAny(lower, successful)) {
-			skippedSupersets++;
-			return false;
-		}
-		seen.add(lower);
-		result.push(term);
-		return true;
-	}
+	const { addTerm, result, stats } = createTermCollector({
+		excluded: [searched, searched2025],
+		supersetsOf: successful,
+	});
 
 	// ── Source 1: Owner first-words from 2026-only properties ──────────
 	console.log("  Mining owner first-words from 2026-only properties...");
@@ -95,7 +78,7 @@ async function getUnsearchedTerms(): Promise<string[]> {
 	console.log(`    Description keywords added: ${result.length - prevCount4}`);
 
 	console.log(
-		`\n  Summary: ${result.length} terms | skipped ${skippedSearched} already-searched, ${skippedSupersets} supersets`,
+		`\n  Summary: ${result.length} terms | skipped ${stats.excluded} already-searched, ${stats.superset} supersets`,
 	);
 	return result;
 }

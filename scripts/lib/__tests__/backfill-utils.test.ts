@@ -10,6 +10,7 @@ vi.mock("../d1-prisma", () => ({
 
 import {
 	buildPrefixIndex,
+	createTermCollector,
 	get2025Count,
 	isSupersetOfAny,
 } from "../backfill-utils";
@@ -78,6 +79,78 @@ describe("isSupersetOfAny", () => {
 		expect(isSupersetOfAny("testi", s)).toBe(true);
 		expect(isSupersetOfAny("tests", s)).toBe(true);
 		expect(isSupersetOfAny("toast", s)).toBe(false);
+	});
+});
+
+describe("createTermCollector", () => {
+	it("accepts a new term and returns true", () => {
+		const { addTerm, result } = createTermCollector({
+			excluded: [],
+			supersetsOf: new Set(),
+		});
+
+		expect(addTerm("smith")).toBe(true);
+		expect(result).toEqual(["smith"]);
+	});
+
+	it("rejects terms shorter than MIN_TERM_LENGTH", () => {
+		const { addTerm, result } = createTermCollector({
+			excluded: [],
+			supersetsOf: new Set(),
+		});
+
+		expect(addTerm("joe")).toBe(false);
+		expect("joe".length).toBeLessThan(MIN_TERM_LENGTH);
+		expect(result).toEqual([]);
+	});
+
+	it("rejects terms present in any excluded set (case-insensitive)", () => {
+		const { addTerm, result, stats } = createTermCollector({
+			excluded: [new Set(["smith"]), new Set(["jones"])],
+			supersetsOf: new Set(),
+		});
+
+		expect(addTerm("Smith")).toBe(false);
+		expect(addTerm("Jones")).toBe(false);
+		expect(addTerm("Davis")).toBe(true);
+		expect(result).toEqual(["Davis"]);
+		expect(stats.excluded).toBe(2);
+	});
+
+	it("rejects duplicate terms added within the same run", () => {
+		const { addTerm, result, stats } = createTermCollector({
+			excluded: [],
+			supersetsOf: new Set(),
+		});
+
+		expect(addTerm("Smith")).toBe(true);
+		expect(addTerm("smith")).toBe(false); // case-insensitive dupe
+		expect(result).toEqual(["Smith"]);
+		expect(stats.excluded).toBe(1);
+	});
+
+	it("rejects terms that extend a term in supersetsOf", () => {
+		const { addTerm, result, stats } = createTermCollector({
+			excluded: [],
+			supersetsOf: new Set(["john"]),
+		});
+
+		expect(addTerm("johnson")).toBe(false);
+		expect(stats.superset).toBe(1);
+		expect(result).toEqual([]);
+	});
+
+	it("preserves insertion order and original casing in result", () => {
+		const { addTerm, result } = createTermCollector({
+			excluded: [],
+			supersetsOf: new Set(),
+		});
+
+		addTerm("Charlie");
+		addTerm("Alpha");
+		addTerm("Bravo");
+
+		expect(result).toEqual(["Charlie", "Alpha", "Bravo"]);
 	});
 });
 

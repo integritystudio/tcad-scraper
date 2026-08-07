@@ -15,9 +15,9 @@ import {
 	SEED_MIN_AVG_RESULTS,
 	SEED_MIN_SUCCESS_RATE,
 } from "../utils/constants";
-import { runBackfillMain } from "./lib/backfill-runner";
-import { isSupersetOfAny } from "./lib/backfill-utils";
 import { BACKFILL_2025_STATIC_TERMS } from "./config/backfill-2025-static-terms";
+import { runBackfillMain } from "./lib/backfill-runner";
+import { createTermCollector } from "./lib/backfill-utils";
 import { prisma } from "./lib/d1-prisma";
 import { getSearchedTermSets } from "./lib/searched-terms";
 
@@ -114,17 +114,10 @@ async function getTermsToBackfill(): Promise<string[]> {
 	// Source 4: Analytics seed prefix expansions
 	const seedExpansions = await getSeedExpansions(allSearched);
 
-	const seen = new Set<string>();
-	const result: string[] = [];
-
-	function addTerm(term: string): void {
-		const lower = term.toLowerCase();
-		if (searched2025.has(lower) || seen.has(lower)) return;
-		if (term.length < MIN_TERM_LENGTH) return;
-		if (isSupersetOfAny(lower, successful)) return;
-		seen.add(lower);
-		result.push(term);
-	}
+	const { addTerm, result } = createTermCollector({
+		excluded: [searched2025],
+		supersetsOf: successful,
+	});
 
 	// Priority: proven 2026 > analytics > STATIC FULL TERMS > dense > seed expansions
 	for (const r of terms2026) addTerm(r.search_term);

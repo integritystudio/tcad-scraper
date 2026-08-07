@@ -13,9 +13,8 @@
  *        TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 2
  */
 
-import { MIN_TERM_LENGTH } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
-import { isSupersetOfAny } from "./lib/backfill-utils";
+import { createTermCollector } from "./lib/backfill-utils";
 import { prisma } from "./lib/d1-prisma";
 import { mineOwnerFirstWords, mineStreetNames } from "./lib/mine-2026-terms";
 import { getSearchedTermSets } from "./lib/searched-terms";
@@ -45,26 +44,10 @@ function parsePhaseArg(): number | null {
 
 async function getTailTerms(): Promise<string[]> {
 	const { searched2025, successful } = await getSearchedTermSets();
-	const seen = new Set<string>();
-	const result: string[] = [];
-	let skippedSearched = 0;
-	let skippedSupersets = 0;
-
-	function addTerm(term: string): boolean {
-		if (term.length < MIN_TERM_LENGTH) return false;
-		const lower = term.toLowerCase();
-		if (searched2025.has(lower) || seen.has(lower)) {
-			skippedSearched++;
-			return false;
-		}
-		if (isSupersetOfAny(lower, successful)) {
-			skippedSupersets++;
-			return false;
-		}
-		seen.add(lower);
-		result.push(term);
-		return true;
-	}
+	const { addTerm, result, stats } = createTermCollector({
+		excluded: [searched2025],
+		supersetsOf: successful,
+	});
 
 	const phase = parsePhaseArg();
 	const runPhase3 = phase === null || phase === 3;
@@ -102,7 +85,7 @@ async function getTailTerms(): Promise<string[]> {
 	}
 
 	console.log(
-		`\n  Summary: ${result.length} terms | skipped ${skippedSearched} already-searched, ${skippedSupersets} supersets`,
+		`\n  Summary: ${result.length} terms | skipped ${stats.excluded} already-searched, ${stats.superset} supersets`,
 	);
 	return result;
 }

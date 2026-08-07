@@ -42,3 +42,48 @@ export function buildPrefixIndex(terms: Set<string>): Set<string> {
 	}
 	return prefixes;
 }
+
+export interface TermCollectorOptions {
+	/** Term is rejected if its lowercased form is in any of these sets. */
+	excluded: Set<string>[];
+	/** Term is rejected if it extends a term in this set — see isSupersetOfAny. */
+	supersetsOf: Set<string>;
+}
+
+export interface TermCollector {
+	/** Add a candidate term; returns true if accepted (unique, long enough, not excluded/superset). */
+	addTerm: (term: string) => boolean;
+	/** Accepted terms, in insertion order. */
+	result: string[];
+	/** Rejection counts, for progress logging. */
+	stats: { excluded: number; superset: number };
+}
+
+/**
+ * Shared collector for the backfill-2025* / enqueue-tail-terms term-selection
+ * loops: dedupes against terms already added this run, filters anything in
+ * `excluded`, and drops extensions of proven terms via isSupersetOfAny.
+ */
+export function createTermCollector(opts: TermCollectorOptions): TermCollector {
+	const seen = new Set<string>();
+	const result: string[] = [];
+	const stats = { excluded: 0, superset: 0 };
+
+	function addTerm(term: string): boolean {
+		if (term.length < MIN_TERM_LENGTH) return false;
+		const lower = term.toLowerCase();
+		if (seen.has(lower) || opts.excluded.some((set) => set.has(lower))) {
+			stats.excluded++;
+			return false;
+		}
+		if (isSupersetOfAny(lower, opts.supersetsOf)) {
+			stats.superset++;
+			return false;
+		}
+		seen.add(lower);
+		result.push(term);
+		return true;
+	}
+
+	return { addTerm, result, stats };
+}
