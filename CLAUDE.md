@@ -12,7 +12,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue/Jobs**: Cloudflare Queues + Workflows (replaced BullMQ + Redis); Cron Triggers (replaced `node-cron`)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (130 frontend + 29 scripts + 16 workers tests; 126/126 E2E via Playwright)
+- **Testing**: Vitest (130 frontend + 52 scripts + 16 workers tests; 126/126 E2E via Playwright)
 - **Scale**: 260K+ properties in D1 (2025 tax year; live count via `/health`)
 
 ```
@@ -152,7 +152,7 @@ TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 
 ## Architecture Decisions
 
-- **Prisma `$transaction` with individual upserts** for bulk writes — avoids D1's 100-param limit and handles date serialization correctly
+- **Bulk property writes use raw D1 `batch()`** of multi-row `INSERT … ON CONFLICT` statements (`utils/upsert-sql.ts`), micro-chunked to 6 rows × 15 cols under D1's 100-param limit; each row binds a client-generated UUID because `properties.id` has no SQL default. Do NOT revert to per-row Prisma upserts in `$transaction` — PrismaD1 runs them one query (= one D1 subrequest) each, so ~5,000-row terms blow the 10-min step timeout and the ~1,000-subrequest invocation budget, wedging jobs in `processing` (incident 2026-08-06). Raw SQL is date-safe here because all date columns store epoch-ms strings
 - **Bearer tokens** expire ~5 min; cron trigger auto-refreshes to KV
 - **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses, suburb/city names. Does NOT work with ZIP codes, short terms (<4 chars), compound names, or numeric-only terms
 - **Env vars**: `TCAD_YEAR` (wrangler.toml vars), `UPSERT_CHUNK_SIZE` (500)
