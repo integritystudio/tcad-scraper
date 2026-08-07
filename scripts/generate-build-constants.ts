@@ -19,10 +19,12 @@ const CLOUDFLARE_ACCOUNT_ID = "b3868dd0fd5c0faa7d98aa325a9c2377";
 const D1_DATABASE_ID = "451d4356-10d1-4c1d-adf9-4d4297636343";
 const D1_QUERY_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query`;
 
-// Last known count as of Aug 6, 2026 (D1).
+// Last known count as of Aug 6, 2026 (D1). Must measure the same thing as
+// fetchPropertyCount() below (distinct properties, so a second tax year in
+// the table doesn't double-count).
 // Refresh: doppler run -p integrity-studio -c prd -- sh -c \
 //   'CLOUDFLARE_API_TOKEN=$CLOUDFLARE_D1_TOKEN npx wrangler d1 execute tcad-db \
-//    --remote --command "SELECT COUNT(*) FROM properties WHERE year = 2025"'
+//    --remote --command "SELECT COUNT(DISTINCT property_id) FROM properties"'
 const HARDCODED_FALLBACK_COUNT = 260_000;
 
 interface D1QueryResponse {
@@ -43,7 +45,9 @@ async function fetchPropertyCount(): Promise<number> {
 			Authorization: `Bearer ${token}`,
 			"Content-Type": "application/json",
 		},
-		body: JSON.stringify({ sql: "SELECT COUNT(*) as count FROM properties" }),
+		body: JSON.stringify({
+			sql: "SELECT COUNT(DISTINCT property_id) as count FROM properties",
+		}),
 	});
 
 	if (!res.ok) {
@@ -113,7 +117,10 @@ function writeConstantsFile(content: string): string {
 async function generateBuildConstants() {
 	try {
 		console.log("📊 Fetching property count from D1...");
-		const totalProperties = await fetchPropertyCount();
+		const totalProperties = await fetchPropertyCount().catch((error) => {
+			console.error("✗ Fetch failed, retrying once:", error);
+			return fetchPropertyCount();
+		});
 		console.log(`✓ Found ${totalProperties.toLocaleString()} properties`);
 
 		const outputPath = writeConstantsFile(
