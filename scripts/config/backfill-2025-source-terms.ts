@@ -10,8 +10,9 @@
  * Runtime dedup: backfill scripts apply getSearchedTermSets() and
  * isSupersetOfAny() to skip already-searched or redundant terms.
  *
- * Usage: consumed by batch-configs.ts as the "backfill-2025-source" batch type
- * (enqueued via scripts/lib/queue-utils.ts::enqueueBatch()), or import
+ * Usage: folded into the search-term inventory via batch-configs.ts (the
+ * "backfill-2025-source" entry consumed by utils/list-all-search-terms.ts) —
+ * there is no enqueue pipeline for batch types — or import
  * BACKFILL_2025_SOURCE_TERMS directly.
  */
 

@@ -1,8 +1,9 @@
 /**
- * Centralized batch enqueue configurations.
- * Each config defines terms for a specific search category.
+ * Named search-term batches by category (LLC, trust, residential, ...).
  *
- * Consumed via enqueueBatch() in scripts/lib/queue-utils.ts
+ * Term data, not an active enqueue pipeline: the sole consumer is
+ * utils/list-all-search-terms.ts, which folds these into the deduplicated
+ * search-term inventory (and enforces disjointness with FALLBACK_TERMS).
  */
 
 import type { BatchEnqueueConfig } from "../lib/queue-utils";
