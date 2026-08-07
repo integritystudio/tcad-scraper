@@ -1,3 +1,4 @@
+import { usePagination } from "../../../hooks";
 import type {
 	AnswerBoxState,
 	AnswerStatistics,
@@ -9,6 +10,67 @@ import { AnswerBox } from "./AnswerBox";
 import { PropertyCard } from "./PropertyCard";
 import styles from "./SearchResults.module.css";
 
+const RESULTS_PER_PAGE = 12;
+
+interface PaginatedResultsGridProps {
+	results: Property[];
+}
+
+// Keyed by searchQuery in the parent so a new search remounts this and
+// resets pagination to page 1, instead of reaching for an effect.
+const PaginatedResultsGrid = ({ results }: PaginatedResultsGridProps) => {
+	const {
+		currentPage,
+		totalPages,
+		startIndex,
+		endIndex,
+		canGoNext,
+		canGoPrev,
+		goToNextPage,
+		goToPrevPage,
+	} = usePagination({
+		totalItems: results.length,
+		itemsPerPage: RESULTS_PER_PAGE,
+	});
+
+	return (
+		<>
+			<div className={styles.resultsGrid}>
+				{results.slice(startIndex, endIndex).map((property) => (
+					<PropertyCard key={property.id} property={property} />
+				))}
+			</div>
+
+			{totalPages > 1 && (
+				<div className={styles.pagination}>
+					<p>
+						Showing {startIndex + 1}-{endIndex} of {results.length} results
+					</p>
+					<div className={styles.pageControls}>
+						<Button
+							onClick={goToPrevPage}
+							disabled={!canGoPrev}
+							variant="outline"
+						>
+							Previous
+						</Button>
+						<span className={styles.pageIndicator}>
+							Page {currentPage} of {totalPages}
+						</span>
+						<Button
+							onClick={goToNextPage}
+							disabled={!canGoNext}
+							variant="outline"
+						>
+							Next
+						</Button>
+					</div>
+				</div>
+			)}
+		</>
+	);
+};
+
 interface SearchResultsProps {
 	results: Property[];
 	totalResults: number;
@@ -16,7 +78,6 @@ interface SearchResultsProps {
 	error?: string;
 	loading?: boolean;
 	searchQuery?: string;
-	onLoadMore?: () => void;
 	answer?: string;
 	answerState?: AnswerBoxState;
 	statistics?: AnswerStatistics;
@@ -29,7 +90,6 @@ export const SearchResults = ({
 	error,
 	loading,
 	searchQuery,
-	onLoadMore,
 	answer,
 	answerState = "idle",
 	statistics,
@@ -86,22 +146,7 @@ export const SearchResults = ({
 				</div>
 			)}
 
-			<div className={styles.resultsGrid}>
-				{results.map((property) => (
-					<PropertyCard key={property.id} property={property} />
-				))}
-			</div>
-
-			{results.length < totalResults && onLoadMore && (
-				<div className={styles.loadMore}>
-					<p>
-						Showing {results.length} of {totalResults} results
-					</p>
-					<Button onClick={onLoadMore} variant="outline">
-						Load More
-					</Button>
-				</div>
-			)}
+			<PaginatedResultsGrid key={searchQuery} results={results} />
 		</div>
 	);
 };

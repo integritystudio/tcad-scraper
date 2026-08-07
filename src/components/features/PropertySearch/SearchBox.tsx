@@ -1,7 +1,10 @@
-import { type KeyboardEvent, useId, useState } from "react";
+import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import { useDebounce } from "../../../hooks";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import styles from "./SearchBox.module.css";
+
+const LIVE_SEARCH_DEBOUNCE_MS = 300;
 
 interface SearchBoxProps {
 	onSearch: (query: string) => void;
@@ -15,12 +18,16 @@ export const SearchBox = ({
 	placeholder = "Ask anything... e.g., 'properties in Austin worth over $500k'",
 }: SearchBoxProps) => {
 	const [query, setQuery] = useState("");
+	const debouncedQuery = useDebounce(query, LIVE_SEARCH_DEBOUNCE_MS);
+	const lastSearchedRef = useRef("");
 	const inputId = useId();
 	const hintId = useId();
 
 	const handleSearch = () => {
-		if (query.trim()) {
-			onSearch(query);
+		const trimmed = query.trim();
+		if (trimmed) {
+			lastSearchedRef.current = trimmed;
+			onSearch(trimmed);
 		}
 	};
 
@@ -29,6 +36,16 @@ export const SearchBox = ({
 			handleSearch();
 		}
 	};
+
+	// Live search: fire automatically once typing settles, skipping queries
+	// already searched via Enter/click (handleSearch) to avoid a duplicate call.
+	useEffect(() => {
+		const trimmed = debouncedQuery.trim();
+		if (trimmed && trimmed !== lastSearchedRef.current) {
+			lastSearchedRef.current = trimmed;
+			onSearch(trimmed);
+		}
+	}, [debouncedQuery, onSearch]);
 
 	return (
 		<search className={styles.searchBox}>
