@@ -4,7 +4,11 @@ import { prisma } from "./d1-prisma";
 import { getErrorMessage } from "./error-helpers";
 
 export interface RunMainOptions {
-	/** Disconnect the shared Prisma client after running (default: true; pass false for scripts that don't use D1). */
+	/**
+	 * Disconnect the shared Prisma client after running (default: true; pass
+	 * false for scripts that don't use D1). A disconnect failure is logged as
+	 * a warning but does not affect the exit code.
+	 */
 	disconnectPrisma?: boolean;
 }
 
