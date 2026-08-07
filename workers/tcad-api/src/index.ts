@@ -107,7 +107,16 @@ app.onError((err, c) => {
 	);
 });
 
-app.notFound((c) => c.json({ error: "Not found" }, HttpStatus.NOT_FOUND));
+app.notFound((c) =>
+	c.json(
+		{
+			error: "Not found",
+			message: "Not found",
+			status: HttpStatus.NOT_FOUND,
+		},
+		HttpStatus.NOT_FOUND,
+	),
+);
 
 // ── Queue consumer (Phase 2) ──────────────────────────────────────
 
