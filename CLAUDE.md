@@ -12,8 +12,8 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue/Jobs**: Cloudflare Queues + Workflows (replaced BullMQ + Redis); Cron Triggers (replaced `node-cron`)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (130 frontend + 52 scripts + 26 workers tests; 126/126 E2E via Playwright)
-- **Scale**: 260K+ properties in D1 (2025 tax year; live count via `/health`)
+- **Testing**: Vitest (130 frontend + 54 scripts + 26 workers tests; 126/126 E2E via Playwright)
+- **Scale**: 350K+ properties in D1 (2025 tax year; live count via `/health`)
 
 ```
 React (5174) → CF Workers (Hono) → D1 (SQLite at edge)
@@ -60,7 +60,7 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - **Database**: Cloudflare D1 `tcad-db` (`451d4356-10d1-4c1d-adf9-4d4297636343`); direct queries via `CLOUDFLARE_D1_TOKEN` (Doppler) — see Database commands
 - **Cache**: Cloudflare KV (TOKEN_CACHE, RESPONSE_CACHE)
 - **Queue**: Cloudflare Queues (`tcad-scraper-jobs`, DLQ: `tcad-scraper-dlq`)
-- **Crons**: Token refresh (4min), stale job cleanup (hourly), search term optimization (3am), monitored searches (6hr)
+- **Crons**: Token refresh (4min), stale job cleanup (hourly), search term optimization (3am — placeholder handler, not implemented), monitored searches (6hr)
 - **Monitoring**: Sentry + `wrangler tail` + Cloudflare dashboard
 
 ### Project Layout
@@ -130,8 +130,8 @@ doppler run -p integrity-studio -c prd -- sh -c 'curl -s -X POST \
 npx vitest run               # Frontend unit tests (130 tests, <5 sec; `npm test` = watch mode)
 npm run test:coverage        # Frontend coverage report
 npm run test:e2e             # E2E tests (126 tests, all passing)
-cd workers/tcad-api && npm test        # Workers tests (16 tests)
-npx vitest run --dir scripts --config /dev/null  # Scripts tests (29 tests)
+cd workers/tcad-api && npm test        # Workers tests (26 tests)
+npx vitest run --dir scripts --config /dev/null  # Scripts tests (54 tests)
 
 # Scraping (via Workers API)
 curl -X POST "https://api.alephatx.info/api/properties/scrape" \
