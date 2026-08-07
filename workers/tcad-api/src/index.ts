@@ -7,7 +7,11 @@ import * as Sentry from "@sentry/cloudflare";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
-import { HttpStatus, isHttpError } from "../../../utils/http-errors";
+import {
+	HttpStatus,
+	type HttpStatusCode,
+	isHttpError,
+} from "../../../utils/http-errors";
 import { TIME_MS } from "../../../utils/units";
 import type { AppEnv, Env } from "./bindings";
 import { apiUsageRoutes } from "./controllers/api-usage";
@@ -74,23 +78,33 @@ app.route("/api/usage", apiUsageRoutes);
 
 // ── Error handler ──────────────────────────────────────────────────
 
+// `message` mirrors `error` in every error response because the frontend's
+// search error path reads `.message` specifically, not `.error`
+// (usePropertySearch.ts). Centralized here so the two fields can't drift
+// out of sync across call sites the way app.notFound's shape once did.
+function errorResponseBody(
+	message: string,
+	status: HttpStatusCode,
+	details?: unknown,
+) {
+	return {
+		error: message,
+		message,
+		status,
+		...(details !== undefined && { details }),
+	};
+}
+
 app.onError((err, c) => {
 	if (isHttpError(err)) {
 		// expose=true (the default below 500) means a well-understood,
-		// client-facing error — not worth a Sentry event. `message` mirrors
-		// `error` because the frontend's search error path reads `.message`,
-		// not `.error`.
+		// client-facing error — not worth a Sentry event.
 		if (!err.expose) {
 			console.error("Unhandled error:", err);
 			Sentry.captureException(err);
 		}
 		return c.json(
-			{
-				error: err.message,
-				message: err.message,
-				status: err.status,
-				...(err.details !== undefined && { details: err.details }),
-			},
+			errorResponseBody(err.message, err.status, err.details),
 			err.status,
 		);
 	}
@@ -98,22 +112,17 @@ app.onError((err, c) => {
 	console.error("Unhandled error:", err);
 	Sentry.captureException(err);
 	return c.json(
-		{
-			error: "Internal server error",
-			message: "Internal server error",
-			status: HttpStatus.INTERNAL_SERVER_ERROR,
-		},
+		errorResponseBody(
+			"Internal server error",
+			HttpStatus.INTERNAL_SERVER_ERROR,
+		),
 		HttpStatus.INTERNAL_SERVER_ERROR,
 	);
 });
 
 app.notFound((c) =>
 	c.json(
-		{
-			error: "Not found",
-			message: "Not found",
-			status: HttpStatus.NOT_FOUND,
-		},
+		errorResponseBody("Not found", HttpStatus.NOT_FOUND),
 		HttpStatus.NOT_FOUND,
 	),
 );
