@@ -18,9 +18,10 @@
  *   doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue
  */
 
+import { pathToFileURL } from "node:url";
 import { MIN_TERM_LENGTH } from "../utils/constants";
-import { isSupersetOfAny } from "./lib/backfill-utils";
 import { BACKFILL_2025_STATIC_TERMS } from "./config/backfill-2025-static-terms";
+import { isSupersetOfAny } from "./lib/backfill-utils";
 import {
 	BUSINESS_ENTITY,
 	FIRST_NAMES_FEMALE,
@@ -155,7 +156,9 @@ const BLOCKED_TERMS = new Set([
 // term is assigned to exactly one bucket below, first-match-wins in
 // tier-priority order, so utils/list-curated-terms.ts's `duplicated` bucket
 // (each term lives in exactly one list within this pool) stays empty.
-const usedLower = new Set(BACKFILL_2025_STATIC_TERMS.map((t) => t.toLowerCase()));
+const usedLower = new Set(
+	BACKFILL_2025_STATIC_TERMS.map((t) => t.toLowerCase()),
+);
 const assignUnique = (list: readonly string[]): string[] => {
 	const out: string[] = [];
 	for (const term of list) {
@@ -174,7 +177,8 @@ export const CANDIDATE_FIRST_NAMES: readonly string[] = assignUnique([
 export const CANDIDATE_LAST_NAMES: readonly string[] = assignUnique(LAST_NAMES);
 export const CANDIDATE_GEOGRAPHIC: readonly string[] =
 	assignUnique(STREET_GEOGRAPHIC);
-export const CANDIDATE_ENTITY: readonly string[] = assignUnique(BUSINESS_ENTITY);
+export const CANDIDATE_ENTITY: readonly string[] =
+	assignUnique(BUSINESS_ENTITY);
 
 export async function main(enqueueMode = false) {
 	// 1. Load all already-searched terms (analytics + property searchTerm + recent jobs)
@@ -349,7 +353,10 @@ export async function main(enqueueMode = false) {
 	}
 }
 
-if (require.main === module) {
+if (
+	process.argv[1] &&
+	import.meta.url === pathToFileURL(process.argv[1]).href
+) {
 	main(process.argv.includes("--enqueue"))
 		.catch(console.error)
 		.finally(() => prisma.$disconnect());

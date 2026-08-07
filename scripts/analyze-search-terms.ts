@@ -10,6 +10,7 @@
  * Run: doppler run -- npx tsx scripts/analyze-search-terms.ts
  */
 
+import { pathToFileURL } from "node:url";
 import { epochAgo, prisma } from "./lib/d1-prisma";
 import { getJobStats } from "./lib/job-stats";
 
@@ -231,7 +232,10 @@ async function countTermsMatching(patterns: string[]): Promise<number> {
 	return rows.length;
 }
 
-if (require.main === module) {
+if (
+	process.argv[1] &&
+	import.meta.url === pathToFileURL(process.argv[1]).href
+) {
 	analyzeSearchTerms()
 		.catch(console.error)
 		.finally(() => process.exit(0));
