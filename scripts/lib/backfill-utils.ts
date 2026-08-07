@@ -2,6 +2,7 @@
 
 import { MIN_TERM_LENGTH } from "../../utils/constants";
 import { prisma } from "./d1-prisma";
+import type { MinedTerm } from "./mine-2026-terms";
 
 /** Count properties scraped for year 2025. */
 export async function get2025Count(): Promise<number> {
@@ -86,4 +87,21 @@ export function createTermCollector(opts: TermCollectorOptions): TermCollector {
 	}
 
 	return { addTerm, result, stats };
+}
+
+/**
+ * Runs a mine-2026-terms query, adds each result's term to the collector,
+ * and logs the source label plus how many terms it contributed. Shared by
+ * enqueue-tail-terms and backfill-2025-unsearched, which each mine several
+ * 2026-only-property sources per run.
+ */
+export async function mineAndAdd(
+	collector: TermCollector,
+	label: string,
+	miner: () => Promise<MinedTerm[]>,
+): Promise<void> {
+	console.log(`  Mining ${label}...`);
+	const before = collector.result.length;
+	for (const { term } of await miner()) collector.addTerm(term);
+	console.log(`    ${label} added: ${collector.result.length - before}`);
 }

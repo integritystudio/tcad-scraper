@@ -14,7 +14,7 @@
  */
 
 import { runBackfillMain } from "./lib/backfill-runner";
-import { createTermCollector } from "./lib/backfill-utils";
+import { createTermCollector, mineAndAdd } from "./lib/backfill-utils";
 import { prisma } from "./lib/d1-prisma";
 import { mineOwnerFirstWords, mineStreetNames } from "./lib/mine-2026-terms";
 import { getSearchedTermSets } from "./lib/searched-terms";
@@ -44,10 +44,11 @@ function parsePhaseArg(): number | null {
 
 async function getTailTerms(): Promise<string[]> {
 	const { searched2025, successful } = await getSearchedTermSets();
-	const { addTerm, result, stats } = createTermCollector({
+	const collector = createTermCollector({
 		excluded: [searched2025],
 		supersetsOf: successful,
 	});
+	const { addTerm, result, stats } = collector;
 
 	const phase = parsePhaseArg();
 	const runPhase3 = phase === null || phase === 3;
@@ -69,19 +70,13 @@ async function getTailTerms(): Promise<string[]> {
 
 	// ── Phase 3: Owner-name mining from 2026-only properties ──────────
 	if (runPhase3) {
-		const prevCount = result.length;
 		console.log("  Phase 3: Mining owner names from 2026-only properties...");
-
-		// First words of owner names on 2026 properties missing from 2025
-		const ownerNames = await mineOwnerFirstWords({
-			minCount: MIN_PROPS_PER_TERM,
-		});
-		for (const row of ownerNames) addTerm(row.term);
-
-		// Street names from 2026-only properties
-		const streets = await mineStreetNames({ minCount: MIN_PROPS_PER_TERM });
-		for (const row of streets) addTerm(row.term);
-		console.log(`    Added: ${result.length - prevCount} terms`);
+		await mineAndAdd(collector, "owner first-words", () =>
+			mineOwnerFirstWords({ minCount: MIN_PROPS_PER_TERM }),
+		);
+		await mineAndAdd(collector, "street names", () =>
+			mineStreetNames({ minCount: MIN_PROPS_PER_TERM }),
+		);
 	}
 
 	console.log(
