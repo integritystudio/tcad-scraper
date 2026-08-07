@@ -8,10 +8,9 @@
  * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025-proven.ts
  */
 
-import { RECENT_JOBS_LOOKBACK_MS } from "../utils/constants";
-import { TIME_MS } from "../utils/units";
 import { runBackfillMain } from "./lib/backfill-runner";
-import { epochAgo, prisma } from "./lib/d1-prisma";
+import { prisma } from "./lib/d1-prisma";
+import { getSearchedTermSets } from "./lib/searched-terms";
 
 const MIN_2026_YIELD = 100;
 
@@ -33,19 +32,13 @@ async function getProvenTerms(): Promise<string[]> {
     WHERE COALESCE(p25.cnt, 0) = 0
     ORDER BY p26.cnt DESC`;
 
-	// Also exclude terms already attempted today (scrape_jobs)
-	const recentJobs = await prisma.scrapeJob.findMany({
-		where: {
-			startedAt: { gte: epochAgo(RECENT_JOBS_LOOKBACK_MS) },
-		},
-		select: { searchTerm: true },
-	});
-	const attempted = new Set(recentJobs.map((j) => j.searchTerm.toLowerCase()));
+	// Also exclude terms already attempted for 2025 (property match or recent job)
+	const { searched2025 } = await getSearchedTermSets();
 
 	const result: string[] = [];
 	let skipped = 0;
 	for (const t of terms) {
-		if (attempted.has(t.term.toLowerCase())) {
+		if (searched2025.has(t.term.toLowerCase())) {
 			skipped++;
 			continue;
 		}
@@ -55,9 +48,7 @@ async function getProvenTerms(): Promise<string[]> {
 	console.log(
 		`  Proven terms (${MIN_2026_YIELD}+ yield in 2026, 0 in 2025): ${terms.length}`,
 	);
-	console.log(
-		`  Skipped (attempted in last ${RECENT_JOBS_LOOKBACK_MS / TIME_MS.DAY} days): ${skipped}`,
-	);
+	console.log(`  Skipped (already searched for 2025): ${skipped}`);
 	console.log(`  Queued: ${result.length}`);
 	return result;
 }
