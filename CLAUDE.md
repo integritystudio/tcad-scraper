@@ -12,7 +12,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue/Jobs**: Cloudflare Queues + Workflows (replaced BullMQ + Redis); Cron Triggers (replaced `node-cron`)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (130 frontend + 54 scripts + 26 workers tests; 126/126 E2E via Playwright)
+- **Testing**: Vitest (130 frontend + 55 scripts + 26 workers tests; 126/126 E2E via Playwright)
 - **Scale**: 350K+ properties in D1 (2025 tax year; live count via `/health`)
 
 ```
@@ -131,7 +131,7 @@ npx vitest run               # Frontend unit tests (130 tests, <5 sec; `npm test
 npm run test:coverage        # Frontend coverage report
 npm run test:e2e             # E2E tests (126 tests, all passing)
 cd workers/tcad-api && npm test        # Workers tests (26 tests)
-npx vitest run --dir scripts --config /dev/null  # Scripts tests (54 tests)
+npx vitest run --dir scripts --config /dev/null  # Scripts tests (55 tests)
 
 # Scraping (via Workers API)
 curl -X POST "https://api.alephatx.info/api/properties/scrape" \
@@ -186,6 +186,7 @@ TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 | API 522/unreachable | Check Cloudflare dashboard; `wrangler tail` for errors |
 | D1 date corruption | Dates stored as ISO 8601 instead of epoch ms; re-scrape affected records |
 | D1 `SQLITE_CONSTRAINT` | Data type mismatch or missing required field in create call |
+| `/backlog-migrate` shows wrong test counts | It can overwrite `BACKLOG.md`'s header count line with a stale value (regressed 55→52 on 2026-08-06) — re-verify via `npx vitest run --dir scripts --config /dev/null` before trusting migrated doc text |
 
 ---
 

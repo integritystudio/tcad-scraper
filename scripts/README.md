@@ -32,7 +32,7 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 
 | Script | Purpose |
 |--------|---------|
-| `backfill-2025.ts` | Primary 2025 backfill: high-yield terms present in 2026 data but not 2025, plus a `STATIC_TERMS` list. |
+| `backfill-2025.ts` | Primary 2025 backfill: high-yield terms present in 2026 data but not 2025, plus `BACKFILL_2025_STATIC_TERMS` (`config/backfill-2025-static-terms.ts`). |
 | `backfill-2025-proven.ts` | Terms that yielded 100+ properties in 2026 but none in 2025. |
 | `backfill-2025-unsearched.ts` | Owner/entity/street names mined from 2026-only properties, minus supersets and already-searched terms. |
 | `backfill-2025-novel.ts` | Never-searched owner names mined from 2026-only properties (e.g. NGUYEN, MARTINEZ). |
@@ -54,6 +54,7 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 |------|---------|
 | `config/batch-configs.ts` | Named batch types (LLC, trust, corporation, etc.) with priority tiers. Includes `HIGH_RESULT_TERM_SPLITS` for high-volume terms. |
 | `config/backfill-2025-source-terms.ts` | 400 curated terms for remaining 2025 properties (deduped against batch-configs and FALLBACK_TERMS). |
+| `config/backfill-2025-static-terms.ts` | Canonical `BACKFILL_2025_STATIC_TERMS` list for `backfill-2025.ts`, deduped against `backfill-2025-source-terms.ts` and `FALLBACK_TERMS`. |
 
 ## Shared (`lib/`)
 
@@ -68,12 +69,14 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `lib/d1-prisma.ts` | Prisma client for scripts, backed by production D1 over HTTP (epoch-ms date strings, SQLite dialect). |
 | `lib/error-helpers.ts` | `getErrorMessage()` for `unknown` errors. |
 | `lib/logger.ts` | Console shim for CLI scripts. |
+| `lib/cvcv.ts` | `generateCvcvBases()` — all 11,025 4-char consonant-vowel-consonant-vowel bases, used to seed 5-char term generation. |
 
 ## Utilities (`utils/`)
 
 | File | Purpose |
 |------|---------|
 | `list-all-search-terms.ts` | Deduplicated inventory of all non-numeric search terms across `batch-configs.ts` and `lib/fallback-terms.ts`. Importable (`getAllSearchTerms()`) or CLI. |
+| `list-curated-terms.ts` | Deduplicated inventory of the manual-backfill term lists (`BACKFILL_2025_STATIC_TERMS` + the `CANDIDATE_*` lists in `generate-next-200-terms.ts`); its `duplicated` bucket must stay empty. Importable or CLI. |
 
 ## Repomix (`repomix/`)
 
