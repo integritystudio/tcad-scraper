@@ -15,7 +15,11 @@ export interface TermInventory {
   all: string[];
   /** Per-source breakdown; each term appears in exactly one bucket (first source wins), sorted */
   sources: Record<string, string[]>;
-  /** Terms that appear in more than one source, formatted "term [source ∩ firstSource]", sorted */
+  /**
+   * Terms that appear in more than one source, formatted "term [source ∩ firstSource]", sorted.
+   * Uses the losing occurrence's own casing, not the winning term's — the winner
+   * (stored in `sources`) keeps whatever casing the first source used.
+   */
   duplicated: string[];
 }
 
