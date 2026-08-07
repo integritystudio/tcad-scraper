@@ -192,20 +192,25 @@ async function main() {
 			other: categories.other.reduce((sum, e) => sum + e.count, 0),
 		};
 
+		const pctOfFailures = (count: number): string =>
+			analysis.failedJobs > 0
+				? ((count / analysis.failedJobs) * 100).toFixed(2)
+				: "0.00";
+
 		logger.info(
-			`Token Expired (HTTP 401): ${categoryCounts.tokenExpired} (${((categoryCounts.tokenExpired / analysis.failedJobs) * 100).toFixed(2)}%)`,
+			`Token Expired (HTTP 401): ${categoryCounts.tokenExpired} (${pctOfFailures(categoryCounts.tokenExpired)}%)`,
 		);
 		logger.info(
-			`Timeout Errors (HTTP 504): ${categoryCounts.timeout} (${((categoryCounts.timeout / analysis.failedJobs) * 100).toFixed(2)}%)`,
+			`Timeout Errors (HTTP 504): ${categoryCounts.timeout} (${pctOfFailures(categoryCounts.timeout)}%)`,
 		);
 		logger.info(
-			`Truncated Responses: ${categoryCounts.truncated} (${((categoryCounts.truncated / analysis.failedJobs) * 100).toFixed(2)}%)`,
+			`Truncated Responses: ${categoryCounts.truncated} (${pctOfFailures(categoryCounts.truncated)}%)`,
 		);
 		logger.info(
-			`Token Capture Failures: ${categoryCounts.captureFailure} (${((categoryCounts.captureFailure / analysis.failedJobs) * 100).toFixed(2)}%)`,
+			`Token Capture Failures: ${categoryCounts.captureFailure} (${pctOfFailures(categoryCounts.captureFailure)}%)`,
 		);
 		logger.info(
-			`Other Errors: ${categoryCounts.other} (${((categoryCounts.other / analysis.failedJobs) * 100).toFixed(2)}%)`,
+			`Other Errors: ${categoryCounts.other} (${pctOfFailures(categoryCounts.other)}%)`,
 		);
 	} finally {
 		await prisma.$disconnect();
