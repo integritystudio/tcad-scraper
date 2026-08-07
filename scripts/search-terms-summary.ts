@@ -7,6 +7,7 @@
  */
 
 import { prisma } from "./lib/d1-prisma";
+import { formatDateCompact } from "./lib/epoch-format";
 import { runMain } from "./lib/run-main";
 
 const RECENT_TERM_LIMIT = 50;
@@ -21,15 +22,6 @@ interface TermRow {
 	startedAt: string;
 	completedAt: string | null;
 	propertyCount: number;
-}
-
-function formatEpoch(epochMs: string): string {
-	return new Date(Number(epochMs)).toLocaleString("en-US", {
-		month: "short",
-		day: "2-digit",
-		hour: "2-digit",
-		minute: "2-digit",
-	});
 }
 
 async function getSearchTermStats() {
@@ -61,7 +53,7 @@ async function getSearchTermStats() {
 		const term = row.searchTerm.padEnd(TERM_WIDTH).substring(0, TERM_WIDTH);
 		const count = String(Number(row.propertyCount)).padStart(COUNT_WIDTH);
 		const status = row.status.padEnd(STATUS_WIDTH).substring(0, STATUS_WIDTH);
-		const updated = formatEpoch(row.completedAt ?? row.startedAt).padEnd(
+		const updated = formatDateCompact(row.completedAt ?? row.startedAt).padEnd(
 			DATE_WIDTH,
 		);
 		console.log(`║ ${term} ║ ${count} ║ ${status} ║ ${updated} ║`);

@@ -4,6 +4,7 @@
  * Usage: npx tsx scripts/queue-results.ts [--limit N]
  */
 
+import { formatDateSortable } from "./lib/epoch-format";
 import { runMain } from "./lib/run-main";
 
 const API_BASE = "https://api.alephatx.info/api/properties";
@@ -38,15 +39,6 @@ interface StatsResponse {
 	totalProperties: number;
 	totalJobs: number;
 	recentJobs: number;
-}
-
-function formatDate(value: string | null): string {
-	if (!value || value === "0") return "N/A";
-	// Accepts ISO 8601 or epoch-ms strings (pre-ISO-migration API responses)
-	const iso = /^\d+$/.test(value)
-		? new Date(Number(value)).toISOString()
-		: value;
-	return iso.replace("T", " ").slice(0, 19);
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -88,7 +80,7 @@ async function main() {
 		for (const j of completed) {
 			const term = (j.searchTerm || "").padEnd(22);
 			const props = String(j.resultCount ?? 0).padStart(6);
-			console.log(`  ${term}${props}  ${formatDate(j.completedAt)}`);
+			console.log(`  ${term}${props}  ${formatDateSortable(j.completedAt)}`);
 		}
 	} else {
 		console.log("No completed jobs in recent history.");
