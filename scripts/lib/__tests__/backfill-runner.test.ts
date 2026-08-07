@@ -88,10 +88,7 @@ describe("runBackfill", () => {
 		await runBackfill(makeCfg());
 
 		expect(mockEnqueueBatch).toHaveBeenCalledTimes(1);
-		expect(mockEnqueueBatch).toHaveBeenCalledWith(
-			["alpha", "bravo", "charlie"],
-			"test-backfill",
-		);
+		expect(mockEnqueueBatch).toHaveBeenCalledWith(["alpha", "bravo", "charlie"]);
 		expect(mockWaitForQueueDrain).toHaveBeenCalledTimes(1);
 		expect(mockWaitForQueueDrain).toHaveBeenCalledWith(
 			["alpha", "bravo", "charlie"],
@@ -153,7 +150,7 @@ describe("runBackfill", () => {
 		expect(mockEnqueueBatch).toHaveBeenCalledTimes(3);
 	});
 
-	it("calls enqueueBatch with correct userId", async () => {
+	it("calls enqueueBatch with only the batch terms (no userId)", async () => {
 		mockGet2025Count
 			.mockResolvedValueOnce(BELOW_TARGET)
 			.mockResolvedValueOnce(BELOW_TARGET)
@@ -161,12 +158,9 @@ describe("runBackfill", () => {
 			.mockResolvedValueOnce(TEST_TARGET_COUNT)
 			.mockResolvedValueOnce(TEST_TARGET_COUNT);
 
-		await runBackfill(makeCfg({ userId: "my-custom-id" }));
+		await runBackfill(makeCfg());
 
-		expect(mockEnqueueBatch).toHaveBeenCalledWith(
-			expect.any(Array),
-			"my-custom-id",
-		);
+		expect(mockEnqueueBatch).toHaveBeenCalledWith(expect.any(Array));
 	});
 
 	it("calls process.exit(1) when TCAD_YEAR is not 2025", async () => {
@@ -193,16 +187,12 @@ describe("runBackfill", () => {
 
 		await runBackfill(makeCfg());
 
-		expect(mockEnqueueBatch).toHaveBeenNthCalledWith(
-			1,
-			["alpha", "bravo", "charlie"],
-			"test-backfill",
-		);
-		expect(mockEnqueueBatch).toHaveBeenNthCalledWith(
-			2,
-			["delta", "echo"],
-			"test-backfill",
-		);
+		expect(mockEnqueueBatch).toHaveBeenNthCalledWith(1, [
+			"alpha",
+			"bravo",
+			"charlie",
+		]);
+		expect(mockEnqueueBatch).toHaveBeenNthCalledWith(2, ["delta", "echo"]);
 	});
 
 	it("exports DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES as 3", () => {

@@ -227,7 +227,7 @@ describe("enqueueBatch", () => {
 		const fetchMock = vi.fn().mockResolvedValue(okResponse());
 		vi.stubGlobal("fetch", fetchMock);
 
-		await enqueueBatch(["Alpha"], "test-user", { error: vi.fn() });
+		await enqueueBatch(["Alpha"], { error: vi.fn() });
 
 		expect(fetchMock).toHaveBeenCalledWith(
 			"https://api.alephatx.info/api/properties/scrape",
@@ -251,11 +251,7 @@ describe("enqueueBatch", () => {
 			.mockResolvedValueOnce(okResponse());
 		vi.stubGlobal("fetch", fetchMock);
 
-		const enqueued = await enqueueBatch(
-			["Alpha", "Bravo", "Charlie"],
-			"test-user",
-			logger,
-		);
+		const enqueued = await enqueueBatch(["Alpha", "Bravo", "Charlie"], logger);
 
 		expect(enqueued).toEqual(["Alpha", "Charlie"]);
 		expect(logger.error).toHaveBeenCalledWith(
@@ -268,7 +264,7 @@ describe("enqueueBatch", () => {
 		const fetchMock = vi.fn().mockRejectedValue(new Error("network down"));
 		vi.stubGlobal("fetch", fetchMock);
 
-		const enqueued = await enqueueBatch(["Alpha"], "test-user", logger);
+		const enqueued = await enqueueBatch(["Alpha"], logger);
 
 		expect(enqueued).toEqual([]);
 		expect(logger.error).toHaveBeenCalledWith(

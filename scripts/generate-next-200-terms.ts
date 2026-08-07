@@ -612,7 +612,7 @@ export async function main(enqueueMode = false) {
 
 	if (enqueueMode && ranked.length > 0) {
 		console.error(`\nEnqueuing ${ranked.length} terms via Workers API...`);
-		const queued = await enqueueBatch(ranked, "next-200-gen");
+		const queued = await enqueueBatch(ranked);
 		console.error(`Enqueued ${queued.length} jobs`);
 	}
 }

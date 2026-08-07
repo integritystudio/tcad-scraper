@@ -72,17 +72,13 @@ describe("generate-next-200-terms main()", () => {
 		expect(mockEnqueueBatch).not.toHaveBeenCalled();
 	});
 
-	it("calls enqueueBatch with selected terms and 'next-200-gen' userId when enqueueMode=true", async () => {
+	it("calls enqueueBatch with selected terms when enqueueMode=true", async () => {
 		mockEnqueueBatch.mockImplementation(async (terms: unknown) => terms);
 
 		await main(true);
 
 		expect(mockEnqueueBatch).toHaveBeenCalledOnce();
-		const [terms, userId] = mockEnqueueBatch.mock.calls[0] as [
-			string[],
-			string,
-		];
-		expect(userId).toBe("next-200-gen");
+		const [terms] = mockEnqueueBatch.mock.calls[0] as [string[]];
 		expect(Array.isArray(terms)).toBe(true);
 		expect(terms.length).toBeGreaterThan(0);
 	});

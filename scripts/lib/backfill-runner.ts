@@ -70,7 +70,7 @@ export async function runBackfill(cfg: BackfillConfig): Promise<void> {
 		console.log(`  Terms: ${batch.join(", ")}`);
 
 		const enqueuedAtMs = Date.now();
-		const enqueued = await enqueueBatch(batch, cfg.userId);
+		const enqueued = await enqueueBatch(batch);
 		console.log(`  Enqueued: ${enqueued.length}/${batch.length}`);
 
 		if (enqueued.length > 0) {

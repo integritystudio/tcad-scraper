@@ -127,7 +127,6 @@ export interface BatchEnqueueConfig {
 /** Enqueue terms one at a time; returns the terms that were accepted (HTTP 2xx). */
 export async function enqueueBatch(
 	terms: string[],
-	_userId: string,
 	logger: EnqueueLogger = console,
 ): Promise<string[]> {
 	const enqueued: string[] = [];
