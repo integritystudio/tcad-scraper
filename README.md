@@ -78,9 +78,9 @@ TCAD Scraper automates the collection and storage of property tax data from trav
 ### Scraping Pipeline
 
 1. **Enqueue** — `POST /api/properties/scrape` or CLI scripts send `{ searchTerm, year }` to the Cloudflare Queue (`tcad-scraper-jobs`); the queue consumer creates a ScraperWorkflow instance
-2. **ScraperWorkflow** (5 steps) — get-token (KV-cached) → fetch-properties (paginated, 1000/page, max 100 pages) → deduplicate → upsert-properties (Prisma `$transaction`, chunks of 500) → update-analytics
+2. **ScraperWorkflow** (5 steps) — get-token (token worker; KV cache read not yet wired in) → fetch-properties (paginated, 1000/page, max 100 pages) → deduplicate → upsert-properties (raw D1 `batch()` of multi-row `INSERT … ON CONFLICT` statements, chunks of 50) → update-analytics
 3. **Batch generation** (local CLI) — `generate-next-200-terms.ts` (5-tier priority), `enqueue-tail-terms.ts` (multi-phase tail optimizer), batch types in `scripts/config/batch-configs.ts`; all POST to the Workers API
-4. **Cron triggers** — token refresh (every 4 min), stale job cleanup (hourly), search term optimization (daily 3am), monitored searches (every 6 hr)
+4. **Cron triggers** — token refresh (every 4 min), stale job cleanup (hourly), search term optimization (daily 3am — placeholder handler, not yet implemented), monitored searches (every 6 hr)
 
 ## Project Structure
 
@@ -118,7 +118,7 @@ D1 conventions (rationale in [CLAUDE.md](CLAUDE.md#architecture-decisions)):
 - **Dates are epoch-millisecond strings** (`"1711773684000"`) — D1's JS binding corrupts ISO 8601 TEXT values
 - **Arrays are JSON-serialized strings** (e.g. `ScrapeJob.newPropertyIds`)
 
-**Scale**: 260K+ properties for tax year 2025 (live count via [`/health`](https://api.alephatx.info/health)). Coverage tiers, per-term yields, and scraping-rate metrics: [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md) and [docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json).
+**Scale**: 350K+ properties for tax year 2025 (live count via [`/health`](https://api.alephatx.info/health)). Coverage tiers, per-term yields, and scraping-rate metrics: [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md) and [docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json).
 
 ## Getting Started
 
@@ -152,8 +152,8 @@ No external database is needed — D1 is configured in `workers/tcad-api/wrangle
 
 ```bash
 npx vitest run                                    # Frontend unit tests (130)
-npx vitest run --dir scripts --config /dev/null   # Scripts tests (29)
-cd workers/tcad-api && npm test                   # Workers tests (16)
+npx vitest run --dir scripts --config /dev/null   # Scripts tests (54)
+cd workers/tcad-api && npm test                   # Workers tests (26)
 npm run test:e2e                                  # Playwright E2E (126)
 ```
 
@@ -161,7 +161,7 @@ npm run test:e2e                                  # Playwright E2E (126)
 
 ### GET /api/properties
 
-List properties with filtering and pagination. Query params: `page` (default 1), `limit` (default 50), `city`, `propType`, `minValue`, `maxValue`.
+List properties with filtering and pagination. Query params: `limit` (default 100, max 1000), `offset` (default 0), `searchTerm`, `city`, `propType`, `minValue`, `maxValue`.
 
 ```bash
 curl "https://api.alephatx.info/api/properties?city=Austin&limit=25"
