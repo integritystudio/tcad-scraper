@@ -1,6 +1,6 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-08-06 (T4 migrated)
+**Last Updated**: 2026-08-06 (T4 migrated; T3 remains open below)
 **Status**: 130 frontend + 55 scripts + 26 workers tests passing | TypeScript clean | Lint clean
 
 ---
@@ -19,4 +19,4 @@ All four `backfill-2025-*.ts` scripts and Phase 3 of `enqueue-tail-terms.ts` que
 
 ---
 
-**Latest migration**: August 6, 2026 audit and scripts-review items (AUD-01 through AUD-08, D1-01 through D1-03, TC-10 through TC-18, T1–T4) migrated to [changelog/2026-08-06.md](changelog/2026-08-06.md)
+**Latest migration**: August 6, 2026 audit and scripts-review items (AUD-01 through AUD-08, D1-01 through D1-03, TC-10 through TC-18, T1, T2, T4–T12) migrated to [changelog/2026-08-06.md](changelog/2026-08-06.md) — T3 remains open above

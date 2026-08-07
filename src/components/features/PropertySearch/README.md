@@ -42,6 +42,7 @@ The PropertySearch feature provides a comprehensive property data viewing interf
 PropertySearchContainer
 ├── SearchBox
 └── SearchResults
+    ├── AnswerBox (quantitative queries)
     └── PropertyCard (multiple instances)
         ├── Card (UI component)
         │   ├── CardHeader
@@ -63,7 +64,7 @@ PropertySearchContainer
         │           └── MetadataSection
         │               ├── SectionHeader (with FreshnessIndicator)
         │               └── TimestampList
-        └── Analytics tracking (useEffect hook)
+        └── Analytics tracking (logPropertyView in expand-button click handler)
 ```
 
 ### File Structure
@@ -172,6 +173,9 @@ EXPANDED (On Click):
 const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
 const handleToggleExpand = () => {
+  if (!isExpanded) {
+    logPropertyView(property.property_id, property.property_address);
+  }
   setIsExpanded(!isExpanded);
 };
 ```

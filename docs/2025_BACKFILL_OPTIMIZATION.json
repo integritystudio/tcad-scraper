@@ -6,7 +6,8 @@
 		"current_status": "~2 properties indexed, 500K goal",
 		"existing_terms": 8385,
 		"target_goal": 500000,
-		"goal_percentage": "current ~0.4%, target 100%"
+		"goal_percentage": "current ~0.4%, target 100%",
+		"note": "Counts and status in this file are a 2026-03-30 snapshot; live property count via /health"
 	},
 
 	"strategy_summary": {
@@ -603,7 +604,7 @@
 		"tier_1_immediate": "for term in David Robert LIVING Home Fami James steph Paul eliza Rich Mark estat Christopher Martin Thomas; do curl -s -X POST https://api.alephatx.info/api/properties/scrape -H 'Content-Type: application/json' -H \"x-api-key: $TCAD_API_KEY\" -d \"{\\\"searchTerm\\\": \\\"$term\\\"}\"; sleep 1; done",
 		"tier_2_weekly": "for term in holdi Sand Maria Carl Rock Daniel Mary Wood marie Vista TEXAS Ridge Scott Angel CITY Green White VILLA JOSE West Michelle Matthew Susan Manor Assoc Pass Johnson Linda Jeffrey STATE Andrew laure Joseph Ranch Bend Garcia Kevin Springs Edward Oaks Properties Tran Ryan Bell Carol Lopez Lynn Nguyen Lamar; do curl -s -X POST https://api.alephatx.info/api/properties/scrape -H 'Content-Type: application/json' -H \"x-api-key: $TCAD_API_KEY\" -d \"{\\\"searchTerm\\\": \\\"$term\\\"}\"; sleep 1; done",
 		"tier_3_monthly": "TCAD_YEAR=2025 doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue",
-		"alternative_script": "Owner-name mining: TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 3"
+		"alternative_script": "Owner-name mining: TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 3 (mines 2026-only properties — inert until 2026 data is loaded; see BACKLOG T3)"
 	},
 
 	"validation_checks": {
@@ -666,7 +667,7 @@
 		"adaptive_strategy": {
 			"description": "If property count lags expectations",
 			"options": [
-				"Run Phase 3 of enqueue-tail-terms (owner-name mining from 2025 data)",
+				"Run Phase 3 of enqueue-tail-terms (owner-name mining from 2026-only properties — inert until 2026 data is loaded; see BACKLOG T3)",
 				"Use generate-next-200-terms.ts to find unsearched 4-char prefixes",
 				"Check for TCAD API rate limiting or token expiry in wrangler tail"
 			]

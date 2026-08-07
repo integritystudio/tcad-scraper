@@ -1,7 +1,7 @@
 # TCAD Search Terms — Strategy & Operations
 
 **Canonical search-term document.** Data file: [`2025_BACKFILL_OPTIMIZATION.json`](2025_BACKFILL_OPTIMIZATION.json) (per-term yields, tier arrays, validation checks).
-**Last Updated**: 2026-08-06 | **Target**: 500K properties (currently ~170K per `/health`)
+**Last Updated**: 2026-08-06 | **Target**: 500K properties (350K+ as of 2026-08-06 — live count via `/health`)
 
 Consolidates the former `SEARCH_TERM_STRATEGY.md`, `SEARCH_TERM_ANALYSIS.md`, `SEARCH_TERM_REFERENCE.txt`, `2025_BACKFILL_QUICK_REFERENCE.md`, and `search_results.md` (all deleted 2026-08-06; full versions in git history).
 
@@ -44,8 +44,9 @@ Enqueue via the Workers API (`scripts/enqueue-terms.ts` was deleted with BullMQ)
 
 ```bash
 # Tier 1 (swap the term list for Tier 2)
+# TCAD_API_KEY must match the Worker's API_KEY secret — as of 2026-08 that is the dev-config value (prd's returns 401)
 for term in David Robert LIVING Home Fami James steph Paul eliza Rich Mark estat Christopher Martin Thomas; do
-  doppler run -p integrity-studio -c prd -- sh -c \
+  doppler run -- sh -c \
     "curl -s -X POST https://api.alephatx.info/api/properties/scrape \
       -H 'Content-Type: application/json' \
       -H \"x-api-key: \$TCAD_API_KEY\" \
@@ -57,6 +58,7 @@ done
 TCAD_YEAR=2025 doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue
 
 # Owner-name mining when yield drops (Phase 3)
+# NOTE: inert until 2026 data is loaded — Phase 3 mines 2026-only properties and D1 has only 2025 data (see BACKLOG T3)
 TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 3
 
 # Health / monitoring

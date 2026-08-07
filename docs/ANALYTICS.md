@@ -26,11 +26,11 @@
 
 ## Overview
 
-The TCAD Scraper application implements comprehensive analytics tracking using both Google Analytics 4 (GA4) and Meta Pixel to monitor user behavior, search patterns, and application performance.
+The TCAD Scraper application implements comprehensive analytics tracking using Google Analytics 4 (GA4), Meta Pixel, and Mixpanel to monitor user behavior, search patterns, and application performance.
 
 ### Key Features
 
-- **Dual Platform Tracking:** GA4 for detailed analytics + Meta Pixel for marketing insights
+- **Multi-Platform Tracking:** GA4 for detailed analytics + Meta Pixel for marketing insights + Mixpanel for product analytics
 - **User Journey Tracking:** From page view → search → results → property views
 - **Error Monitoring:** Automatic tracking of React errors via ErrorBoundary
 - **Development Mode:** Console logging for debugging (disabled in production)
@@ -44,9 +44,10 @@ The TCAD Scraper application implements comprehensive analytics tracking using b
 | Analytics Library | ✅ Complete | All 7 event types |
 | React Hook | ✅ Complete | Memoized callbacks |
 | Tracking Scripts | ✅ Complete | GA4 + Meta Pixel |
+| Mixpanel Wrapper | ✅ Complete | Page View, Search, Error |
 | PropertySearchContainer | ✅ Complete | search, search_results, error |
-| PropertyCard | ✅ Complete | property_view |
-| ExampleQueries (if present) | ✅ Complete | example_query_click |
+| PropertyCard | ✅ Complete | property_view (on expand) |
+| Example query tracking | ⚠️ Not wired | `trackExampleQueryClick` exists in library/hook; no component emits it |
 | App (Root) | ✅ Complete | page_view |
 | ErrorBoundary | ✅ Complete | error |
 
@@ -64,7 +65,9 @@ React Component (uses useAnalytics hook)
 Analytics Library (src/lib/analytics.ts)
     ↓
     ├─→ Google Analytics 4 (gtag)
-    └─→ Meta Pixel (fbq)
+    ├─→ Meta Pixel (fbq)
+    └─→ Mixpanel (src/lib/mixpanel.ts — safe wrapper; called directly
+        from usePropertySearch and ErrorBoundary, not via analytics.ts)
 ```
 
 ### File Structure
@@ -73,18 +76,19 @@ Analytics Library (src/lib/analytics.ts)
 tcad-scraper/
 ├── index.html                          # Tracking scripts loaded here
 ├── src/
+│   ├── App.tsx                        # Page view tracking
 │   ├── lib/
-│   │   └── analytics.ts                # Core analytics library (201 lines)
+│   │   ├── analytics.ts               # Core analytics library (GA4 + Meta Pixel)
+│   │   └── mixpanel.ts                # Mixpanel safe wrapper
 │   ├── hooks/
-│   │   ├── useAnalytics.ts            # React hook wrapper (58 lines)
+│   │   ├── useAnalytics.ts            # React hook wrapper
+│   │   ├── usePropertySearch.ts       # Search flow (Mixpanel "Search")
 │   │   └── index.ts                   # Hook exports
 │   ├── components/
 │   │   ├── ErrorBoundary.tsx          # Error tracking component
-│   │   ├── App.tsx                    # Page view tracking
 │   │   └── features/PropertySearch/
 │   │       ├── PropertySearchContainer.tsx  # Search tracking
-│   │       ├── PropertyCard.tsx             # Property view tracking
-│   │       └── ExampleQueries.tsx           # Example click tracking
+│   │       └── PropertyCard.tsx             # Property view tracking (on expand)
 └── docs/
     └── ANALYTICS.md                    # This file
 ```
@@ -95,7 +99,8 @@ tcad-scraper/
 {
   "runtime": [
     "Google Analytics 4 gtag.js",
-    "Meta Pixel fbevents.js"
+    "Meta Pixel fbevents.js",
+    "Mixpanel mixpanel-browser"
   ],
   "development": [
     "TypeScript",
