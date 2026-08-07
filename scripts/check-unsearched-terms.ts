@@ -45,4 +45,6 @@ async function check() {
 	}
 }
 
-check().catch(console.error);
+check()
+	.catch(console.error)
+	.finally(() => prisma.$disconnect());

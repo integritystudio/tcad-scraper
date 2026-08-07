@@ -18,7 +18,6 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { generateCvcvBases } from "./lib/cvcv";
 import {
 	BUSINESS_ENTITY,
 	FIRST_NAMES_FEMALE,
@@ -26,6 +25,8 @@ import {
 	LAST_NAMES,
 	STREET_GEOGRAPHIC,
 } from "./lib/curated-names";
+import { generateCvcvBases } from "./lib/cvcv";
+import { prisma } from "./lib/d1-prisma";
 import {
 	getBlacklistedTermSet,
 	getSearchedTermSets,
@@ -170,7 +171,9 @@ async function main() {
 	}
 }
 
-main().catch((err) => {
-	console.error(err);
-	process.exit(1);
-});
+main()
+	.catch((err) => {
+		console.error(err);
+		process.exit(1);
+	})
+	.finally(() => prisma.$disconnect());

@@ -46,30 +46,44 @@ async function getSearchTermStats() {
     LIMIT ${RECENT_TERM_LIMIT}
   `;
 
-	console.log(`\n╔${"═".repeat(TERM_WIDTH + 2)}╦${"═".repeat(COUNT_WIDTH + 2)}╦${"═".repeat(STATUS_WIDTH + 2)}╦${"═".repeat(DATE_WIDTH + 2)}╗`);
-	console.log(`║ ${"Search Term".padEnd(TERM_WIDTH)} ║ ${"Properties".padEnd(COUNT_WIDTH)} ║ ${"Status".padEnd(STATUS_WIDTH)} ║ ${"Last Updated".padEnd(DATE_WIDTH)} ║`);
-	console.log(`╠${"═".repeat(TERM_WIDTH + 2)}╬${"═".repeat(COUNT_WIDTH + 2)}╬${"═".repeat(STATUS_WIDTH + 2)}╬${"═".repeat(DATE_WIDTH + 2)}╣`);
+	console.log(
+		`\n╔${"═".repeat(TERM_WIDTH + 2)}╦${"═".repeat(COUNT_WIDTH + 2)}╦${"═".repeat(STATUS_WIDTH + 2)}╦${"═".repeat(DATE_WIDTH + 2)}╗`,
+	);
+	console.log(
+		`║ ${"Search Term".padEnd(TERM_WIDTH)} ║ ${"Properties".padEnd(COUNT_WIDTH)} ║ ${"Status".padEnd(STATUS_WIDTH)} ║ ${"Last Updated".padEnd(DATE_WIDTH)} ║`,
+	);
+	console.log(
+		`╠${"═".repeat(TERM_WIDTH + 2)}╬${"═".repeat(COUNT_WIDTH + 2)}╬${"═".repeat(STATUS_WIDTH + 2)}╬${"═".repeat(DATE_WIDTH + 2)}╣`,
+	);
 
 	for (const row of rows) {
 		const term = row.searchTerm.padEnd(TERM_WIDTH).substring(0, TERM_WIDTH);
 		const count = String(Number(row.propertyCount)).padStart(COUNT_WIDTH);
 		const status = row.status.padEnd(STATUS_WIDTH).substring(0, STATUS_WIDTH);
-		const updated = formatEpoch(row.completedAt ?? row.startedAt).padEnd(DATE_WIDTH);
+		const updated = formatEpoch(row.completedAt ?? row.startedAt).padEnd(
+			DATE_WIDTH,
+		);
 		console.log(`║ ${term} ║ ${count} ║ ${status} ║ ${updated} ║`);
 	}
 
-	console.log(`╚${"═".repeat(TERM_WIDTH + 2)}╩${"═".repeat(COUNT_WIDTH + 2)}╩${"═".repeat(STATUS_WIDTH + 2)}╩${"═".repeat(DATE_WIDTH + 2)}╝`);
+	console.log(
+		`╚${"═".repeat(TERM_WIDTH + 2)}╩${"═".repeat(COUNT_WIDTH + 2)}╩${"═".repeat(STATUS_WIDTH + 2)}╩${"═".repeat(DATE_WIDTH + 2)}╝`,
+	);
 
-	const totalProperties = rows.reduce((sum, r) => sum + Number(r.propertyCount), 0);
-	const avgProperties = rows.length > 0 ? (totalProperties / rows.length).toFixed(1) : "0";
+	const totalProperties = rows.reduce(
+		(sum, r) => sum + Number(r.propertyCount),
+		0,
+	);
+	const avgProperties =
+		rows.length > 0 ? (totalProperties / rows.length).toFixed(1) : "0";
 
 	console.log(`\nTotal properties from these search terms: ${totalProperties}`);
 	console.log(`Average properties per search term: ${avgProperties}`);
-
-	await prisma.$disconnect();
 }
 
-getSearchTermStats().catch((err) => {
-	console.error(err);
-	process.exit(1);
-});
+getSearchTermStats()
+	.catch((err) => {
+		console.error(err);
+		process.exit(1);
+	})
+	.finally(() => prisma.$disconnect());

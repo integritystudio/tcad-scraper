@@ -238,5 +238,8 @@ if (
 ) {
 	analyzeSearchTerms()
 		.catch(console.error)
-		.finally(() => process.exit(0));
+		.finally(async () => {
+			await prisma.$disconnect();
+			process.exit(0);
+		});
 }
