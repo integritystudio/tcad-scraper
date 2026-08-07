@@ -26,78 +26,27 @@ import {
   CANDIDATE_GEOGRAPHIC,
   CANDIDATE_LAST_NAMES,
 } from "../generate-next-200-terms";
+import {
+  buildTermInventory,
+  printTermRows,
+  type TermInventory,
+} from "../lib/term-inventory";
 
-const NUMERIC_ONLY = /^\d+$/;
-
-function sortInsensitive(a: string, b: string): number {
-  return a.localeCompare(b, undefined, { sensitivity: "base" });
-}
-
-export interface CuratedTermInventory {
-  /** All unique non-numeric terms across all curated backfill lists */
-  all: string[];
-  /** Terms that appear in more than one list (must stay empty) */
-  duplicated: string[];
-  /** Per-source breakdown */
-  sources: Record<string, string[]>;
-}
+export type CuratedTermInventory = TermInventory;
 
 /** Collect and deduplicate all manual-backfill curated term lists. */
 export function getCuratedTermInventory(): CuratedTermInventory {
   // Manual-backfill pool sources in priority order
-  const sources: Record<string, readonly string[]> = {
+  return buildTermInventory({
     BACKFILL_2025_STATIC_TERMS,
     CANDIDATE_FIRST_NAMES,
     CANDIDATE_LAST_NAMES,
     CANDIDATE_GEOGRAPHIC,
     CANDIDATE_ENTITY,
-  };
-
-  // Track which terms appear in which source (case-insensitive)
-  const seenLower = new Map<string, string>(); // lower → first source name
-  const duplicated: string[] = [];
-
-  const sourceResults: Record<string, string[]> = {};
-  for (const [name, list] of Object.entries(sources)) {
-    sourceResults[name] = [];
-    for (const term of list) {
-      if (NUMERIC_ONLY.test(term)) continue;
-      const lower = term.toLowerCase();
-
-      const firstSeen = seenLower.get(lower);
-      if (firstSeen !== undefined) {
-        duplicated.push(`${term} [${name} ∩ ${firstSeen}]`);
-      } else {
-        seenLower.set(lower, name);
-        sourceResults[name].push(term);
-      }
-    }
-  }
-
-  const all = [...seenLower.keys()]
-    .map((lower) => {
-      for (const list of Object.values(sources)) {
-        const match = [...list].find((t) => t.toLowerCase() === lower);
-        if (match) return match;
-      }
-      return lower;
-    })
-    .sort(sortInsensitive);
-
-  return {
-    all,
-    duplicated: duplicated.sort(sortInsensitive),
-    sources: sourceResults,
-  };
+  });
 }
 
 // ── CLI output ────────────────────────────────────────────────────────
-
-function printRows(terms: string[], indent = "  ", perRow = 8): void {
-  for (let i = 0; i < terms.length; i += perRow) {
-    console.log(indent + terms.slice(i, i + perRow).join(", "));
-  }
-}
 
 if (
   process.argv[1] &&
@@ -111,13 +60,13 @@ if (
 
   for (const [name, terms] of Object.entries(sources)) {
     console.log(`--- ${name} (${terms.length}) ---`);
-    printRows(terms);
+    printTermRows(terms);
     console.log();
   }
 
   if (duplicated.length > 0) {
     console.log(`--- DUPLICATED (${duplicated.length}) ---`);
-    printRows(duplicated);
+    printTermRows(duplicated);
     console.log();
   }
 }
