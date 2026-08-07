@@ -26,7 +26,7 @@ Curated 5-letter term lists are scattered and overlap: `scripts/generate-valid-5
 **Priority**: P3 | **Source**: scripts-review audit (2026-08-06)
 Hardcoded value is 170320 (line 23) but actual D1 count is ~260K (35% undercount). This fallback is the expected path in GitHub Actions when `CLOUDFLARE_D1_TOKEN` is missing; CI understates property count in build-time constants. Update to current count and add a comment documenting how often it should be refreshed (and how to refresh it). -- `scripts/generate-build-constants.ts:23`
 
-#### T6: Re-run post-commit review of commit 54d4021 (dedup consolidation)
+#### T6: Re-run post-commit review of commit 54d4021 (dedup consolidation) — **Done**
 **Priority**: P2 | **Source**: scripts-review session (2026-08-06)
 The code-reviewer agent died mid-verification before confirming the key claim: that deleting `scripts/lib/search-term-deduplicator.ts` lost no live filtering in `generate-next-200-terms.ts`. Remaining guards must be verified: BLOCKED_TERMS, searched, selectedSet, blacklistSet, hasSearchedWord, isSupersetOfAny. Compare against `git show 54d4021~1:scripts/lib/search-term-deduplicator.ts` to confirm all dedup logic is still present. -- `scripts/generate-next-200-terms.ts`
 
