@@ -3,9 +3,8 @@
  * street/geographic terms, and business-entity words used as TCAD search
  * term candidates.
  *
- * Single source of truth: previously duplicated between
- * generate-valid-5char-terms.ts (which still filters this data down to
- * valid 5-letter CVCV expansions) and config/batch-configs.ts's
+ * Single source of truth: previously duplicated between the now-deleted
+ * generate-valid-5char-terms.ts and config/batch-configs.ts's
  * curated-first-names batch (a stale partial copy of FIRST_NAMES_FEMALE +
  * FIRST_NAMES_MALE, removed in favor of importing this module directly —
  * see utils/list-all-search-terms.ts).

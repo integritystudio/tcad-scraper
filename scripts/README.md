@@ -45,7 +45,6 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `analyze-failed-jobs.ts` | Categorize and report on failed scrape jobs. |
 | `analyze-search-terms.ts` | Analyze search term effectiveness from analytics data. |
 | `generate-next-200-terms.ts` | Generate the next 200 candidate terms (5-tier priority: unsearched names, geographic, prefix expansions, re-scrape, gap fill); `--enqueue` sends them to the Workers API. |
-| `generate-valid-5char-terms.ts` | Generate 5-letter terms from real names/companies/streets (dictionary + census + curated lists), filtering already-searched and blacklisted; writes a scratch `data/valid-5char-terms.txt` for manual review (gitignored — no in-repo consumer). |
 | `check-unsearched-terms.ts` | Find inventory terms not yet searched for current year. Uses batched EXISTS queries. |
 
 ## Config
@@ -69,8 +68,8 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `lib/d1-prisma.ts` | Prisma client for scripts, backed by production D1 over HTTP (epoch-ms date strings, SQLite dialect). |
 | `lib/error-helpers.ts` | `getErrorMessage()` for `unknown` errors. |
 | `lib/logger.ts` | Console shim for CLI scripts. |
-| `lib/cvcv.ts` | `generateCvcvBases()` — all 11,025 4-char consonant-vowel-consonant-vowel bases, used to seed 5-char term generation. |
-| `lib/curated-names.ts` | Canonical curated name/geo/entity data (`FIRST_NAMES_FEMALE`, `FIRST_NAMES_MALE`, `LAST_NAMES`, `STREET_GEOGRAPHIC`, `BUSINESS_ENTITY`) — single source for `generate-valid-5char-terms.ts` and the `utils/list-all-search-terms.ts` inventory. |
+| `lib/cvcv.ts` | `generateCvcvBases()` — all 11,025 4-char consonant-vowel-consonant-vowel bases, used by `generate-next-200-terms.ts`'s Tier 5 (4-char gap fill). |
+| `lib/curated-names.ts` | Canonical curated name/geo/entity data (`FIRST_NAMES_FEMALE`, `FIRST_NAMES_MALE`, `LAST_NAMES`, `STREET_GEOGRAPHIC`, `BUSINESS_ENTITY`) — single source for `generate-next-200-terms.ts`'s candidate pools and the `utils/list-all-search-terms.ts` inventory. |
 
 ## Utilities (`utils/`)
 

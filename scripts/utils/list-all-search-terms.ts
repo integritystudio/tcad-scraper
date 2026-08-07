@@ -57,7 +57,7 @@ export function getAllSearchTerms(): SearchTermInventory {
 	}
 
 	// Source 2: lib/curated-names.ts (real first/last names, geo, entity words —
-	// the canonical data generate-valid-5char-terms.ts also draws from)
+	// the canonical data generate-next-200-terms.ts also draws from)
 	const curatedNamesTerms = new Set<string>();
 	for (const list of [
 		FIRST_NAMES_FEMALE,
