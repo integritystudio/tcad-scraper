@@ -9,9 +9,8 @@
  * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025-novel.ts
  */
 
-import { MIN_TERM_LENGTH } from "../utils/constants";
 import { runBackfillMain } from "./lib/backfill-runner";
-import { buildPrefixIndex } from "./lib/backfill-utils";
+import { buildPrefixIndex, createTermCollector } from "./lib/backfill-utils";
 import {
 	mineDescriptionFirstWords,
 	mineOwnerFirstWords,
@@ -74,35 +73,28 @@ async function getNovelTerms(): Promise<string[]> {
 	const searchedPrefixes = buildPrefixIndex(searched);
 
 	// ── Dedupe and filter ──────────────────────────────────────────────
-	const seen = new Set<string>();
-	const result: string[] = [];
-	let skippedSearched = 0;
+	// supersetsOf is unused (empty) here: novel-term mining needs the OPPOSITE
+	// check — skip a candidate that is a prefix of an already-searched term,
+	// not one that extends it — handled separately below via searchedPrefixes.
+	const { addTerm, result, stats } = createTermCollector({
+		excluded: [searched],
+		supersetsOf: new Set(),
+	});
 	let skippedPrefix = 0;
-	let skippedDupe = 0;
 
 	for (const c of candidates) {
-		const lower = c.term.toLowerCase().trim();
-		if (lower.length < MIN_TERM_LENGTH) continue;
-		if (seen.has(lower)) {
-			skippedDupe++;
-			continue;
-		}
-		if (searched.has(lower)) {
-			skippedSearched++;
-			continue;
-		}
+		const lower = c.term.toLowerCase();
 		// Skip if this term is a prefix of an already-searched longer term
 		// e.g. "fort" skipped because "fortenberry" was already searched
 		if (searchedPrefixes.has(lower)) {
 			skippedPrefix++;
 			continue;
 		}
-		seen.add(lower);
-		result.push(c.term);
+		addTerm(c.term);
 	}
 
 	console.log(
-		`  Skipped: ${skippedSearched} already-searched, ${skippedPrefix} prefix-of-searched, ${skippedDupe} dupes`,
+		`  Skipped: ${stats.excluded} already-searched/dupes, ${skippedPrefix} prefix-of-searched`,
 	);
 	console.log(`  Final novel terms: ${result.length}`);
 	return result;
