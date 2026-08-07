@@ -70,12 +70,13 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `lib/error-helpers.ts` | `getErrorMessage()` for `unknown` errors. |
 | `lib/logger.ts` | Console shim for CLI scripts. |
 | `lib/cvcv.ts` | `generateCvcvBases()` — all 11,025 4-char consonant-vowel-consonant-vowel bases, used to seed 5-char term generation. |
+| `lib/curated-names.ts` | Canonical curated name/geo/entity data (`FIRST_NAMES_FEMALE`, `FIRST_NAMES_MALE`, `LAST_NAMES`, `STREET_GEOGRAPHIC`, `BUSINESS_ENTITY`) — single source for `generate-valid-5char-terms.ts` and the `utils/list-all-search-terms.ts` inventory. |
 
 ## Utilities (`utils/`)
 
 | File | Purpose |
 |------|---------|
-| `list-all-search-terms.ts` | Deduplicated inventory of all non-numeric search terms across `batch-configs.ts` and `lib/fallback-terms.ts`. Importable (`getAllSearchTerms()`) or CLI. |
+| `list-all-search-terms.ts` | Deduplicated inventory of all non-numeric search terms across `batch-configs.ts`, `lib/curated-names.ts`, and `lib/fallback-terms.ts`; its `duplicated` bucket surfaces cross-source overlap. Importable (`getAllSearchTerms()`) or CLI. |
 | `list-curated-terms.ts` | Deduplicated inventory of the manual-backfill term lists (`BACKFILL_2025_STATIC_TERMS` + the `CANDIDATE_*` lists in `generate-next-200-terms.ts`); its `duplicated` bucket must stay empty. Importable or CLI. |
 
 ## Repomix (`repomix/`)

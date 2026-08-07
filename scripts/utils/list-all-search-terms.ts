@@ -1,6 +1,6 @@
 /**
  * Deduplicated inventory of all non-numeric search terms across
- * config/batch-configs.ts and lib/fallback-terms.ts.
+ * config/batch-configs.ts, lib/curated-names.ts, and lib/fallback-terms.ts.
  *
  * Importable: `import { getAllSearchTerms } from "./utils/list-all-search-terms"`
  * CLI:        `npx tsx scripts/utils/list-all-search-terms.ts`
@@ -10,6 +10,13 @@ import {
 	BATCH_CONFIGS,
 	HIGH_RESULT_TERM_SPLITS,
 } from "../config/batch-configs";
+import {
+	BUSINESS_ENTITY,
+	FIRST_NAMES_FEMALE,
+	FIRST_NAMES_MALE,
+	LAST_NAMES,
+	STREET_GEOGRAPHIC,
+} from "../lib/curated-names";
 import { FALLBACK_TERMS } from "../lib/fallback-terms";
 
 const NUMERIC_ONLY = /^\d+$/;
@@ -19,64 +26,79 @@ function sortInsensitive(a: string, b: string): number {
 }
 
 export interface SearchTermInventory {
-	/** All unique non-numeric terms (case-sensitive dedup) */
+	/** All unique non-numeric terms across every source (case-sensitive dedup) */
 	all: string[];
-	/** Terms only in batch-configs.ts */
-	batchOnly: string[];
-	/** Terms only in lib/fallback-terms.ts FALLBACK_TERMS */
-	fallbackOnly: string[];
-	/** Terms present in both files */
+	/** Per-source breakdown; each term appears in exactly one bucket (first source wins) */
+	sources: Record<string, string[]>;
+	/** Terms that appear in more than one source (should stay empty — see duplicated below) */
 	duplicated: string[];
 }
 
-/** Collect and deduplicate all non-numeric search terms from both sources. */
+/** Collect and deduplicate all non-numeric search terms from every source. */
 export function getAllSearchTerms(): SearchTermInventory {
-	// Collect batch-configs terms (includes HIGH_RESULT_TERM_SPLITS)
-	const batchSet = new Set<string>();
+	// Source 1: batch-configs.ts (includes HIGH_RESULT_TERM_SPLITS)
+	const batchTerms = new Set<string>();
 	for (const config of Object.values(BATCH_CONFIGS)) {
 		for (const term of config.terms) {
-			if (!NUMERIC_ONLY.test(term)) batchSet.add(term);
+			if (!NUMERIC_ONLY.test(term)) batchTerms.add(term);
 		}
 	}
 	for (const splits of HIGH_RESULT_TERM_SPLITS.values()) {
 		for (const term of splits) {
-			if (!NUMERIC_ONLY.test(term)) batchSet.add(term);
+			if (!NUMERIC_ONLY.test(term)) batchTerms.add(term);
 		}
 	}
 
-	// Collect fallback terms, deduped against batch terms (case-insensitive)
-	const batchLower = new Set([...batchSet].map((t) => t.toLowerCase()));
-	const fallbackSet = new Set<string>();
+	// Source 2: lib/curated-names.ts (real first/last names, geo, entity words —
+	// the canonical data generate-valid-5char-terms.ts also draws from)
+	const curatedNamesTerms = new Set<string>();
+	for (const list of [
+		FIRST_NAMES_FEMALE,
+		FIRST_NAMES_MALE,
+		LAST_NAMES,
+		STREET_GEOGRAPHIC,
+		BUSINESS_ENTITY,
+	]) {
+		for (const term of list) {
+			if (!NUMERIC_ONLY.test(term)) curatedNamesTerms.add(term);
+		}
+	}
+
+	// Source 3: lib/fallback-terms.ts
+	const fallbackTerms = new Set<string>();
 	for (const term of FALLBACK_TERMS) {
-		if (!NUMERIC_ONLY.test(term)) fallbackSet.add(term);
+		if (!NUMERIC_ONLY.test(term)) fallbackTerms.add(term);
 	}
 
-	// Categorize
-	const duplicated = [...fallbackSet]
-		.filter((t) => batchSet.has(t) || batchLower.has(t.toLowerCase()))
-		.sort(sortInsensitive);
+	// Priority order: batch-configs > curated-names > fallback-terms
+	const rawSources: Record<string, Set<string>> = {
+		"batch-configs": batchTerms,
+		"curated-names": curatedNamesTerms,
+		"fallback-terms": fallbackTerms,
+	};
 
-	const batchOnly = [...batchSet]
-		.filter((t) => !fallbackSet.has(t))
-		.sort(sortInsensitive);
+	const seenLower = new Map<string, string>(); // lower → first source name
+	const duplicated: string[] = [];
+	const sources: Record<string, string[]> = {};
 
-	const fallbackOnly = [...fallbackSet]
-		.filter((t) => !batchSet.has(t) && !batchLower.has(t.toLowerCase()))
-		.sort(sortInsensitive);
-
-	// Combined deduped set (case-insensitive: prefer batch-configs casing)
-	const seenLower = new Set<string>();
-	const all: string[] = [];
-	for (const term of [...batchSet, ...fallbackSet]) {
-		if (NUMERIC_ONLY.test(term)) continue;
-		const lower = term.toLowerCase();
-		if (seenLower.has(lower)) continue;
-		seenLower.add(lower);
-		all.push(term);
+	for (const [name, terms] of Object.entries(rawSources)) {
+		sources[name] = [];
+		for (const term of terms) {
+			const lower = term.toLowerCase();
+			const firstSeen = seenLower.get(lower);
+			if (firstSeen !== undefined) {
+				duplicated.push(`${term} [${name} ∩ ${firstSeen}]`);
+			} else {
+				seenLower.set(lower, name);
+				sources[name].push(term);
+			}
+		}
+		sources[name].sort(sortInsensitive);
 	}
-	all.sort(sortInsensitive);
 
-	return { all, batchOnly, fallbackOnly, duplicated };
+	const all = Object.values(sources).flat().sort(sortInsensitive);
+
+	return { all, sources, duplicated: duplicated.sort(sortInsensitive) };
 }
 
 // --- CLI output ---
@@ -88,25 +110,26 @@ function printRows(terms: string[], indent = "  ", perRow = 10): void {
 }
 
 if (require.main === module) {
-	const { all, batchOnly, fallbackOnly, duplicated } = getAllSearchTerms();
+	const { all, sources, duplicated } = getAllSearchTerms();
 
 	console.log("=== SEARCH TERM INVENTORY (DEDUPED) ===\n");
 	console.log(`Total unique non-numeric terms: ${all.length}`);
-	console.log(`  batch-configs only: ${batchOnly.length}`);
-	console.log(`  fallback only:      ${fallbackOnly.length}`);
-	console.log(`  duplicated:         ${duplicated.length}\n`);
+	for (const [name, terms] of Object.entries(sources)) {
+		console.log(`  ${name}: ${terms.length}`);
+	}
+	console.log(`  duplicated: ${duplicated.length}\n`);
 
-	console.log(`--- batch-configs only (${batchOnly.length}) ---`);
-	printRows(batchOnly);
-	console.log();
+	for (const [name, terms] of Object.entries(sources)) {
+		console.log(`--- ${name} (${terms.length}) ---`);
+		printRows(terms);
+		console.log();
+	}
 
-	console.log(`--- fallback only (${fallbackOnly.length}) ---`);
-	printRows(fallbackOnly);
-	console.log();
-
-	console.log(`--- duplicated across files (${duplicated.length}) ---`);
-	printRows(duplicated);
-	console.log();
+	if (duplicated.length > 0) {
+		console.log(`--- duplicated across sources (${duplicated.length}) ---`);
+		printRows(duplicated);
+		console.log();
+	}
 
 	console.log(`=== FULL DEDUPED LIST (${all.length}) ===`);
 	printRows(all, "", 10);
