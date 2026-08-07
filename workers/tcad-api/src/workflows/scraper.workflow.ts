@@ -25,7 +25,11 @@ import { DURATION_MS, TIME_MS } from "../../../../utils/units";
 import type { Env } from "../bindings";
 import { createPrisma } from "../db";
 import type { PropertyData, ScrapeParams } from "../types/property.types";
-import { fetchResultSchema, upsertResultSchema } from "../types/property.types";
+import {
+	dedupeResultSchema,
+	fetchResultSchema,
+	upsertResultSchema,
+} from "../types/property.types";
 import { TCAD_API_URL, UPSERT_CHUNK_SIZE } from "../utils/constants";
 import { nowEpoch } from "../utils/epoch-dates";
 import { getErrorMessage } from "../utils/error-helpers";
@@ -107,8 +111,13 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 				},
 			);
 
-			// Step 3: Deduplicate (retrieve from KV)
-			const properties = await step.do("deduplicate", async () => {
+			// Step 3: Deduplicate (retrieve from KV, store result back to KV).
+			// The deduped array must NOT be returned directly — Workflows
+			// persists every step's return value as its checkpoint, capped at
+			// 1MiB, and a common term's dedup output can exceed that (e.g.
+			// "Chris" -> 9,658 rows, incident 2026-08-06). Route through KV
+			// like fetch-properties does, returning only a pointer.
+			const dedupeResult = await step.do("deduplicate", async () => {
 				const stored = await this.env.RESPONSE_CACHE.get(fetchResult.kvKey);
 				if (!stored) throw new Error(`KV key ${fetchResult.kvKey} not found`);
 				const rawProperties = JSON.parse(stored) as PropertyData[];
@@ -116,11 +125,20 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 				for (const prop of rawProperties) {
 					if (prop.propertyId) map.set(prop.propertyId, prop);
 				}
-				return Array.from(map.values());
+				const deduped = Array.from(map.values());
+				const kvKey = `scrape:${jobId}:deduped`;
+				await this.env.RESPONSE_CACHE.put(kvKey, JSON.stringify(deduped), {
+					expirationTtl: 3600,
+				});
+				return dedupeResultSchema.parse({ kvKey, count: deduped.length });
 			});
 
 			// Step 4: Upsert to database (chunked)
 			const upsertResult = await step.do("upsert-properties", async () => {
+				const stored = await this.env.RESPONSE_CACHE.get(dedupeResult.kvKey);
+				if (!stored) throw new Error(`KV key ${dedupeResult.kvKey} not found`);
+				const properties = JSON.parse(stored) as PropertyData[];
+
 				let savedCount = 0;
 				let updatedCount = 0;
 				const newPropertyIds: string[] = [];

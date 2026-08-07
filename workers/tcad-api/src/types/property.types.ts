@@ -77,6 +77,11 @@ export const fetchResultSchema = z.object({
 	totalApiResults: z.number(),
 });
 
+export const dedupeResultSchema = z.object({
+	kvKey: z.string(),
+	count: z.number(),
+});
+
 export const upsertResultSchema = z.object({
 	savedCount: z.number(),
 	updatedCount: z.number(),
@@ -92,5 +97,6 @@ export const scrapeParamsSchema = z.object({
 
 export type PropertyData = z.infer<typeof propertyDataSchema>;
 export type FetchResult = z.infer<typeof fetchResultSchema>;
+export type DedupeResult = z.infer<typeof dedupeResultSchema>;
 export type UpsertResult = z.infer<typeof upsertResultSchema>;
 export type ScrapeParams = z.infer<typeof scrapeParamsSchema>;
