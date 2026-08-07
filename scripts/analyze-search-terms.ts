@@ -11,10 +11,9 @@
  */
 
 import { pathToFileURL } from "node:url";
+import { THIRTY_DAY_LOOKBACK_MS } from "../utils/constants";
 import { epochAgo, prisma } from "./lib/d1-prisma";
 import { getJobStats } from "./lib/job-stats";
-
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Approximate total TCAD property count — update periodically from https://tcad.org/
 // Used for coverage percentage and threshold checks only; staleness won't affect scraping.
@@ -122,7 +121,7 @@ export async function analyzeSearchTerms(): Promise<void> {
     SELECT search_term, result_count, completed_at
     FROM scrape_jobs
     WHERE status = 'completed'
-      AND completed_at > ${epochAgo(THIRTY_DAYS_MS)}
+      AND completed_at > ${epochAgo(THIRTY_DAY_LOOKBACK_MS)}
       AND result_count > 0
     ORDER BY completed_at DESC
     LIMIT 10

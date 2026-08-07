@@ -58,6 +58,7 @@ export const MAX_LOOKBACK_DAYS = 90;
 
 // ── Recent jobs lookback ─────────────────────────────────────────────
 export const RECENT_JOBS_LOOKBACK_MS = DAYS_PER_WEEK * TIME_MS.DAY;
+export const THIRTY_DAY_LOOKBACK_MS = DAYS_PER_MONTH * TIME_MS.DAY;
 
 // ── Term generation thresholds ───────────────────────────────────────
 export const MIN_TERM_LENGTH = 4;
