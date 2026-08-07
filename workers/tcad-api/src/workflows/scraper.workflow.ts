@@ -32,22 +32,23 @@ import { getErrorMessage } from "../utils/error-helpers";
 import { buildUpsertStatements } from "../utils/upsert-sql";
 
 /**
- * Derive success_rate from the just-incremented counters (Prisma upserts can't
- * compute across columns). Never throws: a failure here at the end of a
- * non-idempotent step would make the Workflows retry re-run the counter
- * increments, double-counting the search.
+ * Derive success_rate and avg_results_per_search from the just-incremented
+ * counters (Prisma upserts can't compute across columns). Never throws: a
+ * failure here at the end of a non-idempotent step would make the Workflows
+ * retry re-run the counter increments, double-counting the search.
  */
-async function recomputeSuccessRate(
+async function recomputeDerivedStats(
 	prisma: ReturnType<typeof createPrisma>,
 	searchTerm: string,
 ): Promise<void> {
 	try {
 		await prisma.$executeRaw`
 			UPDATE search_term_analytics
-			SET success_rate = CAST(successful_searches AS REAL) / total_searches
+			SET success_rate = CAST(successful_searches AS REAL) / total_searches,
+			    avg_results_per_search = CAST(total_results AS REAL) / total_searches
 			WHERE search_term = ${searchTerm} AND total_searches > 0`;
 	} catch (err) {
-		console.error("Failed to recompute success_rate", {
+		console.error("Failed to recompute derived analytics stats", {
 			searchTerm,
 			error: getErrorMessage(err),
 		});
@@ -178,7 +179,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 						updatedAt: now,
 					},
 				});
-				await recomputeSuccessRate(prisma, searchTerm);
+				await recomputeDerivedStats(prisma, searchTerm);
 			});
 
 			return upsertResult;
@@ -215,7 +216,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 						updatedAt: now,
 					},
 				});
-				await recomputeSuccessRate(prisma, searchTerm);
+				await recomputeDerivedStats(prisma, searchTerm);
 			});
 			throw err;
 		}
