@@ -90,7 +90,7 @@ describe("analyzeSearchTerms — staleness guard", () => {
 	});
 });
 
-describe("analyzeSearchTerms — division by zero when totalJobs === 0", () => {
+describe("analyzeSearchTerms — totalJobs === 0", () => {
 	it("does not throw when totalJobs is 0", async () => {
 		setupDefaultMocks();
 		// Override: all job counts = 0
@@ -99,7 +99,7 @@ describe("analyzeSearchTerms — division by zero when totalJobs === 0", () => {
 		await expect(analyzeSearchTerms()).resolves.toBeUndefined();
 	});
 
-	it("outputs NaN% when totalJobs is 0 (documents pre-existing gap)", async () => {
+	it("reports 0.0% rather than NaN% (getJobStats guards divide-by-zero)", async () => {
 		setupDefaultMocks();
 		mockScrapeJobCount.mockReset().mockResolvedValue(0);
 
@@ -109,6 +109,8 @@ describe("analyzeSearchTerms — division by zero when totalJobs === 0", () => {
 			.mocked(console.log)
 			.mock.calls.map((c) => c[0] as string)
 			.join("\n");
-		expect(allOutput).toContain("NaN%");
+		expect(allOutput).not.toContain("NaN%");
+		expect(allOutput).toContain("Completed: 0 (0.0%)");
+		expect(allOutput).toContain("Failed: 0 (0.0%)");
 	});
 });

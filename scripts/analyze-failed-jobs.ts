@@ -10,9 +10,10 @@
  * - Error types (TOKEN_EXPIRED, HTTP 504, TRUNCATED, etc.)
  */
 
-import logger from "./lib/logger";
-import { getErrorMessage } from "./lib/error-helpers";
 import { prisma } from "./lib/d1-prisma";
+import { getErrorMessage } from "./lib/error-helpers";
+import { getJobStats } from "./lib/job-stats";
+import logger from "./lib/logger";
 
 interface ErrorStats {
 	errorMessage: string;
@@ -38,13 +39,12 @@ async function analyzeFailedJobs(): Promise<FailureAnalysis> {
 	logger.info("Analyzing failed scrape jobs...");
 
 	// Get overall job statistics
-	const [totalJobs, failedJobs, completedJobs] = await Promise.all([
-		prisma.scrapeJob.count(),
-		prisma.scrapeJob.count({ where: { status: "failed" } }),
-		prisma.scrapeJob.count({ where: { status: "completed" } }),
-	]);
-
-	const failureRate = totalJobs > 0 ? (failedJobs / totalJobs) * 100 : 0;
+	const {
+		totalJobs,
+		failedJobs,
+		completedJobs,
+		failedRate: failureRate,
+	} = await getJobStats();
 
 	logger.info(`Total jobs: ${totalJobs}`);
 	logger.info(`Failed jobs: ${failedJobs} (${failureRate.toFixed(2)}%)`);

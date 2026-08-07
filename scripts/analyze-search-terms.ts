@@ -11,6 +11,7 @@
  */
 
 import { epochAgo, prisma } from "./lib/d1-prisma";
+import { getJobStats } from "./lib/job-stats";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -22,25 +23,19 @@ export async function analyzeSearchTerms(): Promise<void> {
 	console.log("\n=== Search Term Analysis ===\n");
 
 	// 1. Overall stats
-	const totalJobs = await prisma.scrapeJob.count();
-	const completedJobs = await prisma.scrapeJob.count({
-		where: { status: "completed" },
-	});
-	const failedJobs = await prisma.scrapeJob.count({
-		where: { status: "failed" },
-	});
-	const pendingJobs = await prisma.scrapeJob.count({
-		where: { status: "pending" },
-	});
+	const {
+		totalJobs,
+		completedJobs,
+		failedJobs,
+		pendingJobs,
+		completedRate,
+		failedRate,
+	} = await getJobStats();
 
 	console.log("📊 Overall Job Stats:");
 	console.log(`   Total jobs: ${totalJobs}`);
-	console.log(
-		`   Completed: ${completedJobs} (${((completedJobs / totalJobs) * 100).toFixed(1)}%)`,
-	);
-	console.log(
-		`   Failed: ${failedJobs} (${((failedJobs / totalJobs) * 100).toFixed(1)}%)`,
-	);
+	console.log(`   Completed: ${completedJobs} (${completedRate.toFixed(1)}%)`);
+	console.log(`   Failed: ${failedJobs} (${failedRate.toFixed(1)}%)`);
 	console.log(`   Pending: ${pendingJobs}`);
 
 	// 2. Unique search terms used
@@ -208,7 +203,7 @@ export async function analyzeSearchTerms(): Promise<void> {
 
 	// 8. Recommendations
 	console.log("\n💡 Recommendations:");
-	if (failedJobs / totalJobs > 0.3) {
+	if (failedRate > 30) {
 		console.log("   ⚠️ High failure rate (>30%) - check TCAD API/token issues");
 	}
 	if (recentTerms.length === 0) {
