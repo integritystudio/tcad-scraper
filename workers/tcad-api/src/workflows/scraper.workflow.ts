@@ -255,40 +255,72 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 
 			return upsertResult;
 		} catch (err) {
-			// Mark the job as failed so it doesn't stay stuck in "processing"
-			await step.do("mark-failed", async () => {
-				const prisma = createPrisma(this.env.DB);
-				await prisma.scrapeJob.update({
-					where: { id: jobId },
-					data: {
-						status: "failed",
-						error: getErrorMessage(err),
-						completedAt: nowEpoch(),
-					},
-				});
+			// Mark the job as failed so it doesn't stay stuck in "processing".
+			// mark-failed can itself fail (e.g. a D1 outage) — if the whole
+			// step throws, Workflows retries it, which would re-run the
+			// analytics increment below and double-count the failure once
+			// the job-status update has already landed. So the analytics
+			// half is best-effort and swallows its own errors, keeping the
+			// step's success/failure tied only to the critical status
+			// update. If mark-failed exhausts its retries and still fails,
+			// log both errors (rather than letting the mark-failed error
+			// mask the real one) and fall through to the 24h stale-job
+			// cron in index.ts as the last-resort cleanup.
+			try {
+				await step.do("mark-failed", async () => {
+					const prisma = createPrisma(this.env.DB);
+					await prisma.scrapeJob.update({
+						where: { id: jobId },
+						data: {
+							status: "failed",
+							error: getErrorMessage(err),
+							completedAt: nowEpoch(),
+						},
+					});
 
-				// Record the failure in analytics so successRate reflects reality
-				const now = nowEpoch();
-				await prisma.searchTermAnalytics.upsert({
-					where: { searchTerm },
-					update: {
-						totalSearches: { increment: 1 },
-						failedSearches: { increment: 1 },
-						lastSearched: now,
-						updatedAt: now,
-					},
-					create: {
-						searchTerm,
-						termLength: searchTerm.length,
-						totalSearches: 1,
-						failedSearches: 1,
-						lastSearched: now,
-						createdAt: now,
-						updatedAt: now,
-					},
+					// Record the failure in analytics so successRate reflects
+					// reality. Best-effort: must not throw, or a retry of this
+					// step would re-run (and double-count) the increment below.
+					try {
+						const now = nowEpoch();
+						await prisma.searchTermAnalytics.upsert({
+							where: { searchTerm },
+							update: {
+								totalSearches: { increment: 1 },
+								failedSearches: { increment: 1 },
+								lastSearched: now,
+								updatedAt: now,
+							},
+							create: {
+								searchTerm,
+								termLength: searchTerm.length,
+								totalSearches: 1,
+								failedSearches: 1,
+								lastSearched: now,
+								createdAt: now,
+								updatedAt: now,
+							},
+						});
+						await recomputeDerivedStats(prisma, searchTerm);
+					} catch (analyticsErr) {
+						console.error("Failed to record failure analytics", {
+							jobId,
+							searchTerm,
+							error: getErrorMessage(analyticsErr),
+						});
+					}
 				});
-				await recomputeDerivedStats(prisma, searchTerm);
-			});
+			} catch (markFailedErr) {
+				console.error(
+					'mark-failed step failed; job may stay stuck in "processing" until the stale-job cron catches it',
+					{
+						jobId,
+						searchTerm,
+						originalError: getErrorMessage(err),
+						markFailedError: getErrorMessage(markFailedErr),
+					},
+				);
+			}
 			throw err;
 		}
 	}
