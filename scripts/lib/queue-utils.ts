@@ -14,7 +14,7 @@ const HISTORY_FETCH_LIMIT = 100;
 const apiKeyFromEnv = process.env.TCAD_API_KEY;
 const API_BASE = "https://api.alephatx.info/api/properties";
 const SCRAPE_URL = `${API_BASE}/scrape`;
-const HISTORY_URL = `${API_BASE}/history?limit=${HISTORY_FETCH_LIMIT}`;
+const HISTORY_BASE_URL = `${API_BASE}/history`;
 
 if (!apiKeyFromEnv) {
 	console.error("ERROR: TCAD_API_KEY not set");
@@ -34,6 +34,11 @@ interface HistoryJob {
 	startedAt: string; // ISO 8601 (epoch-ms string on pre-migration responses)
 }
 
+interface HistoryPage {
+	data: HistoryJob[];
+	pagination?: { hasMore: boolean };
+}
+
 function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -49,6 +54,11 @@ function toEpochMs(value: string): number {
  * Poll the Workers /history endpoint until every term in `terms` has a job
  * started after `enqueuedAtMs` in a terminal status (completed/failed), or
  * DRAIN_TIMEOUT_MS elapses.
+ *
+ * Each poll cycle paginates through /history (ordered newest-first) until all
+ * pending terms are found or a job older than the enqueue cutoff is reached.
+ * This prevents false timeouts when >100 jobs complete between polls and the
+ * batch's jobs scroll past the single-page window.
  *
  * POST /scrape only sends a queue message — the job row is created with
  * status "processing" when the ScraperWorkflow starts. A term with no
@@ -75,26 +85,46 @@ export async function waitForQueueDrain(
 	while (Date.now() < deadline) {
 		await sleep(POLL_INTERVAL_MS);
 
-		let jobs: HistoryJob[];
-		try {
-			const res = await fetch(HISTORY_URL);
-			if (!res.ok) {
-				logger.error(
-					`  History poll failed: HTTP ${res.status} ${res.statusText}`,
-				);
-				continue;
+		// Paginate through /history (newest-first) until all pending terms are
+		// found or we reach a job that predates our enqueue (no point going further).
+		let offset = 0;
+		let fetchError = false;
+
+		while (true) {
+			let page: HistoryPage;
+			try {
+				const url = `${HISTORY_BASE_URL}?limit=${HISTORY_FETCH_LIMIT}&offset=${offset}`;
+				const res = await fetch(url);
+				if (!res.ok) {
+					logger.error(
+						`  History poll failed: HTTP ${res.status} ${res.statusText}`,
+					);
+					fetchError = true;
+					break;
+				}
+				page = (await res.json()) as HistoryPage;
+			} catch (error) {
+				logger.error(`  History poll failed: ${getErrorMessage(error)}`);
+				fetchError = true;
+				break;
 			}
-			jobs = ((await res.json()) as { data: HistoryJob[] }).data;
-		} catch (error) {
-			logger.error(`  History poll failed: ${getErrorMessage(error)}`);
-			continue;
+
+			let reachedCutoff = false;
+			for (const job of page.data) {
+				if (toEpochMs(job.startedAt) < cutoffMs) {
+					// All subsequent jobs are older than our enqueue; stop paging.
+					reachedCutoff = true;
+					break;
+				}
+				if (!TERMINAL_STATUSES.has(job.status)) continue;
+				pending.delete(job.searchTerm.toLowerCase());
+			}
+
+			if (pending.size === 0 || reachedCutoff || !page.pagination?.hasMore) break;
+			offset += HISTORY_FETCH_LIMIT;
 		}
 
-		for (const job of jobs) {
-			if (!TERMINAL_STATUSES.has(job.status)) continue;
-			if (toEpochMs(job.startedAt) < cutoffMs) continue;
-			pending.delete(job.searchTerm.toLowerCase());
-		}
+		if (fetchError) continue;
 
 		if (pending.size === 0) {
 			console.log(`  All ${terms.length} batch jobs finished.`);

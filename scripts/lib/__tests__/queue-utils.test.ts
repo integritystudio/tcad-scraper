@@ -23,8 +23,14 @@ function job(
 	return { searchTerm, status, startedAt: new Date(startedAtMs).toISOString() };
 }
 
-function historyResponse(jobs: HistoryJob[]): Response {
-	return { ok: true, json: async () => ({ data: jobs }) } as Response;
+function historyResponse(
+	jobs: HistoryJob[],
+	hasMore = false,
+): Response {
+	return {
+		ok: true,
+		json: async () => ({ data: jobs, pagination: { hasMore } }),
+	} as Response;
 }
 
 function okResponse(): Response {
@@ -197,6 +203,56 @@ describe("waitForQueueDrain", () => {
 		expect(logger.error).toHaveBeenCalledWith(
 			expect.stringContaining("HTTP 500"),
 		);
+	});
+
+	it("paginates to the next page when the first page is full and hasMore=true", async () => {
+		const now = Date.now();
+		// 100 unrelated completed jobs fill page 1; target is on page 2
+		const page1Jobs = Array.from({ length: 100 }, (_, i) =>
+			job(`other${i}`, "completed", now + 1_000),
+		);
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(historyResponse(page1Jobs, true))
+			.mockResolvedValueOnce(
+				historyResponse([job("Alpha", "completed", now + 500)], false),
+			);
+		vi.stubGlobal("fetch", fetchMock);
+
+		const drained = waitForQueueDrain(["Alpha"], now, { error: vi.fn() });
+		await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+		await drained;
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	it("stops paginating once a job older than the cutoff is encountered", async () => {
+		const now = Date.now();
+		// Page 1: 100 unrelated jobs (hasMore=true), page 2: starts with a stale job
+		const page1Jobs = Array.from({ length: 100 }, (_, i) =>
+			job(`other${i}`, "completed", now + 1_000),
+		);
+		const fetchMock = vi
+			.fn()
+			// poll 1, page 1: full page, hasMore
+			.mockResolvedValueOnce(historyResponse(page1Jobs, true))
+			// poll 1, page 2: stale job triggers cutoff stop; target not yet visible
+			.mockResolvedValueOnce(
+				historyResponse([job("Alpha", "completed", now - STALE_AGE_MS)], false),
+			)
+			// poll 2, page 1: target now present with a fresh timestamp
+			.mockResolvedValueOnce(
+				historyResponse([job("Alpha", "completed", now + 1_000)], false),
+			);
+		vi.stubGlobal("fetch", fetchMock);
+
+		const drained = waitForQueueDrain(["Alpha"], now, { error: vi.fn() });
+		await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+		await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+		await drained;
+
+		// 2 fetches in poll 1 (stops at cutoff), 1 fetch in poll 2
+		expect(fetchMock).toHaveBeenCalledTimes(3);
 	});
 
 	it("gives up after the drain timeout and logs unfinished terms", async () => {
