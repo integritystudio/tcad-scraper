@@ -467,7 +467,8 @@ export async function main(enqueueMode = false) {
 
 	/**
 	 * Check if any word in a multi-word term was already searched individually.
-	 * "Homes LLC" → skip if "homes" OR "llc" was searched (results are subsets).
+	 * "Homes Trust" → skip if "homes" OR "trust" was searched (results are subsets).
+	 * Words shorter than MIN_TERM_LENGTH (e.g. "LLC") are never checked.
 	 */
 	const hasSearchedWord = (term: string): boolean => {
 		const words = term.split(/\s+/);
