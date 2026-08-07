@@ -20,6 +20,14 @@
 
 import { MIN_TERM_LENGTH } from "../utils/constants";
 import { isSupersetOfAny } from "./lib/backfill-utils";
+import { BACKFILL_2025_STATIC_TERMS } from "./config/backfill-2025-static-terms";
+import {
+	BUSINESS_ENTITY,
+	FIRST_NAMES_FEMALE,
+	FIRST_NAMES_MALE,
+	LAST_NAMES,
+	STREET_GEOGRAPHIC,
+} from "./lib/curated-names";
 import { generateCvcvBases } from "./lib/cvcv";
 import { prisma } from "./lib/d1-prisma";
 import { enqueueBatch } from "./lib/queue-utils";
@@ -131,169 +139,42 @@ const BLOCKED_TERMS = new Set([
 	"escrow",
 ]);
 
-// ── Static term pools ──────────────────────────────────────────────────
-// Each list is disjoint from BACKFILL_2025_STATIC_TERMS, BACKFILL_2025_SOURCE_TERMS,
-// FALLBACK_TERMS, and BATCH_CONFIGS — verify with utils/list-curated-terms.ts,
-// whose `duplicated` bucket must stay empty.
+// ── Term pools ────────────────────────────────────────────────────────
+// Sourced from lib/curated-names.ts — the canonical name/geo/entity data
+// (see that file's docstring). Importing directly, rather than maintaining
+// a second hand-picked copy here, keeps Tiers 1-2 from going stale the way
+// a static list does once its entries are all searched (2026-08-07: the
+// prior hand-picked lists were 100% exhausted, silently collapsing Tiers
+// 1-2 to zero candidates every run). Overlap with other active-pool sources
+// (BATCH_CONFIGS, FALLBACK_TERMS) is expected and resolved at runtime by
+// getSearchedTermSets() — see utils/list-all-search-terms.ts.
+//
+// curated-names.ts's own sub-lists overlap each other (e.g. "Casey" is both
+// a female and male first name; "Grace"/"Vista" work as both a name and a
+// geo/entity term), and BACKFILL_2025_STATIC_TERMS overlaps them too. Each
+// term is assigned to exactly one bucket below, first-match-wins in
+// tier-priority order, so utils/list-curated-terms.ts's `duplicated` bucket
+// (each term lives in exactly one list within this pool) stays empty.
+const usedLower = new Set(BACKFILL_2025_STATIC_TERMS.map((t) => t.toLowerCase()));
+const assignUnique = (list: readonly string[]): string[] => {
+	const out: string[] = [];
+	for (const term of list) {
+		const lower = term.toLowerCase();
+		if (usedLower.has(lower)) continue;
+		usedLower.add(lower);
+		out.push(term);
+	}
+	return out;
+};
 
-export const CANDIDATE_FIRST_NAMES = [
-	"Theresa",
-	"Jacqueline",
-	"Andrea",
-	"Denise",
-	"Debra",
-	"Tammy",
-	"Tracy",
-	"Tiffany",
-	"Victoria",
-	"Megan",
-	"Robin",
-	"Amber",
-	"Crystal",
-	"Brittany",
-	"Diana",
-	"Vanessa",
-	"Lauren",
-	"Natalie",
-	"Bethany",
-	"Allison",
-	"Miranda",
-	"Cassandra",
-	"Priscilla",
-	"Jeanette",
-	"Lorraine",
-	"Phillip",
-	"Willie",
-	"Albert",
-	"Bobby",
-	"Victor",
-	"Wayne",
-	"Leonard",
-	"Walter",
-	"Clarence",
-	"Norman",
-	"Craig",
-	"Harold",
-	"Shawn",
-	"Derrick",
-	"Duane",
-	"Joel",
-	"Francisco",
-	"Arturo",
-	"Armando",
-	"Alfredo",
-	"Alberto",
-	"Salvador",
-	"Enrique",
-	"Ernesto",
-	"Gustavo",
-	"Gerardo",
-	"Guillermo",
-	"Adriana",
-	"Leticia",
-	"Yolanda",
-	"Claudia",
-	"Maribel",
-	"Cristina",
-	"Gabriela",
-	"Graciela",
-	"Alejandra",
-	"Consuelo",
-	"Esperanza",
-	"Mercedes",
-	"Rosario",
-	"Socorro",
-	"Gilberto",
-	"Humberto",
-	"Osvaldo",
-	"Rigoberto",
-];
-
-export const CANDIDATE_LAST_NAMES = [
-	"Bell",
-	"Henderson",
-	"Richardson",
-	"Gray",
-	"Kelly",
-	"Mason",
-	"Harper",
-	"Holland",
-	"Bishop",
-	"Payne",
-	"Meyer",
-	"Schmidt",
-	"Lara",
-	"Molina",
-	"Serrano",
-	"Solis",
-	"Villanueva",
-	"Meza",
-	"Juarez",
-	"Ayala",
-	"Cervantes",
-	"Jacobo",
-	"Lugo",
-	"Rivas",
-	"Salas",
-	"Tapia",
-	"Valdez",
-];
-
-export const CANDIDATE_GEOGRAPHIC = [
-	"Brushy",
-	"Onion",
-	"Walnut",
-	"Wells",
-	"Horizon",
-	"Terra",
-	"Oasis",
-	"Shadow",
-	"Dove",
-	"Deer",
-	"Falcon",
-	"Eagle",
-	"Hawk",
-	"Quail",
-	"Lakeshore",
-	"Creekside",
-	"Stonewall",
-	"Whitestone",
-	"Lago",
-	"Lantana",
-	"Senna",
-	"Pleasant",
-];
-
-export const CANDIDATE_ENTITY = [
-	// Single-word entity terms only — compound terms like "X LLC" are
-	// subsets of already-searched base words and get filtered by dedup
-	"Venture",
-	"Equity",
-	"Asset",
-	"Heritage",
-	"Legacy",
-	"Premier",
-	"Strategic",
-	"Builder",
-	"Custom",
-	"Design",
-	"Landscape",
-	"Solar",
-	"Energy",
-	"Rental",
-	"Retail",
-	"School",
-	"Health",
-	"Tech",
-	"Software",
-	"Digital",
-	"Gallery",
-	"Fitness",
-	"Lending",
-	"Title",
-	"Brokerage",
-	"Auction",
-];
+export const CANDIDATE_FIRST_NAMES: readonly string[] = assignUnique([
+	...FIRST_NAMES_FEMALE,
+	...FIRST_NAMES_MALE,
+]);
+export const CANDIDATE_LAST_NAMES: readonly string[] = assignUnique(LAST_NAMES);
+export const CANDIDATE_GEOGRAPHIC: readonly string[] =
+	assignUnique(STREET_GEOGRAPHIC);
+export const CANDIDATE_ENTITY: readonly string[] = assignUnique(BUSINESS_ENTITY);
 
 export async function main(enqueueMode = false) {
 	// 1. Load all already-searched terms (analytics + property searchTerm + recent jobs)

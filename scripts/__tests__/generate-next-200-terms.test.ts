@@ -97,12 +97,12 @@ describe("generate-next-200-terms main()", () => {
 		// candidates against a lowercased blacklist, so Title-case candidates
 		// slipped through once the failed-only carve-out (c758fba) removed
 		// blacklisted terms from allSearched.
-		mockBlacklistFindMany.mockResolvedValue([{ searchTerm: "Christine" }]);
+		mockBlacklistFindMany.mockResolvedValue([{ searchTerm: "Diane" }]);
 
 		await main(true);
 
 		const [terms] = mockEnqueueBatch.mock.calls[0] as [string[]];
-		expect(terms).not.toContain("Christine");
-		expect(terms).toContain("Theresa"); // non-blacklisted sibling still selected
+		expect(terms).not.toContain("Diane");
+		expect(terms).toContain("Diana"); // non-blacklisted sibling still selected
 	});
 });
