@@ -45,7 +45,7 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `analyze-failed-jobs.ts` | Categorize and report on failed scrape jobs. |
 | `analyze-search-terms.ts` | Analyze search term effectiveness from analytics data. |
 | `generate-next-200-terms.ts` | Generate the next 200 candidate terms (5-tier priority: unsearched names, geographic, prefix expansions, re-scrape, gap fill); `--enqueue` sends them to the Workers API. |
-| `check-unsearched-terms.ts` | Find inventory terms not yet searched for current year. Uses batched EXISTS queries. |
+| `check-unsearched-terms.ts` | Find inventory terms not yet searched for current year (via `getSearchedTermSets()`). |
 
 ## Config
 
