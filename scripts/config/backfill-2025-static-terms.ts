@@ -4,7 +4,7 @@
  * Selection criteria:
  *   - All terms >= 4 characters (MIN_TERM_LENGTH)
  *   - No duplicates within this list
- *   - Disjoint from BACKFILL_2025_SOURCE_TERMS, FALLBACK_TERMS, and BATCH_CONFIGS
+ *   - Disjoint from BACKFILL_2025_SOURCE_TERMS and BATCH_CONFIGS
  *     (each term lives in exactly one list; verify with utils/list-curated-terms.ts,
  *     whose `duplicated` bucket must stay empty)
  *

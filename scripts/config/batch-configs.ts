@@ -3,7 +3,7 @@
  *
  * Term data, not an active enqueue pipeline: the sole consumer is
  * utils/list-all-search-terms.ts, which folds these into the deduplicated
- * search-term inventory (and enforces disjointness with FALLBACK_TERMS).
+ * search-term inventory.
  */
 
 import type { BatchEnqueueConfig } from "../lib/queue-utils";

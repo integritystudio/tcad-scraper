@@ -2,7 +2,7 @@
  * Deduplicated inventory of the curated manual-backfill term lists.
  *
  * Extends the pattern from utils/list-all-search-terms.ts (which covers the
- * active search pool: batch-configs + fallback-terms) to the manual-backfill pool:
+ * active search pool: batch-configs + curated-names) to the manual-backfill pool:
  *   - config/backfill-2025-static-terms.ts (BACKFILL_2025_STATIC_TERMS)
  *   - generate-next-200-terms.ts (CANDIDATE_FIRST_NAMES, CANDIDATE_LAST_NAMES,
  *     CANDIDATE_GEOGRAPHIC, CANDIDATE_ENTITY)

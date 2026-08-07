@@ -154,7 +154,7 @@ const BLOCKED_TERMS = new Set([
 // a static list does once its entries are all searched (2026-08-07: the
 // prior hand-picked lists were 100% exhausted, silently collapsing Tiers
 // 1-2 to zero candidates every run). Overlap with other active-pool sources
-// (BATCH_CONFIGS, FALLBACK_TERMS) is expected and resolved at runtime by
+// (BATCH_CONFIGS) is expected and resolved at runtime by
 // getSearchedTermSets() — see utils/list-all-search-terms.ts.
 //
 // curated-names.ts's own sub-lists overlap each other (e.g. "Casey" is both

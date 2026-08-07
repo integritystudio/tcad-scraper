@@ -1,6 +1,6 @@
 /**
  * Deduplicated inventory of all non-numeric search terms across
- * config/batch-configs.ts, lib/curated-names.ts, and lib/fallback-terms.ts.
+ * config/batch-configs.ts and lib/curated-names.ts.
  *
  * Importable: `import { getAllSearchTerms } from "./utils/list-all-search-terms"`
  * CLI:        `npx tsx scripts/utils/list-all-search-terms.ts`
@@ -18,7 +18,6 @@ import {
 	LAST_NAMES,
 	STREET_GEOGRAPHIC,
 } from "../lib/curated-names";
-import { FALLBACK_TERMS } from "../lib/fallback-terms";
 import {
 	buildTermInventory,
 	printTermRows,
@@ -57,17 +56,13 @@ export function getAllSearchTerms(): SearchTermInventory {
 		}
 	}
 
-	// Source 3: lib/fallback-terms.ts
-	const fallbackTerms = new Set<string>(FALLBACK_TERMS);
-
-	// Priority order: batch-configs > curated-names > fallback-terms.
+	// Priority order: batch-configs > curated-names.
 	// Terms that overlap across these independently curated pools are not an
 	// error (unlike list-curated-terms.ts) — buildTermInventory's `duplicated`
 	// bucket just surfaces the overlap rather than enforcing disjointness.
 	return buildTermInventory({
 		"batch-configs": batchTerms,
 		"curated-names": curatedNamesTerms,
-		"fallback-terms": fallbackTerms,
 	});
 }
 

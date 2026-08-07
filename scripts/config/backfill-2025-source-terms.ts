@@ -3,7 +3,7 @@
  *
  * Selection criteria:
  *   - All terms >= 4 characters (MIN_TERM_LENGTH)
- *   - No duplicates with batch-configs.ts, FALLBACK_TERMS, or backfill-2025.ts STATIC_TERMS
+ *   - No duplicates with batch-configs.ts or backfill-2025.ts STATIC_TERMS
  *   - No term is a prefix of another term in this list (avoids superset waste)
  *   - Prioritized by expected Travis County property yield
  *
