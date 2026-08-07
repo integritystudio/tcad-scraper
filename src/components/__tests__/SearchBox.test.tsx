@@ -8,10 +8,12 @@
  * - Keyboard navigation
  */
 
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SearchBox } from "../features/PropertySearch/SearchBox";
+
+const LIVE_SEARCH_DEBOUNCE_MS = 300;
 
 describe("SearchBox", () => {
 	describe("Accessibility", () => {
@@ -179,6 +181,114 @@ describe("SearchBox", () => {
 
 			const input = screen.getByRole("searchbox");
 			expect(input).toHaveAttribute("placeholder", "Custom placeholder");
+		});
+	});
+
+	describe("Live search (debounce)", () => {
+		beforeEach(() => {
+			vi.useFakeTimers();
+		});
+
+		afterEach(() => {
+			act(() => vi.runOnlyPendingTimers());
+			vi.useRealTimers();
+		});
+
+		it("fires a debounced search after typing settles, without Enter or a click", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			expect(onSearch).not.toHaveBeenCalled();
+
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+
+			expect(onSearch).toHaveBeenCalledTimes(1);
+			expect(onSearch).toHaveBeenCalledWith("Oak Street");
+		});
+
+		it("does not fire before the debounce delay elapses", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS - 1));
+
+			expect(onSearch).not.toHaveBeenCalled();
+		});
+
+		it("collapses rapid typing into a single call with the latest value", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+
+			fireEvent.change(input, { target: { value: "O" } });
+			act(() => vi.advanceTimersByTime(100));
+			fireEvent.change(input, { target: { value: "Oak" } });
+			act(() => vi.advanceTimersByTime(100));
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+
+			expect(onSearch).toHaveBeenCalledTimes(1);
+			expect(onSearch).toHaveBeenCalledWith("Oak Street");
+		});
+
+		it("does not duplicate a query already searched via Enter", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			fireEvent.keyDown(input, { key: "Enter" });
+			expect(onSearch).toHaveBeenCalledTimes(1);
+
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+
+			expect(onSearch).toHaveBeenCalledTimes(1);
+		});
+
+		it("does not duplicate a query already searched via the button click", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+			const button = screen.getByRole("button");
+
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			fireEvent.click(button);
+			expect(onSearch).toHaveBeenCalledTimes(1);
+
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+
+			expect(onSearch).toHaveBeenCalledTimes(1);
+		});
+
+		it("does not fire the debounced search for a whitespace-only query", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+
+			fireEvent.change(input, { target: { value: "   " } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+
+			expect(onSearch).not.toHaveBeenCalled();
+		});
+
+		it("still fires a new debounced search after Enter, once the query changes again", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			fireEvent.keyDown(input, { key: "Enter" });
+			expect(onSearch).toHaveBeenCalledTimes(1);
+
+			fireEvent.change(input, { target: { value: "Oak Street Austin" } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+
+			expect(onSearch).toHaveBeenCalledTimes(2);
+			expect(onSearch).toHaveBeenNthCalledWith(2, "Oak Street Austin");
 		});
 	});
 
