@@ -1,6 +1,6 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-08-06 (T4 done)
+**Last Updated**: 2026-08-06 (T4 migrated)
 **Status**: 130 frontend + 55 scripts + 26 workers tests passing | TypeScript clean | Lint clean
 
 ---
@@ -12,11 +12,6 @@ All four `backfill-2025-*.ts` scripts and Phase 3 of `enqueue-tail-terms.ts` que
 
 ---
 
-## Done (2026-08-06)
-
-#### T4: Consolidate curated-term-list definitions for single source of truth
-Extracted `STATIC_TERMS` from `backfill-2025.ts` into `config/backfill-2025-static-terms.ts` (canonical source, deduplicated). Exported CANDIDATE lists from `generate-next-200-terms.ts` and removed 153 terms that duplicated `BACKFILL_2025_STATIC_TERMS` or `BACKFILL_2025_SOURCE_TERMS`. Added `utils/list-curated-terms.ts` utility (mirrors the `list-all-search-terms.ts` pattern) and a test asserting the curated backfill pool's `duplicated` bucket stays empty.
-
 ## Intentional Design Decisions
 
 ### M35: Hardcoded DISPLAY_YEAR = 2025 hides 2026 data
@@ -24,4 +19,4 @@ Extracted `STATIC_TERMS` from `backfill-2025.ts` into `config/backfill-2025-stat
 
 ---
 
-**Latest migration**: August 6, 2026 audit and scripts-review items (AUD-01 through AUD-08, D1-01 through D1-03, TC-10 through TC-18, T1–T12) migrated to [changelog/2026-08-06.md](changelog/2026-08-06.md)
+**Latest migration**: August 6, 2026 audit and scripts-review items (AUD-01 through AUD-08, D1-01 through D1-03, TC-10 through TC-18, T1–T4) migrated to [changelog/2026-08-06.md](changelog/2026-08-06.md)
