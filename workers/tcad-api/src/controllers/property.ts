@@ -240,17 +240,24 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
 app.get("/search/test", async (c) => {
 	const { parseNaturalLanguageQuery } = await import("../lib/claude.service");
 	const testQuery = "properties in Austin";
-	const result = await parseNaturalLanguageQuery(
-		testQuery,
-		c.env.ANTHROPIC_API_KEY,
-		c.env.OPENAI_API_KEY,
-	);
-	return c.json({
-		success: true,
-		message: "Claude API connection successful",
-		testQuery,
-		result,
-	});
+
+	try {
+		const result = await parseNaturalLanguageQuery(
+			testQuery,
+			c.env.ANTHROPIC_API_KEY,
+			c.env.OPENAI_API_KEY,
+		);
+		return c.json({
+			success: true,
+			message: "Claude API connection successful",
+			testQuery,
+			result,
+		});
+	} catch (err) {
+		throw unavailable("Unable to process natural language query.", {
+			cause: err,
+		});
+	}
 });
 
 // GET /history — scrape job history
