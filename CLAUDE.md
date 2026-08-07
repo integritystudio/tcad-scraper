@@ -12,7 +12,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue/Jobs**: Cloudflare Queues + Workflows (replaced BullMQ + Redis); Cron Triggers (replaced `node-cron`)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (130 frontend + 52 scripts + 16 workers tests; 126/126 E2E via Playwright)
+- **Testing**: Vitest (130 frontend + 52 scripts + 26 workers tests; 126/126 E2E via Playwright)
 - **Scale**: 260K+ properties in D1 (2025 tax year; live count via `/health`)
 
 ```

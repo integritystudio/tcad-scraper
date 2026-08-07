@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
 **Last Updated**: 2026-08-06 (docs/root audit; stale docs archived, dead code pruned)
-**Status**: 130 frontend + 52 scripts + 16 workers tests passing | TypeScript clean | Lint clean
+**Status**: 130 frontend + 52 scripts + 26 workers tests passing | TypeScript clean | Lint clean
 
 ---
 ## Open Items
