@@ -390,10 +390,25 @@ async function fetchTCADPropertiesPage(
 		throw new Error(`TCAD API returned ${res.status}`);
 	}
 
-	const data = (await res.json()) as {
+	const rawBody = await res.text();
+	let data: {
 		totalProperty?: { propertyCount?: number };
 		results?: TCADResult[];
 	};
+	try {
+		data = JSON.parse(rawBody);
+	} catch (err) {
+		// TCAD occasionally returns 200 with an empty/malformed body instead
+		// of a well-formed empty-results shape, typically for zero-match
+		// terms — treat it like the 5xx branch above rather than throwing
+		// (which burns 3 retries on a guaranteed-repeat failure and fails
+		// the whole job; incident: "Sibu", 2026-08-07).
+		console.warn(
+			`TCAD API returned unparseable JSON for "${searchTerm}" page ${page}: ` +
+				`${getErrorMessage(err)} (body: ${rawBody.slice(0, 200)})`,
+		);
+		return { properties: [], totalApiResults: null };
+	}
 
 	const results = data.results ?? [];
 	const properties = results.map((r) => ({
@@ -464,8 +479,8 @@ async function bulkUpsert(
 	// Step 2: Upsert via a single D1 batch of multi-row statements
 	const now = nowEpoch();
 	await db.batch(
-		buildUpsertStatements(chunk, searchTerm, year, now).map(
-			({ sql, params }) => db.prepare(sql).bind(...params),
+		buildUpsertStatements(chunk, searchTerm, year, now).map(({ sql, params }) =>
+			db.prepare(sql).bind(...params),
 		),
 	);
 
