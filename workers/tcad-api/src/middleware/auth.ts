@@ -4,7 +4,7 @@
  */
 
 import type { MiddlewareHandler } from "hono";
-import { HttpStatus } from "../../../../utils/http-errors";
+import { badRequest, unauthorized } from "../../../../utils/http-errors";
 import type { AppEnv } from "../bindings";
 import { getErrorMessage } from "../utils/error-helpers";
 
@@ -16,10 +16,7 @@ export const apiKeyAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
 	const apiKey = c.req.header("x-api-key");
 
 	if (!apiKey || apiKey !== c.env.API_KEY) {
-		return c.json(
-			{ error: "Unauthorized - Invalid API key" },
-			HttpStatus.UNAUTHORIZED,
-		);
+		throw unauthorized("Unauthorized - Invalid API key");
 	}
 
 	return next();
@@ -38,10 +35,7 @@ export function validateBody<T>(schema: {
 			c.set("validatedBody", parsed);
 			return next();
 		} catch (err) {
-			return c.json(
-				{ error: "Validation failed", details: getErrorMessage(err) },
-				400,
-			);
+			throw badRequest("Validation failed", { details: getErrorMessage(err) });
 		}
 	};
 }
@@ -59,10 +53,7 @@ export function validateQuery<T>(schema: {
 			c.set("validatedQuery", parsed);
 			return next();
 		} catch (err) {
-			return c.json(
-				{ error: "Validation failed", details: getErrorMessage(err) },
-				400,
-			);
+			throw badRequest("Validation failed", { details: getErrorMessage(err) });
 		}
 	};
 }

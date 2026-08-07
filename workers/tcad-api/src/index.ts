@@ -7,14 +7,14 @@ import * as Sentry from "@sentry/cloudflare";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
-import { HttpStatus } from "../../../utils/http-errors";
+import { HttpStatus, isHttpError } from "../../../utils/http-errors";
+import { TIME_MS } from "../../../utils/units";
 import type { AppEnv, Env } from "./bindings";
 import { apiUsageRoutes } from "./controllers/api-usage";
 import { propertyRoutes } from "./controllers/property";
 import { createPrisma } from "./db";
 import { dateToEpoch, nowEpoch } from "./utils/epoch-dates";
 import { getErrorMessage } from "./utils/error-helpers";
-import { TIME_MS } from "../../../utils/units";
 
 const app = new Hono<AppEnv>();
 
@@ -75,6 +75,26 @@ app.route("/api/usage", apiUsageRoutes);
 // ── Error handler ──────────────────────────────────────────────────
 
 app.onError((err, c) => {
+	if (isHttpError(err)) {
+		// expose=true (the default below 500) means a well-understood,
+		// client-facing error — not worth a Sentry event. `message` mirrors
+		// `error` because the frontend's search error path reads `.message`,
+		// not `.error`.
+		if (!err.expose) {
+			console.error("Unhandled error:", err);
+			Sentry.captureException(err);
+		}
+		return c.json(
+			{
+				error: err.message,
+				message: err.message,
+				status: err.status,
+				...(err.details !== undefined && { details: err.details }),
+			},
+			err.status,
+		);
+	}
+
 	console.error("Unhandled error:", err);
 	Sentry.captureException(err);
 	return c.json(

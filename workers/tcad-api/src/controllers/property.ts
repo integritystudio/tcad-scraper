@@ -6,7 +6,7 @@
 import type { Prisma } from "@prisma/client";
 import { Hono } from "hono";
 import { DEFAULT_QUERY_LIMIT } from "../../../../utils/constants";
-import { HttpStatus } from "../../../../utils/http-errors";
+import { notFound, unavailable } from "../../../../utils/http-errors";
 import { TIME_MS } from "../../../../utils/units";
 import type { AppEnv } from "../bindings";
 import { apiKeyAuth, validateBody, validateQuery } from "../middleware/auth";
@@ -55,7 +55,7 @@ app.get("/jobs/:jobId", async (c) => {
 
 	const job = await prisma.scrapeJob.findUnique({ where: { id: jobId } });
 	if (!job) {
-		return c.json({ error: "Job not found" }, HttpStatus.NOT_FOUND);
+		throw notFound("Job not found");
 	}
 
 	return c.json({
@@ -133,14 +133,10 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
 		explanation = parsed.explanation;
 		answer = parsed.answer;
 		answerType = parsed.answerType;
-	} catch {
-		return c.json(
-			{
-				error: "AI service unavailable",
-				message: "Unable to process natural language query.",
-			},
-			HttpStatus.SERVICE_UNAVAILABLE,
-		);
+	} catch (err) {
+		throw unavailable("Unable to process natural language query.", {
+			cause: err,
+		});
 	}
 
 	const yearFilteredClause = { ...whereClause, year: DISPLAY_YEAR };
@@ -235,11 +231,8 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
 				statistics,
 			},
 		});
-	} catch {
-		return c.json(
-			{ error: "Database query failed" },
-			HttpStatus.SERVICE_UNAVAILABLE,
-		);
+	} catch (err) {
+		throw unavailable("Database query failed", { cause: err });
 	}
 });
 
