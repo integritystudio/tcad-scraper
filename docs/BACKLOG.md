@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-08-06 (T1/T2/T5/T6/T9 completed and moved to Done; T8 field list corrected; T7/T8 implemented)
-**Status**: 130 frontend + 52 scripts + 26 workers tests passing | TypeScript clean | Lint clean
+**Last Updated**: 2026-08-06 (scripts-review fixes committed and recorded in Done; T10–T12 added from remaining review findings)
+**Status**: 130 frontend + 54 scripts + 26 workers tests passing | TypeScript clean | Lint clean
 
 ---
 ## Open Items
@@ -14,10 +14,21 @@ All four `backfill-2025-*.ts` scripts and Phase 3 of `enqueue-tail-terms.ts` que
 **Priority**: P3 | **Source**: scripts-review audit (2026-08-06)
 Curated 5-letter term lists are scattered and overlap: `scripts/generate-valid-5char-terms.ts` (four lists: female/male first names, last names, geographic/entity), `scripts/backfill-2025.ts` (STATIC_TERMS), `scripts/config/backfill-2025-source-terms.ts`, and `scripts/generate-next-200-terms.ts` (CANDIDATE_FIRST_NAMES, CANDIDATE_LAST_NAMES, CANDIDATE_GEOGRAPHIC, CANDIDATE_ENTITY). No canonical source or dedup invariant. Disjointness requirement already solved for fallback-terms ↔ batch-configs in commit 4c607d2; extend pattern to all curated lists. -- `scripts/generate-valid-5char-terms.ts`, `scripts/backfill-2025.ts`, `scripts/config/backfill-2025-source-terms.ts`, `scripts/generate-next-200-terms.ts:136-425`
 
-
 ---
 
 ## Done (2026-08-06)
+
+#### T10: Validate `--limit` argument in queue-results.ts
+Parse now falls back to the default of 20 on non-numeric input (`Number.isFinite` guard) and clamps to 1–100 (API max), with the bounds as named constants.
+
+#### T11: Fix misleading `hasSearchedWord` docstring example
+Example changed to `"Homes Trust"` (both words ≥ MIN_TERM_LENGTH) and a note added that words shorter than MIN_TERM_LENGTH (e.g. "LLC") are never checked.
+
+#### T12: Fix multi-argument shebang in analyze-search-terms.ts
+`#!/usr/bin/env npx tsx` → `#!/usr/bin/env tsx`, matching `analyze-failed-jobs.ts`. No other multi-argument shebangs remain in `scripts/`.
+
+#### Scripts-review fixes (obvious-errors pass) — commits a020c75, 368589a, 704104a
+Full-directory review of `scripts/` (schema fields verified against `schema.prisma`, typecheck, SQL-injection surfaces checked). Three findings fixed: guarded divide-by-zero `NaN%` in `analyze-failed-jobs.ts` error categories; aligned live query and fallback refresh command on `COUNT(DISTINCT property_id)` plus a one-shot fetch retry in `generate-build-constants.ts`; added `.catch` + exit 1 to `generate-valid-5char-terms.ts`. Remaining minor findings filed as T10–T12 (drain pagination finding was already T7).
 
 #### T7: Fix waitForQueueDrain false timeouts under concurrent traffic — commit 0b99807
 Replaced single-page `/history?limit=100` poll with paginated fetching. Each cycle iterates pages (offset-based) until all pending terms are found, a job older than the enqueue cutoff is reached, or `hasMore=false`. Added 2 new tests covering both behaviours.
