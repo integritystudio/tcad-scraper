@@ -45,7 +45,7 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `analyze-failed-jobs.ts` | Categorize and report on failed scrape jobs. |
 | `analyze-search-terms.ts` | Analyze search term effectiveness from analytics data. |
 | `generate-next-200-terms.ts` | Generate the next 200 candidate terms (5-tier priority: unsearched names, geographic, prefix expansions, re-scrape, gap fill); `--enqueue` sends them to the Workers API. |
-| `generate-valid-5char-terms.ts` | Generate 5-letter terms from real names/companies/streets (dictionary + census + curated lists), filtering already-searched and blacklisted; writes `data/valid-5char-terms.txt`. |
+| `generate-valid-5char-terms.ts` | Generate 5-letter terms from real names/companies/streets (dictionary + census + curated lists), filtering already-searched and blacklisted; writes a scratch `data/valid-5char-terms.txt` for manual review (gitignored — no in-repo consumer). |
 | `check-unsearched-terms.ts` | Find inventory terms not yet searched for current year. Uses batched EXISTS queries. |
 
 ## Config
