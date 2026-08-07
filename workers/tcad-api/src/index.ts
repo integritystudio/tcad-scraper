@@ -98,7 +98,11 @@ app.onError((err, c) => {
 	console.error("Unhandled error:", err);
 	Sentry.captureException(err);
 	return c.json(
-		{ error: "Internal server error" },
+		{
+			error: "Internal server error",
+			message: "Internal server error",
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+		},
 		HttpStatus.INTERNAL_SERVER_ERROR,
 	);
 });
