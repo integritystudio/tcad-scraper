@@ -396,10 +396,15 @@ async function fetchTCADPropertiesPage(
 		results?: TCADResult[];
 	};
 	try {
-		data = JSON.parse(rawBody);
+		const parsed: unknown = JSON.parse(rawBody);
+		if (typeof parsed !== "object" || parsed === null) {
+			throw new TypeError(`Parsed body is not an object: ${typeof parsed}`);
+		}
+		data = parsed as typeof data;
 	} catch (err) {
-		// TCAD occasionally returns 200 with an empty/malformed body instead
-		// of a well-formed empty-results shape, typically for zero-match
+		// TCAD occasionally returns 200 with an empty/malformed body (or,
+		// rarer, valid-but-non-object JSON like `null`) instead of a
+		// well-formed empty-results shape, typically for zero-match
 		// terms — treat it like the 5xx branch above rather than throwing
 		// (which burns 3 retries on a guaranteed-repeat failure and fails
 		// the whole job; incident: "Sibu", 2026-08-07).
