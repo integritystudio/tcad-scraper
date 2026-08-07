@@ -6,6 +6,7 @@
  * CLI:        `npx tsx scripts/utils/list-all-search-terms.ts`
  */
 
+import { pathToFileURL } from "node:url";
 import {
 	BATCH_CONFIGS,
 	HIGH_RESULT_TERM_SPLITS,
@@ -30,7 +31,13 @@ export interface SearchTermInventory {
 	all: string[];
 	/** Per-source breakdown; each term appears in exactly one bucket (first source wins) */
 	sources: Record<string, string[]>;
-	/** Terms that appear in more than one source (should stay empty — see duplicated below) */
+	/**
+	 * Terms that appear in more than one source, formatted "term [source ∩ firstSource]".
+	 * Unlike list-curated-terms.ts's duplicated bucket, this one is not expected
+	 * to be empty — curated-names.ts and fallback-terms.ts/batch-configs.ts are
+	 * independently curated pools that legitimately overlap; this surfaces that
+	 * overlap rather than enforcing disjointness.
+	 */
 	duplicated: string[];
 }
 
@@ -109,7 +116,10 @@ function printRows(terms: string[], indent = "  ", perRow = 10): void {
 	}
 }
 
-if (require.main === module) {
+if (
+	process.argv[1] &&
+	import.meta.url === pathToFileURL(process.argv[1]).href
+) {
 	const { all, sources, duplicated } = getAllSearchTerms();
 
 	console.log("=== SEARCH TERM INVENTORY (DEDUPED) ===\n");
