@@ -138,10 +138,11 @@ const BLOCKED_TERMS = new Set([
 	"wayi",
 	"wayj",
 	"escrow",
-	// Matches an extreme number of pages (Living/Family/Revocable Trust,
-	// etc.) — timed out 3/3 fetch-properties retries at 120s each even after
-	// the per-page checkpointing fix (incident 2026-08-06); not worth the
-	// TCAD API load for a re-scrape given it's already been searched once.
+	// Matches an extreme number of properties (Living/Family/Revocable
+	// Trust, etc. — 23,852 matches, ~24 pages). Timed out 3/3 retries before
+	// per-page checkpointing (16449c5, fixing incident 2026-08-06) and now
+	// completes; still not worth the TCAD API load for a re-scrape of an
+	// already-searched, generic term with minimal new-property yield.
 	"trust",
 ]);
 
