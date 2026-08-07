@@ -32,6 +32,7 @@ import {
 import { generateCvcvBases } from "./lib/cvcv";
 import { prisma } from "./lib/d1-prisma";
 import { enqueueBatch } from "./lib/queue-utils";
+import { runMain } from "./lib/run-main";
 import {
 	getBlacklistedTermSet,
 	getSearchedTermSets,
@@ -363,7 +364,5 @@ if (
 	process.argv[1] &&
 	import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-	main(process.argv.includes("--enqueue"))
-		.catch(console.error)
-		.finally(() => prisma.$disconnect());
+	runMain(() => main(process.argv.includes("--enqueue")));
 }

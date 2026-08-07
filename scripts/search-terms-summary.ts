@@ -7,6 +7,7 @@
  */
 
 import { prisma } from "./lib/d1-prisma";
+import { runMain } from "./lib/run-main";
 
 const RECENT_TERM_LIMIT = 50;
 const TERM_WIDTH = 41;
@@ -81,9 +82,4 @@ async function getSearchTermStats() {
 	console.log(`Average properties per search term: ${avgProperties}`);
 }
 
-getSearchTermStats()
-	.catch((err) => {
-		console.error(err);
-		process.exit(1);
-	})
-	.finally(() => prisma.$disconnect());
+runMain(getSearchTermStats);

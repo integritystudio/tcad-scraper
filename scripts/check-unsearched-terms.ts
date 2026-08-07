@@ -4,6 +4,7 @@
  * Usage: doppler run -- npx tsx scripts/check-unsearched-terms.ts
  */
 import { prisma } from "./lib/d1-prisma";
+import { runMain } from "./lib/run-main";
 import { getAllSearchTerms } from "./utils/list-all-search-terms";
 
 async function check() {
@@ -45,6 +46,4 @@ async function check() {
 	}
 }
 
-check()
-	.catch(console.error)
-	.finally(() => prisma.$disconnect());
+runMain(check);

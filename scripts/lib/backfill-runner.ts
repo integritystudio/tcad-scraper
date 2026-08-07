@@ -1,10 +1,9 @@
 /** Generic backfill loop shared by all backfill-2025* scripts. */
 
-import { getErrorMessage } from "./error-helpers";
 import { TARGET_2025_PROPERTY_COUNT as TARGET_2025_COUNT } from "../../utils/constants";
 import { get2025Count } from "./backfill-utils";
-import { prisma } from "./d1-prisma";
 import { BATCH_SIZE, enqueueBatch, waitForQueueDrain } from "./queue-utils";
+import { runMain } from "./run-main";
 
 export interface BackfillConfig {
 	/** Function that returns the terms to backfill */
@@ -109,12 +108,5 @@ export async function runBackfill(cfg: BackfillConfig): Promise<void> {
 
 /** Standard entry point wrapper with error handling and cleanup. */
 export function runBackfillMain(cfg: BackfillConfig): void {
-	runBackfill(cfg)
-		.catch((err) => {
-			console.error("Fatal:", getErrorMessage(err));
-			process.exit(1);
-		})
-		.finally(async () => {
-			await prisma.$disconnect();
-		});
+	runMain(() => runBackfill(cfg));
 }

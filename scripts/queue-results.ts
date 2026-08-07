@@ -4,7 +4,7 @@
  * Usage: npx tsx scripts/queue-results.ts [--limit N]
  */
 
-export {};
+import { runMain } from "./lib/run-main";
 
 const API_BASE = "https://api.alephatx.info/api/properties";
 
@@ -107,7 +107,4 @@ async function main() {
 	}
 }
 
-main().catch((err) => {
-	console.error(err);
-	process.exit(1);
-});
+runMain(main, { disconnectPrisma: false });

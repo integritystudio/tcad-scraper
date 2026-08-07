@@ -14,6 +14,7 @@ import { pathToFileURL } from "node:url";
 import { THIRTY_DAY_LOOKBACK_MS } from "../utils/constants";
 import { epochAgo, prisma } from "./lib/d1-prisma";
 import { getJobStats } from "./lib/job-stats";
+import { runMain } from "./lib/run-main";
 
 // Approximate total TCAD property count — update periodically from https://tcad.org/
 // Used for coverage percentage and threshold checks only; staleness won't affect scraping.
@@ -235,10 +236,5 @@ if (
 	process.argv[1] &&
 	import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-	analyzeSearchTerms()
-		.catch(console.error)
-		.finally(async () => {
-			await prisma.$disconnect();
-			process.exit(0);
-		});
+	runMain(analyzeSearchTerms);
 }
