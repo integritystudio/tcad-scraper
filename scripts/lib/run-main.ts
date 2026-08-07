@@ -8,17 +8,21 @@ export interface RunMainOptions {
 	disconnectPrisma?: boolean;
 }
 
-export function runMain(
+export async function runMain(
 	fn: () => Promise<void>,
 	opts: RunMainOptions = {},
-): void {
+): Promise<void> {
 	const { disconnectPrisma = true } = opts;
-	fn()
-		.catch((err) => {
-			console.error("Fatal:", getErrorMessage(err));
-			process.exit(1);
-		})
-		.finally(async () => {
-			if (disconnectPrisma) await prisma.$disconnect();
-		});
+	let exitCode = 0;
+	try {
+		await fn();
+	} catch (err) {
+		console.error("Fatal:", getErrorMessage(err));
+		exitCode = 1;
+	} finally {
+		if (disconnectPrisma) await prisma.$disconnect();
+	}
+	// Only force-exit on failure — process.exit() on the happy path risks
+	// truncating pending stdout/stderr writes; a clean run exits 0 naturally.
+	if (exitCode !== 0) process.exit(exitCode);
 }
