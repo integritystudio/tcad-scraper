@@ -112,16 +112,8 @@ export async function waitForQueueDrain(
 }
 
 export interface BatchEnqueueConfig {
-	/** Display name for the batch (e.g., "Corporation", "Residential") */
-	batchName: string;
-	/** Emoji to display in logs (e.g., "🏛️", "🏠") */
-	emoji: string;
 	/** Array of search terms to enqueue */
 	terms: string[];
-	/** User ID for job attribution */
-	userId: string;
-	/** Additional log messages to display after initial logs */
-	extraLogs?: () => void;
 }
 
 /** Enqueue terms one at a time; returns the terms that were accepted (HTTP 2xx). */

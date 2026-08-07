@@ -112,7 +112,6 @@ const label = phase ? `Tail Terms (Phase ${phase})` : "Tail Terms (All Phases)";
 
 runBackfillMain({
 	getTerms: getTailTerms,
-	userId: "tail-term-optimizer",
 	label,
 	maxConsecutiveZeroBatches: MAX_CONSECUTIVE_ZERO_BATCHES,
 });

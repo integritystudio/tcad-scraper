@@ -9,14 +9,8 @@
 import type { BatchEnqueueConfig } from "../lib/queue-utils";
 import { BACKFILL_2025_SOURCE_TERMS } from "./backfill-2025-source-terms";
 
-type BatchConfigEntry = Omit<BatchEnqueueConfig, "extraLogs"> & {
-	extraLogs?: () => void;
-};
-
-export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
+export const BATCH_CONFIGS: Record<string, BatchEnqueueConfig> = {
 	llc: {
-		batchName: "LLC",
-		emoji: "🏭",
 		terms: [
 			"LLC",
 			"LLC.",
@@ -28,12 +22,9 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"LTD",
 			"Co LLC",
 		],
-		userId: "llc-batch-enqueue",
 	},
 
 	trust: {
-		batchName: "Trust & Estate",
-		emoji: "📜",
 		terms: [
 			"Trust",
 			"Trustee",
@@ -46,12 +37,9 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Fiduciary",
 			"Beneficiary",
 		],
-		userId: "trust-batch-enqueue",
 	},
 
 	corporation: {
-		batchName: "Corporation",
-		emoji: "🏛️",
 		terms: [
 			"Corp",
 			"Corp.",
@@ -64,12 +52,9 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Enterprise",
 			"Enterprises",
 		],
-		userId: "corporation-batch-enqueue",
 	},
 
 	commercial: {
-		batchName: "Commercial",
-		emoji: "🏢",
 		terms: [
 			"Shopping",
 			"Retail",
@@ -82,12 +67,9 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Mall",
 			"Building",
 		],
-		userId: "commercial-batch-enqueue",
 	},
 
 	construction: {
-		batchName: "Construction",
-		emoji: "🏗️",
 		terms: [
 			"Construction",
 			"Builders",
@@ -100,12 +82,9 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Housing",
 			"Residential Builders",
 		],
-		userId: "construction-batch-enqueue",
 	},
 
 	foundation: {
-		batchName: "Foundation",
-		emoji: "🎗️",
 		terms: [
 			"Foundation",
 			"Charitable",
@@ -117,12 +96,9 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Society",
 			"Endowment",
 		],
-		userId: "foundation-batch-enqueue",
 	},
 
 	partnership: {
-		batchName: "Partnership",
-		emoji: "🤝",
 		terms: [
 			"Partnership",
 			"Partners",
@@ -135,12 +111,9 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Assoc.",
 			"Joint Venture",
 		],
-		userId: "partnership-batch-enqueue",
 	},
 
 	investment: {
-		batchName: "Investment",
-		emoji: "💰",
 		terms: [
 			"Investments",
 			"Holdings",
@@ -153,12 +126,9 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Management",
 			"Manage",
 		],
-		userId: "investment-batch-enqueue",
 	},
 
 	"property-type": {
-		batchName: "Property Type",
-		emoji: "🏘️",
 		terms: [
 			"Properties",
 			"Property",
@@ -171,12 +141,9 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Plaza",
 			"Center",
 		],
-		userId: "property-type-batch-enqueue",
 	},
 
 	residential: {
-		batchName: "Residential",
-		emoji: "🏠",
 		terms: [
 			"Smith",
 			"Johnson",
@@ -189,33 +156,21 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Rodriguez",
 			"Wilson",
 		],
-		userId: "residential-batch-enqueue",
 	},
 
 	grove: {
-		batchName: "Grove",
-		emoji: "🌳",
 		terms: ["Grove"],
-		userId: "grove-batch-enqueue",
 	},
 
 	"high-priority": {
-		batchName: "High Priority Streets & Names",
-		emoji: "🔥",
 		terms: ["Boulevard", "Way", "Terrace", "Michelle"],
-		userId: "high-priority-batch-enqueue",
 	},
 
 	"priority-terms": {
-		batchName: "Priority Geographic & Entity",
-		emoji: "🎯",
 		terms: ["Lake", "River", "Pecan", "Maple", "Oak", "Mount", "Limited"],
-		userId: "priority-terms-batch-enqueue",
 	},
 
 	"ultra-high-priority": {
-		batchName: "Ultra High Priority",
-		emoji: "🚀",
 		terms: [
 			"Street",
 			"Drive",
@@ -228,12 +183,9 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Valley",
 			"Point",
 		],
-		userId: "ultra-high-priority-batch-enqueue",
 	},
 
 	"hispanic-surnames": {
-		batchName: "Hispanic Surnames",
-		emoji: "🌎",
 		terms: [
 			"Acuna",
 			"Adame",
@@ -283,12 +235,9 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Valez",
 			"Viera",
 		],
-		userId: "hispanic-surnames-batch-enqueue",
 	},
 
 	"indian-surnames": {
-		batchName: "Indian Surnames",
-		emoji: "🌏",
 		terms: [
 			"Bajaj",
 			"Bhatt",
@@ -311,19 +260,13 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Verma",
 			"Yadav",
 		],
-		userId: "indian-surnames-batch-enqueue",
 	},
 
 	"asian-surnames": {
-		batchName: "Asian Surnames",
-		emoji: "🌏",
 		terms: ["Chang", "Hsiao", "Huang", "Hwang", "Jiang", "Liang", "Tsang"],
-		userId: "asian-surnames-batch-enqueue",
 	},
 
 	"curated-first-names": {
-		batchName: "Curated First Names",
-		emoji: "👤",
 		terms: [
 			"Annie",
 			"Anton",
@@ -653,14 +596,10 @@ export const BATCH_CONFIGS: Record<string, BatchConfigEntry> = {
 			"Zelda",
 			"Zelma",
 		],
-		userId: "curated-first-names-batch-enqueue",
 	},
 
 	"backfill-2025-source": {
-		batchName: "Backfill 2025 Source",
-		emoji: "🎯",
 		terms: [...BACKFILL_2025_SOURCE_TERMS],
-		userId: "backfill-2025-source-enqueue",
 	},
 };
 

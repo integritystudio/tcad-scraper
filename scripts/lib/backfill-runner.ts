@@ -9,8 +9,6 @@ import { BATCH_SIZE, enqueueBatch, waitForQueueDrain } from "./queue-utils";
 export interface BackfillConfig {
 	/** Function that returns the terms to backfill */
 	getTerms: () => Promise<string[]>;
-	/** User ID for job attribution (e.g. "backfill-2025-proven") */
-	userId: string;
 	/** Display label for the header (e.g. "Proven 2026 Terms") */
 	label: string;
 	/** Max consecutive zero-result batches before stopping (default: 3) */

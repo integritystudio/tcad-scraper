@@ -440,6 +440,5 @@ async function getTermsToBackfill(): Promise<string[]> {
 
 runBackfillMain({
 	getTerms: getTermsToBackfill,
-	userId: "backfill-2025",
 	label: "High-Yield Terms",
 });

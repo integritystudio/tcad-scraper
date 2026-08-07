@@ -53,7 +53,6 @@ beforeEach(() => {
 function makeCfg(overrides: Partial<BackfillConfig> = {}): BackfillConfig {
 	return {
 		getTerms: async () => ["alpha", "bravo", "charlie", "delta", "echo"],
-		userId: "test-backfill",
 		label: "Test",
 		...overrides,
 	};

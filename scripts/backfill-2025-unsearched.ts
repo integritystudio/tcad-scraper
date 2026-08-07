@@ -102,6 +102,5 @@ async function getUnsearchedTerms(): Promise<string[]> {
 
 runBackfillMain({
 	getTerms: getUnsearchedTerms,
-	userId: "backfill-2025-unsearched",
 	label: "Unsearched Patterns",
 });

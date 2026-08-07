@@ -110,7 +110,6 @@ async function getNovelTerms(): Promise<string[]> {
 
 runBackfillMain({
 	getTerms: getNovelTerms,
-	userId: "backfill-2025-novel",
 	label: "Novel Owner Names",
 	maxConsecutiveZeroBatches: MAX_CONSECUTIVE_ZERO_BATCHES,
 });

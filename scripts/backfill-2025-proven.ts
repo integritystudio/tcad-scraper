@@ -64,6 +64,5 @@ async function getProvenTerms(): Promise<string[]> {
 
 runBackfillMain({
 	getTerms: getProvenTerms,
-	userId: "backfill-2025-proven",
 	label: "Proven 2026 Terms",
 });
