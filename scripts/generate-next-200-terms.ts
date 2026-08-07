@@ -28,7 +28,7 @@ import {
 	getSearchedTermSets,
 } from "./lib/searched-terms";
 
-const TARGET_TERM_COUNT = 500;
+const TARGET_TERM_COUNT = 200;
 
 // ── Yield scoring (see docs/SEARCH_TERMS.md → "Predicting yield") ────
 // In-DB match frequency measures TCAD-side abundance AND existing coverage,
