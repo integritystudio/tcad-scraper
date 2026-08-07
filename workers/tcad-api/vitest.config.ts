@@ -9,6 +9,10 @@ export default defineConfig({
 				import.meta.dirname,
 				"src/__tests__/stubs/cloudflare-workers.ts",
 			),
+			"cloudflare:workflows": path.resolve(
+				import.meta.dirname,
+				"src/__tests__/stubs/cloudflare-workflows.ts",
+			),
 		},
 	},
 	test: {

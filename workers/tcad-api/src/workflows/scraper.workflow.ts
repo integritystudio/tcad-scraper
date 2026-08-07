@@ -3,11 +3,21 @@
  * Ported from server/src/queues/scraper.queue.ts.
  *
  * Steps:
- *  1. get-token     — fetch auth token from KV or token worker
- *  2. fetch-props   — paginated TCAD API calls
- *  3. deduplicate   — remove duplicate propertyIds
- *  4. upsert        — bulk upsert to D1 via micro-chunked prepared statements
- *  5. analytics     — update search_term_analytics
+ *  1. create-job      — create the ScrapeJob row
+ *  2. get-token       — fetch auth token from KV or token worker
+ *  3. fetch-page-N    — one checkpointed step per TCAD API page (see below)
+ *  4. deduplicate     — remove duplicate propertyIds across all pages
+ *  5. upsert          — bulk upsert to D1 via micro-chunked prepared statements
+ *  6. analytics       — update search_term_analytics
+ *
+ * fetch-page-N is one step.do() call per page rather than a single step
+ * wrapping the whole paginated fetch. A term needing many pages (e.g. a
+ * broad entity word matching thousands of properties) can take several
+ * minutes in total; a single-step design retries by restarting pagination
+ * from page 1, so a term that consistently needs more than the step's
+ * timeout budget fails identically on every retry (incident 2026-08-06:
+ * "Trust" timed out at ~120s three times in a row). Checkpointing per page
+ * means a retry only redoes the one slow/failed page.
  */
 
 import {
@@ -15,6 +25,7 @@ import {
 	type WorkflowEvent,
 	type WorkflowStep,
 } from "cloudflare:workers";
+import { NonRetryableError } from "cloudflare:workflows";
 import {
 	API_CLIENT_TIMEOUT_MS,
 	DEFAULT_QUERY_LIMIT,
@@ -27,6 +38,7 @@ import { createPrisma } from "../db";
 import type { PropertyData, ScrapeParams } from "../types/property.types";
 import {
 	dedupeResultSchema,
+	fetchPageResultSchema,
 	fetchResultSchema,
 	upsertResultSchema,
 } from "../types/property.types";
@@ -63,67 +75,108 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 	async run(event: WorkflowEvent<ScrapeParams>, step: WorkflowStep) {
 		const { searchTerm, year } = event.payload;
 
-		// Step 1: Create job record + get auth token
-		const { jobId, token } = await step.do("get-token", async () => {
+		// Step 1: Create the job record. Kept outside the try/catch below —
+		// if this itself fails, no row exists yet, so there's nothing for
+		// mark-failed to update.
+		const { jobId } = await step.do("create-job", async () => {
 			const prisma = createPrisma(this.env.DB);
 			const job = await prisma.scrapeJob.create({
 				data: { searchTerm, status: "processing", startedAt: nowEpoch() },
 			});
-
-			// Try KV cache first, fall back to token worker
-			// Phase 3: const cached = await this.env.TOKEN_CACHE.get("tcad-token");
-			const res = await fetch(this.env.TOKEN_WORKER_URL, {
-				headers: { Authorization: `Bearer ${this.env.TOKEN_WORKER_SECRET}` },
-				signal: AbortSignal.timeout(DURATION_MS.TEN_SECONDS),
-			});
-			if (!res.ok) throw new Error(`Token worker returned ${res.status}`);
-			const { token } = (await res.json()) as {
-				token: string;
-				expiresIn: number;
-			};
-			// Phase 3: await this.env.TOKEN_CACHE.put("tcad-token", token, { expirationTtl: expiresIn - 30 });
-
-			return { jobId: job.id, token };
+			return { jobId: job.id };
 		});
 
 		try {
-			// Step 2: Fetch properties from TCAD API (paginated, stored in KV)
-			const fetchResult = await step.do(
-				"fetch-properties",
-				{
-					retries: { limit: 3, delay: "5 seconds", backoff: "exponential" },
-					timeout: "120 seconds",
-				},
-				async () => {
-					const properties = await fetchTCADProperties(token, searchTerm, year);
-					const kvKey = `scrape:${jobId}:properties`;
-					await this.env.RESPONSE_CACHE.put(kvKey, JSON.stringify(properties), {
-						expirationTtl: 3600,
-					});
-					return fetchResultSchema.parse({
-						kvKey,
-						count: properties.length,
-						totalApiResults: properties.reduce(
-							(sum, p) => sum + (p.propertyId ? 1 : 0),
-							0,
-						),
-					});
-				},
-			);
+			// Step 2: Get auth token. Must be inside the try/catch — the job
+			// row already exists at this point, so a failed fetch needs to
+			// reach mark-failed instead of leaving it stuck in "processing"
+			// until the 24h stale-job cron catches it.
+			const { token } = await step.do("get-token", async () => {
+				// Try KV cache first, fall back to token worker
+				// Phase 3: const cached = await this.env.TOKEN_CACHE.get("tcad-token");
+				const res = await fetch(this.env.TOKEN_WORKER_URL, {
+					headers: { Authorization: `Bearer ${this.env.TOKEN_WORKER_SECRET}` },
+					signal: AbortSignal.timeout(DURATION_MS.TEN_SECONDS),
+				});
+				if (!res.ok) throw new Error(`Token worker returned ${res.status}`);
+				const { token } = (await res.json()) as {
+					token: string;
+					expiresIn: number;
+				};
+				// Phase 3: await this.env.TOKEN_CACHE.put("tcad-token", token, { expirationTtl: expiresIn - 30 });
 
-			// Step 3: Deduplicate (retrieve from KV, store result back to KV).
-			// The deduped array must NOT be returned directly — Workflows
+				return { token };
+			});
+
+			// Step 3: Fetch properties from TCAD API — one checkpointed step per
+			// page (see class docstring for why). Each page is written to its
+			// own KV key; the pagination cursor (page, totals) lives in plain
+			// loop state, which Workflows replays deterministically from
+			// already-cached step outputs.
+			let totalPages = 0;
+			let totalFetchedSoFar = 0;
+			let totalApiResults = 0;
+			let page = 1;
+
+			while (page <= DEFAULT_QUERY_LIMIT) {
+				const pageResult = await step.do(
+					`fetch-page-${page}`,
+					{
+						retries: { limit: 3, delay: "5 seconds", backoff: "exponential" },
+						timeout: "45 seconds",
+					},
+					async () => {
+						const { properties, totalApiResults: pageTotal } =
+							await fetchTCADPropertiesPage(token, searchTerm, year, page);
+						const kvKey = `scrape:${jobId}:page:${page}`;
+						await this.env.RESPONSE_CACHE.put(
+							kvKey,
+							JSON.stringify(properties),
+							{ expirationTtl: 3600 },
+						);
+						return fetchPageResultSchema.parse({
+							kvKey,
+							pageCount: properties.length,
+							totalApiResults: pageTotal ?? 0,
+						});
+					},
+				);
+
+				totalPages++;
+				totalFetchedSoFar += pageResult.pageCount;
+				if (page === 1) totalApiResults = pageResult.totalApiResults;
+
+				const hasMore =
+					pageResult.pageCount >= TCAD_PAGE_SIZE &&
+					totalFetchedSoFar < totalApiResults;
+				if (!hasMore || page >= DEFAULT_QUERY_LIMIT) break;
+
+				// Rate limit delay between pagination requests
+				await new Promise((resolve) => setTimeout(resolve, TIME_MS.SECOND));
+				page++;
+			}
+
+			const fetchResult = fetchResultSchema.parse({
+				totalPages,
+				totalApiResults,
+			});
+
+			// Step 4: Deduplicate (retrieve every page from KV, store result back
+			// to KV). The deduped array must NOT be returned directly — Workflows
 			// persists every step's return value as its checkpoint, capped at
 			// 1MiB, and a common term's dedup output can exceed that (e.g.
 			// "Chris" -> 9,658 rows, incident 2026-08-06). Route through KV
-			// like fetch-properties does, returning only a pointer.
+			// like the fetch-page steps do, returning only a pointer.
 			const dedupeResult = await step.do("deduplicate", async () => {
-				const stored = await this.env.RESPONSE_CACHE.get(fetchResult.kvKey);
-				if (!stored) throw new Error(`KV key ${fetchResult.kvKey} not found`);
-				const rawProperties = JSON.parse(stored) as PropertyData[];
 				const map = new Map<string, PropertyData>();
-				for (const prop of rawProperties) {
-					if (prop.propertyId) map.set(prop.propertyId, prop);
+				for (let p = 1; p <= fetchResult.totalPages; p++) {
+					const pageKvKey = `scrape:${jobId}:page:${p}`;
+					const stored = await this.env.RESPONSE_CACHE.get(pageKvKey);
+					if (!stored) throw new Error(`KV key ${pageKvKey} not found`);
+					const rawProperties = JSON.parse(stored) as PropertyData[];
+					for (const prop of rawProperties) {
+						if (prop.propertyId) map.set(prop.propertyId, prop);
+					}
 				}
 				const deduped = Array.from(map.values());
 				const kvKey = `scrape:${jobId}:deduped`;
@@ -133,7 +186,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 				return dedupeResultSchema.parse({ kvKey, count: deduped.length });
 			});
 
-			// Step 4: Upsert to database (chunked)
+			// Step 5: Upsert to database (chunked)
 			const upsertResult = await step.do("upsert-properties", async () => {
 				const stored = await this.env.RESPONSE_CACHE.get(dedupeResult.kvKey);
 				if (!stored) throw new Error(`KV key ${dedupeResult.kvKey} not found`);
@@ -159,7 +212,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 				});
 			});
 
-			// Step 5: Update job record + analytics
+			// Step 6: Update job record + analytics
 			await step.do("update-analytics", async () => {
 				const prisma = createPrisma(this.env.DB);
 
@@ -255,85 +308,78 @@ interface TCADResult {
 	legalDescription?: string;
 }
 
-async function fetchTCADProperties(
+/**
+ * Fetch a single page of TCAD results. Split out from the old all-pages loop
+ * so each page can be its own checkpointed Workflow step (see class
+ * docstring) — the pagination cursor and stopping decision live in the
+ * caller, not here.
+ */
+async function fetchTCADPropertiesPage(
 	token: string,
 	searchTerm: string,
 	year: number,
-): Promise<PropertyData[]> {
-	const allProperties: PropertyData[] = [];
-	let totalCount = 0;
+	page: number,
+): Promise<{ properties: PropertyData[]; totalApiResults: number | null }> {
+	const url = `${TCAD_API_URL}?page=${page}&pageSize=${TCAD_PAGE_SIZE}`;
+	const body = JSON.stringify({
+		pYear: { operator: "=", value: String(year) },
+		fullTextSearch: { operator: "match", value: searchTerm },
+	});
 
-	for (let page = 1; page <= DEFAULT_QUERY_LIMIT; page++) {
-		const url = `${TCAD_API_URL}?page=${page}&pageSize=${TCAD_PAGE_SIZE}`;
-		const body = JSON.stringify({
-			pYear: { operator: "=", value: String(year) },
-			fullTextSearch: { operator: "match", value: searchTerm },
-		});
+	const res = await fetch(url, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Accept: "application/json",
+			Authorization: token,
+		},
+		body,
+		signal: AbortSignal.timeout(API_CLIENT_TIMEOUT_MS),
+	});
 
-		const res = await fetch(url, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Accept: "application/json",
-				Authorization: token,
-			},
-			body,
-			signal: AbortSignal.timeout(API_CLIENT_TIMEOUT_MS),
-		});
-
-		if (res.status === HttpStatus.UNAUTHORIZED) {
-			throw new Error("TOKEN_EXPIRED");
-		}
-
-		if (
-			res.status === HttpStatus.INTERNAL_SERVER_ERROR ||
-			res.status === HttpStatus.BAD_GATEWAY ||
-			res.status === HttpStatus.SERVICE_UNAVAILABLE
-		) {
-			console.warn(
-				`TCAD API returned ${res.status} for "${searchTerm}" page ${page}`,
-			);
-			return allProperties;
-		}
-
-		if (!res.ok) {
-			throw new Error(`TCAD API returned ${res.status}`);
-		}
-
-		const data = (await res.json()) as {
-			totalProperty?: { propertyCount?: number };
-			results?: TCADResult[];
-		};
-
-		if (page === 1) {
-			totalCount = data.totalProperty?.propertyCount ?? 0;
-		}
-		const results = data.results ?? [];
-
-		for (const r of results) {
-			allProperties.push({
-				propertyId: String(r.pid ?? ""),
-				name: r.displayName ?? "",
-				propType: r.propType ?? "",
-				city: r.city ?? null,
-				propertyAddress: r.streetPrimary ?? "",
-				assessedValue: parseNumericValue(r.marketValue),
-				appraisedValue: parseNumericValue(r.appraisedValue) ?? 0,
-				geoId: r.geoID ?? null,
-				description: r.legalDescription ?? null,
-			});
-		}
-
-		if (results.length < TCAD_PAGE_SIZE || allProperties.length >= totalCount)
-			break;
-
-		// Rate limit delay between pagination requests
-		if (page < DEFAULT_QUERY_LIMIT) {
-			await new Promise((resolve) => setTimeout(resolve, TIME_MS.SECOND));
-		}
+	if (res.status === HttpStatus.UNAUTHORIZED) {
+		// Retrying with the same (now-stale) token would fail identically —
+		// skip the step's retry budget and fail straight to mark-failed.
+		throw new NonRetryableError("TOKEN_EXPIRED");
 	}
 
-	return allProperties;
+	if (
+		res.status === HttpStatus.INTERNAL_SERVER_ERROR ||
+		res.status === HttpStatus.BAD_GATEWAY ||
+		res.status === HttpStatus.SERVICE_UNAVAILABLE
+	) {
+		console.warn(
+			`TCAD API returned ${res.status} for "${searchTerm}" page ${page}`,
+		);
+		return { properties: [], totalApiResults: null };
+	}
+
+	if (!res.ok) {
+		throw new Error(`TCAD API returned ${res.status}`);
+	}
+
+	const data = (await res.json()) as {
+		totalProperty?: { propertyCount?: number };
+		results?: TCADResult[];
+	};
+
+	const results = data.results ?? [];
+	const properties = results.map((r) => ({
+		propertyId: String(r.pid ?? ""),
+		name: r.displayName ?? "",
+		propType: r.propType ?? "",
+		city: r.city ?? null,
+		propertyAddress: r.streetPrimary ?? "",
+		assessedValue: parseNumericValue(r.marketValue),
+		appraisedValue: parseNumericValue(r.appraisedValue) ?? 0,
+		geoId: r.geoID ?? null,
+		description: r.legalDescription ?? null,
+	}));
+
+	return {
+		properties,
+		totalApiResults: data.totalProperty?.propertyCount ?? null,
+	};
 }
 
 function parseNumericValue(

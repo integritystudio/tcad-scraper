@@ -71,9 +71,17 @@ export const propertyDataSchema = z.object({
 	description: z.string().nullable(),
 });
 
-export const fetchResultSchema = z.object({
+// One page's fetch result — checkpointed independently so a slow/failed page
+// doesn't discard already-fetched pages (see scraper.workflow.ts fetch-page
+// step). totalApiResults is only meaningful on page 1's response.
+export const fetchPageResultSchema = z.object({
 	kvKey: z.string(),
-	count: z.number(),
+	pageCount: z.number(),
+	totalApiResults: z.number(),
+});
+
+export const fetchResultSchema = z.object({
+	totalPages: z.number(),
 	totalApiResults: z.number(),
 });
 
@@ -96,6 +104,7 @@ export const scrapeParamsSchema = z.object({
 });
 
 export type PropertyData = z.infer<typeof propertyDataSchema>;
+export type FetchPageResult = z.infer<typeof fetchPageResultSchema>;
 export type FetchResult = z.infer<typeof fetchResultSchema>;
 export type DedupeResult = z.infer<typeof dedupeResultSchema>;
 export type UpsertResult = z.infer<typeof upsertResultSchema>;
