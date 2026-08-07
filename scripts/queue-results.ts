@@ -8,9 +8,16 @@ export {};
 
 const API_BASE = "https://api.alephatx.info/api/properties";
 
-const limit = Number(
-	process.argv.find((_, i, a) => a[i - 1] === "--limit") ?? 20,
+const DEFAULT_LIMIT = 20;
+const MIN_LIMIT = 1;
+const MAX_LIMIT = 100; // API max for /history?limit=
+
+const rawLimit = Number(
+	process.argv.find((_, i, a) => a[i - 1] === "--limit") ?? DEFAULT_LIMIT,
 );
+const limit = Number.isFinite(rawLimit)
+	? Math.min(Math.max(Math.trunc(rawLimit), MIN_LIMIT), MAX_LIMIT)
+	: DEFAULT_LIMIT;
 
 interface ScrapeJob {
 	id: string;
