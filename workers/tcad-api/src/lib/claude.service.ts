@@ -228,9 +228,10 @@ const FALLBACK_STATUSES: readonly number[] = [
 // invalid_request_error ("Your credit balance is too low..."), not 402.
 const CREDIT_BALANCE_ERROR = /credit balance/i;
 
-function shouldFallbackToOpenAI(error: unknown): boolean {
+export function shouldFallbackToOpenAI(error: unknown): boolean {
 	if (!(error instanceof Error)) return false;
-	// Fallback on 401 (unauthorized/no balance), 429 (rate limit), 402 (payment required)
+	// Fallback on 400 (credit balance exhausted), 401 (unauthorized),
+	// 402 (payment required), 429 (rate limit)
 	const status = (error as Error & { status?: number }).status;
 	if (status === HttpStatus.BAD_REQUEST) {
 		return CREDIT_BALANCE_ERROR.test(error.message);
