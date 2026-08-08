@@ -15,9 +15,21 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Property } from "../../types";
 import { PropertyCard } from "../features/PropertySearch/PropertyCard";
+
+// Read the raw CSS source directly (bypassing the CSS-modules test mock,
+// which replaces imports with a class-name proxy, not the file contents).
+const propertyCardCss = readFileSync(
+	join(
+		process.cwd(),
+		"src/components/features/PropertySearch/PropertyCard.module.css",
+	),
+	"utf-8",
+);
 
 const { mockLogPropertyView } = vi.hoisted(() => ({
 	mockLogPropertyView: vi.fn(),
@@ -298,6 +310,61 @@ describe("PropertyCard", () => {
 			});
 			fireEvent.click(expandButton);
 			expect(mockLogPropertyView).toHaveBeenCalled();
+		});
+	});
+
+	describe("Regression: toggle/value row position (M39)", () => {
+		it("renders the Hide Details button before the detail panel content, so collapsing does not require scrolling past the details", () => {
+			const { container } = render(
+				<PropertyCard property={mockProperty} defaultExpanded={true} />,
+			);
+
+			const hideDetailsButton = screen.getByRole("button", {
+				name: /hide details/i,
+			});
+			const financialHeading = screen.getByText("Financial Breakdown");
+
+			// DOCUMENT_POSITION_FOLLOWING means the second node comes after
+			// the first, i.e. the button precedes the details content in the DOM.
+			const position = hideDetailsButton.compareDocumentPosition(
+				financialHeading,
+			);
+			expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+			// The value-summary row's container element should also precede
+			// the details panel among CardBody's children.
+			const cardBody = container.querySelector(".footer")?.parentElement;
+			expect(cardBody).not.toBeNull();
+			const childClassLists = Array.from(cardBody?.children ?? []).map(
+				(el) => el.className,
+			);
+			const footerIndex = childClassLists.findIndex((c) =>
+				c.includes("footer"),
+			);
+			const detailsIndex = childClassLists.findIndex((c) =>
+				c.includes("container"),
+			);
+			expect(footerIndex).toBeGreaterThanOrEqual(0);
+			expect(detailsIndex).toBeGreaterThan(footerIndex);
+		});
+	});
+
+	describe("Regression: footer divider suppressed for value-summary row (M40)", () => {
+		it("overrides Card's .footer margin/padding/border on the value-summary row", () => {
+			const { container } = render(<PropertyCard property={mockProperty} />);
+			const footer = container.querySelector(".footer");
+			expect(footer).not.toBeNull();
+			expect(footer?.className).toContain("summary");
+
+			// The override lives in PropertyCard.module.css's `.summary` rule;
+			// assert it neutralizes the inherited divider/spacing properties.
+			expect(propertyCardCss).toMatch(
+				/\.summary\s*{[^}]*margin-top:\s*0[^}]*}/,
+			);
+			expect(propertyCardCss).toMatch(
+				/\.summary\s*{[^}]*padding-top:\s*0[^}]*}/,
+			);
+			expect(propertyCardCss).toMatch(/\.summary\s*{[^}]*border-top:\s*none[^}]*}/);
 		});
 	});
 });

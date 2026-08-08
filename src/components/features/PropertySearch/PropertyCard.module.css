@@ -62,10 +62,15 @@
 }
 
 /* New styles for expansion */
+/* Overrides Card.module.css's .footer divider/spacing - this row sits
+   directly under the address, not at the end of the card. */
 .summary {
 	display: flex;
 	flex-direction: column;
 	gap: 0.75rem;
+	margin-top: 0;
+	padding-top: 0;
+	border-top: none;
 }
 
 .expandButtonContainer {

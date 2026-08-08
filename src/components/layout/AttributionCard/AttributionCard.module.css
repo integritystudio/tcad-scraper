@@ -51,11 +51,16 @@
 	font-weight: 600;
 }
 
+/* Overrides Card.module.css's unconditional .footer divider/spacing -
+   these action links sit inline within the card content, not at its end. */
 .actions {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 1rem;
 	align-items: center;
+	margin-top: 0;
+	padding-top: 0;
+	border-top: none;
 }
 
 .primaryLink,

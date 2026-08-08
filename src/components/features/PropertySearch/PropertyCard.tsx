@@ -46,25 +46,25 @@ export const PropertyCard = ({
 					{property.city && `, ${property.city}`}
 				</div>
 
+				<CardFooter className={styles.summary}>
+					<div className={styles.detailItem}>
+						<span className={styles.detailLabel}>Appraised Value</span>
+						<span className={styles.detailValue}>
+							{formatCurrency(property.appraised_value)}
+						</span>
+					</div>
+
+					<div className={styles.expandButtonContainer}>
+						<ExpandButton
+							isExpanded={isExpanded}
+							onToggle={handleToggleExpand}
+							size="sm"
+						/>
+					</div>
+				</CardFooter>
+
 				<PropertyDetails property={property} isExpanded={isExpanded} />
 			</CardBody>
-
-			<CardFooter className={styles.summary}>
-				<div className={styles.detailItem}>
-					<span className={styles.detailLabel}>Appraised Value</span>
-					<span className={styles.detailValue}>
-						{formatCurrency(property.appraised_value)}
-					</span>
-				</div>
-
-				<div className={styles.expandButtonContainer}>
-					<ExpandButton
-						isExpanded={isExpanded}
-						onToggle={handleToggleExpand}
-						size="sm"
-					/>
-				</div>
-			</CardFooter>
 		</Card>
 	);
 };
