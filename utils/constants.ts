@@ -2,9 +2,9 @@
  * Application constants
  */
 
-import { TIME_MS, DURATION_MS } from "./units";
-export * from "./http-errors";
+import { DURATION_MS, TIME_MS } from "./units";
 
+export * from "./http-errors";
 
 export const PROPERTY_TYPES = [
 	"Residential",

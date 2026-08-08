@@ -169,11 +169,13 @@ describe("buildUpsertStatements", () => {
 		);
 		const insertList = stmt.sql.slice(0, stmt.sql.indexOf(") VALUES"));
 
-		expect(stmt.params[insertList.split(",").findIndex((c) => c.includes("dba"))]).toBe(
-			"FRANKLIN BARBECUE",
-		);
 		expect(
-			stmt.params[insertList.split(",").findIndex((c) => c.includes("latitude"))],
+			stmt.params[insertList.split(",").findIndex((c) => c.includes("dba"))],
+		).toBe("FRANKLIN BARBECUE");
+		expect(
+			stmt.params[
+				insertList.split(",").findIndex((c) => c.includes("latitude"))
+			],
 		).toBe(30.27);
 		expect(
 			stmt.params[insertList.split(",").findIndex((c) => c.trim() === "zip")],
@@ -214,7 +216,14 @@ describe("buildUpsertStatements", () => {
 
 	it("passes nullable fields through as null", () => {
 		const [stmt] = buildUpsertStatements(
-			[property({ city: null, assessedValue: null, geoId: null, description: null })],
+			[
+				property({
+					city: null,
+					assessedValue: null,
+					geoId: null,
+					description: null,
+				}),
+			],
 			TERM,
 			YEAR,
 			NOW,

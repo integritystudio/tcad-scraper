@@ -30,9 +30,7 @@ const buildProperty = (index: number): Property => ({
 
 describe("SearchResults", () => {
 	it("shows totalResults (not results.length) in the pagination footer", () => {
-		const fetchedBatch = Array.from({ length: 50 }, (_, i) =>
-			buildProperty(i),
-		);
+		const fetchedBatch = Array.from({ length: 50 }, (_, i) => buildProperty(i));
 
 		render(
 			<SearchResults
@@ -47,9 +45,7 @@ describe("SearchResults", () => {
 	});
 
 	it("still derives the X-Y range from the paginated slice, not totalResults", () => {
-		const fetchedBatch = Array.from({ length: 50 }, (_, i) =>
-			buildProperty(i),
-		);
+		const fetchedBatch = Array.from({ length: 50 }, (_, i) => buildProperty(i));
 
 		render(
 			<SearchResults
@@ -60,6 +56,8 @@ describe("SearchResults", () => {
 		);
 
 		// RESULTS_PER_PAGE is 12, so page 1 shows items 1-12.
-		expect(screen.getByText(/Showing 1-12 of 3000 results/)).toBeInTheDocument();
+		expect(
+			screen.getByText(/Showing 1-12 of 3000 results/),
+		).toBeInTheDocument();
 	});
 });

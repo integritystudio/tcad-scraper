@@ -25,6 +25,18 @@ export const UPSERT_MICRO_CHUNK_SIZE = Math.floor(
 	D1_MAX_BOUND_PARAMS / UPSERT_COLUMNS,
 );
 
+// ── Query page size ─────────────────────────────────────────────────
+// The FTS keyword fallback pages in SQL and hands the resulting ids to a
+// data-fetch of `id IN (...) AND year = ?`, so a page cannot exceed D1's
+// 100-param limit minus a slot for `year` plus one spare.
+//
+// This is also the default API page size (propertyFilterSchema.limit,
+// runNaturalLanguageSearch) so the default never trips the fallback's clamp:
+// at a default of 100 the fallback returned 98 rows while pagination still
+// reported limit 100, leaving ranks 98-99 unreachable on every page.
+const FTS_PAGE_ID_HEADROOM = 2;
+export const FTS_MAX_PAGE_SIZE = D1_MAX_BOUND_PARAMS - FTS_PAGE_ID_HEADROOM; // 98
+
 // ── Cache TTL ───────────────────────────────────────────────────────
 export const RESPONSE_CACHE_TTL_SECONDS = 300;
 export const TOKEN_CACHE_TTL_SECONDS = 270;

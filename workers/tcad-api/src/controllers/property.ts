@@ -7,7 +7,6 @@ import type { Prisma } from "@prisma/client";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { cache } from "hono/cache";
-import { DEFAULT_QUERY_LIMIT } from "../../../../utils/constants";
 import { notFound, unavailable } from "../../../../utils/http-errors";
 import { TIME_MS } from "../../../../utils/units";
 import type { AppEnv } from "../bindings";
@@ -25,9 +24,12 @@ import {
 	propertyFilterSchema,
 	scrapeRequestSchema,
 } from "../types/property.types";
-import { RESPONSE_CACHE_TTL_SECONDS } from "../utils/constants";
-import { getErrorMessage } from "../utils/error-helpers";
+import {
+	FTS_MAX_PAGE_SIZE,
+	RESPONSE_CACHE_TTL_SECONDS,
+} from "../utils/constants";
 import { epochToISO, nowEpoch } from "../utils/epoch-dates";
+import { getErrorMessage } from "../utils/error-helpers";
 import { transformPropertyToSnakeCase } from "../utils/property-transformers";
 
 // TODO: Update to 2026 when TCAD publishes 2026 appraised values
@@ -110,11 +112,7 @@ interface NaturalLanguageSearchParams {
 // Shared by POST /search and the cacheable GET /search variant.
 const runNaturalLanguageSearch = async (
 	c: Context<AppEnv>,
-	{
-		query,
-		limit = DEFAULT_QUERY_LIMIT,
-		offset = 0,
-	}: NaturalLanguageSearchParams,
+	{ query, limit = FTS_MAX_PAGE_SIZE, offset = 0 }: NaturalLanguageSearchParams,
 ) => {
 	const prisma = c.get("prisma");
 
@@ -128,6 +126,10 @@ const runNaturalLanguageSearch = async (
 	let explanation: string | undefined;
 	let answer: string | undefined;
 	let answerType: string | undefined;
+	// Set by the FTS keyword fallback when pagination runs in SQL. The caller
+	// should use this total instead of prisma.property.count, and must not
+	// apply skip/take to findMany (the page ids are already the correct page).
+	let ftsPrecomputedTotal: number | undefined;
 
 	try {
 		const { filters: parsed } = await parseNaturalLanguageQuery(
@@ -149,25 +151,41 @@ const runNaturalLanguageSearch = async (
 			`AI query parsing failed, using keyword fallback: ${getErrorMessage(err)}`,
 		);
 		const { searchKeywordFallback } = await import("../lib/keyword-search");
-		const fallback = await searchKeywordFallback(prisma, query, DISPLAY_YEAR);
+		// Still clamped: propertyFilterSchema allows an explicit limit up to 1000,
+		// which a single FTS page cannot serve.
+		const ftsLimit = Math.min(limit, FTS_MAX_PAGE_SIZE);
+		const fallback = await searchKeywordFallback(
+			prisma,
+			query,
+			DISPLAY_YEAR,
+			ftsLimit,
+			offset,
+		);
 		whereClause = fallback.whereClause;
 		orderBy = undefined;
 		explanation = fallback.explanation;
 		answer = undefined;
 		answerType = undefined;
+		ftsPrecomputedTotal = fallback.precomputedTotal;
 	}
 
 	const yearFilteredClause = { ...whereClause, year: DISPLAY_YEAR };
 
 	try {
+		// When the FTS fallback ran SQL pagination, the returned ids are already
+		// the correct page and the total was pre-computed — skip Prisma's count
+		// and do not re-apply skip/take (which would paginate within the page).
 		const [properties, total] = await Promise.all([
 			prisma.property.findMany({
 				where: yearFilteredClause,
 				orderBy: orderBy || { scrapedAt: "desc" },
-				skip: offset,
-				take: Math.min(limit, 1000),
+				...(ftsPrecomputedTotal === undefined
+					? { skip: offset, take: Math.min(limit, 1000) }
+					: {}),
 			}),
-			prisma.property.count({ where: yearFilteredClause }),
+			ftsPrecomputedTotal !== undefined
+				? Promise.resolve(ftsPrecomputedTotal)
+				: prisma.property.count({ where: yearFilteredClause }),
 		]);
 
 		let statistics: AnswerStatistics | undefined;

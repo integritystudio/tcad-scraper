@@ -87,7 +87,11 @@ describe("runBackfill", () => {
 		await runBackfill(makeCfg());
 
 		expect(mockEnqueueBatch).toHaveBeenCalledTimes(1);
-		expect(mockEnqueueBatch).toHaveBeenCalledWith(["alpha", "bravo", "charlie"]);
+		expect(mockEnqueueBatch).toHaveBeenCalledWith([
+			"alpha",
+			"bravo",
+			"charlie",
+		]);
 		expect(mockWaitForQueueDrain).toHaveBeenCalledTimes(1);
 		expect(mockWaitForQueueDrain).toHaveBeenCalledWith(
 			["alpha", "bravo", "charlie"],

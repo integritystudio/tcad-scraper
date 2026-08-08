@@ -135,7 +135,10 @@ export async function parseNaturalLanguageQuery(
 ): Promise<ParsedQuery> {
 	// Try Anthropic first
 	try {
-		return { ...(await callAnthropicAPI(query, anthropicKey)), provider: "anthropic" };
+		return {
+			...(await callAnthropicAPI(query, anthropicKey)),
+			provider: "anthropic",
+		};
 	} catch (err) {
 		const errorMessage = getErrorMessage(err);
 		// If Anthropic fails with a billing/quota error and Grok is available, try Grok

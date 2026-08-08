@@ -1,18 +1,27 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-08-08 (T13, T14 added; T3 remains open below)
-**Status**: 159 frontend + 85 scripts + 70 workers tests passing | TypeScript clean | Lint clean
+**Last Updated**: 2026-08-08 (T13, T14 done — 0004 applied to production D1; all P1 frontend items M36–M42, plus M43 and L19 done; T3, T15, L20, C8, L21 remain open below)
+**Status**: 164 frontend + 85 scripts + 75 workers tests passing | TypeScript clean (root + workers) | Lint clean repo-wide — 0 errors, 0 warnings
 
 ---
 ## Open Items
 
-#### T13: FTS fallback's 90-result ceiling caps totalResults and empties page 2+
-**Priority**: P1 | **Source**: FTS fallback work (2026-08-08)
-`FTS_MAX_RESULTS` is 90 (`D1_MAX_BOUND_PARAMS - FTS_ID_PARAM_HEADROOM`) because the FTS ids are folded into the caller's Prisma `id IN (...)` clause, and D1 hard-caps queries at 100 bound params. So the keyword fallback can never surface more than 90 rows: `totalResults` is capped at 90 no matter how many properties match, and any page past the first 90 results is near-empty. Fix: push `LIMIT`/`OFFSET` and a `COUNT(*)` into the raw FTS join so paging happens in SQL, which removes the cap and reports true totals — at the cost of no longer reusing the caller's Prisma pagination/count/transform pipeline in `runNaturalLanguageSearch`. Currently user-visible: with both Anthropic and xAI unfunded, this fallback *is* the live search path. Related: M42 (same class of misreported total). -- `workers/tcad-api/src/lib/keyword-search.ts:21-22`, `workers/tcad-api/src/controllers/property.ts:145-171`
+#### ~~T13: FTS fallback's 90-result ceiling caps totalResults and empties page 2+~~ [Done]
+**Commit**: 9e67a9e | `ftsQueryPage` replaces `ftsMatchIds`; `LIMIT`/`OFFSET` + `COUNT(*)` in SQL; `precomputedTotal` skips Prisma count; `FTS_MAX_PAGE_SIZE=98`.
+**Follow-up**: 6d71194 moved `FTS_MAX_PAGE_SIZE` out of `keyword-search.ts` into `workers/tcad-api/src/utils/constants.ts` (beside `D1_MAX_BOUND_PARAMS`, which it derives from) and made it the default API page size, replacing `DEFAULT_QUERY_LIMIT` in `propertyFilterSchema.limit` and `runNaturalLanguageSearch`. At the old default of 100 the fallback clamped its page to 98 while pagination still reported `limit: 100`, so a client paging on the reported limit skipped ranks 98-99 of every page. `DEFAULT_QUERY_LIMIT` is deliberately untouched in `scraper.workflow.ts:150,181`, where it caps TCAD pagination *pages*, not rows. Residual gap tracked as T15.
 
-#### T14: FTS index omits secondary owner-identity columns (DBA, co-owner)
-**Priority**: P2 | **Source**: FTS fallback work (2026-08-08)
-The owner name itself is covered and is already the highest-weighted column — `name` is the owner-name field (documented as such in `claude.service.ts`'s SYSTEM_PROMPT) at bm25 weight 10.0 against `description`'s 1.0, so the weights need no change. The gap is column *coverage*: `properties_fts` indexes only `name`, `property_address`, `city`, `description`, while several other owner-identity columns exist unindexed — `owner_name` 154,302 rows populated (32%, and differing from `name` on 1,561 of them), `name_secondary` 36,401 (7.5%), `dba` 19,792 (4%). So a business searchable by its DBA, or a co-owner recorded only in `name_secondary`, is unfindable via the keyword fallback: roughly 56k rows' worth of names. `first_name`/`last_name` are not worth indexing (420/412 rows, 0.09% — effectively unpopulated). Fix is a migration, not a weight tweak: recreate the virtual table with the added columns, update all three sync triggers (`_ai`/`_ad`/`_au`), and `rebuild`. Costs: larger index, and per CLAUDE.md these columns are null for rows not re-scraped since 2026-08-08, so coverage grows only as rows are re-scraped. -- `workers/tcad-api/prisma/migrations/0002_properties_fts.sql:7-14`, `workers/tcad-api/src/lib/keyword-search.ts` (`FTS_BM25_WEIGHTS`)
+#### ~~T14: FTS index omits secondary owner-identity columns (DBA, co-owner)~~ [Done]
+**Commit**: 4e480d5 | Migration 0004_fts_owner_columns.sql recreates virtual table with `owner_name`/`name_secondary`/`dba`; triggers updated; `FTS_BM25_WEIGHTS` adds ownerName/nameSecondary/dba at 9.0.
+**Applied to production D1 2026-08-08** (7.1s, `wrangler d1 execute --remote --file`). Verified: virtual table carries all 7 columns, all three sync triggers replaced, and the `rebuild` indexed **484,251** rows (matches `/health` propertyCount). New columns are individually searchable — `dba:"hydrochem"` 1 hit, `name_secondary:"trust"` 1,489, `owner_name:"llc"` 13,719.
+**No deploy-ordering requirement** — an earlier review claim that a bm25 weight/column-count mismatch errors is **wrong**: 4-weight and 7-weight `bm25()` calls both succeed against the 7-column table (FTS5 defaults unspecified weights rather than erroring). So the pre-0004 deployed code kept working after the migration, and because `MATCH` searches all columns, T14's coverage win went live *without* a deploy. What the pending deploy adds is ranking only: the three new columns currently sit at the implicit default weight instead of 9.0.
+
+#### T15: Explicit `limit` above 98 still leaves FTS ranks unreachable
+**Priority**: P2 | **Source**: review of T13 (2026-08-08)
+`6d71194` fixed the *default* page size, but `propertyFilterSchema.limit` still allows an explicit value up to 1000 while the keyword fallback clamps its SQL page to `FTS_MAX_PAGE_SIZE` (98) and the response echoes the unclamped `limit`. So a caller passing `limit=1000` receives 98 rows, is told `limit: 1000`, and paging on that reported value jumps to `offset=1000` — ranks 98-999 are never served. Only the FTS fallback path is affected; the AI path pages in Prisma and is fine. The two halves of the mismatch are `property.ts:156` (`const ftsLimit = Math.min(limit, FTS_MAX_PAGE_SIZE)`, capping the rows actually fetched) and `property.ts:258` (`limit: Math.min(limit, 1000)`, echoing the requested value).
+
+Reaching it requires the degraded path — `searchKeywordFallback` runs only when AI parsing fails with both Anthropic and xAI unreachable — *and* a non-default limit. The frontend never trips it: `usePropertySearch` requests `limit = 50`. That combination is why this is P2 rather than P1, despite being silent row loss.
+
+Options: clamp the *reported* limit to what was actually served, cap the schema's `.max()` at `FTS_MAX_PAGE_SIZE` for the search routes, or loop FTS pages server-side to fill a larger request. Reporting the effective limit is the smallest correct change, and `ftsPrecomputedTotal !== undefined` (`property.ts:132`) already signals that the fallback ran. Note `MAX_QUERY_LIMIT = 1000` already exists in the root `utils/constants.ts:56` but `property.types.ts:28` hardcodes `.max(1000)`, and `property.ts:258` hardcodes it a second time — a magic number duplicated where a constant exists (project rule: no magic numbers). Workers' own `src/utils/constants.ts` defines neither, and importing the root file from workers is already established practice (`scraper.workflow.ts:33` does exactly that), so this is a straightforward import rather than a cross-boundary problem. -- `workers/tcad-api/src/types/property.types.ts:28`, `workers/tcad-api/src/controllers/property.ts:156,258`
 
 #### T3: Retire or activate 2026 mining strategy for backfill scripts
 **Priority**: P3 | **Source**: scripts-review audit (2026-08-06)
@@ -22,41 +31,36 @@ All four `backfill-2025-*.ts` scripts and Phase 3 of `enqueue-tail-terms.ts` que
 
 ## Findings from Frontend Code Review (2026-08-07)
 
-#### M36: Search state loading flag cleared by stale request finalization
-**Priority**: P1 | **Source**: code-review (2026-08-07)
-In `usePropertySearch.ts:135`, the search() finally block unconditionally sets loading=false even when a newer call has aborted this one, causing stale request cleanup to clear the loading flag while an active request is still in flight. No guard compares searchAbortRef.current to the call's own controller before setLoading(false). Failure: user pauses typing (call A starts), types more before A resolves (call B aborts A), A's AbortError catches early but its finally still runs setLoading(false), flipping loading to false while B is in flight. -- `src/hooks/usePropertySearch.ts:135`
+#### ~~M36: Search state loading flag cleared by stale request finalization~~ [Done]
+**Commit**: 9376000 | `finally` now clears `loading` only when `searchAbortRef.current === abortController`, so a superseded call's cleanup can't flip the flag while the newer request is in flight.
 
-#### M37: Duplicate search POST from handleSearch bypassing lastSearchedRef guard
-**Priority**: P1 | **Source**: code-review (2026-08-07)
-In `SearchBox.tsx:26`, handleSearch() (Enter/click) never checks lastSearchedRef before calling onSearch despite a comment claiming the ref prevents duplicates. Failure: user types 'Oak Street', pauses so live-search debounce fires onSearch and sets lastSearchedRef; user then presses Enter/clicks Search on unchanged text — handleSearch fires onSearch again, producing duplicate POST to /properties/search plus duplicate analytics/Mixpanel events. Existing dedup tests only cover the reverse order. -- `src/components/features/PropertySearch/SearchBox.tsx:26`
+#### ~~M37: Duplicate search POST from handleSearch bypassing lastSearchedRef guard~~ [Done]
+**Commit**: 7ff5fcc | `handleSearch()` checks `trimmed !== lastSearchedRef.current` before calling `onSearch`, mirroring the debounce path's dedup.
 
-#### M38: currentPage stale when results shrink for identical textual query
-**Priority**: P1 | **Source**: code-review (2026-08-07)
-In `SearchResults.tsx:154`, PaginatedResultsGrid resets currentPage only by remounting on key={searchQuery}; if results.length shrinks for a textually-identical query (e.g. via finding M37's duplicate search), no remount occurs and currentPage goes stale, stranding the user on a blank page. usePagination.ts never clamps currentPage against shrinking totalItems. -- `src/components/features/PropertySearch/SearchResults.tsx:154`
+#### ~~M38: currentPage stale when results shrink for identical textual query~~ [Done]
+**Commit**: 6a4e035 | `usePagination` clamps `currentPage` to `Math.min(prev, Math.max(1, totalPages))` on `totalPages` change — last valid page, not page 1.
 
-#### M39: PropertyDetails moved below toggle button, reversing UI control flow
-**Priority**: P1 | **Source**: code-review (2026-08-07)
-In `PropertyCard.tsx:49`, moving PropertyDetails into CardBody and the value-summary/ExpandButton into a sibling CardFooter reverses their visual order: the toggle button now renders below the panel it controls instead of above it, forcing users to scroll past all detail content to find the button that collapses it. -- `src/components/features/PropertySearch/PropertyCard.tsx:49`
+#### ~~M39: PropertyDetails moved below toggle button, reversing UI control flow~~ [Done]
+**Commit**: 0c851d3 | Value-summary/ExpandButton row moved back into `CardBody` directly above `PropertyDetails`.
 
-#### M40: CardFooter CSS rule adds unrequested divider and spacing to card content
-**Priority**: P1 | **Source**: code-review (2026-08-07)
-In `PropertyCard.tsx:52`, wrapping the value-summary row in CardFooter pulls in Card.module.css's unconditional .footer rule (margin-top/padding-top/border-top), which neither PropertyCard.module.css nor AttributionCard.module.css overrides — adding an unrequested divider and spacing to every card. Same regression affects AttributionCard.tsx's CardFooter-wrapped action links. -- `src/components/features/PropertySearch/PropertyCard.tsx:52`, `src/components/layout/AttributionCard/AttributionCard.tsx`
+#### ~~M40: CardFooter CSS rule adds unrequested divider and spacing to card content~~ [Done]
+**Commit**: 0c851d3 | `.summary` (PropertyCard.module.css) and AttributionCard.module.css's `.card` footer rule zero out `margin-top`/`padding-top`/`border-top`. Note: the override sits at equal specificity to `Card.module.css`'s `.footer` — the same cascade-order fragility tracked as M43 below.
 
-#### M41: ValueComparison falsy-zero guard blocks assessedPercentage chart for zero values
-**Priority**: P1 | **Source**: code-review (2026-08-07)
-In `ValueComparison.tsx:19`, the difference memo's falsy-zero guard (if (!assessedValue) return null) treats assessedValue===0 as absent, blocking the assessedPercentage chart bar from rendering for that value (assessedValue is Float? with no floor in schema.prisma, realistic for a tax-exempt parcel), even though assessedPercentage's own guard was written to allow zero. -- `src/components/features/PropertySearch/PropertyDetails/components/ValueComparison.tsx:19`
+#### ~~M41: ValueComparison falsy-zero guard blocks assessedPercentage chart for zero values~~ [Done]
+**Commit**: c0d9d7f | `difference` memo checks `assessedValue === null || assessedValue === undefined` instead of `!assessedValue`.
 
-#### M42: Pagination footer text implies incomplete result set is complete
-**Priority**: P1 | **Source**: code-review (2026-08-07)
-In `SearchResults.tsx:51`, the pagination footer text uses results.length instead of the totalResults prop, so for any query matching more than the fetch limit (default 50), the UI implies the fetched batch is the complete result set (e.g. 'Showing 49-50 of 50 results' when totalResults=3000). -- `src/components/features/PropertySearch/SearchResults.tsx:51`
+#### ~~M42: Pagination footer text implies incomplete result set is complete~~ [Done]
+**Commit**: 5fa8df1 | `PaginatedResultsGrid` takes `totalResults` as a prop and uses it for the total; the X-Y range still derives from the local slice.
 
-#### M43: Overlapping CSS class specificity in AttributionCard layers defaults and custom styles
-**Priority**: P2 | **Source**: code-review (2026-08-07)
-In `AttributionCard.tsx:42`, swapping <aside className={styles.card}> for <Card className={styles.card}> layers Card.module.css's default .card class (white bg, 12px radius) alongside AttributionCard.module.css's .card (different bg, 0.5rem radius) at equal specificity, so the cascade winner depends on bundler emission order rather than explicit intent. -- `src/components/layout/AttributionCard/AttributionCard.tsx:42`
+#### ~~M43: Overlapping CSS class specificity in AttributionCard layers defaults and custom styles~~ [Done]
+**Commit**: 597494e | `Card.module.css` now declares all of its rules inside `@layer card`. Unlayered styles always beat layered ones regardless of source order, so a consumer's `className` wins by construction instead of by bundler emission order — no specificity hacks, and it hardens M40's `.summary`/`.actions` overrides on the same mechanism. Verified against the built bundle: every Card class lands inside the layer while AttributionCard's `.card` (including its mobile media query) and PropertyCard's `.card` stay outside it. Only two `<Card>` consumers exist, both of which override.
 
-#### L19: Live-search debounce fires on every 1-2 character keystroke without minimum length
-**Priority**: P2 | **Source**: code-review (2026-08-07)
-In `SearchBox.tsx:42`, the live-search debounce has no minimum query length and only a single-value lastSearchedRef, so it fires a full AI-backed search (NL parse + D1 query) on every settled 1-2 character keystroke and can't detect an A->B->A edit pattern (e.g. correcting a typo back to a previous value re-runs an already-answered search). -- `src/components/features/PropertySearch/SearchBox.tsx:42`
+The AttributionCard conflicts this resolves: `background`, `border-radius`, `box-shadow`, and — the one visible bug — mobile `padding`, where `.card { padding: 1rem }` at ≤640px competed with Card's `.padding-md { padding: 1.5rem }` (media queries add no specificity).
+
+#### ~~L19: Live-search debounce fires on every 1-2 character keystroke without minimum length~~ [Done]
+**Commit**: 720c7d8 (regression tests) | The minimum-length half landed in 18a4c4b (`LIVE_SEARCH_MIN_LENGTH = 3`); the debounce was raised to 1.5s (754c861, 332ad91); and 56294ea moved search to a cacheable GET, so a repeat query is served from the Workers edge cache without re-invoking the AI parse — which was the cost the finding was concerned about.
+
+The remaining sub-claim — that a single-value `lastSearchedRef` should be a multi-value "already searched" set — was **investigated and rejected as invalid**. `useDebounce` only emits *settled* values, so a typo corrected inside the debounce window never dispatches B at all and the correction back to A is already suppressed by the ref. When B *does* settle, B's results are what's on screen, so returning to A **must** re-search or the UI would show Elm Street results under the query "Oak Street". A set of seen queries would introduce exactly that bug. Both cases are now pinned by tests in `SearchBox.test.tsx` ("does not re-search when a typo is corrected within the debounce window" / "re-searches A after B settled, so results match the visible query").
 
 #### L20: Duplicate Date.now()/getTime() calculation in formatRelativeTime and daysSince
 **Priority**: P3 | **Source**: code-review (2026-08-07)
@@ -65,6 +69,18 @@ In `TimestampList.tsx:14`, formatRelativeTime computes diffMs directly and also 
 #### C8: Inline styles in ValueComparison violate project no-inline-styling rule
 **Priority**: P3 | **Source**: code-review (2026-08-07)
 In `ValueComparison.tsx:96` and `:85`, inline style={{ width: `${assessedPercentage}%` }} and style={{ width: "100%" }} were carried forward/re-touched rather than moved off inline style, violating the project's CLAUDE.md rule "no in-line styling for UI components." -- `src/components/features/PropertySearch/PropertyDetails/components/ValueComparison.tsx:85,96`
+
+#### L21: `composes` is accepted in plain stylesheets, where it is a silent no-op
+**Priority**: P3 | **Source**: introduced by 9aa75f3 (2026-08-08)
+`biome.json` sets `css.parser.cssModules: true` so the four `PropertyDetails/sections/*.module.css` files using `composes: base from "./SectionBase.module.css"` parse — before that they were unlintable and unformattable, and each produced two errors. The option is **global**, so `composes` is now also accepted in non-module stylesheets (`src/index.css`, `App.css`), where CSS Modules never processes it and the declaration does nothing at runtime. Biome will not flag that case. Purely permissive — it cannot reject anything that previously passed — but it is a real gap in lint coverage rather than a clean win.
+
+**Fix is verified working** (tested 2026-08-08, not just read off the schema): move the setting out of the top-level `css` block into an `overrides` entry scoped to module files. Biome's `OverridePattern` supports `css.parser`, and with this in place the four `sections/*.module.css` files still parse (9 files, 0 errors) while a plain `.css` containing `composes` correctly errors again.
+```json
+"overrides": [
+  { "includes": ["**/*.module.css"], "css": { "parser": { "cssModules": true } } }
+]
+```
+-- `biome.json`
 
 ---
 

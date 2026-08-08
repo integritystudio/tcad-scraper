@@ -30,7 +30,11 @@ export interface SearchedTermSets {
 export async function getSearchedTermSets(): Promise<SearchedTermSets> {
 	const [analyticsRows, propTermRows, recentJobs] = await Promise.all([
 		prisma.searchTermAnalytics.findMany({
-			select: { searchTerm: true, totalResults: true, successfulSearches: true },
+			select: {
+				searchTerm: true,
+				totalResults: true,
+				successfulSearches: true,
+			},
 		}),
 		prisma.property.groupBy({
 			by: ["searchTerm"],

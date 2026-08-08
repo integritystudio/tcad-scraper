@@ -9,10 +9,7 @@
  * @see https://developers.google.com/search/docs/appearance/structured-data
  */
 
-import type {
-	PaginatedPropertyResponse,
-	PropertyAPI,
-} from "./property.types";
+import type { PaginatedPropertyResponse, PropertyAPI } from "./property.types";
 
 // ============================================================================
 // Type Definitions for JSON-LD

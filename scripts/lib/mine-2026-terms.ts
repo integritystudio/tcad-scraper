@@ -101,9 +101,7 @@ export function mineDescriptionFirstWords(
  * Two-word owner-name phrases on 2026-only properties.
  * Requires w1 >= MIN_TERM_LENGTH and w2 >= 2 chars; `alphaOnly` applies to w1.
  */
-export function mineTwoWordOwnerNames(
-	opts: MineOptions,
-): Promise<MinedTerm[]> {
+export function mineTwoWordOwnerNames(opts: MineOptions): Promise<MinedTerm[]> {
 	return run(`
     WITH split1 AS (
       SELECT property_id,

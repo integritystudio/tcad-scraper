@@ -21,12 +21,6 @@
 import { pathToFileURL } from "node:url";
 import { MIN_TERM_LENGTH } from "../utils/constants";
 import { BACKFILL_2025_STATIC_TERMS } from "./config/backfill-2025-static-terms";
-import { BLOCKED_TERMS } from "./lib/terms/BLOCKED_TERMS";
-import { BUSINESS_ENTITY } from "./lib/terms/BUSINESS_ENTITY";
-import { FIRST_NAMES_FEMALE } from "./lib/terms/FIRST_NAMES_FEMALE";
-import { FIRST_NAMES_MALE } from "./lib/terms/FIRST_NAMES_MALE";
-import { LAST_NAMES } from "./lib/terms/LAST_NAMES";
-import { STREET_GEOGRAPHIC } from "./lib/terms/STREET_GEOGRAPHIC";
 import { isSupersetOfAny } from "./lib/backfill-utils";
 import { generateCvcvBases } from "./lib/cvcv";
 import { prisma } from "./lib/d1-prisma";
@@ -36,6 +30,12 @@ import {
 	getBlacklistedTermSet,
 	getSearchedTermSets,
 } from "./lib/searched-terms";
+import { BLOCKED_TERMS } from "./lib/terms/BLOCKED_TERMS";
+import { BUSINESS_ENTITY } from "./lib/terms/BUSINESS_ENTITY";
+import { FIRST_NAMES_FEMALE } from "./lib/terms/FIRST_NAMES_FEMALE";
+import { FIRST_NAMES_MALE } from "./lib/terms/FIRST_NAMES_MALE";
+import { LAST_NAMES } from "./lib/terms/LAST_NAMES";
+import { STREET_GEOGRAPHIC } from "./lib/terms/STREET_GEOGRAPHIC";
 
 const TARGET_TERM_COUNT = 200;
 
@@ -74,10 +74,12 @@ async function scoreTermsByDbMatches(
 		>(`SELECT ${cols} FROM properties`);
 		if (!row) {
 			console.error(`Yield scoring: empty result for chunk at ${i}; scoring 0`);
-			chunk.forEach((t) => scores.set(t, 0));
+			for (const t of chunk) scores.set(t, 0);
 			continue;
 		}
-		chunk.forEach((t, j) => scores.set(t, Number(row[`c${j}`] ?? 0)));
+		for (const [j, t] of chunk.entries()) {
+			scores.set(t, Number(row[`c${j}`] ?? 0));
+		}
 	}
 	return scores;
 }
