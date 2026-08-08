@@ -138,8 +138,40 @@ describe("searchKeywordFallback", () => {
 
 		await searchKeywordFallback(prisma, "Oak Street", 2025);
 
-		// match, year, min, min, max, max, limit — nulls make the bound checks no-ops.
-		expect(boundValues).toEqual(['"oak" OR "street"', 2025, null, null, null, null, 90]);
+		// match, year, min, min, max, max, then the four bm25 column weights in
+		// FTS declaration order, then LIMIT. Nulls make the bound checks no-ops.
+		expect(boundValues).toEqual([
+			'"oak" AND "street"',
+			2025,
+			null,
+			null,
+			null,
+			null,
+			10.0,
+			8.0,
+			4.0,
+			1.0,
+			90,
+		]);
+	});
+
+	it("weights name and address above description in the bm25 ordering", async () => {
+		// Unweighted, "condominium" filled 18 of the top 20 with description-only
+		// plat text. The weights must stay in FTS column-declaration order:
+		// name, property_address, city, description.
+		let boundValues: unknown[] = [];
+		const prisma = {
+			$queryRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
+				boundValues = values;
+				return Promise.resolve([{ id: "p1" }]);
+			},
+		} as unknown as PrismaClient;
+
+		await searchKeywordFallback(prisma, "condominium", 2025);
+
+		const weights = boundValues.slice(-5, -1);
+		expect(weights).toEqual([10.0, 8.0, 4.0, 1.0]);
+		expect(weights[0]).toBeGreaterThan(weights[3] as number);
 	});
 
 	it("pushes the parsed bound into the FTS query so it narrows before LIMIT", async () => {
@@ -177,6 +209,64 @@ describe("searchKeywordFallback", () => {
 		);
 
 		expect(filters.whereClause).toEqual({ appraisedValue: { gt: 500_000 } });
+	});
+
+	it("requires all tokens first, and says so", async () => {
+		// "oak street" matches 14 rows as AND vs 12,153 as OR on production D1,
+		// so an OR-only set fills its 90 slots with single-token hits.
+		const matches: string[] = [];
+		const prisma = {
+			$queryRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
+				matches.push(values[0] as string);
+				return Promise.resolve([{ id: "p1" }]);
+			},
+		} as unknown as PrismaClient;
+
+		const filters = await searchKeywordFallback(prisma, "Oak Street", 2025);
+
+		expect(matches).toEqual(['"oak" AND "street"']);
+		expect(filters.explanation).toContain("matching all terms");
+	});
+
+	it("relaxes to OR when requiring all tokens matches nothing", async () => {
+		// "zilker park trust" is plausible but matches 0 rows as AND and 55,535
+		// as OR — returning nothing would be worse than relaxing.
+		const matches: string[] = [];
+		const prisma = {
+			$queryRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
+				matches.push(values[0] as string);
+				return Promise.resolve(matches.length === 1 ? [] : [{ id: "p9" }]);
+			},
+		} as unknown as PrismaClient;
+
+		const filters = await searchKeywordFallback(
+			prisma,
+			"zilker park trust",
+			2025,
+		);
+
+		expect(matches).toEqual([
+			'"zilker" AND "park" AND "trust"',
+			'"zilker" OR "park" OR "trust"',
+		]);
+		expect(filters.whereClause).toEqual({ id: { in: ["p9"] } });
+		expect(filters.explanation).toContain("matching any term");
+	});
+
+	it("does not spend a second query relaxing a single token", async () => {
+		// AND and OR are identical for one token, so an empty result is final.
+		const matches: string[] = [];
+		const prisma = {
+			$queryRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
+				matches.push(values[0] as string);
+				return Promise.resolve([]);
+			},
+		} as unknown as PrismaClient;
+
+		const filters = await searchKeywordFallback(prisma, "Pflugerville", 2025);
+
+		expect(matches).toEqual(['"pflugerville"']);
+		expect(filters.whereClause).toEqual({ id: { in: [] } });
 	});
 });
 

@@ -46,6 +46,27 @@ const QUERY_STOPWORDS = new Set([
 	"than",
 ]);
 
+/**
+ * bm25 column weights, in the order the columns are declared by
+ * prisma/migrations/0002_properties_fts.sql — reordering that migration
+ * silently reweights search.
+ *
+ * `description` holds legal plat text ("UNT 20 GABARDINE CONDOMINIUMS
+ * AMENDED PLUS .7722 % INT IN COM AREA"), which TCAD's own search does not
+ * even cover. Unweighted, it dominates: measured on production D1,
+ * "condominium" filled 18 of the top 20 with description-only matches and
+ * buried the 25 rows whose owner name or address actually says it —
+ * weighting drops that to 0 of 20. Terms that exist *only* in description
+ * (RESUB, subdivision names) are unaffected; there is nothing else to
+ * promote, so they still rank among themselves.
+ */
+const FTS_BM25_WEIGHTS = {
+	name: 10.0,
+	propertyAddress: 8.0,
+	city: 4.0,
+	description: 1.0,
+} as const;
+
 const THOUSAND = 1_000;
 const MILLION = 1_000_000;
 
@@ -139,20 +160,30 @@ function describeBounds(bounds: ValueBounds): string {
 	return `appraised under ${money(bounds.max as number)}`;
 }
 
+/** How multiple tokens combine in a MATCH expression. */
+export type FtsJoin = "AND" | "OR";
+
+/**
+ * Tokens actually used for matching: signal tokens, or the raw tokens if
+ * stopword removal emptied the query ("show me all the properties") — a weak
+ * search still beats no search.
+ */
+function matchTokens(query: string): string[] {
+	const tokens = query.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+	const signal = extractSignalTokens(query);
+	return signal.length > 0 ? signal : tokens;
+}
+
 /**
  * Reduce free text to a safe FTS5 MATCH expression: bare alphanumeric
  * tokens, each quoted (neutralizes operators such as AND, OR, NOT, star,
- * caret), OR-joined so partial matches still rank rather than requiring
- * every word of a natural-language query to hit. Stopwords are removed
- * first so the remaining tokens actually drive the ranking.
+ * caret), joined by `join`. Stopwords are removed first so the remaining
+ * tokens actually drive the ranking.
  */
-export function buildFtsMatchQuery(query: string): string {
-	const tokens = query.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-	// If stopword removal empties the query (e.g. "show me all"), fall back to
-	// the raw tokens — a weak search still beats no search.
-	const signal = extractSignalTokens(query);
-	const matched = signal.length > 0 ? signal : tokens;
-	return matched.map((t) => `"${t}"`).join(" OR ");
+export function buildFtsMatchQuery(query: string, join: FtsJoin = "OR"): string {
+	return matchTokens(query)
+		.map((t) => `"${t}"`)
+		.join(` ${join} `);
 }
 
 export function buildKeywordSearchFilters(query: string): SearchFilters {
@@ -173,6 +204,42 @@ export function buildKeywordSearchFilters(query: string): SearchFilters {
 			: textClause,
 		explanation: `Keyword search for "${term}" across owner name, address, city, and description${suffix} (AI search unavailable)`,
 	};
+}
+
+/**
+ * Run one MATCH expression and return the ranked property ids.
+ *
+ * Bounds are applied here rather than in the returned where clause so they
+ * narrow the set *before* LIMIT — filtering the top-ranked ids afterwards
+ * would discard qualifying rows ranked below the cutoff. Both bounds are
+ * always bound (null = no-op) to keep this a single static statement with no
+ * interpolated SQL.
+ */
+async function ftsMatchIds(
+	prisma: PrismaClient,
+	match: string,
+	year: number,
+	bounds: ValueBounds,
+): Promise<string[]> {
+	// bm25()'s first argument must be the FTS table *name*, not the `f` alias —
+	// D1 rejects `bm25(f, ...)` with "no such column: f".
+	const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+		SELECT p.id
+		FROM properties_fts f
+		JOIN properties p ON p.rowid = f.rowid
+		WHERE properties_fts MATCH ${match} AND p.year = ${year}
+		  AND (${bounds.min} IS NULL OR p.appraised_value > ${bounds.min})
+		  AND (${bounds.max} IS NULL OR p.appraised_value < ${bounds.max})
+		ORDER BY bm25(
+			properties_fts,
+			${FTS_BM25_WEIGHTS.name},
+			${FTS_BM25_WEIGHTS.propertyAddress},
+			${FTS_BM25_WEIGHTS.city},
+			${FTS_BM25_WEIGHTS.description}
+		)
+		LIMIT ${FTS_MAX_RESULTS}
+	`;
+	return rows.map((r) => r.id);
 }
 
 /**
@@ -197,30 +264,37 @@ export async function searchKeywordFallback(
 		};
 	}
 
-	const match = buildFtsMatchQuery(searchText);
-	if (!match) {
+	const requireAll = buildFtsMatchQuery(searchText, "AND");
+	if (!requireAll) {
 		return buildKeywordSearchFilters(query);
 	}
 	const boundsSuffix = hasBounds(bounds) ? `, ${describeBounds(bounds)}` : "";
 	try {
-		// Bounds are applied here rather than in the returned where clause so
-		// they narrow the set *before* LIMIT — filtering the top-ranked ids
-		// afterwards would discard qualifying rows ranked below the cutoff.
-		// Both bounds are always bound (null = no-op) to keep this a single
-		// static statement with no interpolated SQL.
-		const rows = await prisma.$queryRaw<Array<{ id: string }>>`
-			SELECT p.id
-			FROM properties_fts f
-			JOIN properties p ON p.rowid = f.rowid
-			WHERE properties_fts MATCH ${match} AND p.year = ${year}
-			  AND (${bounds.min} IS NULL OR p.appraised_value > ${bounds.min})
-			  AND (${bounds.max} IS NULL OR p.appraised_value < ${bounds.max})
-			ORDER BY f.rank
-			LIMIT ${FTS_MAX_RESULTS}
-		`;
+		let ids = await ftsMatchIds(prisma, requireAll, year, bounds);
+		let relaxed = false;
+
+		// Requiring every token is far more selective — measured on production
+		// D1, "oak street" matches 14 rows as AND against 12,153 as OR, so an
+		// OR-only set fills its 90 slots with rows that hit just one token. But
+		// plausible queries ("zilker park trust") match nothing as AND, so relax
+		// to OR rather than returning empty. Only worth a second query when
+		// there is more than one token to relax.
+		if (ids.length === 0 && matchTokens(searchText).length > 1) {
+			ids = await ftsMatchIds(
+				prisma,
+				buildFtsMatchQuery(searchText, "OR"),
+				year,
+				bounds,
+			);
+			relaxed = true;
+		}
+
+		const matchNote = relaxed
+			? "matching any term, as no property matched all of them"
+			: "matching all terms";
 		return {
-			whereClause: { id: { in: rows.map((r) => r.id) } },
-			explanation: `Keyword search for "${query.trim()}" across owner name, address, city, and description${boundsSuffix} (AI search unavailable; top ${FTS_MAX_RESULTS} matches by relevance)`,
+			whereClause: { id: { in: ids } },
+			explanation: `Keyword search for "${query.trim()}" across owner name, address, city, and description${boundsSuffix} — ${matchNote} (AI search unavailable; top ${FTS_MAX_RESULTS} matches by relevance)`,
 		};
 	} catch (err) {
 		// FTS table absent or MATCH rejected — degrade once more to LIKE.
