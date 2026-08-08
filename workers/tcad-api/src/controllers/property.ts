@@ -130,7 +130,7 @@ const runNaturalLanguageSearch = async (
 	let answerType: string | undefined;
 
 	try {
-		const parsed = await parseNaturalLanguageQuery(
+		const { filters: parsed } = await parseNaturalLanguageQuery(
 			query,
 			c.env.ANTHROPIC_API_KEY,
 			c.env.XAI_API_KEY,
@@ -276,22 +276,30 @@ app.get(
 	},
 );
 
-// GET /search/test — test Claude AI connection
+// GET /search/test — check the AI query-parsing path end to end.
+// Reports which provider answered: this request may be served by Anthropic or
+// by the Grok fallback, and the whole point of a diagnostic is to say which.
 app.get("/search/test", async (c) => {
-	const { parseNaturalLanguageQuery } = await import("../lib/claude.service");
+	const { parseNaturalLanguageQuery, AI_PROVIDER_LABELS } = await import(
+		"../lib/claude.service"
+	);
 	const testQuery = "properties in Austin";
 
 	try {
-		const result = await parseNaturalLanguageQuery(
+		const { filters, provider, model } = await parseNaturalLanguageQuery(
 			testQuery,
 			c.env.ANTHROPIC_API_KEY,
 			c.env.XAI_API_KEY,
 		);
 		return c.json({
 			success: true,
-			message: "Claude API connection successful",
+			message: `${AI_PROVIDER_LABELS[provider]} API connection successful`,
+			provider,
+			// The model the provider reports serving, which is not always the one
+			// requested — xAI substitutes silently for an unknown model name.
+			model,
 			testQuery,
-			result,
+			result: filters,
 		});
 	} catch (err) {
 		throw unavailable("Unable to process natural language query.", {

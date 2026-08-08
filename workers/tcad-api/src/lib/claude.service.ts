@@ -105,14 +105,37 @@ export function sanitizeWhereClause(
 	return sanitized;
 }
 
+/** Which upstream actually answered — the primary or the fallback. */
+export type AiProvider = "anthropic" | "grok";
+
+/** Human-readable provider names, for diagnostics that report the source. */
+export const AI_PROVIDER_LABELS: Record<AiProvider, string> = {
+	anthropic: "Anthropic (Claude)",
+	grok: "xAI (Grok)",
+};
+
+interface ProviderResult {
+	filters: SearchFilters;
+	/**
+	 * Model the provider reports having served. This can differ from the model
+	 * requested: xAI substitutes silently for an unknown name rather than
+	 * erroring, so reporting the served value is what makes that visible.
+	 */
+	model?: string;
+}
+
+export interface ParsedQuery extends ProviderResult {
+	provider: AiProvider;
+}
+
 export async function parseNaturalLanguageQuery(
 	query: string,
 	anthropicKey: string,
 	grokKey?: string,
-): Promise<SearchFilters> {
+): Promise<ParsedQuery> {
 	// Try Anthropic first
 	try {
-		return await callAnthropicAPI(query, anthropicKey);
+		return { ...(await callAnthropicAPI(query, anthropicKey)), provider: "anthropic" };
 	} catch (err) {
 		const errorMessage = getErrorMessage(err);
 		// If Anthropic fails with a billing/quota error and Grok is available, try Grok
@@ -120,7 +143,7 @@ export async function parseNaturalLanguageQuery(
 			console.warn(
 				`Anthropic API failed (${errorMessage}), falling back to Grok`,
 			);
-			return await callGrokAPI(query, grokKey);
+			return { ...(await callGrokAPI(query, grokKey)), provider: "grok" };
 		}
 		// Otherwise rethrow the original error
 		throw err;
@@ -130,7 +153,7 @@ export async function parseNaturalLanguageQuery(
 async function callAnthropicAPI(
 	query: string,
 	apiKey: string,
-): Promise<SearchFilters> {
+): Promise<ProviderResult> {
 	const response = await fetch(ANTHROPIC_API_URL, {
 		method: "POST",
 		headers: {
@@ -156,6 +179,7 @@ async function callAnthropicAPI(
 
 	const data = (await response.json()) as {
 		content: Array<{ type: string; text: string }>;
+		model?: string;
 	};
 
 	const textBlock = data.content.find((b) => b.type === "text");
@@ -167,12 +191,15 @@ async function callAnthropicAPI(
 		const parsed = JSON.parse(textBlock.text);
 		const validated = searchFiltersSchema.parse(parsed);
 		return {
-			whereClause: validated.whereClause || {},
-			orderBy: validated.orderBy,
-			explanation: validated.explanation || "Search results",
-			answer: validated.answer,
-			answerType: validated.answerType,
-		} as SearchFilters;
+			filters: {
+				whereClause: validated.whereClause || {},
+				orderBy: validated.orderBy,
+				explanation: validated.explanation || "Search results",
+				answer: validated.answer,
+				answerType: validated.answerType,
+			} as SearchFilters,
+			model: data.model,
+		};
 	} catch (err) {
 		throw new Error(`Failed to parse Claude response: ${getErrorMessage(err)}`);
 	}
@@ -181,7 +208,7 @@ async function callAnthropicAPI(
 async function callGrokAPI(
 	query: string,
 	apiKey: string,
-): Promise<SearchFilters> {
+): Promise<ProviderResult> {
 	const response = await fetch(XAI_API_URL, {
 		method: "POST",
 		headers: {
@@ -206,6 +233,7 @@ async function callGrokAPI(
 
 	const data = (await response.json()) as {
 		choices: Array<{ message: { content: string } }>;
+		model?: string;
 	};
 
 	const textBlock = data.choices[0];
@@ -217,12 +245,15 @@ async function callGrokAPI(
 		const parsed = JSON.parse(textBlock.message.content);
 		const validated = searchFiltersSchema.parse(parsed);
 		return {
-			whereClause: validated.whereClause || {},
-			orderBy: validated.orderBy,
-			explanation: validated.explanation || "Search results",
-			answer: validated.answer,
-			answerType: validated.answerType,
-		} as SearchFilters;
+			filters: {
+				whereClause: validated.whereClause || {},
+				orderBy: validated.orderBy,
+				explanation: validated.explanation || "Search results",
+				answer: validated.answer,
+				answerType: validated.answerType,
+			} as SearchFilters,
+			model: data.model,
+		};
 	} catch (err) {
 		throw new Error(`Failed to parse Grok response: ${getErrorMessage(err)}`);
 	}
