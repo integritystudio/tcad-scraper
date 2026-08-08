@@ -14,6 +14,7 @@ const RESULTS_PER_PAGE = 12;
 
 interface PaginatedResultsGridProps {
 	results: Property[];
+	totalResults: number;
 	loading?: boolean;
 }
 
@@ -21,6 +22,7 @@ interface PaginatedResultsGridProps {
 // resets pagination to page 1, instead of reaching for an effect.
 const PaginatedResultsGrid = ({
 	results,
+	totalResults,
 	loading,
 }: PaginatedResultsGridProps) => {
 	const {
@@ -48,7 +50,7 @@ const PaginatedResultsGrid = ({
 			{totalPages > 1 && (
 				<div className={styles.pagination}>
 					<p>
-						Showing {startIndex + 1}-{endIndex} of {results.length} results
+						Showing {startIndex + 1}-{endIndex} of {totalResults} results
 					</p>
 					<div className={styles.pageControls}>
 						<Button
@@ -153,6 +155,7 @@ export const SearchResults = ({
 			<PaginatedResultsGrid
 				key={searchQuery}
 				results={results}
+				totalResults={totalResults}
 				loading={loading}
 			/>
 		</div>
