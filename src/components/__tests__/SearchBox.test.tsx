@@ -359,6 +359,48 @@ describe("SearchBox", () => {
 			expect(onSearch).toHaveBeenCalledTimes(2);
 			expect(onSearch).toHaveBeenNthCalledWith(2, "Oak Street Austin");
 		});
+
+		// L19 raised an A->B->A edit (typo, then correction) as a redundant
+		// search. These two cases pin why a single-value lastSearchedRef is
+		// correct and a multi-value "already seen" set would be a regression.
+		it("does not re-search when a typo is corrected within the debounce window", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+			expect(onSearch).toHaveBeenCalledTimes(1);
+
+			// B never settles — useDebounce clears the pending timer — so the
+			// correction back to A is caught by lastSearchedRef, not dispatched.
+			fireEvent.change(input, { target: { value: "Oak Streett" } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS - 1));
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+
+			expect(onSearch).toHaveBeenCalledTimes(1);
+		});
+
+		it("re-searches A after B settled, so results match the visible query", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+			fireEvent.change(input, { target: { value: "Elm Street" } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+			expect(onSearch).toHaveBeenCalledTimes(2);
+
+			// B's results are on screen now, so returning to A must re-search —
+			// suppressing this would leave Elm Street results under "Oak Street".
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+
+			expect(onSearch).toHaveBeenCalledTimes(3);
+			expect(onSearch).toHaveBeenNthCalledWith(3, "Oak Street");
+		});
 	});
 
 	describe("Semantic HTML", () => {
