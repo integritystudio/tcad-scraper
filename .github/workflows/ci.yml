@@ -133,9 +133,16 @@ jobs:
         working-directory: ./workers/tcad-api
         run: npx tsc --noEmit
 
+      # The scripts typecheck needs BOTH dependency trees:
+      #   workers/tcad-api/node_modules — @prisma/client (scripts/tsconfig.json
+      #     paths) and @prisma/adapter-d1 (workers/tcad-api/scripts-client.ts,
+      #     pulled in via scripts/lib/d1-prisma.ts)
+      #   root node_modules — the tsc binary itself, plus @types/node and
+      #     vitest types used by scripts/**
+      - name: Install root dependencies
+        run: npm ci
+
       - name: TypeScript Check (scripts + utils)
-        # scripts/tsconfig.json paths reference workers/tcad-api/node_modules/@prisma/client
-        # so this step must run after workers npm ci + prisma generate above
         run: npx tsc --noEmit -p scripts/tsconfig.json
 
       - name: Run Workers tests
