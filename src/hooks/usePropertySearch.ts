@@ -76,14 +76,16 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 
 		try {
 			const apiBaseUrl = getApiBaseUrl();
-			const response = await fetch(`${apiBaseUrl}/properties/search`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ query, limit }),
-				signal: abortController.signal,
+			// GET so repeat queries can be served from the Workers edge cache
+			// (hono/cache keys on the full URL) without re-invoking the AI parse.
+			const params = new URLSearchParams({
+				query,
+				limit: String(limit),
 			});
+			const response = await fetch(
+				`${apiBaseUrl}/properties/search?${params}`,
+				{ signal: abortController.signal },
+			);
 
 			if (!response.ok) {
 				let errorMessage = `Search failed (${response.status})`;
