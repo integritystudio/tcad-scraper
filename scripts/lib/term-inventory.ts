@@ -65,3 +65,29 @@ export function printTermRows(
     console.log(indent + terms.slice(i, i + perRow).join(", "));
   }
 }
+
+/** Print each source's `--- name (count) ---` header followed by its term rows. */
+export function printSourceBreakdown(
+  sources: Record<string, string[]>,
+  indent?: string,
+  perRow?: number,
+): void {
+  for (const [name, terms] of Object.entries(sources)) {
+    console.log(`--- ${name} (${terms.length}) ---`);
+    printTermRows(terms, indent, perRow);
+    console.log();
+  }
+}
+
+/** Print the `duplicated` bucket under a labeled header, if non-empty. */
+export function printDuplicatesSection(
+  duplicated: string[],
+  label = "duplicated across sources",
+  indent?: string,
+  perRow?: number,
+): void {
+  if (duplicated.length === 0) return;
+  console.log(`--- ${label} (${duplicated.length}) ---`);
+  printTermRows(duplicated, indent, perRow);
+  console.log();
+}

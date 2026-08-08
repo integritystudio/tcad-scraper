@@ -21,12 +21,12 @@
 import { pathToFileURL } from "node:url";
 import { MIN_TERM_LENGTH } from "../utils/constants";
 import { BACKFILL_2025_STATIC_TERMS } from "./config/backfill-2025-static-terms";
-import { BLOCKED_TERMS } from "./lib/BLOCKED_TERMS";
-import { BUSINESS_ENTITY } from "./lib/BUSINESS_ENTITY";
-import { FIRST_NAMES_FEMALE } from "./lib/FIRST_NAMES_FEMALE";
-import { FIRST_NAMES_MALE } from "./lib/FIRST_NAMES_MALE";
-import { LAST_NAMES } from "./lib/LAST_NAMES";
-import { STREET_GEOGRAPHIC } from "./lib/STREET_GEOGRAPHIC";
+import { BLOCKED_TERMS } from "./lib/terms/BLOCKED_TERMS";
+import { BUSINESS_ENTITY } from "./lib/terms/BUSINESS_ENTITY";
+import { FIRST_NAMES_FEMALE } from "./lib/terms/FIRST_NAMES_FEMALE";
+import { FIRST_NAMES_MALE } from "./lib/terms/FIRST_NAMES_MALE";
+import { LAST_NAMES } from "./lib/terms/LAST_NAMES";
+import { STREET_GEOGRAPHIC } from "./lib/terms/STREET_GEOGRAPHIC";
 import { isSupersetOfAny } from "./lib/backfill-utils";
 import { generateCvcvBases } from "./lib/cvcv";
 import { prisma } from "./lib/d1-prisma";
@@ -112,7 +112,7 @@ async function rankByPredictedYield(terms: string[]): Promise<string[]> {
 }
 
 // ── Term pools ────────────────────────────────────────────────────────
-// Sourced from lib/FIRST_NAMES_FEMALE.ts, FIRST_NAMES_MALE.ts, LAST_NAMES.ts,
+// Sourced from lib/terms/FIRST_NAMES_FEMALE.ts, FIRST_NAMES_MALE.ts, LAST_NAMES.ts,
 // STREET_GEOGRAPHIC.ts, BUSINESS_ENTITY.ts — the canonical name/geo/entity
 // data (see each file's docstring). Importing directly, rather than
 // maintaining a second hand-picked copy here, keeps Tiers 1-2 from going

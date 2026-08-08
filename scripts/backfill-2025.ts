@@ -20,7 +20,7 @@ import { runBackfillMain } from "./lib/backfill-runner";
 import { createTermCollector } from "./lib/backfill-utils";
 import { prisma } from "./lib/d1-prisma";
 import { getSearchedTermSets } from "./lib/searched-terms";
-import { TRUNCATION_BUG_ROOTS } from "./lib/TRUNCATION_BUG_ROOTS";
+import { TRUNCATION_BUG_ROOTS } from "./lib/terms/TRUNCATION_BUG_ROOTS";
 
 async function getDenseExpansions(allSearched: Set<string>): Promise<string[]> {
 	const dense = await prisma.searchTermAnalytics.findMany({

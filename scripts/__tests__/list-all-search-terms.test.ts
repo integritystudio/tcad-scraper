@@ -8,13 +8,15 @@ vi.mock("../config/batch-configs", () => ({
 	HIGH_RESULT_TERM_SPLITS: new Map([["Oak", ["Oak Hill", "Oakwood"]]]),
 }));
 
-vi.mock("../lib/FIRST_NAMES_FEMALE", () => ({ FIRST_NAMES_FEMALE: ["Carol"] }));
-vi.mock("../lib/FIRST_NAMES_MALE", () => ({ FIRST_NAMES_MALE: ["David"] }));
+vi.mock("../lib/terms/FIRST_NAMES_FEMALE", () => ({
+	FIRST_NAMES_FEMALE: ["Carol"],
+}));
+vi.mock("../lib/terms/FIRST_NAMES_MALE", () => ({ FIRST_NAMES_MALE: ["David"] }));
 // overlaps batch-configs "smith" case-insensitively
-vi.mock("../lib/LAST_NAMES", () => ({ LAST_NAMES: ["Smith"] }));
-vi.mock("../lib/STREET_GEOGRAPHIC", () => ({ STREET_GEOGRAPHIC: ["Ranch"] }));
+vi.mock("../lib/terms/LAST_NAMES", () => ({ LAST_NAMES: ["Smith"] }));
+vi.mock("../lib/terms/STREET_GEOGRAPHIC", () => ({ STREET_GEOGRAPHIC: ["Ranch"] }));
 // overlaps batch-configs "Trust"
-vi.mock("../lib/BUSINESS_ENTITY", () => ({ BUSINESS_ENTITY: ["Trust"] }));
+vi.mock("../lib/terms/BUSINESS_ENTITY", () => ({ BUSINESS_ENTITY: ["Trust"] }));
 
 import { getAllSearchTerms } from "../utils/list-all-search-terms";
 

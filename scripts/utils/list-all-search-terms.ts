@@ -11,11 +11,11 @@ import {
 	BATCH_CONFIGS,
 	HIGH_RESULT_TERM_SPLITS,
 } from "../config/batch-configs";
-import { BUSINESS_ENTITY } from "../lib/BUSINESS_ENTITY";
-import { FIRST_NAMES_FEMALE } from "../lib/FIRST_NAMES_FEMALE";
-import { FIRST_NAMES_MALE } from "../lib/FIRST_NAMES_MALE";
-import { LAST_NAMES } from "../lib/LAST_NAMES";
-import { STREET_GEOGRAPHIC } from "../lib/STREET_GEOGRAPHIC";
+import { BUSINESS_ENTITY } from "../lib/terms/BUSINESS_ENTITY";
+import { FIRST_NAMES_FEMALE } from "../lib/terms/FIRST_NAMES_FEMALE";
+import { FIRST_NAMES_MALE } from "../lib/terms/FIRST_NAMES_MALE";
+import { LAST_NAMES } from "../lib/terms/LAST_NAMES";
+import { STREET_GEOGRAPHIC } from "../lib/terms/STREET_GEOGRAPHIC";
 import {
 	buildTermInventory,
 	printDuplicatesSection,
@@ -41,7 +41,7 @@ export function getAllSearchTerms(): SearchTermInventory {
 		}
 	}
 
-	// Source 2: lib/FIRST_NAMES_FEMALE.ts, FIRST_NAMES_MALE.ts, LAST_NAMES.ts,
+	// Source 2: lib/terms/FIRST_NAMES_FEMALE.ts, FIRST_NAMES_MALE.ts, LAST_NAMES.ts,
 	// STREET_GEOGRAPHIC.ts, BUSINESS_ENTITY.ts (real first/last names, geo,
 	// entity words — the canonical data generate-next-200-terms.ts also draws from)
 	const curatedNamesTerms = new Set<string>();

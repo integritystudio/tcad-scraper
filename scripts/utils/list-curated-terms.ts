@@ -28,7 +28,8 @@ import {
 } from "../generate-next-200-terms";
 import {
   buildTermInventory,
-  printTermRows,
+  printDuplicatesSection,
+  printSourceBreakdown,
   type TermInventory,
 } from "../lib/term-inventory";
 
@@ -58,15 +59,6 @@ if (
   console.log(`Total unique terms: ${all.length}`);
   console.log(`Duplicated (must be 0): ${duplicated.length}\n`);
 
-  for (const [name, terms] of Object.entries(sources)) {
-    console.log(`--- ${name} (${terms.length}) ---`);
-    printTermRows(terms);
-    console.log();
-  }
-
-  if (duplicated.length > 0) {
-    console.log(`--- DUPLICATED (${duplicated.length}) ---`);
-    printTermRows(duplicated);
-    console.log();
-  }
+  printSourceBreakdown(sources);
+  printDuplicatesSection(duplicated, "DUPLICATED");
 }
