@@ -159,7 +159,8 @@ describe("searchKeywordFallback", () => {
 		await searchKeywordFallback(prisma, "Oak Street", 2025);
 
 		// page query: match, year, min-null, min-null, max-null, max-null,
-		//   bm25 weights (name, propertyAddress, city, description), limit, offset
+		//   bm25 weights (name, propertyAddress, city, description,
+		//                 ownerName, nameSecondary, dba), limit, offset
 		expect(pageValues).toEqual([
 			'"oak" AND "street"',
 			2025,
@@ -171,6 +172,9 @@ describe("searchKeywordFallback", () => {
 			8.0,
 			4.0,
 			1.0,
+			9.0,
+			9.0,
+			9.0,
 			FTS_MAX_PAGE_SIZE,
 			0,
 		]);
@@ -203,9 +207,13 @@ describe("searchKeywordFallback", () => {
 		await searchKeywordFallback(prisma, "condominium", 2025);
 
 		// Weights are positioned after the 6 WHERE bindings; limit+offset are the last 2.
+		// Column order: name, property_address, city, description, owner_name, name_secondary, dba
 		const weights = pageValues.slice(6, -2);
-		expect(weights[0]).toBe(10.0); // name
-		expect(weights[3]).toBe(1.0); // description
+		expect(weights[0]).toBe(10.0); // name (primary owner, highest)
+		expect(weights[3]).toBe(1.0); // description (lowest)
+		expect(weights[4]).toBe(9.0); // owner_name (secondary owner identity)
+		expect(weights[5]).toBe(9.0); // name_secondary (co-owner)
+		expect(weights[6]).toBe(9.0); // dba
 		expect(weights[0]).toBeGreaterThan(weights[3] as number);
 	});
 
@@ -231,6 +239,7 @@ describe("searchKeywordFallback", () => {
 		expect(pageValues[0]).toBe('"austin"');
 		expect(pageValues).toContain(500_000);
 		expect(result.explanation).toContain("appraised over $500,000");
+		expect(result.explanation).toContain("owner names, DBA");
 	});
 
 	it("filters on value alone when the query has a bound but no search term", async () => {

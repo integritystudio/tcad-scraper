@@ -46,8 +46,10 @@ const QUERY_STOPWORDS = new Set([
 
 /**
  * bm25 column weights, in the order the columns are declared by
- * prisma/migrations/0002_properties_fts.sql — reordering that migration
- * silently reweights search.
+ * prisma/migrations/0004_fts_owner_columns.sql — reordering that migration
+ * silently reweights search. The column list is:
+ *   name, property_address, city, description,
+ *   owner_name, name_secondary, dba  (added in 0004, T14 2026-08-08)
  *
  * `description` holds legal plat text ("UNT 20 GABARDINE CONDOMINIUMS
  * AMENDED PLUS .7722 % INT IN COM AREA"), which TCAD's own search does not
@@ -57,12 +59,19 @@ const QUERY_STOPWORDS = new Set([
  * weighting drops that to 0 of 20. Terms that exist *only* in description
  * (RESUB, subdivision names) are unaffected; there is nothing else to
  * promote, so they still rank among themselves.
+ *
+ * `owner_name`, `name_secondary`, and `dba` are owner-identity columns and
+ * ranked near `name` (10.0) so searching by a DBA or co-owner name surfaces
+ * matching properties above description-only matches.
  */
 const FTS_BM25_WEIGHTS = {
 	name: 10.0,
 	propertyAddress: 8.0,
 	city: 4.0,
 	description: 1.0,
+	ownerName: 9.0,
+	nameSecondary: 9.0,
+	dba: 9.0,
 } as const;
 
 const THOUSAND = 1_000;
@@ -245,7 +254,10 @@ async function ftsQueryPage(
 				${FTS_BM25_WEIGHTS.name},
 				${FTS_BM25_WEIGHTS.propertyAddress},
 				${FTS_BM25_WEIGHTS.city},
-				${FTS_BM25_WEIGHTS.description}
+				${FTS_BM25_WEIGHTS.description},
+				${FTS_BM25_WEIGHTS.ownerName},
+				${FTS_BM25_WEIGHTS.nameSecondary},
+				${FTS_BM25_WEIGHTS.dba}
 			)
 			LIMIT ${limit} OFFSET ${offset}
 		`,
@@ -326,7 +338,7 @@ export async function searchKeywordFallback(
 			: "matching all terms";
 		return {
 			whereClause: { id: { in: page.ids } },
-			explanation: `Keyword search for "${query.trim()}" across owner name, address, city, and description${boundsSuffix} — ${matchNote} (AI search unavailable)`,
+			explanation: `Keyword search for "${query.trim()}" across owner names, DBA, address, city, and description${boundsSuffix} — ${matchNote} (AI search unavailable)`,
 			precomputedTotal: page.total,
 		};
 	} catch (err) {
