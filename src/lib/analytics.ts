@@ -180,6 +180,7 @@ export const trackPageView = (path: string, title?: string): void => {
 export const trackError = (
 	errorMessage: string,
 	errorContext?: string,
+	metadata?: Record<string, unknown>,
 ): void => {
 	trackEvent({
 		category: "engagement",
@@ -188,6 +189,7 @@ export const trackError = (
 		metadata: {
 			error_message: errorMessage,
 			error_context: errorContext,
+			...metadata,
 		},
 	});
 };

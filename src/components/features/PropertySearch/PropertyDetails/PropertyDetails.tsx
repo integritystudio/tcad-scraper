@@ -5,10 +5,12 @@ import { FinancialSection } from "./sections/FinancialSection";
 import { IdentifiersSection } from "./sections/IdentifiersSection";
 import { MetadataSection } from "./sections/MetadataSection";
 
+type PropertySection = "financial" | "identifiers" | "description" | "metadata";
+
 interface PropertyDetailsProps {
 	property: Property;
 	isExpanded: boolean;
-	sections?: ("financial" | "identifiers" | "description" | "metadata")[];
+	sections?: readonly PropertySection[];
 }
 
 const DEFAULT_SECTIONS = [
