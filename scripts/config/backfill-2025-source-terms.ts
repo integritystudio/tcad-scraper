@@ -1,9 +1,12 @@
 /**
- * 400 curated search terms optimized for capturing remaining 2025 TCAD properties.
+ * 362 curated search terms optimized for capturing remaining 2025 TCAD properties.
  *
  * Selection criteria:
  *   - All terms >= 4 characters (MIN_TERM_LENGTH)
- *   - No duplicates with batch-configs.ts or backfill-2025.ts STATIC_TERMS
+ *   - No duplicates with batch-configs.ts, backfill-2025.ts STATIC_TERMS, or
+ *     the lib/terms/ curated name/geo/entity lists (LAST_NAMES, FIRST_NAMES_*,
+ *     STREET_GEOGRAPHIC, BUSINESS_ENTITY) — 38 terms already covered there
+ *     were removed 2026-08-07
  *   - No term is a prefix of another term in this list (avoids superset waste)
  *   - Prioritized by expected Travis County property yield
  *
@@ -40,8 +43,6 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Arnold",
 	"Wagner",
 	"Rose",
-	"Black",
-	"Grant",
 	"Warner",
 	"Garrett",
 	"Hawkins",
@@ -52,37 +53,27 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Maxwell",
 	"Tucker",
 	"Byrd",
-	"Hardy",
-	"Cross",
 	"Garner",
-	"Brady",
 	"Barker",
 	"Norris",
 	"Briggs",
-	"Brock",
 	"Holt",
 	"Sparks",
 	"Mack",
 	"Walton",
 	"Dawson",
-	"Gibbs",
 	"Lambert",
 	"Santiago",
 	"Willis",
 	"Potter",
 	"Hale",
 	"Swanson",
-	"Sharp",
 	"Mann",
-	"Bowen",
 	"Yates",
 	"Davidson",
 	"French",
 	"Neal",
-	"Marsh",
-	"Burke",
 	"Graves",
-	"Mccoy",
 	"Benson",
 	"Snyder",
 	"Hoffman",
@@ -91,11 +82,9 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Newton",
 	"Jennings",
 	"Thornton",
-	"Watts",
 	"Goodwin",
 	"Dalton",
 	"Shields",
-	"Poole",
 	"Lowe",
 	"Bauer",
 	"Summers",
@@ -115,18 +104,9 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Rowland",
 	"Underwood",
 	"Stafford",
-	"Moody",
-	"Moran",
 	"Woodard",
 	"Dickson",
-	"Combs",
 	"Prince",
-	"Stout",
-	"Tripp",
-	"Cooke",
-	"Pitts",
-	"Russo",
-	"Stark",
 	"Stokes",
 	"Vaughn",
 	"Werner",
@@ -140,7 +120,6 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Glover",
 	"Roth",
 	"Odom",
-	"Roach",
 
 	// ── Hispanic/Latino surnames (Travis County high density) ────────────
 
@@ -178,15 +157,12 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Sandoval",
 	"Rangel",
 	"Zuniga",
-	"Cantu",
-	"Garza",
 	"Trevino",
 	"De Leon",
 	"Elizondo",
 	"Quintero",
 	"Lucero",
 	"Esquivel",
-	"Ochoa",
 	"Montes",
 	"Cabrera",
 	"Portillo",
@@ -195,7 +171,6 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Gallardo",
 	"Barrientos",
 	"Zamora",
-	"Trejo",
 	"Orozco",
 	"Arroyo",
 	"Macias",
@@ -205,7 +180,6 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Navarrete",
 	"Bustamante",
 	"Hinojosa",
-	"Rubio",
 	"Salinas",
 	"Olivares",
 	"Cortez",
@@ -217,15 +191,12 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Quiroz",
 	"Tejeda",
 	"Urena",
-	"Yanez",
 
 	// ── Asian surnames (growing Travis County population) ────────────────
 
 	"Pham",
 	"Tran",
-	"Gupta",
 	"Shah",
-	"Singh",
 	"Khan",
 	"Chen",
 	"Wang",
@@ -240,7 +211,6 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Agarwal",
 	"Saxena",
 	"Chopra",
-	"Malik",
 	"Ling",
 	"Deng",
 	"Zhou",
@@ -248,7 +218,6 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	"Nair",
 	"Rana",
 	"Syed",
-	"Ahmed",
 	"Abbas",
 	"Mirza",
 
@@ -401,9 +370,6 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 	// ── Additional geographic and suburb terms ──────────────────────────
 
 	"Georgetown",
-	"Hutto",
-	"Elgin",
-	"Manor",
 	"Del Valle",
 	"Bastrop",
 	"Wimberley",
@@ -425,7 +391,6 @@ export const BACKFILL_2025_SOURCE_TERMS: readonly string[] = [
 
 	"Wells Fargo",
 	"Bank of America",
-	"Chase",
 	"Citibank",
 	"Federal",
 	"National Bank",
