@@ -119,6 +119,9 @@ model Property {
 model ScrapeJob {
   id              String  @id @default(uuid())
   searchTerm      String  @map("search_term")
+  /// Tax year this job scraped. Nullable only for rows predating migration
+  /// 0005; the workflow always writes it. See 0005_scrape_job_year.sql.
+  year            Int?
   status          String
   resultCount     Int?    @map("result_count")
   totalApiResults Int?    @map("total_api_results")
@@ -130,6 +133,7 @@ model ScrapeJob {
 
   @@index([status, startedAt])
   @@index([searchTerm])
+  @@index([year, startedAt])
   @@map("scrape_jobs")
 }
 

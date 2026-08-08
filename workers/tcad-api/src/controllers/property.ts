@@ -7,7 +7,10 @@ import type { Prisma } from "@prisma/client";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { cache } from "hono/cache";
-import { MAX_QUERY_LIMIT } from "../../../../utils/constants";
+import {
+	DEFAULT_TCAD_YEAR,
+	MAX_QUERY_LIMIT,
+} from "../../../../utils/constants";
 import { notFound, unavailable } from "../../../../utils/http-errors";
 import { TIME_MS } from "../../../../utils/units";
 import type { AppEnv } from "../bindings";
@@ -44,13 +47,19 @@ app.post(
 	apiKeyAuth,
 	validateBody(scrapeRequestSchema),
 	async (c) => {
-		const { searchTerm } = c.get("validatedBody") as { searchTerm: string };
-		const year = parseInt(c.env.TCAD_YEAR, 10) || 2025;
+		const { searchTerm, year: requestedYear } = c.get("validatedBody") as {
+			searchTerm: string;
+			year?: number;
+		};
+		// `|| DEFAULT` not `??` — parseInt yields NaN (not nullish) on a
+		// missing or malformed TCAD_YEAR var.
+		const year =
+			requestedYear ?? (parseInt(c.env.TCAD_YEAR, 10) || DEFAULT_TCAD_YEAR);
 
 		await c.env.SCRAPER_QUEUE.send({ searchTerm, year });
 
 		return c.json(
-			{ message: "Scrape job queued successfully", searchTerm },
+			{ message: "Scrape job queued successfully", searchTerm, year },
 			202,
 		);
 	},

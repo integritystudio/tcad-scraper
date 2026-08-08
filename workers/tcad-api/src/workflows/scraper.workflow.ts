@@ -42,7 +42,11 @@ import {
 	fetchResultSchema,
 	upsertResultSchema,
 } from "../types/property.types";
-import { TCAD_API_URL, UPSERT_CHUNK_SIZE } from "../utils/constants";
+import {
+	DEDUPE_KV_CHUNK_SIZE,
+	TCAD_API_URL,
+	UPSERT_CHUNK_SIZE,
+} from "../utils/constants";
 import { nowEpoch } from "../utils/epoch-dates";
 import { getErrorMessage } from "../utils/error-helpers";
 import { buildUpsertStatements } from "../utils/upsert-sql";
@@ -110,7 +114,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 		const { jobId } = await step.do("create-job", async () => {
 			const prisma = createPrisma(this.env.DB);
 			const job = await prisma.scrapeJob.create({
-				data: { searchTerm, status: "processing", startedAt: nowEpoch() },
+				data: { searchTerm, year, status: "processing", startedAt: nowEpoch() },
 			});
 			return { jobId: job.id };
 		});
@@ -196,6 +200,13 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 			// 1MiB, and a common term's dedup output can exceed that (e.g.
 			// "Chris" -> 9,658 rows, incident 2026-08-06). Route through KV
 			// like the fetch-page steps do, returning only a pointer.
+			//
+			// The pointer addresses several keys, not one: a KV *value* is itself
+			// capped at 25 MiB, and the highest-match terms exceed it — "blvd"
+			// serialized to 28.8 MB against the 2026 roll and failed the whole
+			// job (incident 2026-08-08). Writing fixed-size row chunks keeps each
+			// value an order of magnitude under the ceiling regardless of how
+			// wide a term matches.
 			const dedupeResult = await step.do("deduplicate", async () => {
 				const map = new Map<string, PropertyData>();
 				for (let p = 1; p <= fetchResult.totalPages; p++) {
@@ -208,29 +219,47 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 					}
 				}
 				const deduped = Array.from(map.values());
-				const kvKey = `scrape:${jobId}:deduped`;
-				await this.env.RESPONSE_CACHE.put(kvKey, JSON.stringify(deduped), {
-					expirationTtl: 3600,
+				const kvKeyPrefix = `scrape:${jobId}:deduped`;
+				let chunkCount = 0;
+				for (let i = 0; i < deduped.length; i += DEDUPE_KV_CHUNK_SIZE) {
+					await this.env.RESPONSE_CACHE.put(
+						`${kvKeyPrefix}:${chunkCount}`,
+						JSON.stringify(deduped.slice(i, i + DEDUPE_KV_CHUNK_SIZE)),
+						{ expirationTtl: 3600 },
+					);
+					chunkCount++;
+				}
+				return dedupeResultSchema.parse({
+					kvKeyPrefix,
+					chunkCount,
+					count: deduped.length,
 				});
-				return dedupeResultSchema.parse({ kvKey, count: deduped.length });
 			});
 
 			// Step 5: Upsert to database (chunked)
 			const upsertResult = await step.do("upsert-properties", async () => {
-				const stored = await this.env.RESPONSE_CACHE.get(dedupeResult.kvKey);
-				if (!stored) throw new Error(`KV key ${dedupeResult.kvKey} not found`);
-				const properties = JSON.parse(stored) as PropertyData[];
-
 				let savedCount = 0;
 				let updatedCount = 0;
 				const newPropertyIds: string[] = [];
 
-				for (let i = 0; i < properties.length; i += UPSERT_CHUNK_SIZE) {
-					const chunk = properties.slice(i, i + UPSERT_CHUNK_SIZE);
-					const result = await bulkUpsert(this.env.DB, chunk, searchTerm, year);
-					savedCount += result.savedCount;
-					updatedCount += result.updatedCount;
-					newPropertyIds.push(...result.newPropertyIds);
+				for (let c = 0; c < dedupeResult.chunkCount; c++) {
+					const chunkKey = `${dedupeResult.kvKeyPrefix}:${c}`;
+					const stored = await this.env.RESPONSE_CACHE.get(chunkKey);
+					if (!stored) throw new Error(`KV key ${chunkKey} not found`);
+					const properties = JSON.parse(stored) as PropertyData[];
+
+					for (let i = 0; i < properties.length; i += UPSERT_CHUNK_SIZE) {
+						const chunk = properties.slice(i, i + UPSERT_CHUNK_SIZE);
+						const result = await bulkUpsert(
+							this.env.DB,
+							chunk,
+							searchTerm,
+							year,
+						);
+						savedCount += result.savedCount;
+						updatedCount += result.updatedCount;
+						newPropertyIds.push(...result.newPropertyIds);
+					}
 				}
 
 				return upsertResultSchema.parse({
