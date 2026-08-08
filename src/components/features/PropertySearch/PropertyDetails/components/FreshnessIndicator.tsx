@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { daysSince } from "../../../../../utils/formatters";
 import { Badge } from "../../../../ui/Badge";
 import styles from "./FreshnessIndicator.module.css";
 
@@ -22,10 +23,7 @@ export const FreshnessIndicator = ({
 	variant = "badge",
 }: FreshnessIndicatorProps) => {
 	const { status, label } = useMemo(() => {
-		const date = new Date(timestamp);
-		const now = new Date();
-		const diffMs = now.getTime() - date.getTime();
-		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+		const diffDays = daysSince(timestamp);
 
 		if (diffDays <= thresholds.fresh) {
 			return { status: "fresh", label: "Fresh" };

@@ -6,7 +6,7 @@ import { useAnalytics } from "../../../hooks";
 import { Card, CardBody, CardFooter } from "../../ui/Card";
 import styles from "./AttributionCard.module.css";
 
-const _INTEGRITY_STUDIO_URL = "https://integritystudio.ai";
+const INTEGRITY_STUDIO_SERVICES_URL = "https://integritystudio.ai/features";
 const GITHUB_REPO_URL = "https://github.com/integritystudio/tcad-scraper";
 
 export const AttributionCard = () => {
@@ -73,7 +73,7 @@ export const AttributionCard = () => {
 				</CardBody>
 				<CardFooter className={styles.actions}>
 					<a
-						href="https://integritystudio.ai/features"
+						href={INTEGRITY_STUDIO_SERVICES_URL}
 						target="_blank"
 						rel="noopener noreferrer"
 						className={styles.primaryLink}

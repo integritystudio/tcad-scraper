@@ -68,3 +68,13 @@ export const truncateText = (text: string, maxLength: number): string => {
 	if (text.length <= maxLength) return text;
 	return `${text.slice(0, maxLength - 3)}...`;
 };
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+/**
+ * Number of whole days elapsed between a date string and now
+ */
+export const daysSince = (dateString: string): number => {
+	const diffMs = Date.now() - new Date(dateString).getTime();
+	return Math.floor(diffMs / MS_PER_DAY);
+};

@@ -25,6 +25,11 @@ export const ValueComparison = ({
 		return (difference / appraisedValue) * 100;
 	}, [difference, appraisedValue]);
 
+	const assessedPercentage = useMemo(() => {
+		if (assessedValue === null || !appraisedValue) return null;
+		return ((assessedValue / appraisedValue) * 100).toFixed(1);
+	}, [assessedValue, appraisedValue]);
+
 	const getDifferenceClass = () => {
 		if (!difference) return styles.neutral;
 		return difference > 0 ? styles.positive : styles.negative;
@@ -82,20 +87,20 @@ export const ValueComparison = ({
 										</div>
 										<div className={styles.chartValue}>100%</div>
 									</div>
-									<div className={styles.chartBar}>
-										<div className={styles.chartLabel}>Assessed</div>
-										<div className={styles.barBackground}>
-											<div
-												className={styles.barFill}
-												style={{
-													width: `${((assessedValue / appraisedValue) * 100).toFixed(1)}%`,
-												}}
-											/>
+									{assessedPercentage !== null && (
+										<div className={styles.chartBar}>
+											<div className={styles.chartLabel}>Assessed</div>
+											<div className={styles.barBackground}>
+												<div
+													className={styles.barFill}
+													style={{ width: `${assessedPercentage}%` }}
+												/>
+											</div>
+											<div className={styles.chartValue}>
+												{assessedPercentage}%
+											</div>
 										</div>
-										<div className={styles.chartValue}>
-											{((assessedValue / appraisedValue) * 100).toFixed(1)}%
-										</div>
-									</div>
+									)}
 								</div>
 							)}
 						</>

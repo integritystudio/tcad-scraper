@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { daysSince } from "../../../../../utils/formatters";
 import styles from "./TimestampList.module.css";
 
 interface TimestampListProps {
@@ -10,10 +11,8 @@ interface TimestampListProps {
 
 // Pure utility functions moved outside component to avoid recreation on each render
 const formatRelativeTime = (dateString: string): string => {
-	const date = new Date(dateString);
-	const now = new Date();
-	const diffMs = now.getTime() - date.getTime();
-	const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+	const diffMs = Date.now() - new Date(dateString).getTime();
+	const diffDays = daysSince(dateString);
 	const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 	const diffMinutes = Math.floor(diffMs / (1000 * 60));
 

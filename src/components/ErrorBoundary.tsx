@@ -2,6 +2,8 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 import { trackError } from "../lib/analytics";
 import mixpanel from "../lib/mixpanel";
 import { addBreadcrumb, captureException } from "../lib/sentry";
+import styles from "./ErrorBoundary.module.css";
+import { Button } from "./ui/Button";
 
 interface ErrorBoundaryProps {
 	children: ReactNode;
@@ -84,36 +86,15 @@ export class ErrorBoundary extends Component<
 
 			// Default error UI
 			return (
-				<div
-					style={{
-						padding: "2rem",
-						textAlign: "center",
-						maxWidth: "600px",
-						margin: "4rem auto",
-					}}
-				>
-					<h1 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>
-						Something went wrong
-					</h1>
-					<p style={{ color: "#666", marginBottom: "1.5rem" }}>
+				<div className={styles.container}>
+					<h1 className={styles.heading}>Something went wrong</h1>
+					<p className={styles.message}>
 						We've been notified about this error and will fix it as soon as
 						possible.
 					</p>
-					<button
-						type="button"
-						onClick={() => window.location.reload()}
-						style={{
-							padding: "0.75rem 1.5rem",
-							backgroundColor: "#007bff",
-							color: "white",
-							border: "none",
-							borderRadius: "4px",
-							cursor: "pointer",
-							fontSize: "1rem",
-						}}
-					>
+					<Button variant="primary" onClick={() => window.location.reload()}>
 						Reload Page
-					</button>
+					</Button>
 				</div>
 			);
 		}
