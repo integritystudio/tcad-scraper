@@ -40,9 +40,30 @@ export interface MineOptions extends YearGap {
 	minCount: number;
 	/** Keep only terms starting with a letter (GLOB '[A-Za-z]*'). */
 	alphaOnly?: boolean;
+	/**
+	 * Drop terms made entirely of digits. TCAD does not search a bare numeric
+	 * term, so mining owner first-words or street names surfaces candidates
+	 * ("1905", "4229") that are guaranteed to return nothing.
+	 *
+	 * Distinct from `alphaOnly`, which is stricter than the constraint
+	 * warrants: it requires a *leading* letter and so also discards "7-ELEVEN",
+	 * which searches fine — the rule is that a digit paired with a word token
+	 * works, only an all-digit term fails.
+	 */
+	excludeAllNumeric?: boolean;
 }
 
 const ALPHA_GLOB = `GLOB '[A-Za-z]*'`;
+/** Matches any string containing at least one non-digit — i.e. not all-digits. */
+const NOT_ALL_NUMERIC_GLOB = `GLOB '*[^0-9]*'`;
+
+/** SQL fragment for the optional per-term character filters, or "" if none apply. */
+function termFilters(opts: MineOptions, column = "term"): string {
+	const clauses: string[] = [];
+	if (opts.alphaOnly) clauses.push(`${column} ${ALPHA_GLOB}`);
+	if (opts.excludeAllNumeric) clauses.push(`${column} ${NOT_ALL_NUMERIC_GLOB}`);
+	return clauses.map((c) => ` AND ${c}`).join("");
+}
 
 const ENTITY_NAME_FILTER = `(name LIKE '%LLC%' OR name LIKE '%INC%' OR name LIKE '%LP%'
          OR name LIKE '%LTD%' OR name LIKE '%TRUST%')`;
@@ -89,7 +110,7 @@ export async function mineOwnerFirstWords(
     )
     SELECT term, COUNT(DISTINCT property_id) AS cnt
     FROM words
-    WHERE LENGTH(term) >= ${MIN_TERM_LENGTH}${opts.alphaOnly ? ` AND term ${ALPHA_GLOB}` : ""}
+    WHERE LENGTH(term) >= ${MIN_TERM_LENGTH}${termFilters(opts)}
     GROUP BY term
     HAVING COUNT(DISTINCT property_id) >= ${opts.minCount}
     ORDER BY cnt DESC`);
@@ -110,7 +131,7 @@ export async function mineStreetNames(opts: MineOptions): Promise<MinedTerm[]> {
     )
     SELECT term, COUNT(DISTINCT property_id) AS cnt
     FROM words
-    WHERE LENGTH(term) >= ${MIN_TERM_LENGTH}${opts.alphaOnly ? ` AND term ${ALPHA_GLOB}` : ""}
+    WHERE LENGTH(term) >= ${MIN_TERM_LENGTH}${termFilters(opts)}
     GROUP BY term
     HAVING COUNT(DISTINCT property_id) >= ${opts.minCount}
     ORDER BY cnt DESC`);
@@ -129,7 +150,7 @@ export async function mineDescriptionFirstWords(
     )
     SELECT term, COUNT(DISTINCT property_id) AS cnt
     FROM words
-    WHERE LENGTH(term) >= ${MIN_TERM_LENGTH}${opts.alphaOnly ? ` AND term ${ALPHA_GLOB}` : ""}
+    WHERE LENGTH(term) >= ${MIN_TERM_LENGTH}${termFilters(opts)}
     GROUP BY term
     HAVING COUNT(DISTINCT property_id) >= ${opts.minCount}
     ORDER BY cnt DESC`);
@@ -155,7 +176,7 @@ export async function mineTwoWordOwnerNames(
     )
     SELECT w1 || ' ' || w2 AS term, COUNT(DISTINCT property_id) AS cnt
     FROM split2
-    WHERE LENGTH(w1) >= ${MIN_TERM_LENGTH} AND LENGTH(w2) >= 2${opts.alphaOnly ? ` AND w1 ${ALPHA_GLOB}` : ""}
+    WHERE LENGTH(w1) >= ${MIN_TERM_LENGTH} AND LENGTH(w2) >= 2${termFilters(opts, "w1")}
     GROUP BY term
     HAVING COUNT(DISTINCT property_id) >= ${opts.minCount}
     ORDER BY cnt DESC`);
@@ -165,9 +186,14 @@ export async function mineTwoWordOwnerNames(
  * Two-word phrases from entity owner names (LLC/INC/LP/LTD/TRUST) on gap
  * properties. Unlike mineTwoWordOwnerNames, applies no per-word length
  * filter — entity names keep short leading words (e.g. "ABC LLC").
+ *
+ * The character filters are omitted from the signature rather than ignored:
+ * every term here is two words, so a numeric leading word is paired with a
+ * word token and searches fine ("1905 PROPERTIES"). Accepting an option that
+ * silently did nothing would be worse than not offering it.
  */
 export async function mineEntityPhrases(
-	opts: Omit<MineOptions, "alphaOnly">,
+	opts: Omit<MineOptions, "alphaOnly" | "excludeAllNumeric">,
 ): Promise<MinedTerm[]> {
 	return run(`
     WITH split1 AS (

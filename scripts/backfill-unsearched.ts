@@ -50,7 +50,9 @@ async function getUnsearchedTerms(targetYear: number): Promise<string[]> {
 	});
 	const { result, stats } = collector;
 
-	const years = { sourceYear, targetYear };
+	// excludeAllNumeric: see enqueue-tail-terms.ts — bare numeric terms do not
+	// search, so mined street numbers are guaranteed-empty jobs.
+	const years = { sourceYear, targetYear, excludeAllNumeric: true };
 
 	await mineAndAdd(collector, "owner first-words", () =>
 		mineOwnerFirstWords({ ...years, minCount: MIN_PROPS_PER_TERM }),

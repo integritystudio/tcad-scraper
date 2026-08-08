@@ -81,7 +81,10 @@ async function getTailTerms(targetYear: number): Promise<string[]> {
 			console.log(
 				`  Phase 3: Mining owner names from the ${sourceYear} → ${targetYear} gap...`,
 			);
-			const years = { sourceYear, targetYear };
+			// excludeAllNumeric: mined street numbers and numeric entity names
+			// ('1905', '4229') cannot be searched as bare terms, so enqueuing them
+			// only burns jobs.
+			const years = { sourceYear, targetYear, excludeAllNumeric: true };
 			await mineAndAdd(collector, "owner first-words", () =>
 				mineOwnerFirstWords({ ...years, minCount: MIN_PROPS_PER_TERM }),
 			);

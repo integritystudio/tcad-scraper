@@ -103,6 +103,52 @@ describe("mine-year-terms query construction", () => {
 		expect(executedSql()).toContain("HAVING COUNT(DISTINCT property_id) >= 7");
 	});
 
+	it("adds the all-digits filter only when excludeAllNumeric is set", async () => {
+		await mineOwnerFirstWords({
+			...YEARS,
+			minCount: 5,
+			excludeAllNumeric: true,
+		});
+		// "contains at least one non-digit" — keeps 7-ELEVEN, drops 1905.
+		expect(executedSql()).toContain("term GLOB '*[^0-9]*'");
+
+		mockQueryRawUnsafe.mockClear();
+		await mineOwnerFirstWords({ ...YEARS, minCount: 5 });
+		expect(executedSql()).not.toContain("[^0-9]");
+	});
+
+	it("keeps excludeAllNumeric distinct from alphaOnly rather than collapsing them", async () => {
+		// alphaOnly requires a *leading* letter and so would also discard
+		// "7-ELEVEN", which searches fine. Only all-digit terms are unusable.
+		await mineOwnerFirstWords({ ...YEARS, minCount: 5, alphaOnly: true });
+		const alphaSql = executedSql();
+		expect(alphaSql).toContain("GLOB '[A-Za-z]*'");
+		expect(alphaSql).not.toContain("[^0-9]");
+	});
+
+	it("applies both filters together when both are set", async () => {
+		await mineOwnerFirstWords({
+			...YEARS,
+			minCount: 5,
+			alphaOnly: true,
+			excludeAllNumeric: true,
+		});
+
+		const sql = executedSql();
+		expect(sql).toContain("GLOB '[A-Za-z]*'");
+		expect(sql).toContain("GLOB '*[^0-9]*'");
+	});
+
+	it("scopes the filters to w1 for two-word owner names", async () => {
+		await mineTwoWordOwnerNames({
+			...YEARS,
+			minCount: 5,
+			excludeAllNumeric: true,
+		});
+
+		expect(executedSql()).toContain("w1 GLOB '*[^0-9]*'");
+	});
+
 	it("adds the letter GLOB filter only when alphaOnly is set", async () => {
 		await mineOwnerFirstWords({ ...YEARS, minCount: 5, alphaOnly: true });
 		expect(executedSql()).toContain("GLOB '[A-Za-z]*'");
