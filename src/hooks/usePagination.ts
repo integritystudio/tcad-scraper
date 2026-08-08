@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface UsePaginationProps {
 	totalItems: number;
@@ -55,6 +55,13 @@ export const usePagination = ({
 	);
 
 	const canGoPrev = useMemo(() => currentPage > 1, [currentPage]);
+
+	// Clamp currentPage whenever totalItems shrinks (e.g. a re-run of the same
+	// query returns fewer results) so the current page never points past the
+	// end of the new result set. Clamps to the last valid page, not just page 1.
+	useEffect(() => {
+		setCurrentPage((prev) => Math.min(prev, Math.max(1, totalPages)));
+	}, [totalPages]);
 
 	const goToPage = useCallback(
 		(page: number) => {
