@@ -1,11 +1,28 @@
 # TCAD Search Terms — Strategy & Operations
 
 **Canonical search-term document.** Data file: [`2025_BACKFILL_OPTIMIZATION.json`](2025_BACKFILL_OPTIMIZATION.json) (per-term yields, tier arrays, validation checks).
-**Last Updated**: 2026-08-06 | **Target**: 500K properties (350K+ as of 2026-08-06 — live count via `/health`)
+**Last Updated**: 2026-08-08 | **Target**: 508,880 accounts — the 2025 certified roll (484,245 as of 2026-08-08, 95.2% — live count via `/health`)
 
 Consolidates the former `SEARCH_TERM_STRATEGY.md`, `SEARCH_TERM_ANALYSIS.md`, `SEARCH_TERM_REFERENCE.txt`, `2025_BACKFILL_QUICK_REFERENCE.md`, and `search_results.md` (all deleted 2026-08-06; full versions in git history).
 
 ---
+
+## Coverage Target — the 2025 Certified Roll
+
+**508,880 accounts.** Source: TCAD [2025 Annual Report](https://traviscad.org/wp-content/uploads/2025-Annual-Report.pdf), "State Category Breakdown / Grand Totals" (2025 Adjusted Certified Totals, as of Roll #7) — the count column summed across all 34 state categories. The report prints value totals but no count total, so the figure is the sum of the per-category counts below.
+
+**Do not use 488,000.** That number is from TCAD's press release [2025 Market Values On Their Way](https://traviscad.org/news/2025-market-values-on-their-way/) — *"appraisal notices are being mailed to more than 488,000 Travis County property owners"*. It counts **owners mailed a notice**, not accounts on the roll, and undercounts by ~21K.
+
+| State categories | Group | Certified | In D1 (`prop_type`) | 2026-08-08 | Gap |
+|---|---|---:|---|---:|---:|
+| A, B, C1, D1, D2, E, F1, F2, O | Real property | 447,737 | `R` | 433,123 | 14,614 |
+| L1, L2, S, XB, M2 | Personal property | 37,502 | `P` | 39,195 | −1,693 |
+| M1 | Mobile homes | 11,937 | `MH` | 11,922 | 15 |
+| G1, J1–J9 | Utilities & minerals | 350 | `MN` | 5 | 345 |
+| XD, XG, XI, XJ, XL, XO, XR, XU, XV | Exempt (non-XB) | 16,325 | — | — | 16,325 |
+| | **Total** | **508,880** | | **484,245** | **24,635** |
+
+Reading the gap: two-thirds of it is **exempt property** (churches, private schools, charities, government-owned parcels) — a category no term wave has targeted. Utilities/minerals are near-untouched but tiny. Personal property is *over* the certified count, so BPP-oriented terms are exhausted; a 2026-08-08 wave of 48 business words returned 331 properties total for that reason. The `P`/`MH` groupings are approximate — D1's `prop_type` is TCAD's own code, not a state category, so the mapping is by inspection rather than definition.
 
 ## Key Findings (2026-03-21 analysis, 365,371 properties / 313 terms)
 

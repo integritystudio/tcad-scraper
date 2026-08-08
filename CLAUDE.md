@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: August 7, 2026 | **Version**: 6.3
+**Last Updated**: August 8, 2026 | **Version**: 6.4
 
 ## Project Overview
 
@@ -156,7 +156,9 @@ TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 - **Bearer tokens** expire ~5 min; cron trigger auto-refreshes to KV
 - **`search_term_analytics.totalResults` is increment-on-save-only** — it counts *newly inserted* properties per successful search, not TCAD's total match count. A term can show `totalResults = 0` while TCAD returns thousands of matches, if every match was already in D1 under another search term (confirmed 2026-08-07 for Maria/Thomas/Paul/etc. — all had 4,000-6,000+ TCAD matches but 0 new saves). Safe to treat as a backfill-exclusion signal (`getSearchedTermSets()`'s `unsuccessful` set) — it reflects real saturation, not broken data
 - **TCAD returns malformed/truncated JSON for specific 4-char root prefixes**, regardless of the letter appended (`docs/truncated-response-terms.md`) — confirmed for `wayg/h/i/j` plus 9 more found 2026-08-07 (`chri`, `cong`, `cree`, `davi`, `lama`, `laur`, `mana`, `nguy`, `trus`). `backfill-2025.ts`'s dense/seed a-z expansions skip these via `scripts/lib/terms/TRUNCATION_BUG_ROOTS.ts` — check that set before debugging a new "Unexpected end of JSON input" cluster
-- **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses, suburb/city names. Does NOT work with ZIP codes, short terms (<4 chars), compound names, or numeric-only terms
+- **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses, suburb/city names, and numbered-street fragments (`1 ST`, `E 6 ST`, `W 7 ST` — all 165 of the `[E|W ]<1-55> ST` grid completed successfully 2026-08-08, 1,163 new properties). Does NOT work with ZIP codes, short terms (<4 chars), compound names, or *bare* numeric terms — a digit paired with a word token searches fine
+- **TCAD full-text search covers owner name + address only, NOT the legal `description` field** — "Condo" returns ~407 API matches despite tens of thousands of properties whose description contains CONDOMINIUM. Do not mine subdivision/plat/lot vocabulary (`RESUB`, `BLK`, `PHS`, subdivision names) for search terms; it looks high-volume in D1 and is unreachable via the API
+- **TCAD prefix-matches word starts**, so a 4-char prefix is a strict superset of every longer word beginning with it (`pflu` → 21,662 matches ≈ `Pflugerville`'s 21,439). Corollaries: never enqueue a word whose 4-char prefix was already searched (`grou` saved 259; `group`, run minutes later, saved 0), and mine candidates as 4-char prefixes rather than whole words
 - **Env vars**: `TCAD_YEAR` (wrangler.toml vars), `UPSERT_CHUNK_SIZE` (500)
 
 ---
