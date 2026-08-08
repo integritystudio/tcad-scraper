@@ -74,10 +74,12 @@ async function scoreTermsByDbMatches(
 		>(`SELECT ${cols} FROM properties`);
 		if (!row) {
 			console.error(`Yield scoring: empty result for chunk at ${i}; scoring 0`);
-			chunk.forEach((t) => scores.set(t, 0));
+			for (const t of chunk) scores.set(t, 0);
 			continue;
 		}
-		chunk.forEach((t, j) => scores.set(t, Number(row[`c${j}`] ?? 0)));
+		for (const [j, t] of chunk.entries()) {
+			scores.set(t, Number(row[`c${j}`] ?? 0));
+		}
 	}
 	return scores;
 }
