@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
 **Last Updated**: 2026-08-08 (T13, T14, all P1 frontend items M36–M42, plus M43 and L19 done; T3, L20, C8 remain open below)
-**Status**: 164 frontend + 85 scripts + 75 workers tests passing | TypeScript clean | Lint clean in `src/`, 34 pre-existing `format` errors remain in `scripts/`, `shared/types/`, `workers/tcad-api/src/utils/upsert-sql.ts`
+**Status**: 164 frontend + 85 scripts + 75 workers tests passing | TypeScript clean (root + workers) | Lint clean repo-wide (2 `warn`-level rules remain on by design)
 
 ---
 ## Open Items
