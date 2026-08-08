@@ -8,8 +8,8 @@ import styles from "./AnswerBox.module.css";
  */
 const LoadingState = () => (
 	<div className={styles.loadingContent}>
-		<div className={styles.skeleton} style={{ width: "80%", height: "24px" }} />
-		<div className={styles.skeleton} style={{ width: "60%", height: "24px" }} />
+		<div className={`${styles.skeleton} ${styles.skeletonLong}`} />
+		<div className={`${styles.skeleton} ${styles.skeletonShort}`} />
 		<div className={styles.loadingIndicator}>
 			<Icon name="loader" size={16} className={styles.spin} />
 			<span>Processing your query...</span>
