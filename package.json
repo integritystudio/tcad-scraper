@@ -4,6 +4,7 @@
 	"description": "A web scraping tool built with TypeScript for extracting property tax information from the Travis Central Appraisal District (TCAD) website.",
 	"type": "module",
 	"scripts": {
+		"predev": "npx tsx scripts/generate-build-constants.ts",
 		"dev": "vite",
 		"prebuild": "npx tsx scripts/generate-build-constants.ts",
 		"build": "tsc && vite build",
