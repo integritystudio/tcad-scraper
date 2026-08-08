@@ -12,7 +12,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue/Jobs**: Cloudflare Queues + Workflows (replaced BullMQ + Redis); Cron Triggers (replaced `node-cron`)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (141 frontend + 85 scripts + 26 workers tests; 126/126 E2E via Playwright)
+- **Testing**: Vitest (167 frontend + 85 scripts + 77 workers tests; 126/126 E2E via Playwright)
 - **Scale**: 484K properties in D1 (2025 tax year; live count via `/health`). Target is the 2025 certified roll of **508,880 accounts** — see [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#coverage-target--the-2025-certified-roll) for the source and category breakdown. Do not use the 488,000 figure from TCAD's press release; it counts owners mailed a notice, not accounts
 
 ```
@@ -127,10 +127,10 @@ doppler run -p integrity-studio -c prd -- sh -c 'curl -s -X POST \
   -d "{\"sql\": \"SELECT COUNT(*) FROM properties\"}"'
 
 # Testing (from repo root)
-npx vitest run               # Frontend unit tests (141 tests, <5 sec; `npm test` = watch mode)
+npx vitest run               # Frontend unit tests (167 tests, <5 sec; `npm test` = watch mode)
 npm run test:coverage        # Frontend coverage report
 npm run test:e2e             # E2E tests (126 tests, all passing)
-cd workers/tcad-api && npm test        # Workers tests (26 tests)
+cd workers/tcad-api && npm test        # Workers tests (77 tests)
 npx vitest run --dir scripts --config /dev/null  # Scripts tests (85 tests)
 
 # Scraping (via Workers API)
