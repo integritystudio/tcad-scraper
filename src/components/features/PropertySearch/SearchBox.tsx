@@ -25,7 +25,7 @@ export const SearchBox = ({
 
 	const handleSearch = () => {
 		const trimmed = query.trim();
-		if (trimmed) {
+		if (trimmed && trimmed !== lastSearchedRef.current) {
 			lastSearchedRef.current = trimmed;
 			onSearch(trimmed);
 		}

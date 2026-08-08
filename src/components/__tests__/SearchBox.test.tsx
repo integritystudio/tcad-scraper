@@ -275,6 +275,35 @@ describe("SearchBox", () => {
 			expect(onSearch).not.toHaveBeenCalled();
 		});
 
+		it("does not duplicate via Enter a query already fired by the debounce", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+			expect(onSearch).toHaveBeenCalledTimes(1);
+
+			fireEvent.keyDown(input, { key: "Enter" });
+
+			expect(onSearch).toHaveBeenCalledTimes(1);
+		});
+
+		it("does not duplicate via the button click a query already fired by the debounce", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+			const button = screen.getByRole("button");
+
+			fireEvent.change(input, { target: { value: "Oak Street" } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+			expect(onSearch).toHaveBeenCalledTimes(1);
+
+			fireEvent.click(button);
+
+			expect(onSearch).toHaveBeenCalledTimes(1);
+		});
+
 		it("still fires a new debounced search after Enter, once the query changes again", () => {
 			const onSearch = vi.fn();
 			render(<SearchBox onSearch={onSearch} />);
