@@ -147,12 +147,36 @@ export interface BatchEnqueueConfig {
 	terms: string[];
 }
 
+/** Attempts per term before giving up on a transient failure. */
+export const ENQUEUE_MAX_ATTEMPTS = 3;
+/** First retry delay; doubles per attempt. */
+const ENQUEUE_RETRY_BASE_MS = 1_000;
+const HTTP_TOO_MANY_REQUESTS = 429;
+const HTTP_SERVER_ERROR_FLOOR = 500;
+
+/**
+ * Whether a failed response is worth another attempt. 5xx and 429 are the
+ * edge or the Worker being briefly unavailable; a 4xx is deterministic
+ * (400 validation, 401 bad API key) and retrying it just triples the noise.
+ */
+function isTransientStatus(status: number): boolean {
+	return status === HTTP_TOO_MANY_REQUESTS || status >= HTTP_SERVER_ERROR_FLOOR;
+}
+
 /**
  * Enqueue terms one at a time; returns the terms that were accepted (HTTP 2xx).
  *
  * `year` is sent per request so a backfill can target a roll year other than
  * the Worker's TCAD_YEAR var. Omit it to let the Worker apply its own default
  * (which is what every pre-2026 caller relied on).
+ *
+ * Transient failures are retried with exponential backoff because a dropped
+ * term is not a slowdown — it is a permanent gap. Callers increasingly pass a
+ * set chosen for *coverage* (optimize-coverage.ts), where each term is the
+ * unique best cover for a block of properties, so losing one to a momentary
+ * 503 leaves properties that no other term in the plan will reach. A term that
+ * exhausts its attempts is reported as such, distinctly from a single failure,
+ * so it is greppable in a run that spans thousands of log lines.
  */
 export async function enqueueBatch(
 	terms: string[],
@@ -160,31 +184,57 @@ export async function enqueueBatch(
 	year?: number,
 ): Promise<string[]> {
 	const enqueued: string[] = [];
-	for (const term of terms) {
-		try {
-			const res = await fetch(SCRAPE_URL, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"x-api-key": API_KEY,
-				},
-				body: JSON.stringify(
-					year === undefined
-						? { searchTerm: term }
-						: { searchTerm: term, year },
-				),
-			});
+	const exhausted: string[] = [];
 
-			if (res.ok) {
-				enqueued.push(term);
-			} else {
+	for (const term of terms) {
+		for (let attempt = 1; attempt <= ENQUEUE_MAX_ATTEMPTS; attempt++) {
+			const isLastAttempt = attempt === ENQUEUE_MAX_ATTEMPTS;
+			let retryable: boolean;
+
+			try {
+				const res = await fetch(SCRAPE_URL, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						"x-api-key": API_KEY,
+					},
+					body: JSON.stringify(
+						year === undefined
+							? { searchTerm: term }
+							: { searchTerm: term, year },
+					),
+				});
+
+				if (res.ok) {
+					enqueued.push(term);
+					break;
+				}
+
+				retryable = isTransientStatus(res.status);
 				logger.error(
-					`  Failed to enqueue "${term}": HTTP ${res.status} ${res.statusText}`,
+					`  Failed to enqueue "${term}" (attempt ${attempt}/${ENQUEUE_MAX_ATTEMPTS}): HTTP ${res.status} ${res.statusText}`,
+				);
+			} catch (error) {
+				// Network-level failure (DNS, socket, timeout) — always transient.
+				retryable = true;
+				logger.error(
+					`  Failed to enqueue "${term}" (attempt ${attempt}/${ENQUEUE_MAX_ATTEMPTS}): ${getErrorMessage(error)}`,
 				);
 			}
-		} catch (error) {
-			logger.error(`  Failed to enqueue "${term}": ${getErrorMessage(error)}`);
+
+			if (!retryable) break;
+			if (isLastAttempt) {
+				exhausted.push(term);
+				break;
+			}
+			await sleep(ENQUEUE_RETRY_BASE_MS * 2 ** (attempt - 1));
 		}
+	}
+
+	if (exhausted.length > 0) {
+		logger.error(
+			`  Enqueue exhausted ${ENQUEUE_MAX_ATTEMPTS} attempts for ${exhausted.length} term(s): ${exhausted.join(", ")}`,
+		);
 	}
 	return enqueued;
 }
