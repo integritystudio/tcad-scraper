@@ -42,6 +42,21 @@ Available fields in the properties table:
 - appraisedValue (number): appraised value in dollars
 - geoId (text): geographic ID
 - description (text): property description
+- dba (text): "doing business as" name; altDba (text): alternate DBA
+- ownerName (text): raw owner name; firstName, lastName, spouseFirstName, spouseLastName, nameSecondary (text): owner name parts
+- latitude, longitude (number): coordinates
+- zip (text): property ZIP code; state (text); country (text)
+- fullSitus (text): full address including city/state/zip
+- streetNum, streetName, streetPrefix, streetSuffix, streetSecondary (text): address parts
+- addrDeliveryLine, addrCity, addrZip, addrState (text): owner mailing address (differs from property address for absentee owners)
+- landValue, improvementValue (number): land/building value breakdown in dollars
+- legalAcreage, effectiveSizeAcres (number): parcel size in acres
+- zoning (text): zoning code (e.g., "CBD"); useCd (text): use code; sicCd (text): SIC industry code; marketArea (text): market area code
+- block, lot, tract (text): plat references
+- ownerId (number): TCAD owner ID; ownerPct (number): ownership percentage
+- active, arbHearing (text): "Yes"/"No" flags (arbHearing = ARB protest)
+
+Fields from dba onward are null for rows not re-scraped since 2026-08-08 — mention this caveat in "explanation" when filtering on them.
 
 Generate a JSON response with these fields:
 1. "whereClause": Prisma where clause as JSON (use "contains" for text searches — do NOT include "mode": "insensitive", use "gte"/"lte" for number ranges)

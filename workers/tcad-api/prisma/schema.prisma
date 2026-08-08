@@ -25,6 +25,82 @@ model Property {
   updatedAt       String  @default("0") @map("updated_at")
   year            Int
 
+  // Full TCAD raw-field capture (migration 0003). All nullable — rows
+  // scraped before the migration stay null until re-scraped.
+  pVersion             Int?    @map("p_version")
+  pRollCorr            Int?    @map("p_roll_corr")
+  pAccountId           Int?    @map("p_account_id")
+  latitude             Float?
+  longitude            Float?
+  asCode               String? @map("as_code")
+  block                String?
+  tract                String?
+  lot                  String?
+  mhSpaceNum           String? @map("mh_space_num")
+  condoUnit            String? @map("condo_unit")
+  additionalLegal      String? @map("additional_legal")
+  legalAcreage         Float?  @map("legal_acreage")
+  autoBuildLegal       Int?    @map("auto_build_legal")
+  simpleGeo            String? @map("simple_geo")
+  refId1               String? @map("ref_id1")
+  refId2               String? @map("ref_id2")
+  massCreatedFrom      Int?    @map("mass_created_from")
+  templateProperty     Int?    @map("template_property")
+  templateDesc         String? @map("template_desc")
+  dba                  String?
+  altDba               String? @map("alt_dba")
+  mortgageCoId         String? @map("mortgage_co_id")
+  mortgageCoAcctId     String? @map("mortgage_co_acct_id")
+  effectiveSizeAcres   Float?  @map("effective_size_acres")
+  mapId                String? @map("map_id")
+  mapsco               String?
+  propReference        Int?    @map("prop_reference")
+  referenceDesc        String? @map("reference_desc")
+  active               String?
+  inactive             Int?
+  inactiveDt           String? @map("inactive_dt")
+  propCreateDt         String? @map("prop_create_dt")
+  apprCompanyId        String? @map("appr_company_id")
+  marketArea           String? @map("market_area")
+  useCd                String? @map("use_cd")
+  zoning               String?
+  sicCd                String? @map("sic_cd")
+  landValue            Float?  @map("land_value")
+  improvementValue     Float?  @map("improvement_value")
+  landHomesitePct      Float?  @map("land_homesite_pct")
+  structureHomesitePct Float?  @map("structure_homesite_pct")
+  ownerId              Int?    @map("owner_id")
+  ownerPct             Float?  @map("owner_pct")
+  ownerName            String? @map("owner_name")
+  nameSecondary        String? @map("name_secondary")
+  firstName            String? @map("first_name")
+  lastName             String? @map("last_name")
+  spouseFirstName      String? @map("spouse_first_name")
+  spouseLastName       String? @map("spouse_last_name")
+  confidentialName     String? @map("confidential_name")
+  addrDeliveryLine     String? @map("addr_delivery_line")
+  addrUnitDesignator   String? @map("addr_unit_designator")
+  addrCity             String? @map("addr_city")
+  addrZip              String? @map("addr_zip")
+  addrState            String? @map("addr_state")
+  webSuppression       Int?    @map("web_suppression")
+  primarySitus         Int?    @map("primary_situs")
+  streetNum            String? @map("street_num")
+  streetName           String? @map("street_name")
+  fullSitus            String? @map("full_situs")
+  streetPrefix         String? @map("street_prefix")
+  streetSuffix         String? @map("street_suffix")
+  streetSecondary      String? @map("street_secondary")
+  state                String?
+  zip                  String?
+  country              String?
+  international        Int?
+  valueReady           Int?    @map("value_ready")
+  taxOfficeRef         String? @map("tax_office_ref")
+  confidential         Int?
+  arbHearing           String? @map("arb_hearing")
+  relativeScore        Float?  @map("relative_score")
+
   @@unique([propertyId, year])
   @@index([searchTerm, scrapedAt])
   @@index([propertyId])

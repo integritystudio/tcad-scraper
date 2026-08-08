@@ -370,16 +370,93 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 
 // ── TCAD API fetch (simplified from tcad-api-client.ts) ──────────────
 
+// Every field TCAD returns (verified against live responses 2026-08-08).
+// Numeric-looking values arrive inconsistently as string or number, so
+// numeric fields are typed string | number and parsed on mapping.
 interface TCADResult {
-	pid?: number;
-	displayName?: string;
-	propType?: string;
-	city?: string;
-	streetPrimary?: string;
-	marketValue?: string | number;
-	appraisedValue?: string | number;
-	geoID?: string;
-	legalDescription?: string;
+	pid?: number | null;
+	pYear?: string | null; // duplicate of the search year — not captured
+	pVersion?: number | null;
+	pRollCorr?: number | null;
+	propType?: string | null;
+	pAccountID?: number | null;
+	latitude?: string | number | null;
+	longitude?: string | number | null;
+	asCode?: string | null;
+	block?: string | null;
+	tract?: string | null;
+	lot?: string | null;
+	mhSpaceNum?: string | null;
+	condoUnit?: string | null;
+	additionalLegal?: string | null;
+	legalAcreage?: string | number | null;
+	autoBuildLegal?: number | null;
+	geoID?: string | null;
+	simpleGeo?: string | null;
+	refID1?: string | null;
+	refID2?: string | null;
+	massCreatedFrom?: number | null;
+	templateProperty?: number | null;
+	templateDesc?: string | null;
+	dba?: string | null;
+	altDBA?: string | null;
+	mortgageCoID?: string | number | null;
+	mortgageCoAcctID?: string | number | null;
+	effectiveSizeAcres?: string | number | null;
+	legalDescription?: string | null;
+	mapID?: string | null;
+	mapsco?: string | null;
+	propReference?: number | null;
+	referenceDesc?: string | null;
+	active?: string | null;
+	inactive?: number | null;
+	inactiveDt?: string | null;
+	propCreateDt?: string | null;
+	apprCompanyID?: string | number | null;
+	marketArea?: string | null;
+	useCd?: string | null;
+	zoning?: string | null;
+	sicCd?: string | null;
+	landValue?: string | number | null;
+	improvementValue?: string | number | null;
+	marketValue?: string | number | null;
+	landHomesitePct?: string | number | null;
+	structureHomesitePct?: string | number | null;
+	appraisedValue?: string | number | null;
+	ownerID?: number | null;
+	ownerPct?: string | number | null;
+	name?: string | null;
+	displayName?: string | null;
+	nameSecondary?: string | null;
+	firstName?: string | null;
+	lastName?: string | null;
+	spouseFirstName?: string | null;
+	spouseLastName?: string | null;
+	confidentialName?: string | null;
+	addrDeliveryLine?: string | null;
+	addrUnitDesignator?: string | null;
+	addrCity?: string | null;
+	addrZip?: string | null;
+	addrState?: string | null;
+	webSuppression?: number | null;
+	primarySitus?: number | null;
+	streetNum?: string | number | null;
+	streetName?: string | null;
+	streetPrimary?: string | null;
+	fullSitus?: string | null;
+	streetPrefix?: string | null;
+	streetSuffix?: string | null;
+	streetSecondary?: string | null;
+	city?: string | null;
+	state?: string | null;
+	zip?: string | number | null;
+	country?: string | null;
+	international?: number | null;
+	valueReady?: number | null;
+	taxOfficeRef?: string | null;
+	confidential?: number | null;
+	arbHearing?: string | null;
+	relativeScore?: number | null;
 }
 
 /**
@@ -468,6 +545,79 @@ async function fetchTCADPropertiesPage(
 		appraisedValue: parseNumericValue(r.appraisedValue) ?? 0,
 		geoId: r.geoID ?? null,
 		description: r.legalDescription ?? null,
+		pVersion: parseNumericValue(r.pVersion),
+		pRollCorr: parseNumericValue(r.pRollCorr),
+		pAccountId: parseNumericValue(r.pAccountID),
+		latitude: parseNumericValue(r.latitude),
+		longitude: parseNumericValue(r.longitude),
+		asCode: toStringOrNull(r.asCode),
+		block: toStringOrNull(r.block),
+		tract: toStringOrNull(r.tract),
+		lot: toStringOrNull(r.lot),
+		mhSpaceNum: toStringOrNull(r.mhSpaceNum),
+		condoUnit: toStringOrNull(r.condoUnit),
+		additionalLegal: toStringOrNull(r.additionalLegal),
+		legalAcreage: parseNumericValue(r.legalAcreage),
+		autoBuildLegal: parseNumericValue(r.autoBuildLegal),
+		simpleGeo: toStringOrNull(r.simpleGeo),
+		refId1: toStringOrNull(r.refID1),
+		refId2: toStringOrNull(r.refID2),
+		massCreatedFrom: parseNumericValue(r.massCreatedFrom),
+		templateProperty: parseNumericValue(r.templateProperty),
+		templateDesc: toStringOrNull(r.templateDesc),
+		dba: toStringOrNull(r.dba),
+		altDba: toStringOrNull(r.altDBA),
+		mortgageCoId: toStringOrNull(r.mortgageCoID),
+		mortgageCoAcctId: toStringOrNull(r.mortgageCoAcctID),
+		effectiveSizeAcres: parseNumericValue(r.effectiveSizeAcres),
+		mapId: toStringOrNull(r.mapID),
+		mapsco: toStringOrNull(r.mapsco),
+		propReference: parseNumericValue(r.propReference),
+		referenceDesc: toStringOrNull(r.referenceDesc),
+		active: toStringOrNull(r.active),
+		inactive: parseNumericValue(r.inactive),
+		inactiveDt: toEpochOrNull(r.inactiveDt),
+		propCreateDt: toEpochOrNull(r.propCreateDt),
+		apprCompanyId: toStringOrNull(r.apprCompanyID),
+		marketArea: toStringOrNull(r.marketArea),
+		useCd: toStringOrNull(r.useCd),
+		zoning: toStringOrNull(r.zoning),
+		sicCd: toStringOrNull(r.sicCd),
+		landValue: parseNumericValue(r.landValue),
+		improvementValue: parseNumericValue(r.improvementValue),
+		landHomesitePct: parseNumericValue(r.landHomesitePct),
+		structureHomesitePct: parseNumericValue(r.structureHomesitePct),
+		ownerId: parseNumericValue(r.ownerID),
+		ownerPct: parseNumericValue(r.ownerPct),
+		ownerName: toStringOrNull(r.name),
+		nameSecondary: toStringOrNull(r.nameSecondary),
+		firstName: toStringOrNull(r.firstName),
+		lastName: toStringOrNull(r.lastName),
+		spouseFirstName: toStringOrNull(r.spouseFirstName),
+		spouseLastName: toStringOrNull(r.spouseLastName),
+		confidentialName: toStringOrNull(r.confidentialName),
+		addrDeliveryLine: toStringOrNull(r.addrDeliveryLine),
+		addrUnitDesignator: toStringOrNull(r.addrUnitDesignator),
+		addrCity: toStringOrNull(r.addrCity),
+		addrZip: toStringOrNull(r.addrZip),
+		addrState: toStringOrNull(r.addrState),
+		webSuppression: parseNumericValue(r.webSuppression),
+		primarySitus: parseNumericValue(r.primarySitus),
+		streetNum: toStringOrNull(r.streetNum),
+		streetName: toStringOrNull(r.streetName),
+		fullSitus: toStringOrNull(r.fullSitus),
+		streetPrefix: toStringOrNull(r.streetPrefix),
+		streetSuffix: toStringOrNull(r.streetSuffix),
+		streetSecondary: toStringOrNull(r.streetSecondary),
+		state: toStringOrNull(r.state),
+		zip: toStringOrNull(r.zip),
+		country: toStringOrNull(r.country),
+		international: parseNumericValue(r.international),
+		valueReady: parseNumericValue(r.valueReady),
+		taxOfficeRef: toStringOrNull(r.taxOfficeRef),
+		confidential: parseNumericValue(r.confidential),
+		arbHearing: toStringOrNull(r.arbHearing),
+		relativeScore: parseNumericValue(r.relativeScore),
 	}));
 
 	return {
@@ -484,6 +634,25 @@ function parseNumericValue(
 	const cleaned = val.replace(/[,$]/g, "");
 	const parsed = parseFloat(cleaned);
 	return Number.isNaN(parsed) ? null : parsed;
+}
+
+/** Trimmed string or null — TCAD sends "" for many absent values. */
+function toStringOrNull(
+	val: string | number | undefined | null,
+): string | null {
+	if (val == null) return null;
+	const s = String(val).trim();
+	return s === "" ? null : s;
+}
+
+/**
+ * TCAD datetime ("2022-03-10 13:16:43", no timezone — treated as UTC) to
+ * an epoch-ms string per the D1 date convention (never store ISO 8601 TEXT).
+ */
+function toEpochOrNull(val: string | undefined | null): string | null {
+	if (!val) return null;
+	const ms = Date.parse(`${val.replace(" ", "T")}Z`);
+	return Number.isNaN(ms) ? null : String(ms);
 }
 
 // ── D1 bulk upsert (replaces per-row Prisma upserts) ───────────────

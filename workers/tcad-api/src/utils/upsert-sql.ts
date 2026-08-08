@@ -15,6 +15,87 @@ export interface UpsertStatement {
 	params: (string | number | null)[];
 }
 
+/**
+ * Snake-case column ↔ PropertyData key for the full TCAD capture set
+ * (migration 0003). One entry per column keeps the INSERT list, the
+ * ON CONFLICT update list, and param binding in lockstep.
+ */
+const TCAD_CAPTURE_COLUMNS = [
+	["p_version", "pVersion"],
+	["p_roll_corr", "pRollCorr"],
+	["p_account_id", "pAccountId"],
+	["latitude", "latitude"],
+	["longitude", "longitude"],
+	["as_code", "asCode"],
+	["block", "block"],
+	["tract", "tract"],
+	["lot", "lot"],
+	["mh_space_num", "mhSpaceNum"],
+	["condo_unit", "condoUnit"],
+	["additional_legal", "additionalLegal"],
+	["legal_acreage", "legalAcreage"],
+	["auto_build_legal", "autoBuildLegal"],
+	["simple_geo", "simpleGeo"],
+	["ref_id1", "refId1"],
+	["ref_id2", "refId2"],
+	["mass_created_from", "massCreatedFrom"],
+	["template_property", "templateProperty"],
+	["template_desc", "templateDesc"],
+	["dba", "dba"],
+	["alt_dba", "altDba"],
+	["mortgage_co_id", "mortgageCoId"],
+	["mortgage_co_acct_id", "mortgageCoAcctId"],
+	["effective_size_acres", "effectiveSizeAcres"],
+	["map_id", "mapId"],
+	["mapsco", "mapsco"],
+	["prop_reference", "propReference"],
+	["reference_desc", "referenceDesc"],
+	["active", "active"],
+	["inactive", "inactive"],
+	["inactive_dt", "inactiveDt"],
+	["prop_create_dt", "propCreateDt"],
+	["appr_company_id", "apprCompanyId"],
+	["market_area", "marketArea"],
+	["use_cd", "useCd"],
+	["zoning", "zoning"],
+	["sic_cd", "sicCd"],
+	["land_value", "landValue"],
+	["improvement_value", "improvementValue"],
+	["land_homesite_pct", "landHomesitePct"],
+	["structure_homesite_pct", "structureHomesitePct"],
+	["owner_id", "ownerId"],
+	["owner_pct", "ownerPct"],
+	["owner_name", "ownerName"],
+	["name_secondary", "nameSecondary"],
+	["first_name", "firstName"],
+	["last_name", "lastName"],
+	["spouse_first_name", "spouseFirstName"],
+	["spouse_last_name", "spouseLastName"],
+	["confidential_name", "confidentialName"],
+	["addr_delivery_line", "addrDeliveryLine"],
+	["addr_unit_designator", "addrUnitDesignator"],
+	["addr_city", "addrCity"],
+	["addr_zip", "addrZip"],
+	["addr_state", "addrState"],
+	["web_suppression", "webSuppression"],
+	["primary_situs", "primarySitus"],
+	["street_num", "streetNum"],
+	["street_name", "streetName"],
+	["full_situs", "fullSitus"],
+	["street_prefix", "streetPrefix"],
+	["street_suffix", "streetSuffix"],
+	["street_secondary", "streetSecondary"],
+	["state", "state"],
+	["zip", "zip"],
+	["country", "country"],
+	["international", "international"],
+	["value_ready", "valueReady"],
+	["tax_office_ref", "taxOfficeRef"],
+	["confidential", "confidential"],
+	["arb_hearing", "arbHearing"],
+	["relative_score", "relativeScore"],
+] as const satisfies ReadonlyArray<readonly [string, keyof PropertyData]>;
+
 const INSERT_COLUMNS = [
 	// id has no SQL default (Prisma generates it client-side), so inserts
 	// must bind one; the ON CONFLICT path leaves existing ids untouched.
@@ -33,6 +114,7 @@ const INSERT_COLUMNS = [
 	"scraped_at",
 	"created_at",
 	"updated_at",
+	...TCAD_CAPTURE_COLUMNS.map(([col]) => col),
 ] as const;
 
 // Mirrors the previous Prisma upsert's update path: created_at and
@@ -48,6 +130,7 @@ const UPDATE_COLUMNS = [
 	"description",
 	"search_term",
 	"scraped_at",
+	...TCAD_CAPTURE_COLUMNS.map(([col]) => col),
 ] as const;
 
 const ROW_PLACEHOLDER = `(${INSERT_COLUMNS.map(() => "?").join(", ")})`;
@@ -79,6 +162,9 @@ function rowParams(
 		now,
 		now,
 		now,
+		// `?? null`: pages written to KV by a pre-0003 deploy lack these keys,
+		// and D1 rejects `undefined` bindings.
+		...TCAD_CAPTURE_COLUMNS.map(([, key]) => prop[key] ?? null),
 	];
 }
 

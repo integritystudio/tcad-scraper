@@ -13,12 +13,91 @@ import { buildUpsertStatements } from "../upsert-sql";
 const NOW = "1786058000000";
 const YEAR = 2025;
 const TERM = "Ridge";
-const COLUMNS_PER_ROW = 15;
+const COLUMNS_PER_ROW = 88;
+const TCAD_CAPTURE_COLUMN_COUNT = 73;
 
 function sequentialIds(): () => string {
 	let n = 0;
 	return () => `uuid-${++n}`;
 }
+
+// All-null defaults for the full TCAD capture set (migration 0003) — the
+// upsert contract only cares that they bind in column order.
+const NULL_CAPTURE_FIELDS = {
+	pVersion: null,
+	pRollCorr: null,
+	pAccountId: null,
+	latitude: null,
+	longitude: null,
+	asCode: null,
+	block: null,
+	tract: null,
+	lot: null,
+	mhSpaceNum: null,
+	condoUnit: null,
+	additionalLegal: null,
+	legalAcreage: null,
+	autoBuildLegal: null,
+	simpleGeo: null,
+	refId1: null,
+	refId2: null,
+	massCreatedFrom: null,
+	templateProperty: null,
+	templateDesc: null,
+	dba: null,
+	altDba: null,
+	mortgageCoId: null,
+	mortgageCoAcctId: null,
+	effectiveSizeAcres: null,
+	mapId: null,
+	mapsco: null,
+	propReference: null,
+	referenceDesc: null,
+	active: null,
+	inactive: null,
+	inactiveDt: null,
+	propCreateDt: null,
+	apprCompanyId: null,
+	marketArea: null,
+	useCd: null,
+	zoning: null,
+	sicCd: null,
+	landValue: null,
+	improvementValue: null,
+	landHomesitePct: null,
+	structureHomesitePct: null,
+	ownerId: null,
+	ownerPct: null,
+	ownerName: null,
+	nameSecondary: null,
+	firstName: null,
+	lastName: null,
+	spouseFirstName: null,
+	spouseLastName: null,
+	confidentialName: null,
+	addrDeliveryLine: null,
+	addrUnitDesignator: null,
+	addrCity: null,
+	addrZip: null,
+	addrState: null,
+	webSuppression: null,
+	primarySitus: null,
+	streetNum: null,
+	streetName: null,
+	fullSitus: null,
+	streetPrefix: null,
+	streetSuffix: null,
+	streetSecondary: null,
+	state: null,
+	zip: null,
+	country: null,
+	international: null,
+	valueReady: null,
+	taxOfficeRef: null,
+	confidential: null,
+	arbHearing: null,
+	relativeScore: null,
+} satisfies Partial<PropertyData>;
 
 function property(overrides: Partial<PropertyData> = {}): PropertyData {
 	return {
@@ -31,6 +110,7 @@ function property(overrides: Partial<PropertyData> = {}): PropertyData {
 		appraisedValue: 9293415,
 		geoId: "0111230502",
 		description: "LOT A LOST CREEK POINT NO 2",
+		...NULL_CAPTURE_FIELDS,
 		...overrides,
 	};
 }
@@ -75,7 +155,49 @@ describe("buildUpsertStatements", () => {
 			NOW,
 			NOW,
 			NOW,
+			...Array(TCAD_CAPTURE_COLUMN_COUNT).fill(null),
 		]);
+	});
+
+	it("binds capture fields in column order after the base columns", () => {
+		const [stmt] = buildUpsertStatements(
+			[property({ dba: "FRANKLIN BARBECUE", latitude: 30.27, zip: "78702" })],
+			TERM,
+			YEAR,
+			NOW,
+			sequentialIds(),
+		);
+		const insertList = stmt.sql.slice(0, stmt.sql.indexOf(") VALUES"));
+
+		expect(stmt.params[insertList.split(",").findIndex((c) => c.includes("dba"))]).toBe(
+			"FRANKLIN BARBECUE",
+		);
+		expect(
+			stmt.params[insertList.split(",").findIndex((c) => c.includes("latitude"))],
+		).toBe(30.27);
+		expect(
+			stmt.params[insertList.split(",").findIndex((c) => c.trim() === "zip")],
+		).toBe("78702");
+	});
+
+	it("binds null for capture fields missing from pre-0003 KV pages", () => {
+		const legacyShape = {
+			propertyId: "111295",
+			name: "LIMESTONE CREEK PROPERTIES L P",
+			propType: "R",
+			city: "AUSTIN",
+			propertyAddress: "1114 LOST CREEK BLVD",
+			assessedValue: 9293415,
+			appraisedValue: 9293415,
+			geoId: "0111230502",
+			description: "LOT A LOST CREEK POINT NO 2",
+		} as PropertyData;
+		const [stmt] = buildUpsertStatements([legacyShape], TERM, YEAR, NOW);
+
+		expect(stmt.params).toHaveLength(COLUMNS_PER_ROW);
+		expect(stmt.params.slice(-TCAD_CAPTURE_COLUMN_COUNT)).toEqual(
+			Array(TCAD_CAPTURE_COLUMN_COUNT).fill(null),
+		);
 	});
 
 	it("generates a distinct id for every row by default", () => {
@@ -110,12 +232,12 @@ describe("buildUpsertStatements", () => {
 		}
 	});
 
-	it("splits 15 rows into micro-chunks of 6, 6, and 3", () => {
+	it("splits rows into single-row micro-chunks (88 cols leaves room for 1 row)", () => {
 		const statements = buildUpsertStatements(properties(15), TERM, YEAR, NOW);
 
-		expect(statements.map((s) => s.params.length / COLUMNS_PER_ROW)).toEqual([
-			6, 6, 3,
-		]);
+		expect(statements.map((s) => s.params.length / COLUMNS_PER_ROW)).toEqual(
+			Array(15).fill(1),
+		);
 	});
 
 	it("keeps every statement within D1's 100-bound-parameter limit", () => {
