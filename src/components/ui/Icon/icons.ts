@@ -7,7 +7,7 @@ export const iconPaths: Record<string, string> = {
 	search: "M11 11m-8 0a8 8 0 1 0 16 0a8 8 0 1 0 -16 0M21 21l-4.35-4.35",
 	location:
 		"M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0zM12 10m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
-	chevronRight: "M9 18l6-6l-6-6",
+	"chevron-right": "M9 18l6-6l-6-6",
 	"chevron-up": "M6 15l6-6l6 6",
 	"chevron-down": "M6 9l6 6l6-6",
 	calendar:

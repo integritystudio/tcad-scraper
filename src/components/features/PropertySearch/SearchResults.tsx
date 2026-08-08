@@ -143,7 +143,7 @@ export const SearchResults = ({
 			{explanation && !answer && answerState !== "loading" && (
 				<div className={styles.explanation}>
 					<div className={styles.explanationIcon}>
-						<Icon name="chevronRight" size={16} />
+						<Icon name="chevron-right" size={16} />
 					</div>
 					<span>{explanation}</span>
 					<span className={styles.resultCount}>({totalResults} results)</span>
