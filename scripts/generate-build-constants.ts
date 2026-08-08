@@ -19,13 +19,13 @@ const CLOUDFLARE_ACCOUNT_ID = "b3868dd0fd5c0faa7d98aa325a9c2377";
 const D1_DATABASE_ID = "451d4356-10d1-4c1d-adf9-4d4297636343";
 const D1_QUERY_URL = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query`;
 
-// Last known count as of Aug 6, 2026 (D1). Must measure the same thing as
+// Last known count as of Aug 8, 2026 (D1). Must measure the same thing as
 // fetchPropertyCount() below (distinct properties, so a second tax year in
 // the table doesn't double-count).
 // Refresh: doppler run -p integrity-studio -c prd -- sh -c \
 //   'CLOUDFLARE_API_TOKEN=$CLOUDFLARE_D1_TOKEN npx wrangler d1 execute tcad-db \
 //    --remote --command "SELECT COUNT(DISTINCT property_id) FROM properties"'
-const HARDCODED_FALLBACK_COUNT = 260_000;
+const HARDCODED_FALLBACK_COUNT = 484_000;
 
 interface D1QueryResponse {
 	success: boolean;
