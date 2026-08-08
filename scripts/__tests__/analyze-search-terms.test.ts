@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockScrapeJobCount = vi.fn();
 const mockScrapeJobFindMany = vi.fn();
-const mockPropertyCount = vi.fn();
+const mockGet2025Count = vi.fn();
 const mockQueryRaw = vi.fn();
 
 vi.mock("../lib/d1-prisma", () => ({
@@ -11,12 +11,13 @@ vi.mock("../lib/d1-prisma", () => ({
 			count: (...args: unknown[]) => mockScrapeJobCount(...args),
 			findMany: (...args: unknown[]) => mockScrapeJobFindMany(...args),
 		},
-		property: {
-			count: (...args: unknown[]) => mockPropertyCount(...args),
-		},
 		$queryRaw: (...args: unknown[]) => mockQueryRaw(...args),
 	},
 	epochAgo: (ms: number) => String(Date.now() - ms),
+}));
+
+vi.mock("../lib/backfill-utils", () => ({
+	get2025Count: (...args: unknown[]) => mockGet2025Count(...args),
 }));
 
 import { analyzeSearchTerms } from "../analyze-search-terms";
@@ -32,7 +33,7 @@ function setupDefaultMocks(overrides: { propertyCount?: number } = {}) {
 		.mockResolvedValueOnce(1)
 		.mockResolvedValueOnce(1);
 
-	mockPropertyCount.mockResolvedValue(overrides.propertyCount ?? 450_000);
+	mockGet2025Count.mockResolvedValue(overrides.propertyCount ?? 450_000);
 
 	// $queryRaw called in order:
 	// 1. COUNT(DISTINCT search_term) from scrape_jobs — unique terms
@@ -56,8 +57,8 @@ beforeEach(() => {
 });
 
 describe("analyzeSearchTerms — staleness guard", () => {
-	it("fires console.warn when propertyCount exceeds TCAD_TOTAL_PROPERTIES", async () => {
-		setupDefaultMocks({ propertyCount: 460_000 });
+	it("fires console.warn when propertyCount exceeds TARGET_2025_PROPERTY_COUNT", async () => {
+		setupDefaultMocks({ propertyCount: 510_000 });
 
 		await analyzeSearchTerms();
 
@@ -76,7 +77,7 @@ describe("analyzeSearchTerms — staleness guard", () => {
 		expect(vi.mocked(console.warn)).not.toHaveBeenCalled();
 	});
 
-	it("clamps Remaining to 0 when DB count exceeds TCAD_TOTAL_PROPERTIES", async () => {
+	it("clamps Remaining to 0 when DB count exceeds TARGET_2025_PROPERTY_COUNT", async () => {
 		setupDefaultMocks({ propertyCount: 500_000 });
 
 		await analyzeSearchTerms();

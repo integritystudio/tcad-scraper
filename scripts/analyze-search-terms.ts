@@ -11,17 +11,18 @@
  */
 
 import { pathToFileURL } from "node:url";
-import { THIRTY_DAY_LOOKBACK_MS } from "../utils/constants";
+import {
+	TARGET_2025_PROPERTY_COUNT,
+	THIRTY_DAY_LOOKBACK_MS,
+} from "../utils/constants";
+import { get2025Count } from "./lib/backfill-utils";
 import { epochAgo, prisma } from "./lib/d1-prisma";
 import { getJobStats } from "./lib/job-stats";
+import logger from "./lib/logger";
 import { runMain } from "./lib/run-main";
 
-// Approximate total TCAD property count — update periodically from https://tcad.org/
-// Used for coverage percentage and threshold checks only; staleness won't affect scraping.
-const TCAD_TOTAL_PROPERTIES = 451_339;
-
 export async function analyzeSearchTerms(): Promise<void> {
-	console.log("\n=== Search Term Analysis ===\n");
+	logger.info("\n=== Search Term Analysis ===\n");
 
 	// 1. Overall stats
 	const {
@@ -33,21 +34,21 @@ export async function analyzeSearchTerms(): Promise<void> {
 		failedRate,
 	} = await getJobStats();
 
-	console.log("📊 Overall Job Stats:");
-	console.log(`   Total jobs: ${totalJobs}`);
-	console.log(`   Completed: ${completedJobs} (${completedRate.toFixed(1)}%)`);
-	console.log(`   Failed: ${failedJobs} (${failedRate.toFixed(1)}%)`);
-	console.log(`   Pending: ${pendingJobs}`);
+	logger.info("📊 Overall Job Stats:");
+	logger.info(`   Total jobs: ${totalJobs}`);
+	logger.info(`   Completed: ${completedJobs} (${completedRate.toFixed(1)}%)`);
+	logger.info(`   Failed: ${failedJobs} (${failedRate.toFixed(1)}%)`);
+	logger.info(`   Pending: ${pendingJobs}`);
 
 	// 2. Unique search terms used
 	const uniqueTermsResult = await prisma.$queryRaw<{ count: bigint }[]>`
     SELECT COUNT(DISTINCT search_term) as count FROM scrape_jobs
   `;
 	const uniqueTerms = Number(uniqueTermsResult[0].count);
-	console.log(`\n📝 Unique search terms used: ${uniqueTerms}`);
+	logger.info(`\n📝 Unique search terms used: ${uniqueTerms}`);
 
 	// 3. Top 20 most successful search terms
-	console.log("\n✅ Top 20 Most Successful Search Terms:");
+	logger.info("\n✅ Top 20 Most Successful Search Terms:");
 	const topTerms = await prisma.$queryRaw<
 		{
 			search_term: string;
@@ -74,14 +75,14 @@ export async function analyzeSearchTerms(): Promise<void> {
 	topTerms.forEach((term, i) => {
 		const successRate =
 			(Number(term.success_count) / Number(term.job_count)) * 100;
-		console.log(
+		logger.info(
 			`   ${i + 1}. "${term.search_term}": ${Number(term.total_results).toLocaleString()} props ` +
 				`(${Number(term.job_count)} jobs, ${successRate.toFixed(0)}% success, avg ${Math.round(term.avg_results || 0)}/job)`,
 		);
 	});
 
 	// 4. Search terms that always fail (for blacklist)
-	console.log("\n❌ Search Terms That Always Fail (top 20):");
+	logger.info("\n❌ Search Terms That Always Fail (top 20):");
 	const failingTerms = await prisma.$queryRaw<
 		{
 			search_term: string;
@@ -105,13 +106,13 @@ export async function analyzeSearchTerms(): Promise<void> {
 		const errorPreview = term.last_error
 			? term.last_error.substring(0, 50)
 			: "Unknown";
-		console.log(
+		logger.info(
 			`   ${i + 1}. "${term.search_term}": ${Number(term.fail_count)} failures - ${errorPreview}...`,
 		);
 	});
 
 	// 5. Recently successful terms (candidates for re-running)
-	console.log("\n🔄 Recently Successful Terms (last 30 days):");
+	logger.info("\n🔄 Recently Successful Terms (last 30 days):");
 	const recentTerms = await prisma.$queryRaw<
 		{
 			search_term: string;
@@ -129,17 +130,17 @@ export async function analyzeSearchTerms(): Promise<void> {
   `;
 
 	if (recentTerms.length === 0) {
-		console.log("   ⚠️ No successful jobs in last 30 days!");
+		logger.info("   ⚠️ No successful jobs in last 30 days!");
 	} else {
 		recentTerms.forEach((term, i) => {
-			console.log(
+			logger.info(
 				`   ${i + 1}. "${term.search_term}": ${term.result_count} props (${new Date(Number(term.completed_at)).toLocaleDateString()})`,
 			);
 		});
 	}
 
 	// 6. Search term categories breakdown
-	console.log("\n📂 Search Term Categories:");
+	logger.info("\n📂 Search Term Categories:");
 
 	const categories = {
 		"Entity (LLC, Inc, Corp, Trust)": await countTermsMatching([
@@ -180,43 +181,41 @@ export async function analyzeSearchTerms(): Promise<void> {
 	};
 
 	for (const [category, count] of Object.entries(categories)) {
-		console.log(`   ${category}: ${count} unique terms used`);
+		logger.info(`   ${category}: ${count} unique terms used`);
 	}
 
-	// 7. Property coverage analysis
-	console.log("\n📊 Property Coverage:");
-	const propertyCount = await prisma.property.count();
-	console.log(`   Total properties in DB: ${propertyCount.toLocaleString()}`);
-	console.log(
-		`   Target (TCAD total): ${TCAD_TOTAL_PROPERTIES.toLocaleString()}`,
-	);
-	if (propertyCount > TCAD_TOTAL_PROPERTIES) {
-		console.warn(
-			`   ⚠️  DB count (${propertyCount.toLocaleString()}) exceeds TCAD_TOTAL_PROPERTIES (${TCAD_TOTAL_PROPERTIES.toLocaleString()}) — constant may be stale; update line 17`,
+	// 7. Property coverage analysis (2025 tax year, matching TARGET_2025_PROPERTY_COUNT)
+	logger.info("\n📊 Property Coverage:");
+	const propertyCount = await get2025Count();
+	logger.info(`   2025 properties in DB: ${propertyCount.toLocaleString()}`);
+	logger.info(`   Target: ${TARGET_2025_PROPERTY_COUNT.toLocaleString()}`);
+	if (propertyCount > TARGET_2025_PROPERTY_COUNT) {
+		logger.warn(
+			`   ⚠️  DB count (${propertyCount.toLocaleString()}) exceeds TARGET_2025_PROPERTY_COUNT (${TARGET_2025_PROPERTY_COUNT.toLocaleString()}) — constant may be stale; update utils/constants.ts`,
 		);
 	}
-	console.log(
-		`   Coverage: ${((propertyCount / TCAD_TOTAL_PROPERTIES) * 100).toFixed(1)}%`,
+	logger.info(
+		`   Coverage: ${((propertyCount / TARGET_2025_PROPERTY_COUNT) * 100).toFixed(1)}%`,
 	);
-	console.log(
-		`   Remaining: ${Math.max(0, TCAD_TOTAL_PROPERTIES - propertyCount).toLocaleString()}`,
+	logger.info(
+		`   Remaining: ${Math.max(0, TARGET_2025_PROPERTY_COUNT - propertyCount).toLocaleString()}`,
 	);
 
 	// 8. Recommendations
-	console.log("\n💡 Recommendations:");
+	logger.info("\n💡 Recommendations:");
 	if (failedRate > 30) {
-		console.log("   ⚠️ High failure rate (>30%) - check TCAD API/token issues");
+		logger.info("   ⚠️ High failure rate (>30%) - check TCAD API/token issues");
 	}
 	if (recentTerms.length === 0) {
-		console.log(
+		logger.info(
 			"   ⚠️ No recent successful scrapes - check wrangler tail, then re-enqueue via generate-next-200-terms.ts --enqueue",
 		);
 	}
 	if (uniqueTerms < 1000) {
-		console.log("   📝 Consider adding more search terms to pattern generator");
+		logger.info("   📝 Consider adding more search terms to pattern generator");
 	}
-	if (propertyCount / TCAD_TOTAL_PROPERTIES > 0.9) {
-		console.log(
+	if (propertyCount / TARGET_2025_PROPERTY_COUNT > 0.9) {
+		logger.info(
 			"   ✅ High coverage achieved - focus on entity/trust searches for remaining properties",
 		);
 	}

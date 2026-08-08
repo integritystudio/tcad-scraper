@@ -27,6 +27,8 @@ interface FailureAnalysis {
 	failedJobs: number;
 	completedJobs: number;
 	failureRate: number;
+	/** Rows actually examined for errorBreakdown (capped; may be < failedJobs). */
+	sampledJobs: number;
 	errorBreakdown: ErrorStats[];
 	recentFailures: Array<{
 		searchTerm: string;
@@ -78,12 +80,15 @@ async function analyzeFailedJobs(): Promise<FailureAnalysis> {
 		group.searchTerms.add(job.searchTerm);
 	}
 
-	// Convert to sorted array
+	// Convert to sorted array. Percentages are of sampledJobs (the rows
+	// actually examined below), not the global failedJobs total — the two
+	// diverge once failedJobs exceeds the take: 5000 cap.
+	const sampledJobs = failedJobsData.length;
 	const errorBreakdown: ErrorStats[] = Array.from(errorGroups.entries())
 		.map(([errorMessage, data]) => ({
 			errorMessage,
 			count: data.count,
-			percentage: failedJobs > 0 ? (data.count / failedJobs) * 100 : 0,
+			percentage: sampledJobs > 0 ? (data.count / sampledJobs) * 100 : 0,
 			searchTerms: Array.from(data.searchTerms).slice(0, 5), // Top 5 search terms
 		}))
 		.sort((a, b) => b.count - a.count);
@@ -100,6 +105,7 @@ async function analyzeFailedJobs(): Promise<FailureAnalysis> {
 		failedJobs,
 		completedJobs,
 		failureRate,
+		sampledJobs,
 		errorBreakdown,
 		recentFailures,
 	};
@@ -118,6 +124,11 @@ async function main() {
 			`Failed: ${analysis.failedJobs} (${analysis.failureRate.toFixed(2)}%)`,
 		);
 		logger.info(`Completed: ${analysis.completedJobs}`);
+		if (analysis.sampledJobs < analysis.failedJobs) {
+			logger.info(
+				`Note: breakdown below covers the ${analysis.sampledJobs} most recent failures, not all ${analysis.failedJobs}.`,
+			);
+		}
 
 		logger.info("========================================");
 		logger.info("ERROR BREAKDOWN (by frequency)");
@@ -193,8 +204,8 @@ async function main() {
 		};
 
 		const pctOfFailures = (count: number): string =>
-			analysis.failedJobs > 0
-				? ((count / analysis.failedJobs) * 100).toFixed(2)
+			analysis.sampledJobs > 0
+				? ((count / analysis.sampledJobs) * 100).toFixed(2)
 				: "0.00";
 
 		logger.info(
