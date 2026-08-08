@@ -5,6 +5,7 @@ import { Icon } from "../../ui/Icon";
 import styles from "./SearchBox.module.css";
 
 const LIVE_SEARCH_DEBOUNCE_MS = 300;
+const LIVE_SEARCH_MIN_LENGTH = 3;
 
 interface SearchBoxProps {
 	onSearch: (query: string) => void;
@@ -39,9 +40,15 @@ export const SearchBox = ({
 
 	// Live search: fire automatically once typing settles, skipping queries
 	// already searched via Enter/click (handleSearch) to avoid a duplicate call.
+	// Below LIVE_SEARCH_MIN_LENGTH, wait for an explicit Enter/click instead —
+	// short queries are low-signal and, combined with the input being disabled
+	// while loading, firing on every keystroke locks up typing.
 	useEffect(() => {
 		const trimmed = debouncedQuery.trim();
-		if (trimmed && trimmed !== lastSearchedRef.current) {
+		if (
+			trimmed.length >= LIVE_SEARCH_MIN_LENGTH &&
+			trimmed !== lastSearchedRef.current
+		) {
 			lastSearchedRef.current = trimmed;
 			onSearch(trimmed);
 		}

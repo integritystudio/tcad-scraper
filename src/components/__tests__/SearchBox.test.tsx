@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SearchBox } from "../features/PropertySearch/SearchBox";
 
 const LIVE_SEARCH_DEBOUNCE_MS = 300;
+const LIVE_SEARCH_MIN_LENGTH = 3;
 
 describe("SearchBox", () => {
 	describe("Accessibility", () => {
@@ -273,6 +274,45 @@ describe("SearchBox", () => {
 			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
 
 			expect(onSearch).not.toHaveBeenCalled();
+		});
+
+		it("does not fire the debounced search below the minimum length", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+
+			fireEvent.change(input, {
+				target: { value: "a".repeat(LIVE_SEARCH_MIN_LENGTH - 1) },
+			});
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+
+			expect(onSearch).not.toHaveBeenCalled();
+		});
+
+		it("fires the debounced search once the minimum length is reached", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+			const value = "a".repeat(LIVE_SEARCH_MIN_LENGTH);
+
+			fireEvent.change(input, { target: { value } });
+			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
+
+			expect(onSearch).toHaveBeenCalledTimes(1);
+			expect(onSearch).toHaveBeenCalledWith(value);
+		});
+
+		it("still allows an explicit Enter/click search below the minimum length", () => {
+			const onSearch = vi.fn();
+			render(<SearchBox onSearch={onSearch} />);
+			const input = screen.getByRole("searchbox");
+
+			fireEvent.change(input, {
+				target: { value: "a".repeat(LIVE_SEARCH_MIN_LENGTH - 1) },
+			});
+			fireEvent.keyDown(input, { key: "Enter" });
+
+			expect(onSearch).toHaveBeenCalledTimes(1);
 		});
 
 		it("does not duplicate via Enter a query already fired by the debounce", () => {
