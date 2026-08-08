@@ -71,6 +71,35 @@ async function recomputeDerivedStats(
 	}
 }
 
+/**
+ * Update max_results and min_results using the raw TCAD response count for
+ * this search. Prisma upserts can't express MAX/MIN across columns, so this
+ * uses raw SQL (SQLite's scalar MAX/MIN accept multiple arguments).
+ *
+ * resultsThisSearch — the total property count TCAD reported (not the count
+ * of newly-inserted rows, which is tracked separately as totalResults).
+ *
+ * Never throws for the same reason as recomputeDerivedStats.
+ */
+async function updateMinMaxResults(
+	prisma: ReturnType<typeof createPrisma>,
+	searchTerm: string,
+	resultsThisSearch: number,
+): Promise<void> {
+	try {
+		await prisma.$executeRaw`
+			UPDATE search_term_analytics
+			SET max_results = MAX(max_results, ${resultsThisSearch}),
+			    min_results = MIN(COALESCE(min_results, ${resultsThisSearch}), ${resultsThisSearch})
+			WHERE search_term = ${searchTerm}`;
+	} catch (err) {
+		console.error("Failed to update min/max results analytics", {
+			searchTerm,
+			error: getErrorMessage(err),
+		});
+	}
+}
+
 export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 	async run(event: WorkflowEvent<ScrapeParams>, step: WorkflowStep) {
 		const { searchTerm, year } = event.payload;
@@ -245,11 +274,24 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 						totalSearches: 1,
 						successfulSearches: 1,
 						totalResults: upsertResult.savedCount,
+						// Seed min/max on first write; updateMinMaxResults below
+						// handles MAX(existing, new) for subsequent searches.
+						maxResults: upsertResult.totalApiResults,
+						minResults: upsertResult.totalApiResults,
 						lastSearched: now,
 						createdAt: now,
 						updatedAt: now,
 					},
 				});
+				// max_results / min_results can't be expressed as Prisma
+				// increment/decrement, so update them via raw SQL after the upsert.
+				// Safe to run after both create and update paths: after a create
+				// the MAX/MIN of (seeded_value, seeded_value) is a no-op.
+				await updateMinMaxResults(
+					prisma,
+					searchTerm,
+					upsertResult.totalApiResults,
+				);
 				await recomputeDerivedStats(prisma, searchTerm);
 			});
 
