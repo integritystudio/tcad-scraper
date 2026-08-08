@@ -112,11 +112,7 @@ interface NaturalLanguageSearchParams {
 // Shared by POST /search and the cacheable GET /search variant.
 const runNaturalLanguageSearch = async (
 	c: Context<AppEnv>,
-	{
-		query,
-		limit = FTS_MAX_PAGE_SIZE,
-		offset = 0,
-	}: NaturalLanguageSearchParams,
+	{ query, limit = FTS_MAX_PAGE_SIZE, offset = 0 }: NaturalLanguageSearchParams,
 ) => {
 	const prisma = c.get("prisma");
 

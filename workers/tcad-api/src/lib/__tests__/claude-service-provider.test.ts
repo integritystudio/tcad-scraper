@@ -57,7 +57,9 @@ describe("parseNaturalLanguageQuery provider reporting", () => {
 
 		expect(result.provider).toBe("anthropic");
 		expect(result.model).toBe("claude-3-haiku-20240307");
-		expect(result.filters.whereClause).toEqual({ city: { contains: "Austin" } });
+		expect(result.filters.whereClause).toEqual({
+			city: { contains: "Austin" },
+		});
 	});
 
 	it("reports grok when the fallback answers", async () => {
@@ -71,7 +73,9 @@ describe("parseNaturalLanguageQuery provider reporting", () => {
 
 		expect(result.provider).toBe("grok");
 		expect(fetchMock).toHaveBeenCalledTimes(2);
-		expect(result.filters.whereClause).toEqual({ city: { contains: "Austin" } });
+		expect(result.filters.whereClause).toEqual({
+			city: { contains: "Austin" },
+		});
 	});
 
 	it("reports the model the provider served, not the one requested", async () => {
@@ -99,8 +103,8 @@ describe("parseNaturalLanguageQuery provider reporting", () => {
 
 		// No fallback key, so the Anthropic error propagates rather than
 		// resolving to a misleading success.
-		await expect(
-			parseNaturalLanguageQuery("q", "sk-ant"),
-		).rejects.toThrow(/credit balance/i);
+		await expect(parseNaturalLanguageQuery("q", "sk-ant")).rejects.toThrow(
+			/credit balance/i,
+		);
 	});
 });

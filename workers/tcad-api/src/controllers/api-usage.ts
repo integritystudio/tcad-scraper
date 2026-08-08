@@ -8,8 +8,8 @@ import type { Prisma } from "@prisma/client";
 import { Hono } from "hono";
 import {
 	COST_DECIMAL_PLACES,
-	DAYS_PER_WEEK as LOOKBACK_DAYS,
 	LOG_PAGE_SIZE,
+	DAYS_PER_WEEK as LOOKBACK_DAYS,
 	MAX_LOOKBACK_DAYS,
 	MAX_QUERY_LIMIT,
 	PERCENT_MULTIPLIER,
@@ -25,7 +25,10 @@ app.get("/stats", async (c) => {
 	const daysParam = c.req.query("days");
 	const environment = c.req.query("environment");
 
-	const daysNum = Math.min(Number(daysParam) || LOOKBACK_DAYS, MAX_LOOKBACK_DAYS);
+	const daysNum = Math.min(
+		Number(daysParam) || LOOKBACK_DAYS,
+		MAX_LOOKBACK_DAYS,
+	);
 	const startDate = new Date();
 	startDate.setDate(startDate.getDate() - daysNum);
 	const startDateEpoch = String(startDate.getTime());

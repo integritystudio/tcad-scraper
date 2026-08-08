@@ -67,9 +67,7 @@ describe("mine-2026-terms query construction", () => {
 	it("applies minCount as the HAVING threshold", async () => {
 		await mineOwnerFirstWords({ minCount: 7 });
 
-		expect(executedSql()).toContain(
-			"HAVING COUNT(DISTINCT property_id) >= 7",
-		);
+		expect(executedSql()).toContain("HAVING COUNT(DISTINCT property_id) >= 7");
 	});
 
 	it("adds the letter GLOB filter only when alphaOnly is set", async () => {

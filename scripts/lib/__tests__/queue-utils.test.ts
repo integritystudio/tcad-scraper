@@ -23,10 +23,7 @@ function job(
 	return { searchTerm, status, startedAt: new Date(startedAtMs).toISOString() };
 }
 
-function historyResponse(
-	jobs: HistoryJob[],
-	hasMore = false,
-): Response {
+function historyResponse(jobs: HistoryJob[], hasMore = false): Response {
 	return {
 		ok: true,
 		json: async () => ({ data: jobs, pagination: { hasMore } }),
@@ -272,9 +269,7 @@ describe("waitForQueueDrain", () => {
 		expect(logger.error).toHaveBeenCalledWith(
 			expect.stringContaining("Drain timeout"),
 		);
-		expect(logger.error).toHaveBeenCalledWith(
-			expect.stringContaining("Alpha"),
-		);
+		expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("Alpha"));
 	});
 });
 

@@ -120,7 +120,8 @@ export async function waitForQueueDrain(
 				pending.delete(job.searchTerm.toLowerCase());
 			}
 
-			if (pending.size === 0 || reachedCutoff || !page.pagination?.hasMore) break;
+			if (pending.size === 0 || reachedCutoff || !page.pagination?.hasMore)
+				break;
 			offset += HISTORY_FETCH_LIMIT;
 		}
 

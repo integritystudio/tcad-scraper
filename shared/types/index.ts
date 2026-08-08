@@ -7,7 +7,6 @@
  * Property API types live in ./property.types.ts (canonical source).
  */
 
-export * from "./property.types";
-
 // Re-export JSON-LD utilities
 export * from "./json-ld.utils";
+export * from "./property.types";

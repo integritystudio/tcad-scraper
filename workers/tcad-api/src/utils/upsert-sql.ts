@@ -180,7 +180,9 @@ export function buildUpsertStatements(
 		const rows = properties.slice(i, i + UPSERT_MICRO_CHUNK_SIZE);
 		const sql = `INSERT INTO properties (${INSERT_COLUMNS.join(", ")}) VALUES ${rows
 			.map(() => ROW_PLACEHOLDER)
-			.join(", ")} ON CONFLICT(property_id, year) DO UPDATE SET ${UPDATE_CLAUSE}`;
+			.join(
+				", ",
+			)} ON CONFLICT(property_id, year) DO UPDATE SET ${UPDATE_CLAUSE}`;
 		statements.push({
 			sql,
 			params: rows.flatMap((p) => rowParams(p, searchTerm, year, now, newId)),

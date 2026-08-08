@@ -140,14 +140,7 @@ export const BATCH_CONFIGS: Record<string, BatchEnqueueConfig> = {
 	},
 
 	residential: {
-		terms: [
-			"Johnson",
-			"Williams",
-			"Miller",
-			"Garcia",
-			"Rodriguez",
-			"Wilson",
-		],
+		terms: ["Johnson", "Williams", "Miller", "Garcia", "Rodriguez", "Wilson"],
 	},
 
 	"high-priority": {

@@ -21,44 +21,44 @@
 import { pathToFileURL } from "node:url";
 import { BACKFILL_2025_STATIC_TERMS } from "../config/backfill-2025-static-terms";
 import {
-  CANDIDATE_ENTITY,
-  CANDIDATE_FIRST_NAMES,
-  CANDIDATE_GEOGRAPHIC,
-  CANDIDATE_LAST_NAMES,
+	CANDIDATE_ENTITY,
+	CANDIDATE_FIRST_NAMES,
+	CANDIDATE_GEOGRAPHIC,
+	CANDIDATE_LAST_NAMES,
 } from "../generate-next-200-terms";
 import {
-  buildTermInventory,
-  printDuplicatesSection,
-  printSourceBreakdown,
-  type TermInventory,
+	buildTermInventory,
+	printDuplicatesSection,
+	printSourceBreakdown,
+	type TermInventory,
 } from "../lib/term-inventory";
 
 export type CuratedTermInventory = TermInventory;
 
 /** Collect and deduplicate all manual-backfill curated term lists. */
 export function getCuratedTermInventory(): CuratedTermInventory {
-  // Manual-backfill pool sources in priority order
-  return buildTermInventory({
-    BACKFILL_2025_STATIC_TERMS,
-    CANDIDATE_FIRST_NAMES,
-    CANDIDATE_LAST_NAMES,
-    CANDIDATE_GEOGRAPHIC,
-    CANDIDATE_ENTITY,
-  });
+	// Manual-backfill pool sources in priority order
+	return buildTermInventory({
+		BACKFILL_2025_STATIC_TERMS,
+		CANDIDATE_FIRST_NAMES,
+		CANDIDATE_LAST_NAMES,
+		CANDIDATE_GEOGRAPHIC,
+		CANDIDATE_ENTITY,
+	});
 }
 
 // ── CLI output ────────────────────────────────────────────────────────
 
 if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
+	process.argv[1] &&
+	import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  const { all, duplicated, sources } = getCuratedTermInventory();
+	const { all, duplicated, sources } = getCuratedTermInventory();
 
-  console.log("=== CURATED BACKFILL TERM INVENTORY ===\n");
-  console.log(`Total unique terms: ${all.length}`);
-  console.log(`Duplicated (must be 0): ${duplicated.length}\n`);
+	console.log("=== CURATED BACKFILL TERM INVENTORY ===\n");
+	console.log(`Total unique terms: ${all.length}`);
+	console.log(`Duplicated (must be 0): ${duplicated.length}\n`);
 
-  printSourceBreakdown(sources);
-  printDuplicatesSection(duplicated, "DUPLICATED");
+	printSourceBreakdown(sources);
+	printDuplicatesSection(duplicated, "DUPLICATED");
 }

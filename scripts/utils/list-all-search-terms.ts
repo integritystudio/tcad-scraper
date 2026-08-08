@@ -11,11 +11,6 @@ import {
 	BATCH_CONFIGS,
 	HIGH_RESULT_TERM_SPLITS,
 } from "../config/batch-configs";
-import { BUSINESS_ENTITY } from "../lib/terms/BUSINESS_ENTITY";
-import { FIRST_NAMES_FEMALE } from "../lib/terms/FIRST_NAMES_FEMALE";
-import { FIRST_NAMES_MALE } from "../lib/terms/FIRST_NAMES_MALE";
-import { LAST_NAMES } from "../lib/terms/LAST_NAMES";
-import { STREET_GEOGRAPHIC } from "../lib/terms/STREET_GEOGRAPHIC";
 import {
 	buildTermInventory,
 	printDuplicatesSection,
@@ -23,6 +18,11 @@ import {
 	printTermRows,
 	type TermInventory,
 } from "../lib/term-inventory";
+import { BUSINESS_ENTITY } from "../lib/terms/BUSINESS_ENTITY";
+import { FIRST_NAMES_FEMALE } from "../lib/terms/FIRST_NAMES_FEMALE";
+import { FIRST_NAMES_MALE } from "../lib/terms/FIRST_NAMES_MALE";
+import { LAST_NAMES } from "../lib/terms/LAST_NAMES";
+import { STREET_GEOGRAPHIC } from "../lib/terms/STREET_GEOGRAPHIC";
 
 export type SearchTermInventory = TermInventory;
 

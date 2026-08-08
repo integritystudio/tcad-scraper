@@ -63,14 +63,14 @@ describe("POST /api/properties/search — keyword fallback", () => {
 	it("serves FTS5 keyword results instead of 503", async () => {
 		// T13: FTS now runs two queries per ftsQueryPage call (page + COUNT) so
 		// the mock must route by SQL shape rather than returning the same value.
-		mockQueryRaw.mockImplementation(
-			(...args: unknown[]) => {
-				const sql = Array.from(args[0] as TemplateStringsArray).join("?");
-				return Promise.resolve(
-					sql.includes("COUNT(*)") ? [{ total: 2 }] : [{ id: "prop-1" }, { id: "prop-2" }],
-				);
-			},
-		);
+		mockQueryRaw.mockImplementation((...args: unknown[]) => {
+			const sql = Array.from(args[0] as TemplateStringsArray).join("?");
+			return Promise.resolve(
+				sql.includes("COUNT(*)")
+					? [{ total: 2 }]
+					: [{ id: "prop-1" }, { id: "prop-2" }],
+			);
+		});
 
 		const res = await searchRequest();
 

@@ -14,7 +14,7 @@
  * API representation with Schema.org alignment
  * Enhanced with semantic annotations for structured data
  * Maps to Schema.org: RealEstateListing, Place, Residence
- * Place: https://schema.org/Place * 
+ * Place: https://schema.org/Place *
  * Residence: https://schema.org/Residence
  * RealEstateListing: https://schema.org/RealEstateListing
  */
