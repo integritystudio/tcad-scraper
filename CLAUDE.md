@@ -12,8 +12,8 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue/Jobs**: Cloudflare Queues + Workflows (replaced BullMQ + Redis); Cron Triggers (replaced `node-cron`)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (167 frontend + 85 scripts + 77 workers tests; 126/126 E2E via Playwright)
-- **Scale**: 484K properties in D1 for 2025 plus the 2026 roll (backfill started 2026-08-08; live count via `/health`). TCAD serves 2023-2026 concurrently and 2026 values are published (`valueReady: 1`), so the scrape year is a per-request field on `POST /scrape` — omit it to use the Worker's `TCAD_YEAR` var. Target is the 2025 certified roll of **508,880 accounts** — see [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#coverage-target--the-2025-certified-roll) for the source and category breakdown. Do not use the 488,000 figure from TCAD's press release; it counts owners mailed a notice, not accounts
+- **Testing**: Vitest (167 frontend + 122 scripts + 83 workers tests; E2E via Playwright — visual specs are darwin-only, see BACKLOG T16)
+- **Scale**: 484K properties in D1 for 2025 and 478K for 2026 (live count via `/health`). The 2026 roll was filled on 2026-08-08 by a single greedy maximum-coverage run — 1,022 terms, 477,745 properties, ~30% of the scrapes 2025 took for 98.7% of its corpus (`scripts/optimize-coverage.ts`; curve in [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#covering-a-new-roll-year--greedy-maximum-coverage)). TCAD serves 2023-2026 concurrently and 2026 values are published (`valueReady: 1`), so the scrape year is a per-request field on `POST /scrape` — omit it to use the Worker's `TCAD_YEAR` var. Target is the 2025 certified roll of **508,880 accounts** — see [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#coverage-target--the-2025-certified-roll) for the source and category breakdown. Do not use the 488,000 figure from TCAD's press release; it counts owners mailed a notice, not accounts
 
 ```
 React (5174) → CF Workers (Hono) → D1 (SQLite at edge)

@@ -110,9 +110,19 @@ candidate 4-char prefixes, 298 rows unreachable by any 4-char term):
 | 96.6% (marginal gain < 25) | 1,022 |
 
 So roughly a **3.3× reduction in scrapes** for equivalent coverage, and the
-first 54 terms alone reach half the roll. The plan's accuracy held on contact:
-the first 20 terms were modeled at 30.1% and delivered 148,610 properties
-(29.2% of the 508,880 certified target).
+first 54 terms alone reach half the roll.
+
+**Result of the actual run (2026-08-08):** all 1,022 terms enqueued, 1,025 jobs
+completed, **477,745 properties** — 98.7% of what 2025 holds, for 30% of the
+scrapes, and 93.9% of the 508,880 certified target. The plan slightly
+*over*-delivered against its own model (predicted 467,621): the real roll
+contains properties the 2025 corpus could not model, so terms matched wider
+than simulated. Prediction tracked reality throughout — the first 20 terms were
+modeled at 30.1% and returned 148,610 properties (29.2% of target).
+
+The remaining ~31k is genuine long tail. Lower `--min-gain` to chase it, or
+switch to `backfill-novel.ts` / `enqueue-tail-terms.ts --phase 3`, which mine
+the 2025-to-2026 gap and can now see it.
 
 Two caveats worth keeping straight:
 
