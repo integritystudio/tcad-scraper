@@ -1,6 +1,6 @@
 /**
  * POST /api/properties/search must degrade when no AI provider is reachable
- * (e.g. exhausted credits on both Anthropic and OpenAI) instead of
+ * (e.g. exhausted credits on both Anthropic and xAI) instead of
  * returning 503: first to FTS5 keyword search, then to plain contains
  * filters if the FTS table is unavailable.
  */

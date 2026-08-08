@@ -133,7 +133,7 @@ const runNaturalLanguageSearch = async (
 		const parsed = await parseNaturalLanguageQuery(
 			query,
 			c.env.ANTHROPIC_API_KEY,
-			c.env.OPENAI_API_KEY,
+			c.env.XAI_API_KEY,
 		);
 		whereClause = sanitizeWhereClause(
 			parsed.whereClause,
@@ -144,7 +144,7 @@ const runNaturalLanguageSearch = async (
 		answerType = parsed.answerType;
 	} catch (err) {
 		// No AI provider reachable (e.g. exhausted credits on both Anthropic
-		// and OpenAI) — degrade to FTS5 keyword search instead of failing.
+		// and xAI) — degrade to FTS5 keyword search instead of failing.
 		console.warn(
 			`AI query parsing failed, using keyword fallback: ${getErrorMessage(err)}`,
 		);
@@ -285,7 +285,7 @@ app.get("/search/test", async (c) => {
 		const result = await parseNaturalLanguageQuery(
 			testQuery,
 			c.env.ANTHROPIC_API_KEY,
-			c.env.OPENAI_API_KEY,
+			c.env.XAI_API_KEY,
 		);
 		return c.json({
 			success: true,

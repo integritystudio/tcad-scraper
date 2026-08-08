@@ -16,7 +16,7 @@ export interface Env {
 	// Secrets (set via `wrangler secret put <NAME>`)
 	API_KEY: string;
 	ANTHROPIC_API_KEY: string;
-	OPENAI_API_KEY?: string;
+	XAI_API_KEY?: string;
 	SENTRY_DSN: string;
 	TOKEN_WORKER_URL: string;
 	TOKEN_WORKER_SECRET: string;

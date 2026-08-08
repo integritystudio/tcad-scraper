@@ -3,7 +3,7 @@
  * Ported from server/src/lib/claude.service.ts.
  * Key changes: no module-level Anthropic client, API key passed as argument,
  * uses fetch directly instead of Anthropic SDK (lighter for Workers bundle).
- * Supports fallback to OpenAI when Anthropic balance is unavailable.
+ * Supports fallback to Grok (xAI) when the Anthropic balance is unavailable.
  */
 
 import type { Prisma } from "@prisma/client";
@@ -25,10 +25,12 @@ export type SearchFilters = z.infer<typeof searchFiltersSchema> & {
 };
 
 const CLAUDE_MODEL = "claude-3-haiku-20240307";
-const GPT_MODEL = "gpt-4o-mini";
+const GROK_MODEL = "grok-3";
 const MAX_TOKENS = 1024;
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+// xAI exposes an OpenAI-compatible chat-completions surface, so the request
+// and response shapes below are unchanged from the previous OpenAI fallback.
+const XAI_API_URL = "https://api.x.ai/v1/chat/completions";
 
 const SYSTEM_PROMPT = `You are a database query generator for a property search system. Convert the user's natural language query into Prisma query filters.
 
@@ -98,19 +100,19 @@ export function sanitizeWhereClause(
 export async function parseNaturalLanguageQuery(
 	query: string,
 	anthropicKey: string,
-	openaiKey?: string,
+	grokKey?: string,
 ): Promise<SearchFilters> {
 	// Try Anthropic first
 	try {
 		return await callAnthropicAPI(query, anthropicKey);
 	} catch (err) {
 		const errorMessage = getErrorMessage(err);
-		// If Anthropic fails with billing/quota error and OpenAI is available, try OpenAI
-		if (openaiKey && shouldFallbackToOpenAI(err)) {
+		// If Anthropic fails with a billing/quota error and Grok is available, try Grok
+		if (grokKey && shouldFallbackToGrok(err)) {
 			console.warn(
-				`Anthropic API failed (${errorMessage}), falling back to OpenAI`,
+				`Anthropic API failed (${errorMessage}), falling back to Grok`,
 			);
-			return await callOpenAIAPI(query, openaiKey);
+			return await callGrokAPI(query, grokKey);
 		}
 		// Otherwise rethrow the original error
 		throw err;
@@ -168,18 +170,18 @@ async function callAnthropicAPI(
 	}
 }
 
-async function callOpenAIAPI(
+async function callGrokAPI(
 	query: string,
 	apiKey: string,
 ): Promise<SearchFilters> {
-	const response = await fetch(OPENAI_API_URL, {
+	const response = await fetch(XAI_API_URL, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
 			Authorization: `Bearer ${apiKey}`,
 		},
 		body: JSON.stringify({
-			model: GPT_MODEL,
+			model: GROK_MODEL,
 			max_tokens: MAX_TOKENS,
 			messages: [
 				{ role: "system", content: SYSTEM_PROMPT },
@@ -191,7 +193,7 @@ async function callOpenAIAPI(
 
 	if (!response.ok) {
 		const errText = await response.text();
-		throw new Error(`OpenAI API error ${response.status}: ${errText}`);
+		throw new Error(`xAI API error ${response.status}: ${errText}`);
 	}
 
 	const data = (await response.json()) as {
@@ -200,7 +202,7 @@ async function callOpenAIAPI(
 
 	const textBlock = data.choices[0];
 	if (!textBlock) {
-		throw new Error("No text response from OpenAI");
+		throw new Error("No text response from Grok");
 	}
 
 	try {
@@ -214,7 +216,7 @@ async function callOpenAIAPI(
 			answerType: validated.answerType,
 		} as SearchFilters;
 	} catch (err) {
-		throw new Error(`Failed to parse OpenAI response: ${getErrorMessage(err)}`);
+		throw new Error(`Failed to parse Grok response: ${getErrorMessage(err)}`);
 	}
 }
 
@@ -228,7 +230,7 @@ const FALLBACK_STATUSES: readonly number[] = [
 // invalid_request_error ("Your credit balance is too low..."), not 402.
 const CREDIT_BALANCE_ERROR = /credit balance/i;
 
-export function shouldFallbackToOpenAI(error: unknown): boolean {
+export function shouldFallbackToGrok(error: unknown): boolean {
 	if (!(error instanceof Error)) return false;
 	// Fallback on 400 (credit balance exhausted), 401 (unauthorized),
 	// 402 (payment required), 429 (rate limit)
