@@ -13,7 +13,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SearchBox } from "../features/PropertySearch/SearchBox";
 
-const LIVE_SEARCH_DEBOUNCE_MS = 300;
+const LIVE_SEARCH_DEBOUNCE_MS = 700;
 const LIVE_SEARCH_MIN_LENGTH = 3;
 
 describe("SearchBox", () => {

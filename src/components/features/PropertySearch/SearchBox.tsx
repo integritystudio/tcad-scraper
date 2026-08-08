@@ -4,7 +4,7 @@ import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import styles from "./SearchBox.module.css";
 
-const LIVE_SEARCH_DEBOUNCE_MS = 300;
+const LIVE_SEARCH_DEBOUNCE_MS = 700;
 const LIVE_SEARCH_MIN_LENGTH = 3;
 
 interface SearchBoxProps {
