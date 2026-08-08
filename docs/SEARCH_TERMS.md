@@ -89,6 +89,49 @@ Ten waves in one session. Read this before proposing a new term family — most 
 
 **What is left.** No measured theory for the remaining ~24,600. Exempt property is already captured (it lands in `prop_type = R`), BPP is over the certified count, and utilities/minerals is only 350 accounts. Since the API exposes no state category, reconciling per-category needs TCAD's certified roll export or a richer detail endpoint — not more search terms.
 
+## Covering a New Roll Year — Greedy Maximum Coverage
+
+The tier tables above describe how 2025 was actually filled: ~3,354 distinct
+terms, discovered incrementally, most of them re-returning properties an
+earlier term had already saved. Starting a *fresh* year does not have to
+repeat that. `scripts/optimize-coverage.ts` treats it as a maximum-coverage
+problem — model TCAD's matcher over the most complete year already in D1, then
+repeatedly pick the term matching the most **not-yet-covered** properties.
+
+Measured for 2026 on 2026-08-08 (model corpus: 484,251 rows for 2025, 23,246
+candidate 4-char prefixes, 298 rows unreachable by any 4-char term):
+
+| Coverage of the modeled roll | Terms needed |
+|---|---:|
+| 50% | 54 |
+| 75% | 167 |
+| 90% | 444 |
+| 95% | 787 |
+| 96.6% (marginal gain < 25) | 1,022 |
+
+So roughly a **3.3× reduction in scrapes** for equivalent coverage, and the
+first 54 terms alone reach half the roll. The plan's accuracy held on contact:
+the first 20 terms were modeled at 30.1% and delivered 148,610 properties
+(29.2% of the 508,880 certified target).
+
+Two caveats worth keeping straight:
+
+- **Coverage is measured against the model, not the target year.** The roll
+  moves a few percent year over year, so properties new to the target year are
+  invisible to the plan by construction. The tail phases
+  (`backfill-novel.ts`, `enqueue-tail-terms.ts --phase 3`) exist to find them,
+  and they mine the *year gap*, which is only meaningful once the target has
+  some data.
+- **Do not gate a fresh year on `search_term_analytics`.** That table has no
+  year column, so its zero-yield (`unsuccessful`) set reflects 2025 saturation
+  and would exclude the densest 2026 vocabulary. Use
+  `getYearZeroYieldTerms(year)`.
+
+```bash
+TCAD_YEAR=2026 doppler run -- npx tsx scripts/optimize-coverage.ts             # plan + curve, no writes
+TCAD_YEAR=2026 doppler run -- npx tsx scripts/optimize-coverage.ts --enqueue   # run it, batched + drained
+```
+
 ## Running the Backfill
 
 Enqueue via the Workers API (`scripts/enqueue-terms.ts` was removed in the August 2026 scripts refactor, alongside the broader BullMQ/Express cleanup):
@@ -109,8 +152,9 @@ done
 TCAD_YEAR=2025 doppler run -- npx tsx scripts/generate-next-200-terms.ts --enqueue
 
 # Owner-name mining when yield drops (Phase 3)
-# NOTE: inert until 2026 data is loaded — Phase 3 mines 2026-only properties and D1 has only 2025 data (see BACKLOG T3)
-TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 3
+# Mines the gap between TCAD_YEAR and the most-populated other year in D1;
+# useful once the target year has data, not before.
+TCAD_YEAR=2026 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 3
 
 # Health / monitoring
 curl -s "https://api.alephatx.info/health" | jq

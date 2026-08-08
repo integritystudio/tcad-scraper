@@ -13,7 +13,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
 - **Testing**: Vitest (167 frontend + 85 scripts + 77 workers tests; 126/126 E2E via Playwright)
-- **Scale**: 484K properties in D1 (2025 tax year; live count via `/health`). Target is the 2025 certified roll of **508,880 accounts** — see [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#coverage-target--the-2025-certified-roll) for the source and category breakdown. Do not use the 488,000 figure from TCAD's press release; it counts owners mailed a notice, not accounts
+- **Scale**: 484K properties in D1 for 2025 plus the 2026 roll (backfill started 2026-08-08; live count via `/health`). TCAD serves 2023-2026 concurrently and 2026 values are published (`valueReady: 1`), so the scrape year is a per-request field on `POST /scrape` — omit it to use the Worker's `TCAD_YEAR` var. Target is the 2025 certified roll of **508,880 accounts** — see [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#coverage-target--the-2025-certified-roll) for the source and category breakdown. Do not use the 488,000 figure from TCAD's press release; it counts owners mailed a notice, not accounts
 
 ```
 React (5174) → CF Workers (Hono) → D1 (SQLite at edge)
@@ -46,11 +46,13 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `wrangler.toml` - D1, KV, Queues, Workflows, Crons, route config
 
 ### Scripts (`scripts/` — root level, run from repo root)
+- `optimize-coverage.ts` - Greedy maximum-coverage term planner: models TCAD's matcher over the most complete year in D1 and selects the smallest term set that covers a roll year. `--enqueue` runs the plan through the backfill loop
+- `backfill.ts`, `backfill-proven.ts`, `backfill-unsearched.ts`, `backfill-novel.ts` - Year-agnostic backfills; fill `TCAD_YEAR` by mining the gap against the most-populated other year in D1
 - `enqueue-tail-terms.ts` - Multi-phase tail term optimizer (analytics + owner-name mining)
 - `generate-next-200-terms.ts` - Generate next candidate terms for backfill, ranked by predicted yield (in-DB match frequency; drops near-zero matchers). `--enqueue` sends to Workers API
 - `queue-results.ts` - Recent scrape jobs + property count from the Workers API (`npx tsx scripts/queue-results.ts [--limit N]`)
 - `config/batch-configs.ts` - 14 batch type definitions
-- `lib/` - queue-utils (`enqueueBatch()` + `waitForQueueDrain()` via Workers API), d1-prisma (Prisma over D1 HTTP — production data access for scripts), backfill-runner, mine-2026-terms, searched-terms (incl. `unsuccessful` zero-yield set), backfill-utils (incl. prefix dedup filters), error-helpers, logger
+- `lib/` - queue-utils (`enqueueBatch()` + `waitForQueueDrain()` via Workers API), d1-prisma (Prisma over D1 HTTP — production data access for scripts), backfill-runner, mine-year-terms, coverage-optimizer (TCAD matcher model + greedy max-coverage), searched-terms (incl. `unsuccessful` zero-yield set), backfill-utils (incl. prefix dedup filters), error-helpers, logger
 - See [scripts/README.md](scripts/README.md) for full reference
 - **Search Term Strategy**: See [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md) (canonical) for Tier 1-4 strategy, coverage metrics + operations, and [docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json) for per-term yield data
 
@@ -138,6 +140,14 @@ curl -X POST "https://api.alephatx.info/api/properties/scrape" \
   -H "Content-Type: application/json" -H "x-api-key: $TCAD_API_KEY" \
   -d '{"searchTerm": "Smith"}'
 
+# Coverage planning — smallest term set that covers a roll year
+TCAD_YEAR=2026 doppler run -- npx tsx scripts/optimize-coverage.ts             # Dry run: plan + marginal-coverage curve
+TCAD_YEAR=2026 doppler run -- npx tsx scripts/optimize-coverage.ts --enqueue   # Run the plan (batched + drained)
+
+# Backfill a roll year (year comes from TCAD_YEAR; source year resolved from D1)
+TCAD_YEAR=2026 doppler run -- npx tsx scripts/backfill.ts
+TCAD_YEAR=2026 doppler run -- npx tsx scripts/backfill-novel.ts
+
 # Backfill Discovery (strategy + tier coverage: docs/SEARCH_TERMS.md)
 doppler run -- npx tsx scripts/generate-next-200-terms.ts           # Dry run; add --enqueue to send to Workers API
 doppler run -- npx tsx scripts/check-unsearched-terms.ts            # Find unsearched terms
@@ -145,7 +155,7 @@ bash scripts/search-terms-summary.sh                                # Recent sea
 
 # Tail Term Optimizer (maximize new properties when yield drops)
 # --phase 1 = proven analytics terms, --phase 3 = mine owner names/streets; omit for all phases
-TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
+TCAD_YEAR=2026 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 ```
 
 ---
@@ -154,8 +164,8 @@ TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 
 - **Bulk property writes use raw D1 `batch()`** of multi-row `INSERT … ON CONFLICT` statements (`utils/upsert-sql.ts`), micro-chunked to 6 rows × 15 cols under D1's 100-param limit; each row binds a client-generated UUID because `properties.id` has no SQL default. Do NOT revert to per-row Prisma upserts in `$transaction` — PrismaD1 runs them one query (= one D1 subrequest) each, so ~5,000-row terms blow the 10-min step timeout and the ~1,000-subrequest invocation budget, wedging jobs in `processing` (incident 2026-08-06). Raw SQL is date-safe here because all date columns store epoch-ms strings
 - **Bearer tokens** expire ~5 min; cron trigger auto-refreshes to KV
-- **`search_term_analytics.totalResults` is increment-on-save-only** — it counts *newly inserted* properties per successful search, not TCAD's total match count. A term can show `totalResults = 0` while TCAD returns thousands of matches, if every match was already in D1 under another search term (confirmed 2026-08-07 for Maria/Thomas/Paul/etc. — all had 4,000-6,000+ TCAD matches but 0 new saves). Safe to treat as a backfill-exclusion signal (`getSearchedTermSets()`'s `unsuccessful` set) — it reflects real saturation, not broken data
-- **TCAD returns malformed/truncated JSON for specific 4-char root prefixes**, regardless of the letter appended (`docs/truncated-response-terms.md`) — confirmed for `wayg/h/i/j` plus 9 more found 2026-08-07 (`chri`, `cong`, `cree`, `davi`, `lama`, `laur`, `mana`, `nguy`, `trus`). `backfill-2025.ts`'s dense/seed a-z expansions skip these via `scripts/lib/terms/TRUNCATION_BUG_ROOTS.ts` — check that set before debugging a new "Unexpected end of JSON input" cluster
+- **`search_term_analytics.totalResults` is increment-on-save-only** — it counts *newly inserted* properties per successful search, not TCAD's total match count. A term can show `totalResults = 0` while TCAD returns thousands of matches, if every match was already in D1 under another search term (confirmed 2026-08-07 for Maria/Thomas/Paul/etc. — all had 4,000-6,000+ TCAD matches but 0 new saves). Safe to treat as a backfill-exclusion signal (`getSearchedTermSets()`'s `unsuccessful` set) **for a year already scraped** — it reflects real saturation, not broken data. **But the table has no year column** (`@@unique([searchTerm])`), so the counter aggregates every year at once and the set is meaningless for a *fresh* roll year: Maria/Thomas/Paul show `totalResults = 0` from 2025 saturation while each returns 4,000-6,000 fresh rows for 2026. Excluding them would skip the highest-yield vocabulary. Year-scoped saturation comes from `getYearZeroYieldTerms(year)`, which joins year-stamped `scrape_jobs` (migration 0005) against that year's attributed properties. `max_results` (TCAD's total match count) *is* year-independent and stays usable
+- **TCAD returns malformed/truncated JSON for specific 4-char root prefixes**, regardless of the letter appended (`docs/truncated-response-terms.md`) — confirmed for `wayg/h/i/j` plus 9 more found 2026-08-07 (`chri`, `cong`, `cree`, `davi`, `lama`, `laur`, `mana`, `nguy`, `trus`). `backfill.ts`'s dense/seed a-z expansions skip these via `scripts/lib/terms/TRUNCATION_BUG_ROOTS.ts` — check that set before debugging a new "Unexpected end of JSON input" cluster
 - **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses, suburb/city names, and numbered-street fragments (`1 ST`, `E 6 ST`, `W 7 ST` — all 165 of the `[E|W ]<1-55> ST` grid completed successfully 2026-08-08, 1,163 new properties). Does NOT work with ZIP codes, short terms (<4 chars), compound names, or *bare* numeric terms — a digit paired with a word token searches fine
 - **TCAD full-text search covers owner name + address only, NOT the legal `description` field** — "Condo" returns ~407 API matches despite tens of thousands of properties whose description contains CONDOMINIUM. Do not mine subdivision/plat/lot vocabulary (`RESUB`, `BLK`, `PHS`, subdivision names) for search terms; it looks high-volume in D1 and is unreachable via the API
 - **TCAD prefix-matches word starts**, so a 4-char prefix is a strict superset of every longer word beginning with it (`pflu` → 21,662 matches ≈ `Pflugerville`'s 21,439). Corollaries: never enqueue a word whose 4-char prefix was already searched (`grou` saved 259; `group`, run minutes later, saved 0), and mine candidates as 4-char prefixes rather than whole words

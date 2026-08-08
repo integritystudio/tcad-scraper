@@ -15,7 +15,7 @@ resolve the issue.
 **Last updated**: 2026-08-08 — documented `lane`, `aust`, `llc.`, which were added to
 `TRUNCATION_BUG_ROOTS` in 54ef3f4 but never listed here (the code carried 16 roots
 while this table showed 13). Previously 2026-08-07: added 9 roots found by
-`backfill-2025.ts`'s `getSeedExpansions()`/`getDenseExpansions()` a-z prefix
+`backfill.ts`'s `getSeedExpansions()`/`getDenseExpansions()` a-z prefix
 expansion, reproducing the exact Wayg pattern (every letter of the root fails
 identically). Roots below are hard-skipped in those functions via
 `TRUNCATION_BUG_ROOTS` (`scripts/lib/terms/TRUNCATION_BUG_ROOTS.ts` — keep this

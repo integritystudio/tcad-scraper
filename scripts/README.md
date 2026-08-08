@@ -28,14 +28,23 @@ doppler run -- npx tsx scripts/generate-build-constants.ts
 
 ## Backfill
 
-The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data in D1; they find nothing unless 2026 properties are loaded (currently only 2025 data is).
+Every backfill script fills the year named by `TCAD_YEAR` (default 2025) and
+mines its candidate terms from the *year gap* — properties present in the
+most-populated other year in D1 but not yet captured for the target. The
+direction is resolved from the data, so it reverses on its own each roll
+season: 2026 seeded 2025's backfill, and 2025 now seeds 2026's.
+
+```bash
+TCAD_YEAR=2026 doppler run -- npx tsx scripts/backfill.ts
+```
 
 | Script | Purpose |
 |--------|---------|
-| `backfill-2025.ts` | Primary 2025 backfill: high-yield terms present in 2026 data but not 2025, plus `BACKFILL_2025_STATIC_TERMS` (`config/backfill-2025-static-terms.ts`). |
-| `backfill-2025-proven.ts` | Terms that yielded 100+ properties in 2026 but none in 2025. |
-| `backfill-2025-unsearched.ts` | Owner/entity/street names mined from 2026-only properties, minus supersets and already-searched terms. |
-| `backfill-2025-novel.ts` | Never-searched owner names mined from 2026-only properties (e.g. NGUYEN, MARTINEZ). |
+| `optimize-coverage.ts` | **Start here.** Greedy maximum-coverage plan: the smallest term set that covers the roll, with a marginal-coverage curve. `--enqueue` runs it through the backfill loop. |
+| `backfill.ts` | Primary backfill: high-yield terms proven on the source year, plus analytics terms and `BACKFILL_2025_STATIC_TERMS` (`config/backfill-2025-static-terms.ts`). |
+| `backfill-proven.ts` | Terms that yielded 100+ properties for the source year but none for the target. |
+| `backfill-unsearched.ts` | Owner/entity/street names mined from the year gap, minus supersets and already-searched terms. |
+| `backfill-novel.ts` | Never-searched owner names mined from the year gap (e.g. NGUYEN, MARTINEZ). |
 | `enqueue-tail-terms.ts` | Multi-phase tail term optimizer: 1 = unscraped analytics terms, 2 = analytics tail, 3 = owner-name mining. `--phase N`. |
 
 ## Analysis
@@ -45,15 +54,15 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `analyze-failed-jobs.ts` | Categorize and report on failed scrape jobs. |
 | `analyze-search-terms.ts` | Analyze search term effectiveness from analytics data. |
 | `generate-next-200-terms.ts` | Generate the next 200 candidate terms (5-tier priority: unsearched names, geographic, prefix expansions, re-scrape, gap fill); `--enqueue` sends them to the Workers API. |
-| `check-unsearched-terms.ts` | Find inventory terms not yet searched for current year (via `getSearchedTermSets()`). |
+| `check-unsearched-terms.ts` | Find inventory terms not yet searched for `TCAD_YEAR` (via `getSearchedTermSets(year)`). |
 
 ## Config
 
 | File | Purpose |
 |------|---------|
 | `config/batch-configs.ts` | Named batch types (LLC, trust, corporation, etc.) with priority tiers. Includes `HIGH_RESULT_TERM_SPLITS` for high-volume terms. |
-| `config/backfill-2025-source-terms.ts` | 400 curated terms for remaining 2025 properties (deduped against batch-configs and `backfill-2025.ts` STATIC_TERMS). |
-| `config/backfill-2025-static-terms.ts` | Canonical `BACKFILL_2025_STATIC_TERMS` list for `backfill-2025.ts`, deduped against `backfill-2025-source-terms.ts` and `BATCH_CONFIGS`. |
+| `config/backfill-2025-source-terms.ts` | 400 curated terms for remaining 2025 properties (deduped against batch-configs and `backfill.ts` STATIC_TERMS). |
+| `config/backfill-2025-static-terms.ts` | Canonical `BACKFILL_2025_STATIC_TERMS` list for `backfill.ts`, deduped against `backfill-2025-source-terms.ts` and `BATCH_CONFIGS`. |
 
 ## Shared (`lib/`)
 
@@ -61,9 +70,10 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 |------|---------|
 | `lib/queue-utils.ts` | `enqueueBatch()` — HTTP enqueue via the Workers API; `waitForQueueDrain()` — polls `/history` until the batch's jobs reach completed/failed (10m timeout). |
 | `lib/backfill-runner.ts` | Shared runner for the backfill scripts (enqueue → drain → count gained). |
-| `lib/mine-2026-terms.ts` | Shared term-mining queries over 2026-only properties (owner first-words, streets, descriptions, two-word names, entity phrases). |
-| `lib/searched-terms.ts` | Searched-term lookups: `getSearchedTermSets()` (`allSearched`, `searched2025`, `successful`, `unsuccessful` sets) and `getBlacklistedTermSet()`. |
-| `lib/backfill-utils.ts` | Backfill helpers: `get2025Count()`, prefix dedup filters (`isSupersetOfAny()`, `buildPrefixIndex()`). |
+| `lib/mine-year-terms.ts` | Shared term-mining queries over the source-year/target-year gap (owner first-words, streets, descriptions, two-word names, entity phrases). |
+| `lib/coverage-optimizer.ts` | Models TCAD's matcher over a corpus and solves maximum coverage greedily: `tokenize()`, `buildCoverageIndex()`, `buildCoveredMask()`, `greedyCover()`. |
+| `lib/searched-terms.ts` | Searched-term lookups: `getSearchedTermSets(year)` (`allSearched`, `searchedForYear`, `successful`, `unsuccessful` sets), `getYearYield(year)`, `getYearZeroYieldTerms(year)`, `getBlacklistedTermSet()`. |
+| `lib/backfill-utils.ts` | Backfill helpers: `getPropertyCount(year)`, `resolveSourceYear(targetYear)`, prefix dedup filters (`isSupersetOfAny()`, `buildPrefixIndex()`). |
 | `lib/d1-prisma.ts` | Prisma client for scripts, backed by production D1 over HTTP (epoch-ms date strings, SQLite dialect). |
 | `lib/error-helpers.ts` | `getErrorMessage()` for `unknown` errors. |
 | `lib/logger.ts` | Console shim for CLI scripts. |
@@ -81,7 +91,7 @@ Pure data — no logic — kept separate from `lib/`'s shared logic modules abov
 |------|---------|
 | `lib/terms/FIRST_NAMES_FEMALE.ts`, `lib/terms/FIRST_NAMES_MALE.ts`, `lib/terms/LAST_NAMES.ts`, `lib/terms/STREET_GEOGRAPHIC.ts`, `lib/terms/BUSINESS_ENTITY.ts` | Canonical curated name/geo/entity data (one const list per file) — single source for `generate-next-200-terms.ts`'s candidate pools and the `utils/list-all-search-terms.ts` inventory. |
 | `lib/terms/BLOCKED_TERMS.ts` | Hard-skip terms that cause TCAD API timeouts or truncated responses; used by `generate-next-200-terms.ts`. |
-| `lib/terms/TRUNCATION_BUG_ROOTS.ts` | 4-char prefixes confirmed to trigger TCAD's server-side JSON truncation bug across every a-z expansion (see `docs/truncated-response-terms.md`); used by `backfill-2025.ts`'s `getDenseExpansions()`/`getSeedExpansions()`. |
+| `lib/terms/TRUNCATION_BUG_ROOTS.ts` | 4-char prefixes confirmed to trigger TCAD's server-side JSON truncation bug across every a-z expansion (see `docs/truncated-response-terms.md`); used by `backfill.ts`'s `getDenseExpansions()`/`getSeedExpansions()`. |
 
 ## Utilities (`utils/`)
 
