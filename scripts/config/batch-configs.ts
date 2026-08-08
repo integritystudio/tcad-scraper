@@ -26,7 +26,6 @@ export const BATCH_CONFIGS: Record<string, BatchEnqueueConfig> = {
 
 	trust: {
 		terms: [
-			"Trust",
 			"Trustee",
 			"Estate",
 			"Family Trust",
@@ -76,7 +75,6 @@ export const BATCH_CONFIGS: Record<string, BatchEnqueueConfig> = {
 			"Builder",
 			"Contractor",
 			"Contracting",
-			"Homes",
 			"Home",
 			"Custom Homes",
 			"Housing",
@@ -121,7 +119,6 @@ export const BATCH_CONFIGS: Record<string, BatchEnqueueConfig> = {
 			"Fund",
 			"Equity",
 			"Ventures",
-			"Asset",
 			"Portfolio",
 			"Management",
 			"Manage",
@@ -138,20 +135,15 @@ export const BATCH_CONFIGS: Record<string, BatchEnqueueConfig> = {
 			"Acres",
 			"Development",
 			"Developers",
-			"Plaza",
 			"Center",
 		],
 	},
 
 	residential: {
 		terms: [
-			"Smith",
 			"Johnson",
 			"Williams",
-			"Brown",
-			"Jones",
 			"Miller",
-			"Davis",
 			"Garcia",
 			"Rodriguez",
 			"Wilson",
