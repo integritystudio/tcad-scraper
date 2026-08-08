@@ -1,14 +1,13 @@
 import type { PrismaClient } from "@prisma/client";
 import { describe, expect, it } from "vitest";
+import { FTS_MAX_PAGE_SIZE } from "../../utils/constants";
 import {
-	FTS_MAX_PAGE_SIZE,
 	buildFtsMatchQuery,
 	buildKeywordSearchFilters,
 	extractValueBounds,
 	searchKeywordFallback,
 	stripValuePhrases,
 } from "../keyword-search";
-
 
 describe("buildFtsMatchQuery", () => {
 	it("quotes and OR-joins plain words", () => {
@@ -124,7 +123,13 @@ describe("searchKeywordFallback", () => {
 			},
 		} as unknown as PrismaClient;
 
-		const result = await searchKeywordFallback(prisma, "Oak Street", 2025, 50, 100);
+		const result = await searchKeywordFallback(
+			prisma,
+			"Oak Street",
+			2025,
+			50,
+			100,
+		);
 
 		const pageLimit = pageValues[pageValues.length - 2] as number;
 		const pageOffset = pageValues[pageValues.length - 1] as number;
@@ -316,9 +321,7 @@ describe("searchKeywordFallback", () => {
 			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
 				const sql = Array.from(strings).join("?");
 				if (!sql.includes("COUNT(*)")) pageMatches.push(values[0] as string);
-				return Promise.resolve(
-					sql.includes("COUNT(*)") ? [{ total: 0 }] : [],
-				);
+				return Promise.resolve(sql.includes("COUNT(*)") ? [{ total: 0 }] : []);
 			},
 		} as unknown as PrismaClient;
 

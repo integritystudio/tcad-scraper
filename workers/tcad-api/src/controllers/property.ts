@@ -7,7 +7,6 @@ import type { Prisma } from "@prisma/client";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { cache } from "hono/cache";
-import { DEFAULT_QUERY_LIMIT } from "../../../../utils/constants";
 import { notFound, unavailable } from "../../../../utils/http-errors";
 import { TIME_MS } from "../../../../utils/units";
 import type { AppEnv } from "../bindings";
@@ -25,9 +24,12 @@ import {
 	propertyFilterSchema,
 	scrapeRequestSchema,
 } from "../types/property.types";
-import { RESPONSE_CACHE_TTL_SECONDS } from "../utils/constants";
-import { getErrorMessage } from "../utils/error-helpers";
+import {
+	FTS_MAX_PAGE_SIZE,
+	RESPONSE_CACHE_TTL_SECONDS,
+} from "../utils/constants";
 import { epochToISO, nowEpoch } from "../utils/epoch-dates";
+import { getErrorMessage } from "../utils/error-helpers";
 import { transformPropertyToSnakeCase } from "../utils/property-transformers";
 
 // TODO: Update to 2026 when TCAD publishes 2026 appraised values
@@ -112,7 +114,7 @@ const runNaturalLanguageSearch = async (
 	c: Context<AppEnv>,
 	{
 		query,
-		limit = DEFAULT_QUERY_LIMIT,
+		limit = FTS_MAX_PAGE_SIZE,
 		offset = 0,
 	}: NaturalLanguageSearchParams,
 ) => {
@@ -152,9 +154,9 @@ const runNaturalLanguageSearch = async (
 		console.warn(
 			`AI query parsing failed, using keyword fallback: ${getErrorMessage(err)}`,
 		);
-		const { searchKeywordFallback, FTS_MAX_PAGE_SIZE } = await import(
-			"../lib/keyword-search"
-		);
+		const { searchKeywordFallback } = await import("../lib/keyword-search");
+		// Still clamped: propertyFilterSchema allows an explicit limit up to 1000,
+		// which a single FTS page cannot serve.
 		const ftsLimit = Math.min(limit, FTS_MAX_PAGE_SIZE);
 		const fallback = await searchKeywordFallback(
 			prisma,

@@ -10,14 +10,8 @@
  */
 
 import type { PrismaClient } from "@prisma/client";
-import { D1_MAX_BOUND_PARAMS } from "../utils/constants";
+import { FTS_MAX_PAGE_SIZE } from "../utils/constants";
 import type { SearchFilters } from "./claude.service";
-
-// FTS page ids are folded into the data-fetch's `id IN (...)` clause plus a
-// `year = ?` binding — D1 hard-caps queries at 100 bound params (incident
-// 2026-08-08). Reserve 2 slots for year + safety, leaving 98 for ids.
-const FTS_PAGE_ID_HEADROOM = 2;
-export const FTS_MAX_PAGE_SIZE = D1_MAX_BOUND_PARAMS - FTS_PAGE_ID_HEADROOM; // 98
 
 /**
  * Natural-language filler that carries no selectivity over this index. These
@@ -192,7 +186,10 @@ function matchTokens(query: string): string[] {
  * caret), joined by `join`. Stopwords are removed first so the remaining
  * tokens actually drive the ranking.
  */
-export function buildFtsMatchQuery(query: string, join: FtsJoin = "OR"): string {
+export function buildFtsMatchQuery(
+	query: string,
+	join: FtsJoin = "OR",
+): string {
 	return matchTokens(query)
 		.map((t) => `"${t}"`)
 		.join(` ${join} `);
@@ -312,7 +309,14 @@ export async function searchKeywordFallback(
 	}
 	const boundsSuffix = hasBounds(bounds) ? `, ${describeBounds(bounds)}` : "";
 	try {
-		let page = await ftsQueryPage(prisma, requireAll, year, bounds, limit, offset);
+		let page = await ftsQueryPage(
+			prisma,
+			requireAll,
+			year,
+			bounds,
+			limit,
+			offset,
+		);
 		let relaxed = false;
 
 		// Requiring every token is far more selective — measured on production
