@@ -183,7 +183,7 @@ TCAD_YEAR=2026 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 - **Workers logging**: Use `console.*` (Workers structured logging). CLI scripts use the console shim in `scripts/lib/logger.ts`
 - **Workers env**: Access via `c.env.X` (Hono context), not `process.env.X`
 - **Auth**: Workers uses `x-api-key` header checked against `env.API_KEY` (value = Doppler `TCAD_API_KEY`)
-- **TCAD API request format**: Body must use `{ pYear: { operator: "=", value }, fullTextSearch: { operator: "match", value } }` with pagination as query params `?page=N&pageSize=N`. Token passed as `Authorization: token` (token already includes "Bearer " prefix from token worker — do NOT add a second "Bearer " prefix). The canonical implementation is `workers/tcad-api/src/workflows/scraper.workflow.ts` (the original `server/src/lib/tcad-api-client.ts` reference lives in git history)
+- **TCAD API request format**: Body must use `{ pYear: { operator: "=", value }, fullTextSearch: { operator: "match", value } }` with pagination as query params `?page=N&pageSize=N`. Token passed as `Authorization: token` — the value goes in **bare, with no scheme at all**. The token worker returns `{"token":"eyJ…"}`, a raw JWT with no `Bearer ` prefix (verified 2026-08-08), so prefixing it makes TCAD return 500. This line previously claimed the worker's token already contained the prefix; the resulting instruction ("do not add a second Bearer") produced correct code for the wrong reason, and misleads anyone calling the API by hand. The canonical implementation is `workers/tcad-api/src/workflows/scraper.workflow.ts` (the original `server/src/lib/tcad-api-client.ts` reference lives in git history)
 - **D1 dates**: All date fields are epoch-ms strings (`"1711773684000"`) — D1's JS binding auto-converts ISO 8601 TEXT, breaking Prisma. Use `nowEpoch()` for writes, `epochToISO()` for API responses (`utils/epoch-dates.ts`); never store ISO 8601 strings
 - **D1 arrays**: `newPropertyIds` is `String` (JSON-serialized). Use `JSON.stringify()` on write, `JSON.parse()` on read
 - **No `mode: "insensitive"`**: SQLite LIKE is case-insensitive for ASCII by default; Prisma + SQLite throws on it. `sanitizeWhereClause` (`claude.service.ts`) strips it from AI-generated queries
@@ -196,7 +196,7 @@ TCAD_YEAR=2026 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 |---------|-------|
 | DB connection failed | Check D1 dashboard; `wrangler d1 execute tcad-db --remote --command "SELECT 1"` |
 | TCAD API auth failed | Token expired (5 min); check `wrangler tail` for refresh errors |
-| TCAD API 500 / 0 results | Verify request body matches the format in Code Standards (operator format, query string pagination, no double Bearer prefix). TCAD also returns 500 for genuinely empty terms |
+| TCAD API 500 / 0 results | Verify request body matches the format in Code Standards (operator format, query string pagination, bare token with no `Bearer ` prefix). TCAD also returns 500 for genuinely empty terms |
 | Workflows stuck | `wrangler workflows instances list scraper-workflow --status running` |
 | Queue not processing | `wrangler queues list`; check consumer in `wrangler tail` |
 | Workers deploy failed | `wrangler deploy --dry-run`; check `npx tsc --noEmit` in `workers/tcad-api/` |
