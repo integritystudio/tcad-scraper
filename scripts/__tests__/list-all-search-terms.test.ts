@@ -5,7 +5,7 @@ vi.mock("../config/batch-configs", () => ({
 		llc: { terms: ["LLC", "Trust", "smith"] },
 		numbers: { terms: ["12345"] },
 	},
-	HIGH_RESULT_TERM_SPLITS: new Map([["Oak", ["Oak Hill", "Oakwood"]]]),
+	HIGH_RESULT_TERM_SPLITS: new Map([["Oaks", ["Oak Hill", "Oakwood"]]]),
 }));
 
 vi.mock("../lib/terms/FIRST_NAMES_FEMALE", () => ({
