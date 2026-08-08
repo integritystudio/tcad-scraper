@@ -13,7 +13,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SearchBox } from "../features/PropertySearch/SearchBox";
 
-const LIVE_SEARCH_DEBOUNCE_MS = 700;
+const LIVE_SEARCH_DEBOUNCE_MS = 1_500;
 const LIVE_SEARCH_MIN_LENGTH = 3;
 
 describe("SearchBox", () => {
@@ -226,9 +226,9 @@ describe("SearchBox", () => {
 			const input = screen.getByRole("searchbox");
 
 			fireEvent.change(input, { target: { value: "O" } });
-			act(() => vi.advanceTimersByTime(100));
+			act(() => vi.advanceTimersByTime(500));
 			fireEvent.change(input, { target: { value: "Oak" } });
-			act(() => vi.advanceTimersByTime(100));
+			act(() => vi.advanceTimersByTime(500));
 			fireEvent.change(input, { target: { value: "Oak Street" } });
 			act(() => vi.advanceTimersByTime(LIVE_SEARCH_DEBOUNCE_MS));
 
