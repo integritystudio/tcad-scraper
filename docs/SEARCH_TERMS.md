@@ -19,10 +19,16 @@ Consolidates the former `SEARCH_TERM_STRATEGY.md`, `SEARCH_TERM_ANALYSIS.md`, `S
 | L1, L2, S, XB, M2 | Personal property | 37,502 | `P` | 39,195 | −1,693 |
 | M1 | Mobile homes | 11,937 | `MH` | 11,922 | 15 |
 | G1, J1–J9 | Utilities & minerals | 350 | `MN` | 5 | 345 |
-| XD, XG, XI, XJ, XL, XO, XR, XU, XV | Exempt (non-XB) | 16,325 | — | — | 16,325 |
+| XD, XG, XI, XJ, XL, XO, XR, XU, XV | Exempt (non-XB) | 16,325 | folded into `R` | — | — |
 | | **Total** | **508,880** | | **484,245** | **24,635** |
 
-Reading the gap: two-thirds of it is **exempt property** (churches, private schools, charities, government-owned parcels) — a category no term wave has targeted. Utilities/minerals are near-untouched but tiny. Personal property is *over* the certified count, so BPP-oriented terms are exhausted; a 2026-08-08 wave of 48 business words returned 331 properties total for that reason. The `P`/`MH` groupings are approximate — D1's `prop_type` is TCAD's own code, not a state category, so the mapping is by inspection rather than definition.
+**Only the 24,635 total is reliable — per-group gaps are not.** D1 stores TCAD's `prop_type` code (`R`/`P`/`MH`/`MN`), which is not a state category, so the rows above are matched by inspection. Exempt accounts in particular are **not** a missing group: they carry `prop_type = R` and are already being captured (2026-08-08: 912 properties with CHURCH in the owner name, 3,532 CITY OF AUSTIN, 122 ISD). Any per-category gap analysis needs a real category field, which the scraper does not currently store.
+
+What the term waves have established about the remainder:
+- **Exempt/religious/government terms are saturated, not untried.** A 2026-08-08 wave found 47 of 78 candidates already searched, with the core ones at or near zero (`chur` 0, `bapt` 0, `epis` 0, `cath` 12, `meth` 4).
+- **Personal property is over the certified count** (39,195 vs 37,502), so BPP-oriented terms are exhausted — a 48-term business-word wave returned 331 total.
+- **Utilities/minerals (350 accounts) are the one clearly under-covered group**, but too small to matter.
+- Residential 4-char prefixes decayed 37 → 19 → 7.4 → 1.5 properties/term across four waves of increasing size; the space is effectively mined out.
 
 ## Key Findings (2026-03-21 analysis, 365,371 properties / 313 terms)
 
@@ -54,6 +60,34 @@ holdi, Sand, Maria, Carl, Rock, Daniel, Mary, Wood, marie, Vista, TEXAS, Ridge, 
 **Tier 3** (periodic deep backfills): ranks 51-200, starting at Garcia — full list with yields in the [data file](2025_BACKFILL_OPTIMIZATION.json). Note: the data file's `tier_2` array and `tier_2_weekly` command use an extended 49-term Tier 2 (ranks 16-64); the 35-term definition here is canonical.
 
 **Tier 4**: extreme diminishing returns; skip unless targeting 100% coverage. Prefer algorithmic generation (owner-name mining) instead.
+
+## 2026-08-08 Saturation Campaign (465,863 → 484,251, +18,388)
+
+Ten waves in one session. Read this before proposing a new term family — most of the obvious ones are now measured, not hypothetical.
+
+| Wave | Terms | Saved | Avg/term | Notes |
+|---|---:|---:|---:|---|
+| Mined names + streets | 62 | 1,268 | 20 | incl. 5 April-2026 failures retried after the D1 bugs were fixed |
+| Prefixes + BPP words + streets | 103 | 2,287 | 22 | 4-char prefixes carried it (92/term); BPP words 7/term |
+| 4-char prefixes, vol ≥880 | 79 | 2,901 | 37 | first-name prefixes dominate (kris 202, eric 135) |
+| 4-char prefixes, vol 325–887 | 200 | 3,715 | 19 | |
+| 4-char prefixes, vol 178–349 | 400 | 2,978 | 7.4 | winners shift to specialty vocab (venk, srin, yaup) |
+| 4-char prefixes, vol 50–177 | 1,927 | 2,944 | 1.5 | **floor reached** |
+| Numbered streets `[E\|W ]<1-55> ST` | 165 | 1,163 | 7 | downtown core best (1 ST 87, E 6 ST 62) |
+| Ordinal streets `[N\|S\|E\|W ]1st–55th` | 261 | 43 | 0.2 | near-total bust — see tokenization note below |
+| FM/RM route grid | 72 | 0 | 0 | generic `F M RD` (162) had already subsumed all of them |
+| Exempt/religious/government | 34 | 6 | 0.2 | 47 of 78 candidates were already searched |
+
+**The 4-char prefix space is mined out.** Yield decayed 37 → 19 → 7.4 → 1.5 per term as the volume band dropped. ~25,500 unsearched prefixes remain below volume 50, but 16,794 of them appear 1–4 times in 484K records (typos, OCR noise); a full sweep is tens of thousands of jobs for maybe 1–2K properties.
+
+**Address-form findings** (all verified 2026-08-08, details in [CLAUDE.md](../CLAUDE.md#architecture-decisions)):
+- TCAD stores numbered streets as `<N> ST`, **not** ordinals — `1 ST` → 2,636 matches vs `South 1st` → 19. Directional variants are subsets of the bare form.
+- Multi-word queries match terms independently, so a generic multi-word term subsumes every specific one. Run specific before generic.
+- Hyphens are part of the token: `mo-pac` 966 matches, `mopa` 46.
+- Highways are `HY` (5,860 addresses) not `HWY`/`HIGHWAY`; interstates `IH`. `HY 35` → 2,169 matches, 0 new.
+- Legal-description vocabulary is unreachable — the API searches owner name + address only. `LOT 1` → 20 matches against 15,468 matching descriptions in D1; `SEC 5` → 0; `Condo` → 407.
+
+**What is left.** No measured theory for the remaining ~24,600. Exempt property is already captured (it lands in `prop_type = R`), BPP is over the certified count, and utilities/minerals is only 350 accounts. Since the API exposes no state category, reconciling per-category needs TCAD's certified roll export or a richer detail endpoint — not more search terms.
 
 ## Running the Backfill
 

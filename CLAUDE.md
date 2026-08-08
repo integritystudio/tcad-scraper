@@ -13,7 +13,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
 - **Testing**: Vitest (141 frontend + 85 scripts + 26 workers tests; 126/126 E2E via Playwright)
-- **Scale**: 350K+ properties in D1 (2025 tax year; live count via `/health`)
+- **Scale**: 484K properties in D1 (2025 tax year; live count via `/health`). Target is the 2025 certified roll of **508,880 accounts** — see [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#coverage-target--the-2025-certified-roll) for the source and category breakdown. Do not use the 488,000 figure from TCAD's press release; it counts owners mailed a notice, not accounts
 
 ```
 React (5174) → CF Workers (Hono) → D1 (SQLite at edge)
@@ -159,6 +159,9 @@ TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 - **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses, suburb/city names, and numbered-street fragments (`1 ST`, `E 6 ST`, `W 7 ST` — all 165 of the `[E|W ]<1-55> ST` grid completed successfully 2026-08-08, 1,163 new properties). Does NOT work with ZIP codes, short terms (<4 chars), compound names, or *bare* numeric terms — a digit paired with a word token searches fine
 - **TCAD full-text search covers owner name + address only, NOT the legal `description` field** — "Condo" returns ~407 API matches despite tens of thousands of properties whose description contains CONDOMINIUM. Do not mine subdivision/plat/lot vocabulary (`RESUB`, `BLK`, `PHS`, subdivision names) for search terms; it looks high-volume in D1 and is unreachable via the API
 - **TCAD prefix-matches word starts**, so a 4-char prefix is a strict superset of every longer word beginning with it (`pflu` → 21,662 matches ≈ `Pflugerville`'s 21,439). Corollaries: never enqueue a word whose 4-char prefix was already searched (`grou` saved 259; `group`, run minutes later, saved 0), and mine candidates as 4-char prefixes rather than whole words
+- **Multi-word queries match terms independently, not as a phrase** — `F M RD` matched `F M 1826 RD` (3,109 matches, 162 saved) where the tokens are non-adjacent. So the superset rule applies to multi-word terms too: a generic multi-word term subsumes every specific one sharing its tokens. A 72-term `F M RD <route>` grid run *after* the generic `F M RD` returned **0** — run specific before generic, or skip the specific entirely
+- **Hyphens are part of the token, and prefix matching does not cross them** — `mo-pac` returned 966 matches while `mopa` returned 46. Hyphenated street names (`MO-PAC`, `BLAKE-MANOR`) must be typed with the hyphen
+- **The TCAD search API returns no state category code** (A/B/C1/F1/L1/M1/XV…). Its 67-field response is captured in `scraper.workflow.ts`'s raw interface and persisted to ~80 D1 columns; the category-shaped candidates are all something else — `as_code` is subdivision (A0024, S20976), `use_cd` is a use code (1, 61, "AFF PRG"), `sic_cd` is SIC industry, `market_area` is appraisal area. Coverage cannot be reconciled against the certified totals per-category without a different data source
 - **Env vars**: `TCAD_YEAR` (wrangler.toml vars), `UPSERT_CHUNK_SIZE` (500)
 
 ---

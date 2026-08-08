@@ -12,10 +12,14 @@ data in matched records).
 buffering or skipping until the TCAD API is fixed. Prefix expansion alone does NOT
 resolve the issue.
 
-**Last updated**: 2026-08-07 — added 9 roots found by `backfill-2025.ts`'s
-`getSeedExpansions()`/`getDenseExpansions()` a-z prefix expansion, reproducing
-the exact Wayg pattern (every letter of the root fails identically). Roots
-below are hard-skipped in those functions via `TRUNCATION_BUG_ROOTS`.
+**Last updated**: 2026-08-08 — documented `lane`, `aust`, `llc.`, which were added to
+`TRUNCATION_BUG_ROOTS` in 54ef3f4 but never listed here (the code carried 16 roots
+while this table showed 13). Previously 2026-08-07: added 9 roots found by
+`backfill-2025.ts`'s `getSeedExpansions()`/`getDenseExpansions()` a-z prefix
+expansion, reproducing the exact Wayg pattern (every letter of the root fails
+identically). Roots below are hard-skipped in those functions via
+`TRUNCATION_BUG_ROOTS` (`scripts/lib/terms/TRUNCATION_BUG_ROOTS.ts` — keep this
+table and that set in sync).
 
 | Term | Length | Status | Notes |
 |------|--------|--------|-------|
@@ -42,3 +46,6 @@ below are hard-skipped in those functions via `TRUNCATION_BUG_ROOTS`.
 | Mana | 4 | **tested** | 11/11 attempted five-letter expansions failed (2026-08-07) |
 | Nguy | 4 | **tested** | 22/22 attempted five-letter expansions failed (2026-08-07) |
 | Trus | 4 | **tested** | 19/19 attempted five-letter expansions failed (2026-08-07) |
+| Lane | 4 | blocked | Every search attempt failed (analytics: 1 search, 0 successful) |
+| Aust | 4 | blocked | Every search attempt failed — so "Austin" itself is unsearchable, and city-wide sweeps are not a shortcut to coverage |
+| LLC. | 4 | blocked | Every search attempt failed. Note `Inc.` works fine (20,348 matches), so the trailing period is not the cause |
