@@ -1,18 +1,16 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-08-08 (T13, T14 added; T3 remains open below)
-**Status**: 159 frontend + 85 scripts + 70 workers tests passing | TypeScript clean | Lint clean
+**Last Updated**: 2026-08-08 (T13, T14 implemented; T3 remains open below)
+**Status**: 159 frontend + 85 scripts + 75 workers tests passing | TypeScript clean | Lint clean
 
 ---
 ## Open Items
 
-#### T13: FTS fallback's 90-result ceiling caps totalResults and empties page 2+
-**Priority**: P1 | **Source**: FTS fallback work (2026-08-08)
-`FTS_MAX_RESULTS` is 90 (`D1_MAX_BOUND_PARAMS - FTS_ID_PARAM_HEADROOM`) because the FTS ids are folded into the caller's Prisma `id IN (...)` clause, and D1 hard-caps queries at 100 bound params. So the keyword fallback can never surface more than 90 rows: `totalResults` is capped at 90 no matter how many properties match, and any page past the first 90 results is near-empty. Fix: push `LIMIT`/`OFFSET` and a `COUNT(*)` into the raw FTS join so paging happens in SQL, which removes the cap and reports true totals — at the cost of no longer reusing the caller's Prisma pagination/count/transform pipeline in `runNaturalLanguageSearch`. Currently user-visible: with both Anthropic and xAI unfunded, this fallback *is* the live search path. Related: M42 (same class of misreported total). -- `workers/tcad-api/src/lib/keyword-search.ts:21-22`, `workers/tcad-api/src/controllers/property.ts:145-171`
+#### ~~T13: FTS fallback's 90-result ceiling caps totalResults and empties page 2+~~ [Done]
+**Commit**: 9e67a9e | `ftsQueryPage` replaces `ftsMatchIds`; `LIMIT`/`OFFSET` + `COUNT(*)` in SQL; `precomputedTotal` skips Prisma count; `FTS_MAX_PAGE_SIZE=98`.
 
-#### T14: FTS index omits secondary owner-identity columns (DBA, co-owner)
-**Priority**: P2 | **Source**: FTS fallback work (2026-08-08)
-The owner name itself is covered and is already the highest-weighted column — `name` is the owner-name field (documented as such in `claude.service.ts`'s SYSTEM_PROMPT) at bm25 weight 10.0 against `description`'s 1.0, so the weights need no change. The gap is column *coverage*: `properties_fts` indexes only `name`, `property_address`, `city`, `description`, while several other owner-identity columns exist unindexed — `owner_name` 154,302 rows populated (32%, and differing from `name` on 1,561 of them), `name_secondary` 36,401 (7.5%), `dba` 19,792 (4%). So a business searchable by its DBA, or a co-owner recorded only in `name_secondary`, is unfindable via the keyword fallback: roughly 56k rows' worth of names. `first_name`/`last_name` are not worth indexing (420/412 rows, 0.09% — effectively unpopulated). Fix is a migration, not a weight tweak: recreate the virtual table with the added columns, update all three sync triggers (`_ai`/`_ad`/`_au`), and `rebuild`. Costs: larger index, and per CLAUDE.md these columns are null for rows not re-scraped since 2026-08-08, so coverage grows only as rows are re-scraped. -- `workers/tcad-api/prisma/migrations/0002_properties_fts.sql:7-14`, `workers/tcad-api/src/lib/keyword-search.ts` (`FTS_BM25_WEIGHTS`)
+#### ~~T14: FTS index omits secondary owner-identity columns (DBA, co-owner)~~ [Done]
+**Commit**: 4e480d5 | Migration 0004_fts_owner_columns.sql recreates virtual table with `owner_name`/`name_secondary`/`dba`; triggers updated; `FTS_BM25_WEIGHTS` adds ownerName/nameSecondary/dba at 9.0.
 
 #### T3: Retire or activate 2026 mining strategy for backfill scripts
 **Priority**: P3 | **Source**: scripts-review audit (2026-08-06)
