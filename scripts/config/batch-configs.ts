@@ -277,10 +277,11 @@ export const BATCH_CONFIGS: Record<string, BatchEnqueueConfig> = {
  */
 export const HIGH_RESULT_TERM_SPLITS: ReadonlyMap<string, readonly string[]> =
 	new Map([
-		// Oak (7210 max_results as of original split; unverifiable now — "Oak" is
-		// under MIN_TERM_LENGTH (4 chars) and the API rejects it as a standalone
-		// search) → neighborhood/subdivision sub-queries
-		["Oak", ["Oak Hill", "Oakwood", "Oak Run", "Oakhurst", "Oak Creek"]],
+		// Oaks (3098 max_results, re-verified 2026-08-07 — "Oak" alone is under
+		// MIN_TERM_LENGTH (4 chars) and the API rejects it as a standalone search,
+		// so "Oaks" stands in as the closest searchable proxy) → neighborhood/
+		// subdivision sub-queries
+		["Oaks", ["Oak Hill", "Oakwood", "Oak Run", "Oakhurst", "Oak Creek"]],
 		// Maria (6427 max_results, re-verified 2026-08-07) → common middle-initial sub-queries
 		["Maria", ["Maria E", "Maria G", "Maria R", "Maria L"]],
 		// Estate (5713 max_results, re-verified 2026-08-07) → specific entity patterns
