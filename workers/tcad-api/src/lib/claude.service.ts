@@ -25,7 +25,15 @@ export type SearchFilters = z.infer<typeof searchFiltersSchema> & {
 };
 
 const CLAUDE_MODEL = "claude-3-haiku-20240307";
-const GROK_MODEL = "grok-3";
+// Pinned to a dated snapshot, matching CLAUDE_MODEL above. Must be a real id
+// from GET /v1/models: xAI silently serves a *substitute* for an unknown name
+// rather than erroring (a request for the nonexistent "grok-3" came back
+// served_as "grok-4.3"), so a typo here degrades quietly instead of failing.
+// Non-reasoning is deliberate — reasoning variants spend MAX_TOKENS on
+// reasoning_content before emitting the JSON this prompt requires. Measured
+// against the real SYSTEM_PROMPT: 1.4s here vs 6.7s for grok-4.3, and
+// grok-4.5 returned assessedValue where appraisedValue was asked for.
+const GROK_MODEL = "grok-4.20-0309-non-reasoning";
 const MAX_TOKENS = 1024;
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 // xAI exposes an OpenAI-compatible chat-completions surface, so the request
