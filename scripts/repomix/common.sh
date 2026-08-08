@@ -10,6 +10,7 @@ TEST_PATTERNS="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/__tests_
 
 # Documentation patterns
 DOC_PATTERNS="docs/**,**/*.md"
+CHANGELOG_PATTERNS="docs/changelog/**"
 
 mkdir -p "$OUT_DIR"
 cd "$REPO_ROOT"

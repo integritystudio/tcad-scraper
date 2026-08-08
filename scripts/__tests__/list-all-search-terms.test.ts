@@ -8,13 +8,13 @@ vi.mock("../config/batch-configs", () => ({
 	HIGH_RESULT_TERM_SPLITS: new Map([["Oak", ["Oak Hill", "Oakwood"]]]),
 }));
 
-vi.mock("../lib/curated-names", () => ({
-	FIRST_NAMES_FEMALE: ["Carol"],
-	FIRST_NAMES_MALE: ["David"],
-	LAST_NAMES: ["Smith"], // overlaps batch-configs "smith" case-insensitively
-	STREET_GEOGRAPHIC: ["Ranch"],
-	BUSINESS_ENTITY: ["Trust"], // overlaps batch-configs "Trust"
-}));
+vi.mock("../lib/FIRST_NAMES_FEMALE", () => ({ FIRST_NAMES_FEMALE: ["Carol"] }));
+vi.mock("../lib/FIRST_NAMES_MALE", () => ({ FIRST_NAMES_MALE: ["David"] }));
+// overlaps batch-configs "smith" case-insensitively
+vi.mock("../lib/LAST_NAMES", () => ({ LAST_NAMES: ["Smith"] }));
+vi.mock("../lib/STREET_GEOGRAPHIC", () => ({ STREET_GEOGRAPHIC: ["Ranch"] }));
+// overlaps batch-configs "Trust"
+vi.mock("../lib/BUSINESS_ENTITY", () => ({ BUSINESS_ENTITY: ["Trust"] }));
 
 import { getAllSearchTerms } from "../utils/list-all-search-terms";
 

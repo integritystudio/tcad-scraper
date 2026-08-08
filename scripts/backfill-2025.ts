@@ -20,6 +20,7 @@ import { runBackfillMain } from "./lib/backfill-runner";
 import { createTermCollector } from "./lib/backfill-utils";
 import { prisma } from "./lib/d1-prisma";
 import { getSearchedTermSets } from "./lib/searched-terms";
+import { TRUNCATION_BUG_ROOTS } from "./lib/TRUNCATION_BUG_ROOTS";
 
 async function getDenseExpansions(allSearched: Set<string>): Promise<string[]> {
 	const dense = await prisma.searchTermAnalytics.findMany({
@@ -38,17 +39,17 @@ async function getDenseExpansions(allSearched: Set<string>): Promise<string[]> {
 	const seen = new Set<string>();
 	for (const row of dense) {
 		if (row.searchTerm.length > DENSE_MAX_BASE_LENGTH) continue;
+		if (TRUNCATION_BUG_ROOTS.has(row.searchTerm.toLowerCase())) continue;
 		for (const ch of ALPHABET) {
-			const expanded = row.searchTerm + ch;
-			const lower = expanded.toLowerCase();
+			const lower = (row.searchTerm + ch).toLowerCase();
 			if (
-				expanded.length < MIN_TERM_LENGTH ||
+				lower.length < MIN_TERM_LENGTH ||
 				allSearched.has(lower) ||
 				seen.has(lower)
 			)
 				continue;
 			seen.add(lower);
-			expansions.push(expanded);
+			expansions.push(lower);
 		}
 	}
 	return expansions;
@@ -74,6 +75,7 @@ async function getSeedExpansions(allSearched: Set<string>): Promise<string[]> {
 	const expansions: string[] = [];
 	const seen = new Set<string>();
 	for (const prefix of prefixes) {
+		if (TRUNCATION_BUG_ROOTS.has(prefix)) continue;
 		for (const ch of ALPHABET) {
 			const expanded = prefix + ch;
 			if (allSearched.has(expanded) || seen.has(expanded)) continue;
@@ -88,7 +90,8 @@ async function getSeedExpansions(allSearched: Set<string>): Promise<string[]> {
 const STATIC_TERMS = BACKFILL_2025_STATIC_TERMS;
 
 async function getTermsToBackfill(): Promise<string[]> {
-	const { searched2025, allSearched, successful } = await getSearchedTermSets();
+	const { searched2025, allSearched, successful, unsuccessful } =
+		await getSearchedTermSets();
 
 	// Source 1: High-yield 2026 terms not yet in 2025
 	const terms2026 = await prisma.$queryRaw<
@@ -115,7 +118,7 @@ async function getTermsToBackfill(): Promise<string[]> {
 	const seedExpansions = await getSeedExpansions(allSearched);
 
 	const { addTerm, result } = createTermCollector({
-		excluded: [searched2025],
+		excluded: [searched2025, unsuccessful],
 		supersetsOf: successful,
 	});
 

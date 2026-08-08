@@ -21,14 +21,13 @@
 import { pathToFileURL } from "node:url";
 import { MIN_TERM_LENGTH } from "../utils/constants";
 import { BACKFILL_2025_STATIC_TERMS } from "./config/backfill-2025-static-terms";
+import { BLOCKED_TERMS } from "./lib/BLOCKED_TERMS";
+import { BUSINESS_ENTITY } from "./lib/BUSINESS_ENTITY";
+import { FIRST_NAMES_FEMALE } from "./lib/FIRST_NAMES_FEMALE";
+import { FIRST_NAMES_MALE } from "./lib/FIRST_NAMES_MALE";
+import { LAST_NAMES } from "./lib/LAST_NAMES";
+import { STREET_GEOGRAPHIC } from "./lib/STREET_GEOGRAPHIC";
 import { isSupersetOfAny } from "./lib/backfill-utils";
-import {
-	BUSINESS_ENTITY,
-	FIRST_NAMES_FEMALE,
-	FIRST_NAMES_MALE,
-	LAST_NAMES,
-	STREET_GEOGRAPHIC,
-} from "./lib/curated-names";
 import { generateCvcvBases } from "./lib/cvcv";
 import { prisma } from "./lib/d1-prisma";
 import { enqueueBatch } from "./lib/queue-utils";
@@ -112,57 +111,23 @@ async function rankByPredictedYield(terms: string[]): Promise<string[]> {
 	return kept;
 }
 
-// Terms that cause TCAD API timeouts or truncated responses — hard skip
-const BLOCKED_TERMS = new Set([
-	"street",
-	"drive",
-	"lane",
-	"road",
-	"way",
-	"court",
-	"place",
-	"circle",
-	"avenue",
-	"boulevard",
-	"belterra",
-	"fiduciary",
-	"lakeline boulevard",
-	"lmtd",
-	"maple run",
-	"mesa park",
-	"nonprofit",
-	"pemberton heights",
-	"residential builders",
-	"sendero springs",
-	"wayg",
-	"wayh",
-	"wayi",
-	"wayj",
-	"escrow",
-	// Matches an extreme number of properties (Living/Family/Revocable
-	// Trust, etc. — 23,852 matches, ~24 pages). Timed out 3/3 retries before
-	// per-page checkpointing (16449c5, fixing incident 2026-08-06) and now
-	// completes; still not worth the TCAD API load for a re-scrape of an
-	// already-searched, generic term with minimal new-property yield.
-	"trust",
-]);
-
 // ── Term pools ────────────────────────────────────────────────────────
-// Sourced from lib/curated-names.ts — the canonical name/geo/entity data
-// (see that file's docstring). Importing directly, rather than maintaining
-// a second hand-picked copy here, keeps Tiers 1-2 from going stale the way
-// a static list does once its entries are all searched (2026-08-07: the
-// prior hand-picked lists were 100% exhausted, silently collapsing Tiers
-// 1-2 to zero candidates every run). Overlap with other active-pool sources
-// (BATCH_CONFIGS) is expected and resolved at runtime by
+// Sourced from lib/FIRST_NAMES_FEMALE.ts, FIRST_NAMES_MALE.ts, LAST_NAMES.ts,
+// STREET_GEOGRAPHIC.ts, BUSINESS_ENTITY.ts — the canonical name/geo/entity
+// data (see each file's docstring). Importing directly, rather than
+// maintaining a second hand-picked copy here, keeps Tiers 1-2 from going
+// stale the way a static list does once its entries are all searched
+// (2026-08-07: the prior hand-picked lists were 100% exhausted, silently
+// collapsing Tiers 1-2 to zero candidates every run). Overlap with other
+// active-pool sources (BATCH_CONFIGS) is expected and resolved at runtime by
 // getSearchedTermSets() — see utils/list-all-search-terms.ts.
 //
-// curated-names.ts's own sub-lists overlap each other (e.g. "Casey" is both
-// a female and male first name; "Grace"/"Vista" work as both a name and a
-// geo/entity term), and BACKFILL_2025_STATIC_TERMS overlaps them too. Each
-// term is assigned to exactly one bucket below, first-match-wins in
-// tier-priority order, so utils/list-curated-terms.ts's `duplicated` bucket
-// (each term lives in exactly one list within this pool) stays empty.
+// These curated lists overlap each other (e.g. "Casey" is both a female and
+// male first name; "Grace"/"Vista" work as both a name and a geo/entity
+// term), and BACKFILL_2025_STATIC_TERMS overlaps them too. Each term is
+// assigned to exactly one bucket below, first-match-wins in tier-priority
+// order, so utils/list-curated-terms.ts's `duplicated` bucket (each term
+// lives in exactly one list within this pool) stays empty.
 const usedLower = new Set(
 	BACKFILL_2025_STATIC_TERMS.map((t) => t.toLowerCase()),
 );

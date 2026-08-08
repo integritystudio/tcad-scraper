@@ -8,11 +8,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/repomix-token-tree.sh"
 "$SCRIPT_DIR/repomix-tests.sh"
 "$SCRIPT_DIR/repomix-docs.sh"
+"$SCRIPT_DIR/repomix-changelog.sh"
 "$SCRIPT_DIR/repomix-workers.sh"
 "$SCRIPT_DIR/repomix-src.sh"
 "$SCRIPT_DIR/repomix-scripts.sh"
 "$SCRIPT_DIR/repomix-full.sh"
 "$SCRIPT_DIR/repomix-compressed.sh"
+"$SCRIPT_DIR/repomix-gitlog.sh"
 
 # Retrain the zstd dictionary on current tracked TypeScript so it never drifts
 # from the corpus (a stale dictionary silently degrades and can embed deleted code).

@@ -1,6 +1,6 @@
 /**
  * Deduplicated inventory of all non-numeric search terms across
- * config/batch-configs.ts and lib/curated-names.ts.
+ * config/batch-configs.ts and the curated name/geo/entity lists in lib/.
  *
  * Importable: `import { getAllSearchTerms } from "./utils/list-all-search-terms"`
  * CLI:        `npx tsx scripts/utils/list-all-search-terms.ts`
@@ -11,15 +11,15 @@ import {
 	BATCH_CONFIGS,
 	HIGH_RESULT_TERM_SPLITS,
 } from "../config/batch-configs";
-import {
-	BUSINESS_ENTITY,
-	FIRST_NAMES_FEMALE,
-	FIRST_NAMES_MALE,
-	LAST_NAMES,
-	STREET_GEOGRAPHIC,
-} from "../lib/curated-names";
+import { BUSINESS_ENTITY } from "../lib/BUSINESS_ENTITY";
+import { FIRST_NAMES_FEMALE } from "../lib/FIRST_NAMES_FEMALE";
+import { FIRST_NAMES_MALE } from "../lib/FIRST_NAMES_MALE";
+import { LAST_NAMES } from "../lib/LAST_NAMES";
+import { STREET_GEOGRAPHIC } from "../lib/STREET_GEOGRAPHIC";
 import {
 	buildTermInventory,
+	printDuplicatesSection,
+	printSourceBreakdown,
 	printTermRows,
 	type TermInventory,
 } from "../lib/term-inventory";
@@ -41,8 +41,9 @@ export function getAllSearchTerms(): SearchTermInventory {
 		}
 	}
 
-	// Source 2: lib/curated-names.ts (real first/last names, geo, entity words —
-	// the canonical data generate-next-200-terms.ts also draws from)
+	// Source 2: lib/FIRST_NAMES_FEMALE.ts, FIRST_NAMES_MALE.ts, LAST_NAMES.ts,
+	// STREET_GEOGRAPHIC.ts, BUSINESS_ENTITY.ts (real first/last names, geo,
+	// entity words — the canonical data generate-next-200-terms.ts also draws from)
 	const curatedNamesTerms = new Set<string>();
 	for (const list of [
 		FIRST_NAMES_FEMALE,
@@ -81,17 +82,8 @@ if (
 	}
 	console.log(`  duplicated: ${duplicated.length}\n`);
 
-	for (const [name, terms] of Object.entries(sources)) {
-		console.log(`--- ${name} (${terms.length}) ---`);
-		printTermRows(terms, "  ", 10);
-		console.log();
-	}
-
-	if (duplicated.length > 0) {
-		console.log(`--- duplicated across sources (${duplicated.length}) ---`);
-		printTermRows(duplicated, "  ", 10);
-		console.log();
-	}
+	printSourceBreakdown(sources, "  ", 10);
+	printDuplicatesSection(duplicated, "duplicated across sources", "  ", 10);
 
 	console.log(`=== FULL DEDUPED LIST (${all.length}) ===`);
 	printTermRows(all, "", 10);

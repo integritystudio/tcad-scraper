@@ -10,6 +10,17 @@ export interface SearchedTermSets {
 	searched2025: Set<string>;
 	/** Analytics terms that returned > 0 results. Use for superset filtering. */
 	successful: Set<string>;
+	/**
+	 * Analytics terms recorded with totalResults = 0 — i.e. every completed
+	 * search for this term saved zero NEW properties (totalResults is a pure
+	 * increment-on-save counter, see scraper.workflow.ts's update-analytics
+	 * step). Confirmed by audit (2026-08-07) that this reflects real
+	 * saturation, not broken data: e.g. "Maria" has thousands of TCAD
+	 * matches, but every one was already in D1 under another search term by
+	 * the time "Maria" itself completed. Safe to use as a backfill exclusion
+	 * filter for this reason — see its use in backfill-2025.ts.
+	 */
+	unsuccessful: Set<string>;
 }
 
 /**
@@ -35,15 +46,20 @@ export async function getSearchedTermSets(): Promise<SearchedTermSets> {
 
 	const allSearched = new Set<string>();
 	const successful = new Set<string>();
+	const unsuccessful = new Set<string>();
 	for (const r of analyticsRows) {
+		const lower = r.searchTerm.toLowerCase();
+		if (r.totalResults > 0) {
+			successful.add(lower);
+		} else {
+			unsuccessful.add(lower);
+		}
 		// A term whose every attempt failed does not count as searched — the
 		// March/April 2026 infra failures otherwise hid top-yield terms (David,
 		// LIVING, Smith, ...) from the generator forever. Failed-only terms
 		// become eligible again once outside the recent-jobs window.
 		if (r.successfulSearches === 0 && r.totalResults === 0) continue;
-		const lower = r.searchTerm.toLowerCase();
 		allSearched.add(lower);
-		if (r.totalResults > 0) successful.add(lower);
 	}
 
 	const searched2025 = new Set<string>();
@@ -61,7 +77,7 @@ export async function getSearchedTermSets(): Promise<SearchedTermSets> {
 		allSearched.add(lower);
 	}
 
-	return { allSearched, searched2025, successful };
+	return { allSearched, searched2025, successful, unsuccessful };
 }
 
 /** Failures before a zero-yield term is treated as a permanent dud. */
