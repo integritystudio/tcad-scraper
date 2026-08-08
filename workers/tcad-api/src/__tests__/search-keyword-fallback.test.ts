@@ -6,7 +6,9 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MAX_QUERY_LIMIT } from "../../../../utils/constants";
 import { app } from "../index";
+import { FTS_MAX_PAGE_SIZE } from "../utils/constants";
 
 const mockFindMany = vi.fn();
 const mockCount = vi.fn();
@@ -126,5 +128,53 @@ describe("POST /api/properties/search — keyword fallback", () => {
 				{ description: { contains: "Oak Street" } },
 			],
 		});
+	});
+
+	// T15: an explicit limit above one FTS page used to be echoed back verbatim,
+	// so a client paging on the reported limit stepped past the rows it never got.
+	it("reports the clamped page size when FTS cannot serve the requested limit", async () => {
+		mockQueryRaw.mockImplementation((...args: unknown[]) => {
+			const sql = Array.from(args[0] as TemplateStringsArray).join("?");
+			return Promise.resolve(
+				sql.includes("COUNT(*)") ? [{ total: 500 }] : [{ id: "prop-1" }],
+			);
+		});
+
+		const res = await app.request(
+			"/api/properties/search",
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ query: "Oak Street", limit: MAX_QUERY_LIMIT }),
+			},
+			TEST_ENV,
+		);
+
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as { pagination: { limit: number } };
+		expect(body.pagination.limit).toBe(FTS_MAX_PAGE_SIZE);
+	});
+
+	// The contains-filter path pages in Prisma, so it can honour the full limit —
+	// clamping its reported value would under-report rows that were served.
+	it("keeps the requested limit on the contains path, which pages in Prisma", async () => {
+		mockQueryRaw.mockRejectedValue(new Error("no such table: properties_fts"));
+
+		const res = await app.request(
+			"/api/properties/search",
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ query: "Oak Street", limit: MAX_QUERY_LIMIT }),
+			},
+			TEST_ENV,
+		);
+
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as { pagination: { limit: number } };
+		expect(body.pagination.limit).toBe(MAX_QUERY_LIMIT);
+		expect(mockFindMany).toHaveBeenCalledWith(
+			expect.objectContaining({ take: MAX_QUERY_LIMIT }),
+		);
 	});
 });

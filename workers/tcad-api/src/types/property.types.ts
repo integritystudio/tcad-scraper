@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { MAX_QUERY_LIMIT } from "../../../../utils/constants";
 import { FTS_MAX_PAGE_SIZE } from "../utils/constants";
 
 const MIN_TERM_LENGTH = 4;
@@ -25,13 +26,17 @@ export const propertyFilterSchema = z.object({
 	propType: z.string().optional(),
 	minValue: z.coerce.number().optional(),
 	maxValue: z.coerce.number().optional(),
-	limit: z.coerce.number().min(1).max(1000).default(FTS_MAX_PAGE_SIZE),
+	limit: z.coerce
+		.number()
+		.min(1)
+		.max(MAX_QUERY_LIMIT)
+		.default(FTS_MAX_PAGE_SIZE),
 	offset: z.coerce.number().min(0).default(0),
 });
 
 export const naturalLanguageSearchSchema = z.object({
 	query: z.string().min(1).max(500),
-	limit: z.number().min(1).max(1000).optional(),
+	limit: z.number().min(1).max(MAX_QUERY_LIMIT).optional(),
 	offset: z.number().min(0).optional(),
 });
 
@@ -39,7 +44,7 @@ export const naturalLanguageSearchSchema = z.object({
 // strings, so the numeric bounds coerce.
 export const naturalLanguageSearchQuerySchema = z.object({
 	query: z.string().min(1).max(500),
-	limit: z.coerce.number().min(1).max(1000).optional(),
+	limit: z.coerce.number().min(1).max(MAX_QUERY_LIMIT).optional(),
 	offset: z.coerce.number().min(0).optional(),
 });
 
