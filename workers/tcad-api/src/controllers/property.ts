@@ -4,6 +4,7 @@
  */
 
 import type { Prisma } from "@prisma/client";
+import type { Context } from "hono";
 import { Hono } from "hono";
 import { DEFAULT_QUERY_LIMIT } from "../../../../utils/constants";
 import { notFound, unavailable } from "../../../../utils/http-errors";
@@ -22,6 +23,7 @@ import {
 	propertyFilterSchema,
 	scrapeRequestSchema,
 } from "../types/property.types";
+import { getErrorMessage } from "../utils/error-helpers";
 import { epochToISO, nowEpoch } from "../utils/epoch-dates";
 import { transformPropertyToSnakeCase } from "../utils/property-transformers";
 
@@ -96,18 +98,22 @@ app.get("/", validateQuery(propertyFilterSchema), async (c) => {
 	});
 });
 
-// POST /search — natural language search (Claude AI)
-app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
-	const prisma = c.get("prisma");
-	const {
+interface NaturalLanguageSearchParams {
+	query: string;
+	limit?: number;
+	offset?: number;
+}
+
+// Shared by POST /search and the cacheable GET /search variant.
+const runNaturalLanguageSearch = async (
+	c: Context<AppEnv>,
+	{
 		query,
 		limit = DEFAULT_QUERY_LIMIT,
 		offset = 0,
-	} = c.get("validatedBody") as {
-		query: string;
-		limit?: number;
-		offset?: number;
-	};
+	}: NaturalLanguageSearchParams,
+) => {
+	const prisma = c.get("prisma");
 
 	// Import claude service dynamically to keep this file focused
 	const { parseNaturalLanguageQuery, sanitizeWhereClause } = await import(
@@ -134,9 +140,18 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
 		answer = parsed.answer;
 		answerType = parsed.answerType;
 	} catch (err) {
-		throw unavailable("Unable to process natural language query.", {
-			cause: err,
-		});
+		// No AI provider reachable (e.g. exhausted credits on both Anthropic
+		// and OpenAI) — degrade to FTS5 keyword search instead of failing.
+		console.warn(
+			`AI query parsing failed, using keyword fallback: ${getErrorMessage(err)}`,
+		);
+		const { searchKeywordFallback } = await import("../lib/keyword-search");
+		const fallback = await searchKeywordFallback(prisma, query, DISPLAY_YEAR);
+		whereClause = fallback.whereClause;
+		orderBy = undefined;
+		explanation = fallback.explanation;
+		answer = undefined;
+		answerType = undefined;
 	}
 
 	const yearFilteredClause = { ...whereClause, year: DISPLAY_YEAR };
@@ -234,6 +249,12 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
 	} catch (err) {
 		throw unavailable("Database query failed", { cause: err });
 	}
+};
+
+// POST /search — natural language search (Claude AI)
+app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
+	const params = c.get("validatedBody") as NaturalLanguageSearchParams;
+	return runNaturalLanguageSearch(c, params);
 });
 
 // GET /search/test — test Claude AI connection
