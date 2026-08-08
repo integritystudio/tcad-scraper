@@ -8,6 +8,8 @@
  * - Accessibility features
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
 	act,
 	fireEvent,
@@ -15,8 +17,6 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Property } from "../../types";
 import { PropertyCard } from "../features/PropertySearch/PropertyCard";
@@ -326,9 +326,8 @@ describe("PropertyCard", () => {
 
 			// DOCUMENT_POSITION_FOLLOWING means the second node comes after
 			// the first, i.e. the button precedes the details content in the DOM.
-			const position = hideDetailsButton.compareDocumentPosition(
-				financialHeading,
-			);
+			const position =
+				hideDetailsButton.compareDocumentPosition(financialHeading);
 			expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
 			// The value-summary row's container element should also precede
@@ -364,7 +363,9 @@ describe("PropertyCard", () => {
 			expect(propertyCardCss).toMatch(
 				/\.summary\s*{[^}]*padding-top:\s*0[^}]*}/,
 			);
-			expect(propertyCardCss).toMatch(/\.summary\s*{[^}]*border-top:\s*none[^}]*}/);
+			expect(propertyCardCss).toMatch(
+				/\.summary\s*{[^}]*border-top:\s*none[^}]*}/,
+			);
 		});
 	});
 });
