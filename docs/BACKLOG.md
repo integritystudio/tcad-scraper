@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-08-08 (T15, L20, C8, L21 done; T3 and newly-filed C9 remain open below)
-**Status**: 166 frontend + 85 scripts + 77 workers tests passing | TypeScript clean (root + workers) | Lint clean repo-wide — 0 errors, 0 warnings
+**Last Updated**: 2026-08-08 (T15, L20, C8, L21, C9 done; **T3 is the only open item**)
+**Status**: 167 frontend + 85 scripts + 77 workers tests passing | TypeScript clean (root + workers) | Lint clean repo-wide — 0 errors, 0 warnings
 
 ---
 ## Open Items
@@ -65,9 +65,10 @@ The remaining sub-claim — that a single-value `lastSearchedRef` should be a mu
 #### ~~C8: Inline styles in ValueComparison violate project no-inline-styling rule~~ [Done]
 Both widths moved into `ValueComparison.module.css` as `.barFillFull` (the appraised reference bar, now carrying no `style` attribute at all) and `.barFillPartial` (`width: var(--bar-fill-percent, 0%)`). The three bar classes deliberately declare disjoint properties, so none has to out-cascade another — the M43 failure mode. The residual is that the percentage still crosses through the `style` attribute, as `--bar-fill-percent`: that is a datum, not a style declaration, and it is the conventional CSS-Modules answer for a data-driven dimension. Two tests in `ValueComparison.test.tsx` assert the custom property is set and `style.width` is not. **Not in scope, still open**: `AnswerBox.tsx:11-12` has the same violation (`style={{ width: "80%", height: "24px" }}` on skeletons) — filed as C9.
 
-#### C9: Inline skeleton dimensions in AnswerBox violate no-inline-styling rule
-**Priority**: P3 | **Source**: found while fixing C8 (2026-08-08)
-`AnswerBox.tsx:11-12` renders two loading skeletons with `style={{ width: "80%", height: "24px" }}` / `{ width: "60%", height: "24px" }`. Unlike C8's bars these are fully static, so they need no custom property — two modifier classes in the existing module file cover it. -- `src/components/features/PropertySearch/AnswerBox.tsx:11,12`
+#### ~~C9: Inline skeleton dimensions in AnswerBox violate no-inline-styling rule~~ [Done]
+The shared `height: 24px` moved onto `.skeleton`; the differing widths became `.skeletonLong` (80%) / `.skeletonShort` (60%), which declare nothing else — so, as in C8, no rule depends on out-cascading another. Kept `24px` rather than converting to `1.5rem`: identical at the default root font size but not under a user-scaled one, and this was a move, not a restyle. `AnswerBox.test.tsx` (new file) asserts both placeholder lines render with no `style` attribute.
+
+**`grep "style={{" src/ --include=*.tsx` is now empty outside tests** — with C8 these were the last inline styles in the frontend.
 
 #### ~~L21: `composes` is accepted in plain stylesheets, where it is a silent no-op~~ [Done]
 Applied the fix recorded below — the top-level `css.parser` block is gone and the setting now lives in an `overrides` entry scoped to `**/*.module.css`. Re-verified after the move: the four `sections/*.module.css` files still parse (`biome check` over that directory — 9 files, 0 errors), and a probe `.css` containing `composes` errors again with "`composes` declaration is not a standard CSS feature". No rationale comment in `biome.json` — Biome rejects unknown keys, including `comment`, and the file is `.json` not `.jsonc`.
