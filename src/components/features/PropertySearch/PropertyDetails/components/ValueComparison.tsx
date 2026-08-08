@@ -16,7 +16,7 @@ export const ValueComparison = ({
 	const { formatCurrency } = useFormatting();
 
 	const difference = useMemo(() => {
-		if (!assessedValue) return null;
+		if (assessedValue === null || assessedValue === undefined) return null;
 		return assessedValue - appraisedValue;
 	}, [appraisedValue, assessedValue]);
 
