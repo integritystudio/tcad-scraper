@@ -181,10 +181,9 @@ const runNaturalLanguageSearch = async (
 			prisma.property.findMany({
 				where: yearFilteredClause,
 				orderBy: orderBy || { scrapedAt: "desc" },
-				...(ftsPrecomputedTotal === undefined && {
-					skip: offset,
-					take: Math.min(limit, 1000),
-				}),
+				...(ftsPrecomputedTotal === undefined
+					? { skip: offset, take: Math.min(limit, 1000) }
+					: {}),
 			}),
 			ftsPrecomputedTotal !== undefined
 				? Promise.resolve(ftsPrecomputedTotal)
