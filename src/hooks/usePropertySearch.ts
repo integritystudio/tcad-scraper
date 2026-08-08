@@ -133,7 +133,12 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 			setResults([]);
 			setAnswerState("error");
 		} finally {
-			setLoading(false);
+			// Only clear loading if this call wasn't superseded by a newer one —
+			// otherwise a stale, aborted call's finally can clear the flag while
+			// the newer call is still genuinely in flight.
+			if (searchAbortRef.current === abortController) {
+				setLoading(false);
+			}
 		}
 	}, []);
 
