@@ -1,12 +1,22 @@
 /**
- * Term-mining queries over "2026-only" properties — property_ids present in
- * year 2026 but absent from 2025. Shared by the backfill-2025* scripts and
- * enqueue-tail-terms.ts, which previously each carried their own copies of
- * these CTEs.
+ * Term-mining queries over the *gap* between two tax years — property_ids
+ * present in `sourceYear` but absent from `targetYear`. Shared by the
+ * backfill scripts and enqueue-tail-terms.ts, which previously each carried
+ * their own copies of these CTEs.
  *
- * Uses $queryRawUnsafe because the filters (HAVING threshold, GLOB fragment)
- * vary per caller; every interpolated value is an internal number or fixed
- * SQL fragment — no user input reaches these strings.
+ * The direction is a parameter because the gap reverses every roll season.
+ * Through August 2026 the scripts mined 2026 → 2025 (2026 was scraped first,
+ * 2025 was the gap); the 2026 backfill runs 2025 → 2026. Callers pass both
+ * years explicitly, so neither direction is baked into the SQL.
+ *
+ * Mining a year that is still empty is not a failure mode — an empty
+ * `targetYear` makes the NOT IN subquery match nothing, so the candidate pool
+ * is every property in `sourceYear`, which is exactly the right starting set.
+ * As the target fills, the pool narrows to the remaining gap on its own.
+ *
+ * Uses $queryRawUnsafe because the filters (years, HAVING threshold, GLOB
+ * fragment) vary per caller; every interpolated value is an internal number or
+ * fixed SQL fragment — no user input reaches these strings.
  */
 
 import { MIN_TERM_LENGTH } from "../../utils/constants";
@@ -14,25 +24,51 @@ import { prisma } from "./d1-prisma";
 
 export interface MinedTerm {
 	term: string;
-	/** Distinct 2026-only properties matching this term. */
+	/** Distinct gap properties (in sourceYear, not in targetYear) matching this term. */
 	count: number;
 }
 
-export interface MineOptions {
-	/** Minimum distinct 2026-only properties per term (HAVING threshold). */
+export interface YearGap {
+	/** Year whose properties supply the candidate vocabulary. */
+	sourceYear: number;
+	/** Year being filled; its already-captured property_ids are excluded. */
+	targetYear: number;
+}
+
+export interface MineOptions extends YearGap {
+	/** Minimum distinct gap properties per term (HAVING threshold). */
 	minCount: number;
 	/** Keep only terms starting with a letter (GLOB '[A-Za-z]*'). */
 	alphaOnly?: boolean;
 }
 
-const FROM_2026_ONLY = `FROM properties
-      WHERE year = 2026
-      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)`;
-
 const ALPHA_GLOB = `GLOB '[A-Za-z]*'`;
 
 const ENTITY_NAME_FILTER = `(name LIKE '%LLC%' OR name LIKE '%INC%' OR name LIKE '%LP%'
-           OR name LIKE '%LTD%' OR name LIKE '%TRUST%')`;
+         OR name LIKE '%LTD%' OR name LIKE '%TRUST%')`;
+
+/**
+ * `FROM properties WHERE <in source year, not yet in target year>`.
+ * Years are validated as integers so they can be interpolated safely.
+ */
+function gapFrom({ sourceYear, targetYear }: YearGap): string {
+	for (const [label, year] of [
+		["sourceYear", sourceYear],
+		["targetYear", targetYear],
+	] as const) {
+		if (!Number.isInteger(year)) {
+			throw new TypeError(`${label} must be an integer, got ${year}`);
+		}
+	}
+	if (sourceYear === targetYear) {
+		throw new RangeError(
+			`sourceYear and targetYear must differ (both ${sourceYear}) — a year's gap against itself is always empty`,
+		);
+	}
+	return `FROM properties
+      WHERE year = ${sourceYear}
+      AND property_id NOT IN (SELECT property_id FROM properties WHERE year = ${targetYear})`;
+}
 
 async function run(sql: string): Promise<MinedTerm[]> {
 	const rows =
@@ -42,12 +78,14 @@ async function run(sql: string): Promise<MinedTerm[]> {
 	return rows.map((r) => ({ term: r.term, count: Number(r.cnt) }));
 }
 
-/** First word of the owner name on 2026-only properties. */
-export function mineOwnerFirstWords(opts: MineOptions): Promise<MinedTerm[]> {
+/** First word of the owner name on gap properties. */
+export async function mineOwnerFirstWords(
+	opts: MineOptions,
+): Promise<MinedTerm[]> {
 	return run(`
     WITH words AS (
       SELECT property_id, substr(name, 1, instr(name || ' ', ' ') - 1) AS term
-      ${FROM_2026_ONLY}
+      ${gapFrom(opts)}
     )
     SELECT term, COUNT(DISTINCT property_id) AS cnt
     FROM words
@@ -57,13 +95,13 @@ export function mineOwnerFirstWords(opts: MineOptions): Promise<MinedTerm[]> {
     ORDER BY cnt DESC`);
 }
 
-/** Street name (second word of property_address) on 2026-only properties. */
-export function mineStreetNames(opts: MineOptions): Promise<MinedTerm[]> {
+/** Street name (second word of property_address) on gap properties. */
+export async function mineStreetNames(opts: MineOptions): Promise<MinedTerm[]> {
 	return run(`
     WITH rests AS (
       SELECT property_id,
              substr(property_address || ' ', instr(property_address || ' ', ' ') + 1) AS rest
-      ${FROM_2026_ONLY}
+      ${gapFrom(opts)}
       AND property_address IS NOT NULL
     ),
     words AS (
@@ -78,15 +116,15 @@ export function mineStreetNames(opts: MineOptions): Promise<MinedTerm[]> {
     ORDER BY cnt DESC`);
 }
 
-/** First word of the description on 2026-only properties. */
-export function mineDescriptionFirstWords(
+/** First word of the description on gap properties. */
+export async function mineDescriptionFirstWords(
 	opts: MineOptions,
 ): Promise<MinedTerm[]> {
 	return run(`
     WITH words AS (
       SELECT property_id,
              substr(description, 1, instr(description || ' ', ' ') - 1) AS term
-      ${FROM_2026_ONLY}
+      ${gapFrom(opts)}
       AND description IS NOT NULL
     )
     SELECT term, COUNT(DISTINCT property_id) AS cnt
@@ -98,16 +136,18 @@ export function mineDescriptionFirstWords(
 }
 
 /**
- * Two-word owner-name phrases on 2026-only properties.
+ * Two-word owner-name phrases on gap properties.
  * Requires w1 >= MIN_TERM_LENGTH and w2 >= 2 chars; `alphaOnly` applies to w1.
  */
-export function mineTwoWordOwnerNames(opts: MineOptions): Promise<MinedTerm[]> {
+export async function mineTwoWordOwnerNames(
+	opts: MineOptions,
+): Promise<MinedTerm[]> {
 	return run(`
     WITH split1 AS (
       SELECT property_id,
              substr(name, 1, instr(name || ' ', ' ') - 1) AS w1,
              substr(name || ' ', instr(name || ' ', ' ') + 1) AS rest
-      ${FROM_2026_ONLY}
+      ${gapFrom(opts)}
     ),
     split2 AS (
       SELECT property_id, w1, substr(rest, 1, instr(rest || ' ', ' ') - 1) AS w2
@@ -122,19 +162,19 @@ export function mineTwoWordOwnerNames(opts: MineOptions): Promise<MinedTerm[]> {
 }
 
 /**
- * Two-word phrases from entity owner names (LLC/INC/LP/LTD/TRUST) on
- * 2026-only properties. Unlike mineTwoWordOwnerNames, applies no per-word
- * length filter — entity names keep short leading words (e.g. "ABC LLC").
+ * Two-word phrases from entity owner names (LLC/INC/LP/LTD/TRUST) on gap
+ * properties. Unlike mineTwoWordOwnerNames, applies no per-word length
+ * filter — entity names keep short leading words (e.g. "ABC LLC").
  */
-export function mineEntityPhrases(
-	opts: Pick<MineOptions, "minCount">,
+export async function mineEntityPhrases(
+	opts: Omit<MineOptions, "alphaOnly">,
 ): Promise<MinedTerm[]> {
 	return run(`
     WITH split1 AS (
       SELECT property_id,
              substr(name, 1, instr(name || ' ', ' ') - 1) AS w1,
              substr(name || ' ', instr(name || ' ', ' ') + 1) AS rest
-      ${FROM_2026_ONLY}
+      ${gapFrom(opts)}
       AND ${ENTITY_NAME_FILTER}
     )
     SELECT w1 || ' ' || substr(rest, 1, instr(rest || ' ', ' ') - 1) AS term,

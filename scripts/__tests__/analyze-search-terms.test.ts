@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TARGET_2025_PROPERTY_COUNT } from "../../utils/constants";
 
 const mockScrapeJobCount = vi.fn();
 const mockScrapeJobFindMany = vi.fn();
@@ -17,7 +18,7 @@ vi.mock("../lib/d1-prisma", () => ({
 }));
 
 vi.mock("../lib/backfill-utils", () => ({
-	get2025Count: (...args: unknown[]) => mockGet2025Count(...args),
+	getPropertyCount: (...args: unknown[]) => mockGet2025Count(...args),
 }));
 
 import { analyzeSearchTerms } from "../analyze-search-terms";
@@ -58,7 +59,7 @@ beforeEach(() => {
 
 describe("analyzeSearchTerms — staleness guard", () => {
 	it("fires console.warn when propertyCount exceeds TARGET_2025_PROPERTY_COUNT", async () => {
-		setupDefaultMocks({ propertyCount: 510_000 });
+		setupDefaultMocks({ propertyCount: TARGET_2025_PROPERTY_COUNT + 10_000 });
 
 		await analyzeSearchTerms();
 
@@ -70,7 +71,7 @@ describe("analyzeSearchTerms — staleness guard", () => {
 	});
 
 	it("does NOT fire console.warn when propertyCount is below threshold", async () => {
-		setupDefaultMocks({ propertyCount: 400_000 });
+		setupDefaultMocks({ propertyCount: TARGET_2025_PROPERTY_COUNT - 100_000 });
 
 		await analyzeSearchTerms();
 
@@ -78,7 +79,7 @@ describe("analyzeSearchTerms — staleness guard", () => {
 	});
 
 	it("clamps Remaining to 0 when DB count exceeds TARGET_2025_PROPERTY_COUNT", async () => {
-		setupDefaultMocks({ propertyCount: 500_000 });
+		setupDefaultMocks({ propertyCount: TARGET_2025_PROPERTY_COUNT });
 
 		await analyzeSearchTerms();
 

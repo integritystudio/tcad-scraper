@@ -16,7 +16,9 @@ import {
 	mineOwnerFirstWords,
 	mineStreetNames,
 	mineTwoWordOwnerNames,
-} from "../mine-2026-terms";
+} from "../mine-year-terms";
+
+const YEARS = { sourceYear: 2025, targetYear: 2026 };
 
 /** The SQL passed to D1, collapsed to single spaces for stable assertions. */
 function executedSql(): string {
@@ -29,14 +31,14 @@ beforeEach(() => {
 	mockQueryRawUnsafe.mockResolvedValue([]);
 });
 
-describe("mine-2026-terms result mapping", () => {
+describe("mine-year-terms result mapping", () => {
 	it("maps rows to term/count and converts bigint counts to numbers", async () => {
 		mockQueryRawUnsafe.mockResolvedValue([
 			{ term: "NGUYEN", cnt: BigInt(42) },
 			{ term: "MARTINEZ", cnt: 17 },
 		]);
 
-		const result = await mineOwnerFirstWords({ minCount: 5 });
+		const result = await mineOwnerFirstWords({ ...YEARS, minCount: 5 });
 
 		expect(result).toEqual([
 			{ term: "NGUYEN", count: 42 },
@@ -45,42 +47,73 @@ describe("mine-2026-terms result mapping", () => {
 	});
 });
 
-describe("mine-2026-terms query construction", () => {
-	it("every miner scopes to 2026-only properties", async () => {
-		const miners = [
-			() => mineOwnerFirstWords({ minCount: 5 }),
-			() => mineStreetNames({ minCount: 5 }),
-			() => mineDescriptionFirstWords({ minCount: 5 }),
-			() => mineTwoWordOwnerNames({ minCount: 5 }),
-			() => mineEntityPhrases({ minCount: 5 }),
-		];
+describe("mine-year-terms query construction", () => {
+	const miners = [
+		mineOwnerFirstWords,
+		mineStreetNames,
+		mineDescriptionFirstWords,
+		mineTwoWordOwnerNames,
+		mineEntityPhrases,
+	];
 
+	it("every miner scopes to the source-year/target-year gap", async () => {
 		for (const mine of miners) {
 			mockQueryRawUnsafe.mockClear();
-			await mine();
+			await mine({ ...YEARS, minCount: 5 });
 			expect(executedSql()).toContain(
-				"WHERE year = 2026 AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)",
+				"WHERE year = 2025 AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2026)",
 			);
 		}
 	});
 
+	it("mines the reverse direction when the years are swapped", async () => {
+		await mineOwnerFirstWords({
+			sourceYear: 2026,
+			targetYear: 2025,
+			minCount: 5,
+		});
+
+		expect(executedSql()).toContain(
+			"WHERE year = 2026 AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)",
+		);
+	});
+
+	it("rejects a gap of a year against itself", async () => {
+		for (const mine of miners) {
+			await expect(
+				mine({ sourceYear: 2025, targetYear: 2025, minCount: 5 }),
+			).rejects.toThrow(RangeError);
+		}
+	});
+
+	it("rejects non-integer years rather than interpolating them into SQL", async () => {
+		await expect(
+			mineOwnerFirstWords({
+				sourceYear: 2025.5,
+				targetYear: 2026,
+				minCount: 5,
+			}),
+		).rejects.toThrow(TypeError);
+		expect(mockQueryRawUnsafe).not.toHaveBeenCalled();
+	});
+
 	it("applies minCount as the HAVING threshold", async () => {
-		await mineOwnerFirstWords({ minCount: 7 });
+		await mineOwnerFirstWords({ ...YEARS, minCount: 7 });
 
 		expect(executedSql()).toContain("HAVING COUNT(DISTINCT property_id) >= 7");
 	});
 
 	it("adds the letter GLOB filter only when alphaOnly is set", async () => {
-		await mineOwnerFirstWords({ minCount: 5, alphaOnly: true });
+		await mineOwnerFirstWords({ ...YEARS, minCount: 5, alphaOnly: true });
 		expect(executedSql()).toContain("GLOB '[A-Za-z]*'");
 
 		mockQueryRawUnsafe.mockClear();
-		await mineOwnerFirstWords({ minCount: 5 });
+		await mineOwnerFirstWords({ ...YEARS, minCount: 5 });
 		expect(executedSql()).not.toContain("GLOB");
 	});
 
 	it("mineTwoWordOwnerNames requires word lengths (w1 >= MIN_TERM_LENGTH, w2 >= 2)", async () => {
-		await mineTwoWordOwnerNames({ minCount: 5 });
+		await mineTwoWordOwnerNames({ ...YEARS, minCount: 5 });
 
 		expect(executedSql()).toContain(
 			`LENGTH(w1) >= ${MIN_TERM_LENGTH} AND LENGTH(w2) >= 2`,
@@ -88,7 +121,7 @@ describe("mine-2026-terms query construction", () => {
 	});
 
 	it("mineEntityPhrases filters to entity names and skips word-length filters", async () => {
-		await mineEntityPhrases({ minCount: 10 });
+		await mineEntityPhrases({ ...YEARS, minCount: 10 });
 
 		const sql = executedSql();
 		expect(sql).toContain("name LIKE '%LLC%'");

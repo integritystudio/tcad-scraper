@@ -40,10 +40,37 @@ export const BREAKPOINTS = {
 // ── TCAD year ───────────────────────────────────────────────────────
 export const DEFAULT_TCAD_YEAR = 2025;
 
+/**
+ * Accepted bounds for a per-request scrape year. TCAD's full-text endpoint
+ * serves 2023-2026 as of 2026-08-08 (2027 returns an empty body); the bounds
+ * are deliberately wider than the served range so a new roll year works
+ * without a deploy, while still rejecting typos like 20226.
+ */
+export const TCAD_YEAR_MIN = 2000;
+export const TCAD_YEAR_MAX = 2100;
+
 // ── Property count targets ──────────────────────────────────────────
-// Approximate 2025 TCAD property count used as halt threshold by backfill
-// and lowthreshold scripts. See CLAUDE.md "Scale: 500K+ properties".
-export const TARGET_2025_PROPERTY_COUNT = 500_000;
+// Halt threshold for the backfill loop, per tax year. 2025's 508,880 is the
+// certified-roll account count (see docs/SEARCH_TERMS.md); a year with no
+// published certified total falls back to the most recent known roll, which
+// is the right order of magnitude — Travis County's account count moves by
+// low single-digit percent year over year.
+export const TARGET_PROPERTY_COUNT_BY_YEAR: Readonly<Record<number, number>> = {
+	2025: 508_880,
+};
+
+/** Fallback halt threshold for a year absent from TARGET_PROPERTY_COUNT_BY_YEAR. */
+export const DEFAULT_TARGET_PROPERTY_COUNT = 508_880;
+
+export function targetPropertyCount(year: number): number {
+	return TARGET_PROPERTY_COUNT_BY_YEAR[year] ?? DEFAULT_TARGET_PROPERTY_COUNT;
+}
+
+/**
+ * @deprecated Use `targetPropertyCount(year)`. Retained for analyze-search-terms.ts's
+ * 2025 coverage report, which is year-pinned by design.
+ */
+export const TARGET_2025_PROPERTY_COUNT = TARGET_PROPERTY_COUNT_BY_YEAR[2025];
 
 // ── Default limits & intervals ─────────────────────────────────────
 export const DAYS_PER_WEEK = 7;

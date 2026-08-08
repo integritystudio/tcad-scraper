@@ -147,10 +147,17 @@ export interface BatchEnqueueConfig {
 	terms: string[];
 }
 
-/** Enqueue terms one at a time; returns the terms that were accepted (HTTP 2xx). */
+/**
+ * Enqueue terms one at a time; returns the terms that were accepted (HTTP 2xx).
+ *
+ * `year` is sent per request so a backfill can target a roll year other than
+ * the Worker's TCAD_YEAR var. Omit it to let the Worker apply its own default
+ * (which is what every pre-2026 caller relied on).
+ */
 export async function enqueueBatch(
 	terms: string[],
 	logger: EnqueueLogger = console,
+	year?: number,
 ): Promise<string[]> {
 	const enqueued: string[] = [];
 	for (const term of terms) {
@@ -161,7 +168,11 @@ export async function enqueueBatch(
 					"Content-Type": "application/json",
 					"x-api-key": API_KEY,
 				},
-				body: JSON.stringify({ searchTerm: term }),
+				body: JSON.stringify(
+					year === undefined
+						? { searchTerm: term }
+						: { searchTerm: term, year },
+				),
 			});
 
 			if (res.ok) {

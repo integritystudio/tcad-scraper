@@ -1,14 +1,39 @@
-/** Shared helpers for backfill-2025* scripts. */
+/** Shared helpers for the backfill scripts. */
 
-import { MIN_TERM_LENGTH } from "../../utils/constants";
+import { DEFAULT_TCAD_YEAR, MIN_TERM_LENGTH } from "../../utils/constants";
 import { prisma } from "./d1-prisma";
-import type { MinedTerm } from "./mine-2026-terms";
+import type { MinedTerm } from "./mine-year-terms";
 
-/** Count properties scraped for year 2025. */
-export async function get2025Count(): Promise<number> {
+/** Count properties scraped for a given tax year. */
+export async function getPropertyCount(
+	year: number = DEFAULT_TCAD_YEAR,
+): Promise<number> {
 	const result = await prisma.$queryRaw<[{ count: number }]>`
-    SELECT COUNT(*) as count FROM properties WHERE year = 2025`;
-	return result[0].count;
+    SELECT COUNT(*) as count FROM properties WHERE year = ${year}`;
+	return Number(result[0].count);
+}
+
+/**
+ * Pick the year whose properties supply mining vocabulary for a backfill of
+ * `targetYear`: the most-populated *other* year in D1.
+ *
+ * Chosen from the data rather than hardcoded because the relationship
+ * reverses each roll season — 2026 seeded 2025's backfill, 2025 now seeds
+ * 2026's — and a hardcoded pair silently mines an empty table when it goes
+ * stale. Returns null when no other year has been scraped, which callers
+ * must treat as "no gap mining available", not as an error.
+ */
+export async function resolveSourceYear(
+	targetYear: number,
+): Promise<number | null> {
+	const rows = await prisma.$queryRaw<Array<{ year: number; cnt: number }>>`
+    SELECT year, COUNT(*) AS cnt
+    FROM properties
+    WHERE year != ${targetYear}
+    GROUP BY year
+    ORDER BY cnt DESC
+    LIMIT 1`;
+	return rows.length > 0 ? Number(rows[0].year) : null;
 }
 
 /**
@@ -90,10 +115,10 @@ export function createTermCollector(opts: TermCollectorOptions): TermCollector {
 }
 
 /**
- * Runs a mine-2026-terms query, adds each result's term to the collector,
+ * Runs a mine-year-terms query, adds each result's term to the collector,
  * and logs the source label plus how many terms it contributed. Shared by
- * enqueue-tail-terms and backfill-2025-unsearched, which each mine several
- * 2026-only-property sources per run.
+ * enqueue-tail-terms and backfill-unsearched, which each mine several
+ * year-gap sources per run.
  */
 export async function mineAndAdd(
 	collector: TermCollector,
