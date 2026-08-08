@@ -1,6 +1,6 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-08-08 (T13, T14 done — 0004 applied to production D1; all P1 frontend items M36–M42, plus M43 and L19 done; T3, T15, L20, C8, L21 remain open below)
+**Last Updated**: 2026-08-08 (T13, T14 done — 0004 applied to production D1; all P1 frontend items M36–M42, plus M43 and L19 done; T3, T15, T16, L20, C8, L21 remain open below)
 **Status**: 164 frontend + 85 scripts + 75 workers tests passing | TypeScript clean (root + workers) | Lint clean repo-wide — 0 errors, 0 warnings
 
 ---
@@ -26,6 +26,12 @@ Options: clamp the *reported* limit to what was actually served, cap the schema'
 #### T3: Retire or activate 2026 mining strategy for backfill scripts
 **Priority**: P3 | **Source**: scripts-review audit (2026-08-06)
 All four `backfill-2025-*.ts` scripts and Phase 3 of `enqueue-tail-terms.ts` query "2026-only" properties via `mine-2026-terms.ts`, but D1 contains only 2025 data. Strategy is inert until 2026 scrape season begins. Decision: retire the code path (remove Phase 3 + related queries) or document expected activation date. -- `scripts/lib/mine-2026-terms.ts`, `scripts/enqueue-tail-terms.ts:87-98`, `scripts/backfill-2025*.ts`
+
+#### T16: Visual regression tests are macOS-only; add linux and windows baselines
+**Priority**: P5 | **Source**: E2E triage (2026-08-08)
+`e2e/visual.spec.ts` now skips unless `process.platform === "darwin"`, because Playwright keys each snapshot by OS and only the 6 darwin baselines are committed (`home-page`/`search-results` x chromium/firefox/webkit). On CI's ubuntu runner all 6 failed with "A snapshot doesn't exist ...-linux.png, writing actual" — a missing baseline, not a real visual diff. This was masked until 2026-08-08: while the dev server failed to boot the whole suite failed for that earlier reason, so the snapshot gap never surfaced, and the "126/126 E2E passing" figure in CLAUDE.md cannot have held on Linux. Net effect of the skip is that visual regressions are now caught only when someone runs the suite on a Mac — CI no longer checks them at all.
+
+Fix: capture baselines on each OS (a CI job running `--update-snapshots` and uploading the PNGs as an artifact to commit) and drop the platform guard. Fonts and anti-aliasing differ enough between platforms that a darwin PNG cannot be reused, so each OS needs its own capture; the existing `maxDiffPixelRatio: 0.02` absorbs drift within a platform, not across them. Windows matters less than linux — CI runs ubuntu, so linux alone restores CI coverage. -- `e2e/visual.spec.ts`, `e2e/visual.spec.ts-snapshots/`
 
 ---
 
