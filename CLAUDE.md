@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: August 6, 2026 | **Version**: 6.2
+**Last Updated**: August 7, 2026 | **Version**: 6.3
 
 ## Project Overview
 
@@ -12,7 +12,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue/Jobs**: Cloudflare Queues + Workflows (replaced BullMQ + Redis); Cron Triggers (replaced `node-cron`)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (130 frontend + 55 scripts + 26 workers tests; 126/126 E2E via Playwright)
+- **Testing**: Vitest (130 frontend + 85 scripts + 26 workers tests; 126/126 E2E via Playwright)
 - **Scale**: 350K+ properties in D1 (2025 tax year; live count via `/health`)
 
 ```
@@ -50,7 +50,7 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `generate-next-200-terms.ts` - Generate next candidate terms for backfill, ranked by predicted yield (in-DB match frequency; drops near-zero matchers). `--enqueue` sends to Workers API
 - `queue-results.ts` - Recent scrape jobs + property count from the Workers API (`npx tsx scripts/queue-results.ts [--limit N]`)
 - `config/batch-configs.ts` - 19 batch type definitions
-- `lib/` - queue-utils (`enqueueBatch()` + `waitForQueueDrain()` via Workers API), d1-prisma (Prisma over D1 HTTP — production data access for scripts), backfill-runner, mine-2026-terms, fallback-terms, searched-terms, backfill-utils (incl. prefix dedup filters), error-helpers, logger
+- `lib/` - queue-utils (`enqueueBatch()` + `waitForQueueDrain()` via Workers API), d1-prisma (Prisma over D1 HTTP — production data access for scripts), backfill-runner, mine-2026-terms, searched-terms (incl. `unsuccessful` zero-yield set), backfill-utils (incl. prefix dedup filters), error-helpers, logger
 - See [scripts/README.md](scripts/README.md) for full reference
 - **Search Term Strategy**: See [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md) (canonical) for Tier 1-4 strategy, coverage metrics + operations, and [docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json) for per-term yield data
 
@@ -131,7 +131,7 @@ npx vitest run               # Frontend unit tests (130 tests, <5 sec; `npm test
 npm run test:coverage        # Frontend coverage report
 npm run test:e2e             # E2E tests (126 tests, all passing)
 cd workers/tcad-api && npm test        # Workers tests (26 tests)
-npx vitest run --dir scripts --config /dev/null  # Scripts tests (55 tests)
+npx vitest run --dir scripts --config /dev/null  # Scripts tests (85 tests)
 
 # Scraping (via Workers API)
 curl -X POST "https://api.alephatx.info/api/properties/scrape" \
@@ -154,6 +154,8 @@ TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 
 - **Bulk property writes use raw D1 `batch()`** of multi-row `INSERT … ON CONFLICT` statements (`utils/upsert-sql.ts`), micro-chunked to 6 rows × 15 cols under D1's 100-param limit; each row binds a client-generated UUID because `properties.id` has no SQL default. Do NOT revert to per-row Prisma upserts in `$transaction` — PrismaD1 runs them one query (= one D1 subrequest) each, so ~5,000-row terms blow the 10-min step timeout and the ~1,000-subrequest invocation budget, wedging jobs in `processing` (incident 2026-08-06). Raw SQL is date-safe here because all date columns store epoch-ms strings
 - **Bearer tokens** expire ~5 min; cron trigger auto-refreshes to KV
+- **`search_term_analytics.totalResults` is increment-on-save-only** — it counts *newly inserted* properties per successful search, not TCAD's total match count. A term can show `totalResults = 0` while TCAD returns thousands of matches, if every match was already in D1 under another search term (confirmed 2026-08-07 for Maria/Thomas/Paul/etc. — all had 4,000-6,000+ TCAD matches but 0 new saves). Safe to treat as a backfill-exclusion signal (`getSearchedTermSets()`'s `unsuccessful` set) — it reflects real saturation, not broken data
+- **TCAD returns malformed/truncated JSON for specific 4-char root prefixes**, regardless of the letter appended (`docs/truncated-response-terms.md`) — confirmed for `wayg/h/i/j` plus 9 more found 2026-08-07 (`chri`, `cong`, `cree`, `davi`, `lama`, `laur`, `mana`, `nguy`, `trus`). `backfill-2025.ts`'s dense/seed a-z expansions skip these via `scripts/lib/terms/TRUNCATION_BUG_ROOTS.ts` — check that set before debugging a new "Unexpected end of JSON input" cluster
 - **Scraping constraints**: Works with entity terms (Trust, LLC., Corp), single last names (4+ chars), street addresses, suburb/city names. Does NOT work with ZIP codes, short terms (<4 chars), compound names, or numeric-only terms
 - **Env vars**: `TCAD_YEAR` (wrangler.toml vars), `UPSERT_CHUNK_SIZE` (500)
 

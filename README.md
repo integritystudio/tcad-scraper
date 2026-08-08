@@ -152,7 +152,7 @@ No external database is needed — D1 is configured in `workers/tcad-api/wrangle
 
 ```bash
 npx vitest run                                    # Frontend unit tests (130)
-npx vitest run --dir scripts --config /dev/null   # Scripts tests (54)
+npx vitest run --dir scripts --config /dev/null   # Scripts tests (85)
 cd workers/tcad-api && npm test                   # Workers tests (26)
 npm run test:e2e                                  # Playwright E2E (126)
 ```

@@ -12,7 +12,10 @@ data in matched records).
 buffering or skipping until the TCAD API is fixed. Prefix expansion alone does NOT
 resolve the issue.
 
-**Last updated**: 2026-03-02
+**Last updated**: 2026-08-07 — added 9 roots found by `backfill-2025.ts`'s
+`getSeedExpansions()`/`getDenseExpansions()` a-z prefix expansion, reproducing
+the exact Wayg pattern (every letter of the root fails identically). Roots
+below are hard-skipped in those functions via `TRUNCATION_BUG_ROOTS`.
 
 | Term | Length | Status | Notes |
 |------|--------|--------|-------|
@@ -30,3 +33,12 @@ resolve the issue.
 | Wayh | 4 | untested | Likely same API bug as Wayg |
 | Wayi | 4 | untested | Likely same API bug as Wayg |
 | Wayj | 4 | untested | Likely same API bug as Wayg |
+| Chri | 4 | **tested** | 9/9 attempted five-letter expansions failed (2026-08-07) |
+| Cong | 4 | **tested** | 16/16 attempted five-letter expansions failed (2026-08-07) |
+| Cree | 4 | **tested** | 19/19 attempted five-letter expansions failed (2026-08-07) |
+| Davi | 4 | **tested** | 15/15 attempted five-letter expansions failed (2026-08-07) |
+| Lama | 4 | **tested** | 17/17 attempted five-letter expansions failed (2026-08-07) |
+| Laur | 4 | **tested** | 19/19 attempted five-letter expansions failed (2026-08-07) |
+| Mana | 4 | **tested** | 11/11 attempted five-letter expansions failed (2026-08-07) |
+| Nguy | 4 | **tested** | 22/22 attempted five-letter expansions failed (2026-08-07) |
+| Trus | 4 | **tested** | 19/19 attempted five-letter expansions failed (2026-08-07) |

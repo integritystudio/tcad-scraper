@@ -52,8 +52,8 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | File | Purpose |
 |------|---------|
 | `config/batch-configs.ts` | Named batch types (LLC, trust, corporation, etc.) with priority tiers. Includes `HIGH_RESULT_TERM_SPLITS` for high-volume terms. |
-| `config/backfill-2025-source-terms.ts` | 400 curated terms for remaining 2025 properties (deduped against batch-configs and FALLBACK_TERMS). |
-| `config/backfill-2025-static-terms.ts` | Canonical `BACKFILL_2025_STATIC_TERMS` list for `backfill-2025.ts`, deduped against `backfill-2025-source-terms.ts` and `FALLBACK_TERMS`. |
+| `config/backfill-2025-source-terms.ts` | 400 curated terms for remaining 2025 properties (deduped against batch-configs and `backfill-2025.ts` STATIC_TERMS). |
+| `config/backfill-2025-static-terms.ts` | Canonical `BACKFILL_2025_STATIC_TERMS` list for `backfill-2025.ts`, deduped against `backfill-2025-source-terms.ts` and `BATCH_CONFIGS`. |
 
 ## Shared (`lib/`)
 
@@ -62,20 +62,28 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `lib/queue-utils.ts` | `enqueueBatch()` — HTTP enqueue via the Workers API; `waitForQueueDrain()` — polls `/history` until the batch's jobs reach completed/failed (10m timeout). |
 | `lib/backfill-runner.ts` | Shared runner for the backfill scripts (enqueue → drain → count gained). |
 | `lib/mine-2026-terms.ts` | Shared term-mining queries over 2026-only properties (owner first-words, streets, descriptions, two-word names, entity phrases). |
-| `lib/fallback-terms.ts` | Curated fallback search term pool (`FALLBACK_TERMS`). |
-| `lib/searched-terms.ts` | Searched-term lookups (`getSearchedTermSets()`, `getBlacklistedTermSet()`). |
+| `lib/searched-terms.ts` | Searched-term lookups: `getSearchedTermSets()` (`allSearched`, `searched2025`, `successful`, `unsuccessful` sets) and `getBlacklistedTermSet()`. |
 | `lib/backfill-utils.ts` | Backfill helpers: `get2025Count()`, prefix dedup filters (`isSupersetOfAny()`, `buildPrefixIndex()`). |
 | `lib/d1-prisma.ts` | Prisma client for scripts, backed by production D1 over HTTP (epoch-ms date strings, SQLite dialect). |
 | `lib/error-helpers.ts` | `getErrorMessage()` for `unknown` errors. |
 | `lib/logger.ts` | Console shim for CLI scripts. |
 | `lib/cvcv.ts` | `generateCvcvBases()` — all 11,025 4-char consonant-vowel-consonant-vowel bases, used by `generate-next-200-terms.ts`'s Tier 5 (4-char gap fill). |
-| `lib/curated-names.ts` | Canonical curated name/geo/entity data (`FIRST_NAMES_FEMALE`, `FIRST_NAMES_MALE`, `LAST_NAMES`, `STREET_GEOGRAPHIC`, `BUSINESS_ENTITY`) — single source for `generate-next-200-terms.ts`'s candidate pools and the `utils/list-all-search-terms.ts` inventory. |
+
+## Term Data (`lib/terms/`)
+
+Pure data — no logic — kept separate from `lib/`'s shared logic modules above.
+
+| File | Purpose |
+|------|---------|
+| `lib/terms/FIRST_NAMES_FEMALE.ts`, `lib/terms/FIRST_NAMES_MALE.ts`, `lib/terms/LAST_NAMES.ts`, `lib/terms/STREET_GEOGRAPHIC.ts`, `lib/terms/BUSINESS_ENTITY.ts` | Canonical curated name/geo/entity data (one const list per file) — single source for `generate-next-200-terms.ts`'s candidate pools and the `utils/list-all-search-terms.ts` inventory. |
+| `lib/terms/BLOCKED_TERMS.ts` | Hard-skip terms that cause TCAD API timeouts or truncated responses; used by `generate-next-200-terms.ts`. |
+| `lib/terms/TRUNCATION_BUG_ROOTS.ts` | 4-char prefixes confirmed to trigger TCAD's server-side JSON truncation bug across every a-z expansion (see `docs/truncated-response-terms.md`); used by `backfill-2025.ts`'s `getDenseExpansions()`/`getSeedExpansions()`. |
 
 ## Utilities (`utils/`)
 
 | File | Purpose |
 |------|---------|
-| `list-all-search-terms.ts` | Deduplicated inventory of all non-numeric search terms across `batch-configs.ts`, `lib/curated-names.ts`, and `lib/fallback-terms.ts`; its `duplicated` bucket surfaces cross-source overlap. Importable (`getAllSearchTerms()`) or CLI. |
+| `list-all-search-terms.ts` | Deduplicated inventory of all non-numeric search terms across `batch-configs.ts` and the curated name/geo/entity lists in `lib/terms/`; its `duplicated` bucket surfaces cross-source overlap. Importable (`getAllSearchTerms()`) or CLI. |
 | `list-curated-terms.ts` | Deduplicated inventory of the manual-backfill term lists (`BACKFILL_2025_STATIC_TERMS` + the `CANDIDATE_*` lists in `generate-next-200-terms.ts`); its `duplicated` bucket must stay empty. Importable or CLI. |
 
 ## Repomix (`repomix/`)

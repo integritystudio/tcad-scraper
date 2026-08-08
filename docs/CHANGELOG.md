@@ -152,81 +152,70 @@ See [changelog/2026-02-26.md](changelog/2026-02-26.md) for full details.
 
 ### February 2, 2026 - Test Infrastructure & Technical Debt
 
-**Test Fixes**:
-- Fixed mock pollution in `tcad-scraper.test.ts` by switching from `vi.clearAllMocks()` to `vi.resetAllMocks()`
-- Enabled 5 previously-skipped tests (now 21/21 passing)
-- Updated test expectations to match actual implementation behavior
-- Migrated `analyze-failed-jobs.ts` from console.log to structured logger
+- **Test fixes**: Resolved mock pollution in `tcad-scraper.test.ts` (`vi.clearAllMocks()` → `vi.resetAllMocks()`); enabled 5 previously-skipped tests
+- **Test status**: 520 passing (up from 515), 40 skipped (down from 45)
+- **Technical debt**: Playwright mock pollution and test/implementation mismatches resolved
 
-**Test Status**:
-| Metric | Before | After |
-|--------|--------|-------|
-| Tests Passed | 515 | 520 |
-| Tests Skipped | 45 | 40 |
-| tcad-scraper.test.ts | 16 pass, 5 skip | 21 pass, 0 skip |
-
-**Technical Debt Resolved**:
-- [x] TCAD Scraper Playwright mock pollution - FIXED
-- [x] Test expectations mismatched with implementation - FIXED
+See [changelog/2026-02-02.md](changelog/2026-02-02.md) for full details.
 
 ---
 
 ### November 7, 2025 - Production Optimization
-- **Automated Token Refresh**: Implemented cron job (every 4 minutes) to prevent TCAD API token expiration
-- **PM2 Process Management**: Added `ecosystem.config.js` for managing continuous-enqueue and tcad-api processes
-- **High-Priority Enqueuing**: Created `enqueue-priority-terms.ts` script for adding priority searches to front of queue
-- **Performance Milestone**: Achieved ~3,000 properties/minute scraping rate (180K/hour)
-- **Database Growth**: Surpassed 105,000 properties with continuous batch scraping
-- **Token Management**: Configured automatic token refresh via `/home/aledlie/tcad-scraper/scripts/refresh-tcad-token.sh`
-- **Monitoring Improvements**: Enhanced database statistics and per-minute tracking
-- **Production Stability**: Fixed syntax errors in continuous-batch-scraper.ts
-- **Process Reliability**: PM2 auto-restart and memory limits (2GB for continuous-enqueue)
+
+- **Automated token refresh**: 4-minute cron job; PM2 process management for continuous-enqueue and tcad-api
+- **Performance milestone**: ~3,000 properties/minute (180K/hour); database surpassed 105,000 properties
+- **Stability**: Fixed continuous-batch-scraper.ts syntax errors; PM2 auto-restart with 2GB memory limits
+
+See [changelog/2025-11-07.md](changelog/2025-11-07.md) for full details.
+
+---
 
 ### November 6, 2025
-- Comprehensive codebase analysis using ast-grep structural code search
-- Created CODEBASE_ANALYSIS.md with detailed code quality metrics
-- Identified and documented 10.2 MB of unnecessary files for cleanup
-- Updated documentation structure to reflect actual files
-- Analysis findings: 1,444 console.log statements, 113 error handlers, 0 TODOs
+
+- Codebase analysis via ast-grep (1,444 console.log statements, 113 error handlers, 0 TODOs); documented 10.2 MB of cleanup candidates
 - Consolidated error handling and logging using pino and pino-pretty
 
+See [changelog/2025-11-06.md](changelog/2025-11-06.md) for full details.
+
+---
+
 ### November 5, 2025
-- Added AI-powered natural language search using Claude AI (Anthropic)
-- Implemented `POST /api/properties/search` endpoint for plain English queries
-- Added `GET /api/properties/search/test` endpoint to verify Claude API connection
-- Created comprehensive Claude search documentation (`docs/CLAUDE_SEARCH.md`)
-- Added test suite for Claude search service and endpoints
-- Fixed logger import and error handling in Claude service
-- Updated environment configuration for `ANTHROPIC_API_KEY`
+
+- Added AI-powered natural language search via Claude AI (Anthropic): `POST /api/properties/search` + connection-test endpoint
+- Added Claude search documentation, test suite, and `ANTHROPIC_API_KEY` config
+
+See [changelog/2025-11-05.md](changelog/2025-11-05.md) for full details.
+
+---
 
 ### November 3, 2025
-- Comprehensive README overhaul with current architecture
-- Added API endpoint documentation
-- Added monitoring and metrics section
-- Updated Docker services documentation
-- Added troubleshooting guide
+
+- README overhaul: current architecture, API endpoint docs, monitoring/metrics section, Docker services, troubleshooting guide
+
+See [changelog/2025-11-03.md](changelog/2025-11-03.md) for full details.
+
+---
 
 ### November 2, 2025
-- Implemented optimized search term generation with weighted strategies
-- Added 30 Austin neighborhoods, expanded to 150+ street names
-- Expanded name database to 200+ first names, 500+ last names
-- Added 34 property types for targeted searching
-- Successfully running on remote Linux environment
-- Database grew to 150,000+ properties
+
+- Optimized weighted search term generation: 30 Austin neighborhoods, 150+ street names, 200+ first names, 500+ last names, 34 property types
+- Database grew to 150,000+ properties on remote Linux environment
+
+See [changelog/2025-11-02.md](changelog/2025-11-02.md) for full details.
+
+---
 
 ### November 1, 2025
-- Implemented dual scraping methods (API + browser-based)
-- Fixed race condition in browser initialization (commit a8812a4)
-- Added batch scraping capabilities
-- Migrated to remote Linux environment
-- Configured Docker Compose for Redis, Prometheus, BullMQ metrics
-- Implemented Doppler for secrets management
-- Added Express API server with REST endpoints
-- Integrated Bull Dashboard for queue monitoring
+
+- Implemented dual scraping methods (API + browser-based); fixed browser-init race condition (`a8812a4`)
+- Migrated to remote Linux with Docker Compose (Redis, Prometheus, BullMQ metrics); added Doppler secrets, Express API, Bull Dashboard
+
+See [changelog/2025-11-01.md](changelog/2025-11-01.md) for full details.
+
+---
 
 ### October 2024
-- Initial project creation
-- Implemented Playwright-based scraper
-- Set up PostgreSQL with Prisma ORM
-- Created React frontend application
-- Established basic Docker infrastructure
+
+- Initial project creation: Playwright-based scraper, PostgreSQL/Prisma, React frontend, basic Docker infrastructure
+
+See [changelog/2024-10.md](changelog/2024-10.md) for full details.

@@ -21,6 +21,9 @@
 8. [Troubleshooting](#troubleshooting)
 9. [Privacy & Compliance](#privacy--compliance)
 10. [Best Practices](#best-practices)
+11. [Additional Resources](#additional-resources)
+12. [Attribution Components](#attribution-components)
+13. [Support & Questions](#support--questions)
 
 ---
 

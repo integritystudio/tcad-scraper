@@ -40,7 +40,7 @@ holdi, Sand, Maria, Carl, Rock, Daniel, Mary, Wood, marie, Vista, TEXAS, Ridge, 
 
 ## Running the Backfill
 
-Enqueue via the Workers API (`scripts/enqueue-terms.ts` was deleted with BullMQ):
+Enqueue via the Workers API (`scripts/enqueue-terms.ts` was removed in the August 2026 scripts refactor, alongside the broader BullMQ/Express cleanup):
 
 ```bash
 # Tier 1 (swap the term list for Tier 2)
@@ -77,7 +77,7 @@ cd workers/tcad-api && npx wrangler tail
 
 Checkpoints: after Tier 1 expect ~71K (proceed if ≥60K); after Tier 1+2 ~165K (≥150K); after Tier 1+2+3 ~336K (consider Tier 4 if ≥330K).
 
-Prune terms with <10 properties after 2+ searches or success rate <50%.
+**Automated pruning** (`getBlacklistedTermSet()` in `scripts/lib/searched-terms.ts`): hard-skip terms with a 0% success rate after 3+ searches (`BLACKLIST_MIN_SEARCHES`). There is no automated check on raw property count or on partial (e.g. <50%) success rates — the ≥80%/<50% row in the table above is a manual monitoring guideline, not an enforced threshold.
 
 ### Per-term yield with duplicates filtered out
 
