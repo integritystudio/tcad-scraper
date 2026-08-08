@@ -9,7 +9,26 @@ import { SearchBoxPage } from "./pages/SearchBoxPage";
  * To update snapshots after an intentional UI change:
  *   npx playwright test e2e/visual.spec.ts --update-snapshots
  */
+
+/**
+ * Playwright keys each snapshot by OS — `home-page-chromium-darwin.png` — and
+ * only darwin baselines are committed, so these tests are macOS-only. Running
+ * them on CI's ubuntu runner fails all 6 (2 tests x 3 browsers) with "A
+ * snapshot doesn't exist ...-linux.png" rather than a real visual diff.
+ *
+ * TODO: add linux and windows baselines so this runs everywhere. Generating
+ * them means capturing on each OS (a CI job with --update-snapshots, uploading
+ * the PNGs as an artifact to commit) — fonts and anti-aliasing differ enough
+ * per platform that a darwin baseline cannot simply be reused.
+ */
+const SNAPSHOT_PLATFORM = "darwin";
+
 test.describe("Visual regression", () => {
+	test.skip(
+		process.platform !== SNAPSHOT_PLATFORM,
+		`Snapshot baselines exist only for ${SNAPSHOT_PLATFORM}; see TODO above`,
+	);
+
 	test("home page matches snapshot", async ({ page }) => {
 		await page.goto("/");
 		// Wait for the page heading so the UI is stable before capturing
