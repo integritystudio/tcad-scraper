@@ -1,7 +1,7 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-08-08 (T13, T14 done — 0004 applied to production D1; all P1 frontend items M36–M42, plus M43 and L19 done; T3, T15, L20, C8, L21 remain open below)
-**Status**: 164 frontend + 85 scripts + 75 workers tests passing | TypeScript clean (root + workers) | Lint clean repo-wide — 0 errors, 0 warnings
+**Last Updated**: 2026-08-08 (T15, L20, C8, L21 done; T3 and newly-filed C9 remain open below)
+**Status**: 166 frontend + 85 scripts + 77 workers tests passing | TypeScript clean (root + workers) | Lint clean repo-wide — 0 errors, 0 warnings
 
 ---
 ## Open Items
@@ -15,13 +15,10 @@
 **Applied to production D1 2026-08-08** (7.1s, `wrangler d1 execute --remote --file`). Verified: virtual table carries all 7 columns, all three sync triggers replaced, and the `rebuild` indexed **484,251** rows (matches `/health` propertyCount). New columns are individually searchable — `dba:"hydrochem"` 1 hit, `name_secondary:"trust"` 1,489, `owner_name:"llc"` 13,719.
 **No deploy-ordering requirement** — an earlier review claim that a bm25 weight/column-count mismatch errors is **wrong**: 4-weight and 7-weight `bm25()` calls both succeed against the 7-column table (FTS5 defaults unspecified weights rather than erroring). So the pre-0004 deployed code kept working after the migration, and because `MATCH` searches all columns, T14's coverage win went live *without* a deploy. What the pending deploy adds is ranking only: the three new columns currently sit at the implicit default weight instead of 9.0.
 
-#### T15: Explicit `limit` above 98 still leaves FTS ranks unreachable
-**Priority**: P2 | **Source**: review of T13 (2026-08-08)
-`6d71194` fixed the *default* page size, but `propertyFilterSchema.limit` still allows an explicit value up to 1000 while the keyword fallback clamps its SQL page to `FTS_MAX_PAGE_SIZE` (98) and the response echoes the unclamped `limit`. So a caller passing `limit=1000` receives 98 rows, is told `limit: 1000`, and paging on that reported value jumps to `offset=1000` — ranks 98-999 are never served. Only the FTS fallback path is affected; the AI path pages in Prisma and is fine. The two halves of the mismatch are `property.ts:156` (`const ftsLimit = Math.min(limit, FTS_MAX_PAGE_SIZE)`, capping the rows actually fetched) and `property.ts:258` (`limit: Math.min(limit, 1000)`, echoing the requested value).
+#### ~~T15: Explicit `limit` above 98 still leaves FTS ranks unreachable~~ [Done]
+`runNaturalLanguageSearch` now derives one `effectiveLimit` after the fallback has run and reports *that* as `pagination.limit`, so a client paging on the reported value steps by what it received. The clamp is conditional on `ftsPrecomputedTotal !== undefined`: only the FTS page is capped at `FTS_MAX_PAGE_SIZE`: the AI path and the contains-filter degradation both page in Prisma and still honour the full request, so clamping their reported limit would have under-reported rows that were actually served. The same value now feeds `findMany`'s `take`, which previously carried its own hardcoded `1000`.
 
-Reaching it requires the degraded path — `searchKeywordFallback` runs only when AI parsing fails with both Anthropic and xAI unreachable — *and* a non-default limit. The frontend never trips it: `usePropertySearch` requests `limit = 50`. That combination is why this is P2 rather than P1, despite being silent row loss.
-
-Options: clamp the *reported* limit to what was actually served, cap the schema's `.max()` at `FTS_MAX_PAGE_SIZE` for the search routes, or loop FTS pages server-side to fill a larger request. Reporting the effective limit is the smallest correct change, and `ftsPrecomputedTotal !== undefined` (`property.ts:132`) already signals that the fallback ran. Note `MAX_QUERY_LIMIT = 1000` already exists in the root `utils/constants.ts:56` but `property.types.ts:28` hardcodes `.max(1000)`, and `property.ts:258` hardcodes it a second time — a magic number duplicated where a constant exists (project rule: no magic numbers). Workers' own `src/utils/constants.ts` defines neither, and importing the root file from workers is already established practice (`scraper.workflow.ts:33` does exactly that), so this is a straightforward import rather than a cross-boundary problem. -- `workers/tcad-api/src/types/property.types.ts:28`, `workers/tcad-api/src/controllers/property.ts:156,258`
+Both hardcoded `1000`s are gone: `property.types.ts` imports `MAX_QUERY_LIMIT` from the root `utils/constants.ts` for all three schemas' `.max()`, matching the existing cross-boundary import in `scraper.workflow.ts:33`. Two regression tests in `search-keyword-fallback.test.ts` pin the split — FTS reports `FTS_MAX_PAGE_SIZE` for a `limit=1000` request, contains-filters report `MAX_QUERY_LIMIT` and take that many.
 
 #### T3: Retire or activate 2026 mining strategy for backfill scripts
 **Priority**: P3 | **Source**: scripts-review audit (2026-08-06)
@@ -62,16 +59,20 @@ The AttributionCard conflicts this resolves: `background`, `border-radius`, `box
 
 The remaining sub-claim — that a single-value `lastSearchedRef` should be a multi-value "already searched" set — was **investigated and rejected as invalid**. `useDebounce` only emits *settled* values, so a typo corrected inside the debounce window never dispatches B at all and the correction back to A is already suppressed by the ref. When B *does* settle, B's results are what's on screen, so returning to A **must** re-search or the UI would show Elm Street results under the query "Oak Street". A set of seen queries would introduce exactly that bug. Both cases are now pinned by tests in `SearchBox.test.tsx` ("does not re-search when a typo is corrected within the debounce window" / "re-searches A after B settled, so results match the visible query").
 
-#### L20: Duplicate Date.now()/getTime() calculation in formatRelativeTime and daysSince
-**Priority**: P3 | **Source**: code-review (2026-08-07)
-In `TimestampList.tsx:14`, formatRelativeTime computes diffMs directly and also separately calls the daysSince() helper, which redoes the same Date.now()/getTime() calculation internally — duplicate work that the sibling FreshnessIndicator.tsx avoided by fully switching to the helper. -- `src/components/features/PropertySearch/PropertyDetails/components/TimestampList.tsx:14`
+#### ~~L20: Duplicate Date.now()/getTime() calculation in formatRelativeTime and daysSince~~ [Done]
+`formatters.ts` gains `elapsedMs()`, which `daysSince()` now uses and `formatRelativeTime` calls once, deriving days/hours/minutes from that single value. Also removes a second-order bug the finding did not name: the two `Date.now()` calls could straddle a tick, so `diffDays` and `diffHours` were read off different "now"s. `MS_PER_MINUTE`/`MS_PER_HOUR`/`MS_PER_DAY` are exported from the same module, replacing `TimestampList`'s inline `1000 * 60 * 60` arithmetic (no magic numbers).
 
-#### C8: Inline styles in ValueComparison violate project no-inline-styling rule
-**Priority**: P3 | **Source**: code-review (2026-08-07)
-In `ValueComparison.tsx:96` and `:85`, inline style={{ width: `${assessedPercentage}%` }} and style={{ width: "100%" }} were carried forward/re-touched rather than moved off inline style, violating the project's CLAUDE.md rule "no in-line styling for UI components." -- `src/components/features/PropertySearch/PropertyDetails/components/ValueComparison.tsx:85,96`
+#### ~~C8: Inline styles in ValueComparison violate project no-inline-styling rule~~ [Done]
+Both widths moved into `ValueComparison.module.css` as `.barFillFull` (the appraised reference bar, now carrying no `style` attribute at all) and `.barFillPartial` (`width: var(--bar-fill-percent, 0%)`). The three bar classes deliberately declare disjoint properties, so none has to out-cascade another — the M43 failure mode. The residual is that the percentage still crosses through the `style` attribute, as `--bar-fill-percent`: that is a datum, not a style declaration, and it is the conventional CSS-Modules answer for a data-driven dimension. Two tests in `ValueComparison.test.tsx` assert the custom property is set and `style.width` is not. **Not in scope, still open**: `AnswerBox.tsx:11-12` has the same violation (`style={{ width: "80%", height: "24px" }}` on skeletons) — filed as C9.
 
-#### L21: `composes` is accepted in plain stylesheets, where it is a silent no-op
-**Priority**: P3 | **Source**: introduced by 9aa75f3 (2026-08-08)
+#### C9: Inline skeleton dimensions in AnswerBox violate no-inline-styling rule
+**Priority**: P3 | **Source**: found while fixing C8 (2026-08-08)
+`AnswerBox.tsx:11-12` renders two loading skeletons with `style={{ width: "80%", height: "24px" }}` / `{ width: "60%", height: "24px" }`. Unlike C8's bars these are fully static, so they need no custom property — two modifier classes in the existing module file cover it. -- `src/components/features/PropertySearch/AnswerBox.tsx:11,12`
+
+#### ~~L21: `composes` is accepted in plain stylesheets, where it is a silent no-op~~ [Done]
+Applied the fix recorded below — the top-level `css.parser` block is gone and the setting now lives in an `overrides` entry scoped to `**/*.module.css`. Re-verified after the move: the four `sections/*.module.css` files still parse (`biome check` over that directory — 9 files, 0 errors), and a probe `.css` containing `composes` errors again with "`composes` declaration is not a standard CSS feature". No rationale comment in `biome.json` — Biome rejects unknown keys, including `comment`, and the file is `.json` not `.jsonc`.
+
+**Original finding:**
 `biome.json` sets `css.parser.cssModules: true` so the four `PropertyDetails/sections/*.module.css` files using `composes: base from "./SectionBase.module.css"` parse — before that they were unlintable and unformattable, and each produced two errors. The option is **global**, so `composes` is now also accepted in non-module stylesheets (`src/index.css`, `App.css`), where CSS Modules never processes it and the declaration does nothing at runtime. Biome will not flag that case. Purely permissive — it cannot reject anything that previously passed — but it is a real gap in lint coverage rather than a clean win.
 
 **Fix is verified working** (tested 2026-08-08, not just read off the schema): move the setting out of the top-level `css` block into an `overrides` entry scoped to module files. Biome's `OverridePattern` supports `css.parser`, and with this in place the four `sections/*.module.css` files still parse (9 files, 0 errors) while a plain `.css` containing `composes` correctly errors again.
