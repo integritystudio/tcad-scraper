@@ -163,7 +163,7 @@ export const BATCH_CONFIGS: Record<string, BatchEnqueueConfig> = {
 	},
 
 	"priority-terms": {
-		terms: ["Lake", "River", "Pecan", "Maple", "Oak", "Mount", "Limited"],
+		terms: ["Lake", "Oak", "Limited"],
 	},
 
 	"ultra-high-priority": {
@@ -174,10 +174,8 @@ export const BATCH_CONFIGS: Record<string, BatchEnqueueConfig> = {
 			"Road",
 			"Amy",
 			"Cynthia",
-			"Brook",
 			"Meadow",
 			"Valley",
-			"Point",
 		],
 	},
 
