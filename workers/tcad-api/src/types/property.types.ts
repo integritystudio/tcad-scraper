@@ -35,6 +35,14 @@ export const naturalLanguageSearchSchema = z.object({
 	offset: z.number().min(0).optional(),
 });
 
+// GET-variant of naturalLanguageSearchSchema: query-string params arrive as
+// strings, so the numeric bounds coerce.
+export const naturalLanguageSearchQuerySchema = z.object({
+	query: z.string().min(1).max(500),
+	limit: z.coerce.number().min(1).max(1000).optional(),
+	offset: z.coerce.number().min(0).optional(),
+});
+
 export const historyQuerySchema = z.object({
 	limit: z.coerce.number().min(1).max(100).default(20),
 	offset: z.coerce.number().min(0).default(0),

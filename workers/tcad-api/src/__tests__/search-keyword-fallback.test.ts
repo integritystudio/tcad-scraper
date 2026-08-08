@@ -78,6 +78,24 @@ describe("POST /api/properties/search — keyword fallback", () => {
 		});
 	});
 
+	it("serves the GET /search variant with identical fallback semantics", async () => {
+		mockQueryRaw.mockResolvedValue([{ id: "prop-1" }]);
+
+		const res = await app.request(
+			"/api/properties/search?query=Oak%20Street",
+			{ method: "GET" },
+			TEST_ENV,
+		);
+
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as { query: { explanation: string } };
+		expect(body.query.explanation).toContain('Keyword search for "Oak Street"');
+		expect(capturedWhere).toMatchObject({
+			year: 2025,
+			id: { in: ["prop-1"] },
+		});
+	});
+
 	it("degrades to contains filters when the FTS table is unavailable", async () => {
 		mockQueryRaw.mockRejectedValue(new Error("no such table: properties_fts"));
 

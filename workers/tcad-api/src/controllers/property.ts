@@ -6,6 +6,7 @@
 import type { Prisma } from "@prisma/client";
 import type { Context } from "hono";
 import { Hono } from "hono";
+import { cache } from "hono/cache";
 import { DEFAULT_QUERY_LIMIT } from "../../../../utils/constants";
 import { notFound, unavailable } from "../../../../utils/http-errors";
 import { TIME_MS } from "../../../../utils/units";
@@ -19,10 +20,12 @@ import type {
 import {
 	historyQuerySchema,
 	monitorRequestSchema,
+	naturalLanguageSearchQuerySchema,
 	naturalLanguageSearchSchema,
 	propertyFilterSchema,
 	scrapeRequestSchema,
 } from "../types/property.types";
+import { RESPONSE_CACHE_TTL_SECONDS } from "../utils/constants";
 import { getErrorMessage } from "../utils/error-helpers";
 import { epochToISO, nowEpoch } from "../utils/epoch-dates";
 import { transformPropertyToSnakeCase } from "../utils/property-transformers";
@@ -256,6 +259,22 @@ app.post("/search", validateBody(naturalLanguageSearchSchema), async (c) => {
 	const params = c.get("validatedBody") as NaturalLanguageSearchParams;
 	return runNaturalLanguageSearch(c, params);
 });
+
+// GET /search — same semantics, but cacheable: hono/cache stores responses
+// in the Cache API keyed on the full URL, so repeat queries within the TTL
+// are served from the edge without hitting the AI providers or D1 at all.
+app.get(
+	"/search",
+	cache({
+		cacheName: "tcad-search",
+		cacheControl: `max-age=${RESPONSE_CACHE_TTL_SECONDS}`,
+	}),
+	validateQuery(naturalLanguageSearchQuerySchema),
+	async (c) => {
+		const params = c.get("validatedQuery") as NaturalLanguageSearchParams;
+		return runNaturalLanguageSearch(c, params);
+	},
+);
 
 // GET /search/test — test Claude AI connection
 app.get("/search/test", async (c) => {
