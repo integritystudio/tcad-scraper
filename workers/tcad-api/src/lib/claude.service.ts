@@ -224,10 +224,17 @@ const FALLBACK_STATUSES: readonly number[] = [
 	HttpStatus.TOO_MANY_REQUESTS,
 ];
 
+// Anthropic reports an exhausted credit balance as HTTP 400
+// invalid_request_error ("Your credit balance is too low..."), not 402.
+const CREDIT_BALANCE_ERROR = /credit balance/i;
+
 function shouldFallbackToOpenAI(error: unknown): boolean {
 	if (!(error instanceof Error)) return false;
 	// Fallback on 401 (unauthorized/no balance), 429 (rate limit), 402 (payment required)
 	const status = (error as Error & { status?: number }).status;
+	if (status === HttpStatus.BAD_REQUEST) {
+		return CREDIT_BALANCE_ERROR.test(error.message);
+	}
 	if (status !== undefined) return FALLBACK_STATUSES.includes(status);
 	return /error (401|402|429)/.test(error.message.toLowerCase());
 }
