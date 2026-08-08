@@ -13,13 +13,11 @@ import type { PrismaClient } from "@prisma/client";
 import { D1_MAX_BOUND_PARAMS } from "../utils/constants";
 import type { SearchFilters } from "./claude.service";
 
-// Every FTS id becomes one bound parameter in the caller's Prisma
-// `id IN (...)` clause (D1 hard-caps queries at 100 params — incident
-// 2026-08-08: LIMIT 1000 here 503'd every fallback search with
-// "D1_ERROR: too many SQL variables"). Headroom covers the year filter
-// plus Prisma's own take/skip bindings around the id list.
-const FTS_ID_PARAM_HEADROOM = 10;
-const FTS_MAX_RESULTS = D1_MAX_BOUND_PARAMS - FTS_ID_PARAM_HEADROOM;
+// FTS page ids are folded into the data-fetch's `id IN (...)` clause plus a
+// `year = ?` binding — D1 hard-caps queries at 100 bound params (incident
+// 2026-08-08). Reserve 2 slots for year + safety, leaving 98 for ids.
+const FTS_PAGE_ID_HEADROOM = 2;
+export const FTS_MAX_PAGE_SIZE = D1_MAX_BOUND_PARAMS - FTS_PAGE_ID_HEADROOM; // 98
 
 /**
  * Natural-language filler that carries no selectivity over this index. These
@@ -142,6 +140,11 @@ function hasBounds(bounds: ValueBounds): boolean {
 	return bounds.min !== null || bounds.max !== null;
 }
 
+interface FtsPage {
+	ids: string[];
+	total: number;
+}
+
 function boundsWhereClause(bounds: ValueBounds) {
 	return {
 		appraisedValue: {
@@ -207,51 +210,78 @@ export function buildKeywordSearchFilters(query: string): SearchFilters {
 }
 
 /**
- * Run one MATCH expression and return the ranked property ids.
+ * Run one MATCH expression and return a ranked page of ids plus the true
+ * total match count. Pagination happens in SQL (LIMIT/OFFSET) so the caller
+ * does not need to fold a large id list into `id IN (...)` — avoiding D1's
+ * 100-param bound limit (incident 2026-08-08). Both queries run in parallel.
  *
- * Bounds are applied here rather than in the returned where clause so they
- * narrow the set *before* LIMIT — filtering the top-ranked ids afterwards
+ * Bounds are applied inside SQL rather than in the returned where clause so
+ * they narrow the set *before* LIMIT — filtering top-ranked ids afterwards
  * would discard qualifying rows ranked below the cutoff. Both bounds are
- * always bound (null = no-op) to keep this a single static statement with no
+ * always bound (null = no-op) to keep the statements static with no
  * interpolated SQL.
+ *
+ * bm25()'s first argument must be the FTS table *name*, not the `f` alias —
+ * D1 rejects `bm25(f, ...)` with "no such column: f".
  */
-async function ftsMatchIds(
+async function ftsQueryPage(
 	prisma: PrismaClient,
 	match: string,
 	year: number,
 	bounds: ValueBounds,
-): Promise<string[]> {
-	// bm25()'s first argument must be the FTS table *name*, not the `f` alias —
-	// D1 rejects `bm25(f, ...)` with "no such column: f".
-	const rows = await prisma.$queryRaw<Array<{ id: string }>>`
-		SELECT p.id
-		FROM properties_fts f
-		JOIN properties p ON p.rowid = f.rowid
-		WHERE properties_fts MATCH ${match} AND p.year = ${year}
-		  AND (${bounds.min} IS NULL OR p.appraised_value > ${bounds.min})
-		  AND (${bounds.max} IS NULL OR p.appraised_value < ${bounds.max})
-		ORDER BY bm25(
-			properties_fts,
-			${FTS_BM25_WEIGHTS.name},
-			${FTS_BM25_WEIGHTS.propertyAddress},
-			${FTS_BM25_WEIGHTS.city},
-			${FTS_BM25_WEIGHTS.description}
-		)
-		LIMIT ${FTS_MAX_RESULTS}
-	`;
-	return rows.map((r) => r.id);
+	limit: number,
+	offset: number,
+): Promise<FtsPage> {
+	const [pageRows, countRows] = await Promise.all([
+		prisma.$queryRaw<Array<{ id: string }>>`
+			SELECT p.id
+			FROM properties_fts f
+			JOIN properties p ON p.rowid = f.rowid
+			WHERE properties_fts MATCH ${match} AND p.year = ${year}
+			  AND (${bounds.min} IS NULL OR p.appraised_value > ${bounds.min})
+			  AND (${bounds.max} IS NULL OR p.appraised_value < ${bounds.max})
+			ORDER BY bm25(
+				properties_fts,
+				${FTS_BM25_WEIGHTS.name},
+				${FTS_BM25_WEIGHTS.propertyAddress},
+				${FTS_BM25_WEIGHTS.city},
+				${FTS_BM25_WEIGHTS.description}
+			)
+			LIMIT ${limit} OFFSET ${offset}
+		`,
+		prisma.$queryRaw<Array<{ total: number }>>`
+			SELECT COUNT(*) AS total
+			FROM properties_fts f
+			JOIN properties p ON p.rowid = f.rowid
+			WHERE properties_fts MATCH ${match} AND p.year = ${year}
+			  AND (${bounds.min} IS NULL OR p.appraised_value > ${bounds.min})
+			  AND (${bounds.max} IS NULL OR p.appraised_value < ${bounds.max})
+		`,
+	]);
+	return {
+		ids: pageRows.map((r) => r.id),
+		// COUNT(*) may return a BigInt from some D1 bindings.
+		total: Number(countRows[0]?.total ?? 0),
+	};
 }
 
 /**
- * Resolve a keyword fallback to concrete SearchFilters. FTS5 result ids are
- * folded into an `id IN (...)` clause so the caller's existing pagination,
- * count, and transform pipeline applies unchanged.
+ * Resolve a keyword fallback to concrete SearchFilters. Pagination and the
+ * true total count are computed inside SQL (LIMIT/OFFSET + COUNT(*)), so
+ * neither the result ceiling nor the reported total is capped by D1's
+ * 100-param bound limit (T13, 2026-08-08).
+ *
+ * When `precomputedTotal` is present in the returned object the caller should:
+ *  - use that value as `total` instead of running `prisma.property.count`
+ *  - NOT apply `skip`/`take` to the `findMany` — the page is already correct
  */
 export async function searchKeywordFallback(
 	prisma: PrismaClient,
 	query: string,
 	year: number,
-): Promise<SearchFilters> {
+	limit = FTS_MAX_PAGE_SIZE,
+	offset = 0,
+): Promise<SearchFilters & { precomputedTotal?: number }> {
 	const bounds = extractValueBounds(query);
 	const searchText = stripValuePhrases(query);
 
@@ -270,21 +300,23 @@ export async function searchKeywordFallback(
 	}
 	const boundsSuffix = hasBounds(bounds) ? `, ${describeBounds(bounds)}` : "";
 	try {
-		let ids = await ftsMatchIds(prisma, requireAll, year, bounds);
+		let page = await ftsQueryPage(prisma, requireAll, year, bounds, limit, offset);
 		let relaxed = false;
 
 		// Requiring every token is far more selective — measured on production
 		// D1, "oak street" matches 14 rows as AND against 12,153 as OR, so an
-		// OR-only set fills its 90 slots with rows that hit just one token. But
+		// OR-only set fills its page with rows that hit just one token. But
 		// plausible queries ("zilker park trust") match nothing as AND, so relax
 		// to OR rather than returning empty. Only worth a second query when
 		// there is more than one token to relax.
-		if (ids.length === 0 && matchTokens(searchText).length > 1) {
-			ids = await ftsMatchIds(
+		if (page.total === 0 && matchTokens(searchText).length > 1) {
+			page = await ftsQueryPage(
 				prisma,
 				buildFtsMatchQuery(searchText, "OR"),
 				year,
 				bounds,
+				limit,
+				offset,
 			);
 			relaxed = true;
 		}
@@ -293,8 +325,9 @@ export async function searchKeywordFallback(
 			? "matching any term, as no property matched all of them"
 			: "matching all terms";
 		return {
-			whereClause: { id: { in: ids } },
-			explanation: `Keyword search for "${query.trim()}" across owner name, address, city, and description${boundsSuffix} — ${matchNote} (AI search unavailable; top ${FTS_MAX_RESULTS} matches by relevance)`,
+			whereClause: { id: { in: page.ids } },
+			explanation: `Keyword search for "${query.trim()}" across owner name, address, city, and description${boundsSuffix} — ${matchNote} (AI search unavailable)`,
+			precomputedTotal: page.total,
 		};
 	} catch (err) {
 		// FTS table absent or MATCH rejected — degrade once more to LIKE.

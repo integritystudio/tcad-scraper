@@ -61,7 +61,16 @@ describe("POST /api/properties/search — keyword fallback", () => {
 	});
 
 	it("serves FTS5 keyword results instead of 503", async () => {
-		mockQueryRaw.mockResolvedValue([{ id: "prop-1" }, { id: "prop-2" }]);
+		// T13: FTS now runs two queries per ftsQueryPage call (page + COUNT) so
+		// the mock must route by SQL shape rather than returning the same value.
+		mockQueryRaw.mockImplementation(
+			(...args: unknown[]) => {
+				const sql = Array.from(args[0] as TemplateStringsArray).join("?");
+				return Promise.resolve(
+					sql.includes("COUNT(*)") ? [{ total: 2 }] : [{ id: "prop-1" }, { id: "prop-2" }],
+				);
+			},
+		);
 
 		const res = await searchRequest();
 
@@ -71,7 +80,8 @@ describe("POST /api/properties/search — keyword fallback", () => {
 		};
 		expect(body.query.explanation).toContain('Keyword search for "Oak Street"');
 		expect(body.query.answer).toBeUndefined();
-		expect(mockQueryRaw).toHaveBeenCalledTimes(1);
+		// One AND ftsQueryPage call = 2 $queryRaw calls (page + count)
+		expect(mockQueryRaw).toHaveBeenCalledTimes(2);
 		expect(capturedWhere).toMatchObject({
 			year: 2025,
 			id: { in: ["prop-1", "prop-2"] },
@@ -79,7 +89,12 @@ describe("POST /api/properties/search — keyword fallback", () => {
 	});
 
 	it("serves the GET /search variant with identical fallback semantics", async () => {
-		mockQueryRaw.mockResolvedValue([{ id: "prop-1" }]);
+		mockQueryRaw.mockImplementation((...args: unknown[]) => {
+			const sql = Array.from(args[0] as TemplateStringsArray).join("?");
+			return Promise.resolve(
+				sql.includes("COUNT(*)") ? [{ total: 1 }] : [{ id: "prop-1" }],
+			);
+		});
 
 		const res = await app.request(
 			"/api/properties/search?query=Oak%20Street",

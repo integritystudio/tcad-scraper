@@ -1,13 +1,14 @@
 import type { PrismaClient } from "@prisma/client";
 import { describe, expect, it } from "vitest";
-import { D1_MAX_BOUND_PARAMS } from "../../utils/constants";
 import {
+	FTS_MAX_PAGE_SIZE,
 	buildFtsMatchQuery,
 	buildKeywordSearchFilters,
 	extractValueBounds,
 	searchKeywordFallback,
 	stripValuePhrases,
 } from "../keyword-search";
+
 
 describe("buildFtsMatchQuery", () => {
 	it("quotes and OR-joins plain words", () => {
@@ -109,38 +110,57 @@ describe("stripValuePhrases", () => {
 });
 
 describe("searchKeywordFallback", () => {
-	it("caps the FTS LIMIT inside D1's bound-parameter budget", async () => {
-		// Incident 2026-08-08: a 1000-row LIMIT overflowed D1's 100-param cap
-		// when the ids were folded into Prisma's `id IN (...)` clause.
-		let boundValues: unknown[] = [];
+	it("paginates in SQL so totalResults is not capped at the D1 param limit", async () => {
+		// T13 (2026-08-08): previously ids were folded into `id IN (...)` with a
+		// hard cap of 90 (D1_MAX_BOUND_PARAMS - headroom). The fix runs
+		// LIMIT/OFFSET + COUNT(*) inside SQL so any page size is supported.
+		let pageValues: unknown[] = [];
 		const prisma = {
-			$queryRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
-				boundValues = values;
-				return Promise.resolve([{ id: "p1" }]);
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				const isCount = sql.includes("COUNT(*)");
+				if (!isCount) pageValues = values;
+				return Promise.resolve(isCount ? [{ total: 42 }] : [{ id: "p1" }]);
 			},
 		} as unknown as PrismaClient;
 
-		const filters = await searchKeywordFallback(prisma, "Oak Street", 2025);
+		const result = await searchKeywordFallback(prisma, "Oak Street", 2025, 50, 100);
 
-		const limit = boundValues[boundValues.length - 1] as number;
-		expect(limit).toBeLessThan(D1_MAX_BOUND_PARAMS);
-		expect(filters.whereClause).toEqual({ id: { in: ["p1"] } });
+		const pageLimit = pageValues[pageValues.length - 2] as number;
+		const pageOffset = pageValues[pageValues.length - 1] as number;
+
+		expect(pageLimit).toBe(50);
+		expect(pageOffset).toBe(100);
+		expect(result.precomputedTotal).toBe(42);
+		expect(result.whereClause).toEqual({ id: { in: ["p1"] } });
+	});
+
+	it("FTS_MAX_PAGE_SIZE fits within D1's 100-param budget when year is bound", () => {
+		// The data-fetch does WHERE id IN (pageIds) AND year = ? — ids + 1 for year
+		// must be <= 100.
+		expect(FTS_MAX_PAGE_SIZE + 1).toBeLessThanOrEqual(100);
 	});
 
 	it("binds both value bounds as null when the query has no comparison", async () => {
-		let boundValues: unknown[] = [];
+		let pageValues: unknown[] = [];
+		let countValues: unknown[] = [];
 		const prisma = {
-			$queryRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
-				boundValues = values;
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				if (sql.includes("COUNT(*)")) {
+					countValues = values;
+					return Promise.resolve([{ total: 1 }]);
+				}
+				pageValues = values;
 				return Promise.resolve([{ id: "p1" }]);
 			},
 		} as unknown as PrismaClient;
 
 		await searchKeywordFallback(prisma, "Oak Street", 2025);
 
-		// match, year, min, min, max, max, then the four bm25 column weights in
-		// FTS declaration order, then LIMIT. Nulls make the bound checks no-ops.
-		expect(boundValues).toEqual([
+		// page query: match, year, min-null, min-null, max-null, max-null,
+		//   bm25 weights (name, propertyAddress, city, description), limit, offset
+		expect(pageValues).toEqual([
 			'"oak" AND "street"',
 			2025,
 			null,
@@ -151,7 +171,17 @@ describe("searchKeywordFallback", () => {
 			8.0,
 			4.0,
 			1.0,
-			90,
+			FTS_MAX_PAGE_SIZE,
+			0,
+		]);
+		// count query has the same WHERE bindings but no ORDER BY / LIMIT / OFFSET
+		expect(countValues).toEqual([
+			'"oak" AND "street"',
+			2025,
+			null,
+			null,
+			null,
+			null,
 		]);
 	});
 
@@ -159,40 +189,48 @@ describe("searchKeywordFallback", () => {
 		// Unweighted, "condominium" filled 18 of the top 20 with description-only
 		// plat text. The weights must stay in FTS column-declaration order:
 		// name, property_address, city, description.
-		let boundValues: unknown[] = [];
+		let pageValues: unknown[] = [];
 		const prisma = {
-			$queryRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
-				boundValues = values;
-				return Promise.resolve([{ id: "p1" }]);
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				if (!sql.includes("COUNT(*)")) pageValues = values;
+				return Promise.resolve(
+					sql.includes("COUNT(*)") ? [{ total: 1 }] : [{ id: "p1" }],
+				);
 			},
 		} as unknown as PrismaClient;
 
 		await searchKeywordFallback(prisma, "condominium", 2025);
 
-		const weights = boundValues.slice(-5, -1);
-		expect(weights).toEqual([10.0, 8.0, 4.0, 1.0]);
+		// Weights are positioned after the 6 WHERE bindings; limit+offset are the last 2.
+		const weights = pageValues.slice(6, -2);
+		expect(weights[0]).toBe(10.0); // name
+		expect(weights[3]).toBe(1.0); // description
 		expect(weights[0]).toBeGreaterThan(weights[3] as number);
 	});
 
 	it("pushes the parsed bound into the FTS query so it narrows before LIMIT", async () => {
-		let boundValues: unknown[] = [];
+		let pageValues: unknown[] = [];
 		const prisma = {
-			$queryRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
-				boundValues = values;
-				return Promise.resolve([{ id: "p1" }]);
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				if (!sql.includes("COUNT(*)")) pageValues = values;
+				return Promise.resolve(
+					sql.includes("COUNT(*)") ? [{ total: 1 }] : [{ id: "p1" }],
+				);
 			},
 		} as unknown as PrismaClient;
 
-		const filters = await searchKeywordFallback(
+		const result = await searchKeywordFallback(
 			prisma,
 			"properties in Austin worth over 500k",
 			2025,
 		);
 
 		// Stopwords and the comparison phrase are gone; only "austin" matches.
-		expect(boundValues[0]).toBe('"austin"');
-		expect(boundValues).toContain(500_000);
-		expect(filters.explanation).toContain("appraised over $500,000");
+		expect(pageValues[0]).toBe('"austin"');
+		expect(pageValues).toContain(500_000);
+		expect(result.explanation).toContain("appraised over $500,000");
 	});
 
 	it("filters on value alone when the query has a bound but no search term", async () => {
@@ -202,78 +240,91 @@ describe("searchKeywordFallback", () => {
 			},
 		} as unknown as PrismaClient;
 
-		const filters = await searchKeywordFallback(
+		const result = await searchKeywordFallback(
 			prisma,
 			"all properties over 500k",
 			2025,
 		);
 
-		expect(filters.whereClause).toEqual({ appraisedValue: { gt: 500_000 } });
+		expect(result.whereClause).toEqual({ appraisedValue: { gt: 500_000 } });
 	});
 
 	it("requires all tokens first, and says so", async () => {
-		// "oak street" matches 14 rows as AND vs 12,153 as OR on production D1,
-		// so an OR-only set fills its 90 slots with single-token hits.
 		const matches: string[] = [];
 		const prisma = {
-			$queryRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
-				matches.push(values[0] as string);
-				return Promise.resolve([{ id: "p1" }]);
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				if (!sql.includes("COUNT(*)")) matches.push(values[0] as string);
+				return Promise.resolve(
+					sql.includes("COUNT(*)") ? [{ total: 1 }] : [{ id: "p1" }],
+				);
 			},
 		} as unknown as PrismaClient;
 
-		const filters = await searchKeywordFallback(prisma, "Oak Street", 2025);
+		const result = await searchKeywordFallback(prisma, "Oak Street", 2025);
 
 		expect(matches).toEqual(['"oak" AND "street"']);
-		expect(filters.explanation).toContain("matching all terms");
+		expect(result.explanation).toContain("matching all terms");
 	});
 
 	it("relaxes to OR when requiring all tokens matches nothing", async () => {
 		// "zilker park trust" is plausible but matches 0 rows as AND and 55,535
 		// as OR — returning nothing would be worse than relaxing.
-		const matches: string[] = [];
+		const pageMatches: string[] = [];
 		const prisma = {
-			$queryRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
-				matches.push(values[0] as string);
-				return Promise.resolve(matches.length === 1 ? [] : [{ id: "p9" }]);
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				const match = values[0] as string;
+				if (sql.includes("COUNT(*)")) {
+					// AND query has 0 total; OR query has results
+					const total = match.includes("AND") ? 0 : 1;
+					return Promise.resolve([{ total }]);
+				}
+				pageMatches.push(match);
+				return Promise.resolve(match.includes("AND") ? [] : [{ id: "p9" }]);
 			},
 		} as unknown as PrismaClient;
 
-		const filters = await searchKeywordFallback(
+		const result = await searchKeywordFallback(
 			prisma,
 			"zilker park trust",
 			2025,
 		);
 
-		expect(matches).toEqual([
+		expect(pageMatches).toEqual([
 			'"zilker" AND "park" AND "trust"',
 			'"zilker" OR "park" OR "trust"',
 		]);
-		expect(filters.whereClause).toEqual({ id: { in: ["p9"] } });
-		expect(filters.explanation).toContain("matching any term");
+		expect(result.whereClause).toEqual({ id: { in: ["p9"] } });
+		expect(result.explanation).toContain("matching any term");
+		expect(result.precomputedTotal).toBe(1);
 	});
 
 	it("does not spend a second query relaxing a single token", async () => {
 		// AND and OR are identical for one token, so an empty result is final.
-		const matches: string[] = [];
+		const pageMatches: string[] = [];
 		const prisma = {
-			$queryRaw: (_strings: TemplateStringsArray, ...values: unknown[]) => {
-				matches.push(values[0] as string);
-				return Promise.resolve([]);
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				if (!sql.includes("COUNT(*)")) pageMatches.push(values[0] as string);
+				return Promise.resolve(
+					sql.includes("COUNT(*)") ? [{ total: 0 }] : [],
+				);
 			},
 		} as unknown as PrismaClient;
 
-		const filters = await searchKeywordFallback(prisma, "Pflugerville", 2025);
+		const result = await searchKeywordFallback(prisma, "Pflugerville", 2025);
 
-		expect(matches).toEqual(['"pflugerville"']);
-		expect(filters.whereClause).toEqual({ id: { in: [] } });
+		expect(pageMatches).toEqual(['"pflugerville"']);
+		expect(result.whereClause).toEqual({ id: { in: [] } });
+		expect(result.precomputedTotal).toBe(0);
 	});
 });
 
 describe("buildKeywordSearchFilters", () => {
 	it("builds contains filters over the four free-text fields", () => {
-		const filters = buildKeywordSearchFilters("  Oak Street  ");
-		expect(filters.whereClause).toEqual({
+		const result = buildKeywordSearchFilters("  Oak Street  ");
+		expect(result.whereClause).toEqual({
 			OR: [
 				{ name: { contains: "Oak Street" } },
 				{ propertyAddress: { contains: "Oak Street" } },
@@ -281,6 +332,6 @@ describe("buildKeywordSearchFilters", () => {
 				{ description: { contains: "Oak Street" } },
 			],
 		});
-		expect(filters.explanation).toContain('"Oak Street"');
+		expect(result.explanation).toContain('"Oak Street"');
 	});
 });
