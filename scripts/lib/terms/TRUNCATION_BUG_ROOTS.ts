@@ -19,4 +19,5 @@ export const TRUNCATION_BUG_ROOTS: ReadonlySet<string> = new Set([
 	"mana",
 	"nguy",
 	"trus",
+    "lane",
 ]);

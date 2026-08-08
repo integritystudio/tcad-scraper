@@ -82,6 +82,7 @@ Pure data — no logic — kept separate from `lib/`'s shared logic modules abov
 | `lib/terms/FIRST_NAMES_FEMALE.ts`, `lib/terms/FIRST_NAMES_MALE.ts`, `lib/terms/LAST_NAMES.ts`, `lib/terms/STREET_GEOGRAPHIC.ts`, `lib/terms/BUSINESS_ENTITY.ts` | Canonical curated name/geo/entity data (one const list per file) — single source for `generate-next-200-terms.ts`'s candidate pools and the `utils/list-all-search-terms.ts` inventory. |
 | `lib/terms/BLOCKED_TERMS.ts` | Hard-skip terms that cause TCAD API timeouts or truncated responses; used by `generate-next-200-terms.ts`. |
 | `lib/terms/TRUNCATION_BUG_ROOTS.ts` | 4-char prefixes confirmed to trigger TCAD's server-side JSON truncation bug across every a-z expansion (see `docs/truncated-response-terms.md`); used by `backfill-2025.ts`'s `getDenseExpansions()`/`getSeedExpansions()`. |
+| `lib/terms/NON_OVERLAPPING_PREFIXES.ts` | Snapshot (2026-08-08) of 4-char prefixes derived from recent search activity that are unsearched and share no root with any curated name/geo/entity term — genuinely outside the existing inventory rather than a broader version of something already covered. |
 
 ## Utilities (`utils/`)
 
