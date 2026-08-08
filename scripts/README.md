@@ -68,6 +68,10 @@ The four `backfill-2025-*` scripts select terms by comparing 2026 vs 2025 data i
 | `lib/error-helpers.ts` | `getErrorMessage()` for `unknown` errors. |
 | `lib/logger.ts` | Console shim for CLI scripts. |
 | `lib/cvcv.ts` | `generateCvcvBases()` — all 11,025 4-char consonant-vowel-consonant-vowel bases, used by `generate-next-200-terms.ts`'s Tier 5 (4-char gap fill). |
+| `lib/run-main.ts` | Shared `runMain()` entrypoint wrapper (Prisma disconnect + exit-code handling) used by `check-unsearched-terms.ts`, `queue-results.ts`, `generate-next-200-terms.ts`, `analyze-search-terms.ts`, `search-terms-summary.ts`, and `backfill-runner.ts`. |
+| `lib/epoch-format.ts` | Shared epoch-ms formatting helpers (UTC vs local-timezone) used by `queue-results.ts` and `search-terms-summary.ts`. |
+| `lib/term-inventory.ts` | Shared term-inventory dedupe algorithm used by `utils/list-all-search-terms.ts` and `utils/list-curated-terms.ts`. |
+| `lib/job-stats.ts` | `getJobStats()` — shared scrape-job stats query used by `analyze-failed-jobs.ts` and `analyze-search-terms.ts`. |
 
 ## Term Data (`lib/terms/`)
 
