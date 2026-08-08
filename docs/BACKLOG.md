@@ -1,6 +1,6 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-08-08 (T13, T14, all P1 frontend items M36–M42, plus M43 and L19 done; T3, L20, C8, L21 remain open below)
+**Last Updated**: 2026-08-08 (T13, T14 done — 0004 applied to production D1; all P1 frontend items M36–M42, plus M43 and L19 done; T3, T15, L20, C8, L21 remain open below)
 **Status**: 164 frontend + 85 scripts + 75 workers tests passing | TypeScript clean (root + workers) | Lint clean repo-wide — 0 errors, 0 warnings
 
 ---
@@ -12,6 +12,12 @@
 
 #### ~~T14: FTS index omits secondary owner-identity columns (DBA, co-owner)~~ [Done]
 **Commit**: 4e480d5 | Migration 0004_fts_owner_columns.sql recreates virtual table with `owner_name`/`name_secondary`/`dba`; triggers updated; `FTS_BM25_WEIGHTS` adds ownerName/nameSecondary/dba at 9.0.
+**Applied to production D1 2026-08-08** (7.1s, `wrangler d1 execute --remote --file`). Verified: virtual table carries all 7 columns, all three sync triggers replaced, and the `rebuild` indexed **484,251** rows (matches `/health` propertyCount). New columns are individually searchable — `dba:"hydrochem"` 1 hit, `name_secondary:"trust"` 1,489, `owner_name:"llc"` 13,719.
+**No deploy-ordering requirement** — an earlier review claim that a bm25 weight/column-count mismatch errors is **wrong**: 4-weight and 7-weight `bm25()` calls both succeed against the 7-column table (FTS5 defaults unspecified weights rather than erroring). So the pre-0004 deployed code kept working after the migration, and because `MATCH` searches all columns, T14's coverage win went live *without* a deploy. What the pending deploy adds is ranking only: the three new columns currently sit at the implicit default weight instead of 9.0.
+
+#### T15: Explicit `limit` above 98 still leaves FTS ranks unreachable
+**Priority**: P2 | **Source**: review of T13 (2026-08-08)
+`6d71194` fixed the *default* page size, but `propertyFilterSchema.limit` still allows an explicit value up to 1000 while the keyword fallback clamps its SQL page to `FTS_MAX_PAGE_SIZE` (98) and the response echoes the unclamped `limit`. So a caller passing `limit=1000` receives 98 rows, is told `limit: 1000`, and paging on that reported value jumps to `offset=1000` — ranks 98-999 are never served. Only the FTS fallback path is affected; the AI path pages in Prisma and is fine. Options: clamp the *reported* limit to what was actually served, cap the schema's `.max()` at `FTS_MAX_PAGE_SIZE` for the search routes, or loop FTS pages server-side to fill a larger request. Note `MAX_QUERY_LIMIT = 1000` already exists in `utils/constants.ts` but `property.types.ts` hardcodes `.max(1000)` — a magic number where a constant exists (project rule: no magic numbers). -- `workers/tcad-api/src/types/property.types.ts:28`, `workers/tcad-api/src/controllers/property.ts:156`
 
 #### T3: Retire or activate 2026 mining strategy for backfill scripts
 **Priority**: P3 | **Source**: scripts-review audit (2026-08-06)
