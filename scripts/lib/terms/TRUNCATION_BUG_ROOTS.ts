@@ -1,35 +1,48 @@
 /**
- * 4-char prefixes that TCAD cannot serve at all: the endpoint answers
- * **HTTP 204 with an empty body**, so `JSON.parse("")` throws "Unexpected end
- * of JSON input". Skipped before expansion in backfill.ts's
- * getDenseExpansions() and getSeedExpansions() to avoid re-attempting ~26
- * doomed searches per root on every backfill run.
+ * 4-char prefixes that TCAD cannot serve, in either of two reproducible ways:
  *
- * The name is retained for continuity but the failure is not truncation — the
- * response is empty, not cut short. See docs/truncated-response-terms.md.
+ *  - **HTTP 204, empty body** (`way*`) — `JSON.parse("")` then throws
+ *    "Unexpected end of JSON input", which is what the name records. The
+ *    response is empty, not cut short; "truncation" was a misreading of the
+ *    exception, and the name is kept only for continuity.
+ *  - **HTTP 504 after ~10s at any page size** (`lane`, `aust`) — a server-side
+ *    timeout on the query itself.
+ *
+ * Skipped before expansion in backfill.ts's getDenseExpansions() and
+ * getSeedExpansions() to avoid re-attempting ~26 doomed searches per root on
+ * every backfill run. See docs/truncated-response-terms.md.
  *
  * ── Scope corrected 2026-08-08 ──────────────────────────────────────
  * This set previously also held `chri`, `cong`, `cree`, `davi`, `lama`,
- * `laur`, `mana`, `nguy`, `trus`, `lane`, `aust` and `llc.`. Retested against
- * the 2026 roll at production page size, the first nine return **HTTP 200 with
- * valid JSON** — 2,522 to 27,378 matches each — and, once run, saved 1,360 new
- * properties that the blacklist had been suppressing. `llc.` returns 53,899
- * matches. `lane` and `aust` returned **HTTP 504**, a load-dependent timeout
- * rather than a permanent fault, so they belong in retry/backoff handling
- * rather than here.
+ * `laur`, `mana`, `nguy`, `trus` and `llc.`. Retested against the 2026 roll at
+ * production page size, all ten return **HTTP 200 with valid JSON** — 2,522 to
+ * 53,899 matches each — and, once run, saved 3,676 new properties that the
+ * blacklist had been suppressing.
+ *
+ * `lane` and `aust` stay, under the second failure mode: a reproducible
+ * **HTTP 504 after ~10s**, at every page size down to `pageSize=1` and in both
+ * 2025 and 2026. An earlier note here called that a load-dependent timeout
+ * belonging in retry handling — that was wrong, and testing at pageSize=1
+ * disproves it: the timeout is on the query itself, not on serialising a large
+ * response, so no page size and no retry budget reaches these terms.
  *
  * `lmtd` also 204s but is deliberately not listed: this set exists to stop
  * a-z expansion of *analytics* roots, and nothing expands `lmtd`, so adding it
  * would suppress nothing. It is recorded in docs/truncated-response-terms.md.
  *
- * Keep the entry bar at a reproducible 204: a term that times out or errors
- * intermittently is not a member, because every addition permanently removes
- * ~26 expansions from every future backfill — and a stale entry is invisible,
- * since the searches it suppresses never run and so never report anything.
+ * Entry bar: a *reproducible* server-side refusal — a 204, or a 504 that
+ * survives dropping the page size to 1. Not a one-off failure. Every addition
+ * permanently removes ~26 expansions from every future backfill, and a stale
+ * entry is invisible, because the searches it suppresses never run and so
+ * never report anything.
  */
 export const TRUNCATION_BUG_ROOTS: ReadonlySet<string> = new Set([
+	// HTTP 204, empty body
 	"wayg",
 	"wayh",
 	"wayi",
 	"wayj",
+	// HTTP 504 after ~10s, reproducible down to pageSize=1
+	"lane",
+	"aust",
 ]);

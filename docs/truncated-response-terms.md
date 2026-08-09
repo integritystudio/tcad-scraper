@@ -32,12 +32,12 @@ expansions failed". Retested one day later, every one of them returns **HTTP
 | laur | 200 | 5,460 | 217 |
 | mana | 200 | 2,844 | 139 |
 | nguy | 200 | 2,983 | 158 |
-| trus | 200 | 27,378 | (token expiry; re-run) |
-| llc. | 200 | 53,899 | not yet run |
-| lane | 504 | — | timeout, not a permanent fault |
-| aust | 504 | — | timeout, not a permanent fault |
+| trus | 200 | 27,378 | 620 (after a token-expiry retry) |
+| llc. | 200 | 53,899 | 2,316 |
+| lane | 504 | — | **permanent** — see below |
+| aust | 504 | — | **permanent** — see below |
 
-Running the nine saved **1,360 properties the blacklist had been suppressing**.
+Running all ten saved **3,676 properties the blacklist had been suppressing**.
 
 **Why the original diagnosis was wrong.** The 2026-08-07 evidence was "every
 five-letter expansion of this root failed", which reads as a root-specific bug
@@ -48,13 +48,28 @@ recovered together, while `way*` did not, favours the outage reading. Either
 way the entries were stale, and staleness here is self-concealing — a
 blacklisted root's searches never run, so nothing ever contradicts the entry.
 
-**Bar for adding a root:** a reproducible HTTP 204. Not a timeout, not an
-intermittent error. Each entry permanently removes ~26 a-z expansions from
-every future backfill run.
+### `lane` / `aust` — a second, distinct failure
+
+Initially read as a load-dependent timeout that belonged in retry handling.
+**That was wrong.** Retested at `pageSize=500`, `250`, `100` and `1`, in both
+2025 and 2026: HTTP 504 every time, after a consistent ~10s. Payload size is
+irrelevant — the timeout is on the query itself — so no page size and no retry
+budget reaches these terms. `lanb` returns the 204 in 0s, confirming the two
+modes are distinct rather than one flaky behaviour.
+
+Both stay in `TRUNCATION_BUG_ROOTS`. `aust` matters most: it is the prefix of
+`austin`, so leaving it out re-enables ~26 doomed expansions of the single most
+common local term on every backfill run.
+
+**Bar for adding a root:** a *reproducible* server-side refusal — a 204, or a
+504 that survives dropping the page size to 1. Not a one-off failure. Each
+entry permanently removes ~26 a-z expansions from every future backfill run.
 
 ---
 
-## Confirmed unusable (HTTP 204, empty body)
+## Confirmed unusable
+
+### HTTP 204, empty body
 
 | Term | Length | Status | Notes |
 |------|--------|--------|-------|
@@ -63,6 +78,13 @@ every future backfill run.
 | Wayi | 4 | **confirmed** | 204 confirmed 2026-08-08 |
 | Wayj | 4 | **confirmed** | 204 confirmed 2026-08-08 |
 | LMTD | 4 | **confirmed** | 204 confirmed 2026-08-08 (was "untested"). Deliberately *not* in `TRUNCATION_BUG_ROOTS`: that set only suppresses a-z expansion of analytics roots, and nothing expands `lmtd` |
+
+### HTTP 504, ~10s, any page size
+
+| Term | Length | Status | Notes |
+|------|--------|--------|-------|
+| Lane | 4 | **confirmed** | 504 at pageSize 500/250/100/1, years 2025 and 2026 (2026-08-08) |
+| Aust | 4 | **confirmed** | 504 at pageSize 500/250/100/1, years 2025 and 2026 (2026-08-08). Blocks `austin`, so "Austin" itself is unsearchable and city-wide sweeps are not a shortcut to coverage |
 
 ## Long terms that failed, cause unconfirmed
 
