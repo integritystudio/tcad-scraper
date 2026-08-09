@@ -2,7 +2,9 @@ name: PR Checks
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    # `edited` matters: without it, retitling a PR never re-runs the
+    # conventional-commit title check, so a corrected title stays red.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
 
 permissions:
   contents: read
