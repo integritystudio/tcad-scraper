@@ -1,0 +1,75 @@
+name: Link Check
+
+# External links are checked on a schedule rather than per-PR: the check makes
+# real network calls, so a transient failure says nothing about the change
+# under review. A stale URL is worth knowing about within a week; it is not
+# worth blocking a merge on someone else's DNS.
+on:
+  schedule:
+    # Mondays 09:00 UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+  # Re-check whenever the link list itself changes.
+  pull_request:
+    paths:
+      - "link-check/**"
+      - ".github/workflows/link-check.yml"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  link-check:
+    name: External links resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # --config /dev/null bypasses vite.config.ts, which would force jsdom and
+      # the frontend setup file; these are plain fetch calls and want node.
+      - name: Check external links
+        run: npx vitest run --dir link-check --config /dev/null
+
+      # A cron failure has no PR to annotate, so surface it where it will be
+      # seen. Skipped on pull_request, where the failed check is visible.
+      - name: Open an issue if links are broken
+        if: failure() && github.event_name != 'pull_request'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const title = "Link check failed: one or more external links are unreachable";
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "link-check",
+            });
+            const url = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `The scheduled link check failed. See the run for which URL(s):\n\n${url}\n\n`
+              + `Links live in \`link-check/external-links.test.ts\`. If a URL moved, update it there; `
+              + `if the failure was transient, close this issue.`;
+            if (existing.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing[0].number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["link-check"],
+              });
+            }

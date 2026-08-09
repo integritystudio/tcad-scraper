@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: August 8, 2026 | **Version**: 6.6
+**Last Updated**: August 8, 2026 | **Version**: 6.7
 
 ## Project Overview
 
@@ -12,7 +12,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue/Jobs**: Cloudflare Queues + Workflows (replaced BullMQ + Redis); Cron Triggers (replaced `node-cron`)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (164 frontend + 85 scripts + 75 workers tests) + Playwright E2E (126 defined; 120 pass and 6 skip on Linux CI, all 126 run on macOS — the 6 visual-regression tests are macOS-only because only darwin snapshot baselines are committed; see BACKLOG T16)
+- **Testing**: Vitest (158 frontend + 85 scripts + 75 workers tests) + Playwright E2E (126 defined; 120 pass and 6 skip on Linux CI, all 126 run on macOS — the 6 visual-regression tests are macOS-only because only darwin snapshot baselines are committed; see BACKLOG T16)
 - **Scale**: 484K properties in D1 (2025 tax year; live count via `/health`). Target is the 2025 certified roll of **508,880 accounts** — see [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#coverage-target--the-2025-certified-roll) for the source and category breakdown. Do not use the 488,000 figure from TCAD's press release; it counts owners mailed a notice, not accounts
 
 ```
@@ -72,6 +72,7 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 ├── src/                  # Frontend (React + Vite)
 ├── scripts/              # CLI tools, batch scripts, backfill, enqueue
 ├── e2e/                  # Playwright E2E tests
+├── link-check/           # External-link check (weekly cron, not in the unit suite)
 ├── utils/                # Shared constants
 ├── config/               # GTM configs
 ├── shared/               # Shared types
@@ -128,11 +129,12 @@ doppler run -p integrity-studio -c prd -- sh -c 'curl -s -X POST \
   -d "{\"sql\": \"SELECT COUNT(*) FROM properties\"}"'
 
 # Testing (from repo root)
-npx vitest run               # Frontend unit tests (164 tests, <5 sec; `npm test` = watch mode)
+npx vitest run               # Frontend unit tests (158 tests, <5 sec; `npm test` = watch mode)
 npm run test:coverage        # Frontend coverage report
 npm run test:e2e             # E2E (126 defined; 120 pass + 6 skip on Linux CI, all 126 on macOS)
 cd workers/tcad-api && npm test        # Workers tests (75 tests)
 npx vitest run --dir scripts --config /dev/null  # Scripts tests (85 tests)
+npx vitest run --dir link-check --config /dev/null  # External links (6; weekly cron, not in the unit suite)
 
 # Scraping (via Workers API)
 curl -X POST "https://api.alephatx.info/api/properties/scrape" \

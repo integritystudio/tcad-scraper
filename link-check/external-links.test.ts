@@ -3,6 +3,19 @@ import { describe, expect, it } from "vitest";
 /**
  * Verify all external links used across layout components resolve (HTTP 2xx/3xx).
  * Catches stale URLs after domain or path changes.
+ *
+ * Deliberately NOT part of the frontend unit suite. It makes real network
+ * calls, so it fails on transient conditions that say nothing about the code:
+ * it took down a PR's coverage job with `ECONNRESET` against
+ * integritystudio.ai on 2026-08-08, then passed on re-run. A unit suite that
+ * goes red when someone else's DNS hiccups trains people to ignore it.
+ *
+ * It lives outside `src/` so `vite.config.ts`'s `include` glob skips it, and
+ * runs on a weekly cron instead (.github/workflows/link-check.yml). A stale
+ * URL is worth knowing about within a week; it is not worth blocking a merge.
+ *
+ * Run it directly with:
+ *   npx vitest run --dir link-check --config /dev/null
  */
 
 const EXTERNAL_URLS: Record<string, string> = {
