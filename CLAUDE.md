@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: August 8, 2026 | **Version**: 6.4
+**Last Updated**: August 8, 2026 | **Version**: 6.7
 
 ## Project Overview
 
@@ -12,13 +12,13 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue/Jobs**: Cloudflare Queues + Workflows (replaced BullMQ + Redis); Cron Triggers (replaced `node-cron`)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (167 frontend + 122 scripts + 83 workers tests; E2E via Playwright — visual specs are darwin-only, see BACKLOG T16)
+- **Testing**: Vitest (167 frontend + 126 scripts + 83 workers tests) + Playwright E2E (126 defined; 120 pass and 6 skip on Linux CI, all 126 run on macOS — the 6 visual-regression tests are macOS-only because only darwin snapshot baselines are committed; see BACKLOG T16)
 - **Scale**: 484K properties in D1 for 2025 and 478K for 2026 (live count via `/health`). The 2026 roll was filled on 2026-08-08 by a single greedy maximum-coverage run — 1,022 terms, 477,745 properties, ~30% of the scrapes 2025 took for 98.7% of its corpus (`scripts/optimize-coverage.ts`; curve in [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#covering-a-new-roll-year--greedy-maximum-coverage)). TCAD serves 2023-2026 concurrently and 2026 values are published (`valueReady: 1`), so the scrape year is a per-request field on `POST /scrape` — omit it to use the Worker's `TCAD_YEAR` var. Target is the 2025 certified roll of **508,880 accounts** — see [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#coverage-target--the-2025-certified-roll) for the source and category breakdown. Do not use the 488,000 figure from TCAD's press release; it counts owners mailed a notice, not accounts
 
 ```
 React (5174) → CF Workers (Hono) → D1 (SQLite at edge)
                     ↓
-               CF Queue → ScraperWorkflow (5 steps)
+               CF Queue → ScraperWorkflow (6 steps)
                     ↓
                TCAD API → Prisma upsert via D1
 ```
@@ -33,12 +33,13 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 
 ### Workers API (`workers/tcad-api/`) — Production
 - `src/index.ts` - Hono app + queue consumer + cron handlers + Sentry
-- `src/workflows/scraper.workflow.ts` - ScraperWorkflow (5 steps: token, fetch, dedup, upsert, analytics)
+- `src/workflows/scraper.workflow.ts` - ScraperWorkflow (`create-job`, `get-token`, fetch-page, `deduplicate`, `upsert-properties`, `update-analytics`, plus a `mark-failed` error path)
 - `src/controllers/property.ts` - Property routes (list, get, scrape, search, history)
 - `src/controllers/api-usage.ts` - API usage routes
 - `src/middleware/auth.ts` - API key (`x-api-key`) auth + Zod validation middleware
 - `src/db.ts` - Prisma + D1 connection (`PrismaD1` adapter)
-- `src/lib/claude.service.ts` - Natural language search (Anthropic primary, OpenAI fallback; query capped at 500 chars via Zod) + `sanitizeWhereClause`
+- `src/lib/claude.service.ts` - Natural language search (Anthropic primary, **xAI/Grok** fallback via `XAI_API_URL`; query capped at 500 chars via Zod) + `sanitizeWhereClause`
+- `src/lib/keyword-search.ts` - FTS5 keyword fallback, used when **neither** AI provider is reachable (e.g. both unfunded). Matches `properties_fts` (migrations 0002 + 0004) with bm25 column weights, pages in SQL, and degrades once more to LIKE `contains` if the virtual table is missing
 - `src/utils/constants.ts` - TCAD_API_URL, chunk sizes, timeouts, D1 micro-chunk config
 - `src/utils/epoch-dates.ts` - `nowEpoch()`, `epochToISO()`, `dateToEpoch()` — D1 date workaround
 - `src/utils/json-array.ts` - `serializeIds()`/`deserializeIds()` for JSON-serialized arrays
@@ -131,9 +132,9 @@ doppler run -p integrity-studio -c prd -- sh -c 'curl -s -X POST \
 # Testing (from repo root)
 npx vitest run               # Frontend unit tests (167 tests, <5 sec; `npm test` = watch mode)
 npm run test:coverage        # Frontend coverage report
-npm run test:e2e             # E2E tests (126 tests, all passing)
-cd workers/tcad-api && npm test        # Workers tests (77 tests)
-npx vitest run --dir scripts --config /dev/null  # Scripts tests (85 tests)
+npm run test:e2e             # E2E (126 defined; 120 pass + 6 skip on Linux CI, all 126 on macOS)
+cd workers/tcad-api && npm test        # Workers tests (83 tests)
+npx vitest run --dir scripts --config /dev/null  # Scripts tests (126 tests)
 
 # Scraping (via Workers API)
 curl -X POST "https://api.alephatx.info/api/properties/scrape" \
@@ -162,7 +163,7 @@ TCAD_YEAR=2026 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 
 ## Architecture Decisions
 
-- **Bulk property writes use raw D1 `batch()`** of multi-row `INSERT … ON CONFLICT` statements (`utils/upsert-sql.ts`), micro-chunked to 6 rows × 15 cols under D1's 100-param limit; each row binds a client-generated UUID because `properties.id` has no SQL default. Do NOT revert to per-row Prisma upserts in `$transaction` — PrismaD1 runs them one query (= one D1 subrequest) each, so ~5,000-row terms blow the 10-min step timeout and the ~1,000-subrequest invocation budget, wedging jobs in `processing` (incident 2026-08-06). Raw SQL is date-safe here because all date columns store epoch-ms strings
+- **Bulk property writes use raw D1 `batch()`** of `INSERT … ON CONFLICT` statements (`utils/upsert-sql.ts`), micro-chunked under D1's 100-param limit. Since the full TCAD capture (migration 0003) each row binds `UPSERT_COLUMNS = 88` columns, so `UPSERT_MICRO_CHUNK_SIZE = floor(100/88) = ` **1 row per statement** — the multi-row form no longer fits. Still one D1 subrequest per `batch()` of `UPSERT_CHUNK_SIZE` (50) statements, so the subrequest budget is unchanged. Each row binds a client-generated UUID because `properties.id` has no SQL default. Do NOT revert to per-row Prisma upserts in `$transaction` — PrismaD1 runs them one query (= one D1 subrequest) each, so ~5,000-row terms blow the 10-min step timeout and the ~1,000-subrequest invocation budget, wedging jobs in `processing` (incident 2026-08-06). Raw SQL is date-safe here because all date columns store epoch-ms strings
 - **Bearer tokens** expire ~5 min; cron trigger auto-refreshes to KV
 - **`search_term_analytics.totalResults` is increment-on-save-only** — it counts *newly inserted* properties per successful search, not TCAD's total match count. A term can show `totalResults = 0` while TCAD returns thousands of matches, if every match was already in D1 under another search term (confirmed 2026-08-07 for Maria/Thomas/Paul/etc. — all had 4,000-6,000+ TCAD matches but 0 new saves). Safe to treat as a backfill-exclusion signal (`getSearchedTermSets()`'s `unsuccessful` set) **for a year already scraped** — it reflects real saturation, not broken data. **But the table has no year column** (`@@unique([searchTerm])`), so the counter aggregates every year at once and the set is meaningless for a *fresh* roll year: Maria/Thomas/Paul show `totalResults = 0` from 2025 saturation while each returns 4,000-6,000 fresh rows for 2026. Excluding them would skip the highest-yield vocabulary. Year-scoped saturation comes from `getYearZeroYieldTerms(year)`, which joins year-stamped `scrape_jobs` (migration 0005) against that year's attributed properties. `max_results` (TCAD's total match count) *is* year-independent and stays usable
 - **TCAD returns malformed/truncated JSON for specific 4-char root prefixes**, regardless of the letter appended (`docs/truncated-response-terms.md`) — confirmed for `wayg/h/i/j` plus 9 more found 2026-08-07 (`chri`, `cong`, `cree`, `davi`, `lama`, `laur`, `mana`, `nguy`, `trus`). `backfill.ts`'s dense/seed a-z expansions skip these via `scripts/lib/terms/TRUNCATION_BUG_ROOTS.ts` — check that set before debugging a new "Unexpected end of JSON input" cluster
@@ -171,8 +172,8 @@ TCAD_YEAR=2026 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 - **TCAD prefix-matches word starts**, so a 4-char prefix is a strict superset of every longer word beginning with it (`pflu` → 21,662 matches ≈ `Pflugerville`'s 21,439). Corollaries: never enqueue a word whose 4-char prefix was already searched (`grou` saved 259; `group`, run minutes later, saved 0), and mine candidates as 4-char prefixes rather than whole words
 - **Multi-word queries match terms independently, not as a phrase** — `F M RD` matched `F M 1826 RD` (3,109 matches, 162 saved) where the tokens are non-adjacent. So the superset rule applies to multi-word terms too: a generic multi-word term subsumes every specific one sharing its tokens. A 72-term `F M RD <route>` grid run *after* the generic `F M RD` returned **0** — run specific before generic, or skip the specific entirely
 - **Hyphens are part of the token, and prefix matching does not cross them** — `mo-pac` returned 966 matches while `mopa` returned 46. Hyphenated street names (`MO-PAC`, `BLAKE-MANOR`) must be typed with the hyphen
-- **The TCAD search API returns no state category code** (A/B/C1/F1/L1/M1/XV…). Its 67-field response is captured in `scraper.workflow.ts`'s raw interface and persisted to ~80 D1 columns; the category-shaped candidates are all something else — `as_code` is subdivision (A0024, S20976), `use_cd` is a use code (1, 61, "AFF PRG"), `sic_cd` is SIC industry, `market_area` is appraisal area. Coverage cannot be reconciled against the certified totals per-category without a different data source
-- **Env vars**: `TCAD_YEAR` (wrangler.toml vars), `UPSERT_CHUNK_SIZE` (500)
+- **The TCAD search API returns no state category code** (A/B/C1/F1/L1/M1/XV…). Its raw response is captured in `scraper.workflow.ts`'s raw interface and persisted to 88 D1 columns (`UPSERT_COLUMNS`); the category-shaped candidates are all something else — `as_code` is subdivision (A0024, S20976), `use_cd` is a use code (1, 61, "AFF PRG"), `sic_cd` is SIC industry, `market_area` is appraisal area. Coverage cannot be reconciled against the certified totals per-category without a different data source
+- **Env vars**: `TCAD_YEAR` is the only one (wrangler.toml `vars`). The chunk sizes are **source constants, not env vars** — `UPSERT_CHUNK_SIZE = 50`, `UPSERT_COLUMNS = 88`, `DEDUPE_KV_CHUNK_SIZE = 2000`, all in `workers/tcad-api/src/utils/constants.ts`. `DEDUPE_KV_CHUNK_SIZE` bounds rows per KV value in the workflow's dedupe step: a KV value caps at 25 MiB and the 88-column capture runs ~1.7 KB/row, so a ~17k-row term serialized to 28.8 MB and failed the job outright (incident 2026-08-08)
 
 ---
 
