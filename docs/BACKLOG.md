@@ -1,7 +1,8 @@
 # Backlog - Remaining Technical Debt
 
 **Last Updated**: 2026-08-08 (T3 closed — 2026 mining activated with the year direction reversed; **T16 is the only open item**)
-**Status**: 167 frontend + 122 scripts + 83 workers tests passing | TypeScript clean (root + workers) | Lint clean repo-wide — 0 errors, 0 warnings
+**Status**: All suites passing | TypeScript clean (root + workers) | Lint clean repo-wide — 0 errors, 0 warnings
+*(Test counts are deliberately not pinned here — they went stale within hours every time. Run the suites; commands are in [CLAUDE.md](../CLAUDE.md#common-commands).)*
 
 ---
 ## Open Items
