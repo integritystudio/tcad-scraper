@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated**: August 8, 2026 | **Version**: 6.8
+**Last Updated**: August 8, 2026 | **Version**: 6.9
 
 ## Project Overview
 
@@ -12,7 +12,7 @@ TCAD Scraper extracts property tax data from Travis Central Appraisal District (
 - **Queue/Jobs**: Cloudflare Queues + Workflows (replaced BullMQ + Redis); Cron Triggers (replaced `node-cron`)
 - **Cache**: Cloudflare KV (replaced Redis cache)
 - **Logging**: Workers `console.*` + Sentry (replaced Pino)
-- **Testing**: Vitest (161 frontend + 126 scripts + 87 workers tests) + Playwright E2E (126 defined; 120 pass and 6 skip on Linux CI, all 126 run on macOS — the 6 visual-regression tests are macOS-only because only darwin snapshot baselines are committed; see BACKLOG T16)
+- **Testing**: Vitest across three suites — frontend, scripts, workers — plus Playwright E2E and a weekly external-link check. Commands under [Testing](#common-commands); the visual-regression specs are macOS-only and skip on Linux CI (see BACKLOG T16). **Exact test counts are deliberately not recorded here** — they went stale within hours every time, four times on 2026-08-08 alone, and a wrong count is worse than none because it reads as verified. Run the suite to get the number
 - **Scale**: 484K properties in D1 for both 2025 and 2026 (live count via `/health`). The 2026 roll was filled on 2026-08-08 by a single greedy maximum-coverage run — 1,022 terms, 477,745 properties, ~30% of the scrapes 2025 took for 98.7% of its corpus (`scripts/optimize-coverage.ts`; curve in [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#covering-a-new-roll-year--greedy-maximum-coverage)). TCAD serves 2023-2026 concurrently and 2026 values are published (`valueReady: 1`), so the scrape year is a per-request field on `POST /scrape` — omit it to use the Worker's `TCAD_YEAR` var. Target is the 2025 certified roll of **508,880 accounts** — see [SEARCH_TERMS.md](docs/SEARCH_TERMS.md#coverage-target--the-2025-certified-roll) for the source and category breakdown. Do not use the 488,000 figure from TCAD's press release; it counts owners mailed a notice, not accounts
 
 ```
@@ -130,13 +130,13 @@ doppler run -p integrity-studio -c prd -- sh -c 'curl -s -X POST \
   -H "Authorization: Bearer $CLOUDFLARE_D1_TOKEN" -H "Content-Type: application/json" \
   -d "{\"sql\": \"SELECT COUNT(*) FROM properties\"}"'
 
-# Testing (from repo root)
-npx vitest run               # Frontend unit tests (161 tests, <5 sec; `npm test` = watch mode)
+# Testing (from repo root) — counts intentionally omitted; run a suite to get its number
+npx vitest run               # Frontend unit tests (a few seconds; `npm test` = watch mode)
 npm run test:coverage        # Frontend coverage report
-npm run test:e2e             # E2E (126 defined; 120 pass + 6 skip on Linux CI, all 126 on macOS)
-cd workers/tcad-api && npm test        # Workers tests (87 tests)
-npx vitest run --dir scripts --config /dev/null  # Scripts tests (126 tests)
-npx vitest run --dir link-check --config /dev/null  # External links (6; weekly cron, not in the unit suite)
+npm run test:e2e             # E2E; visual specs are macOS-only, so some skip on Linux CI
+cd workers/tcad-api && npm test        # Workers tests
+npx vitest run --dir scripts --config /dev/null  # Scripts tests
+npx vitest run --dir link-check --config /dev/null  # External links (weekly cron, not in the unit suite)
 
 # Scraping (via Workers API)
 curl -X POST "https://api.alephatx.info/api/properties/scrape" \
@@ -206,7 +206,7 @@ TCAD_YEAR=2026 doppler run -- npx tsx scripts/enqueue-tail-terms.ts [--phase N]
 | API 522/unreachable | Check Cloudflare dashboard; `wrangler tail` for errors |
 | D1 date corruption | Dates stored as ISO 8601 instead of epoch ms; re-scrape affected records |
 | D1 `SQLITE_CONSTRAINT` | Data type mismatch or missing required field in create call |
-| `/backlog-migrate` shows wrong test counts | It can overwrite `BACKLOG.md`'s header count line with a stale value (regressed 55→52 on 2026-08-06) — re-verify via `npx vitest run --dir scripts --config /dev/null` before trusting migrated doc text |
+| A doc quotes a test count | Don't trust it — re-run the suite. `CLAUDE.md` no longer pins counts for this reason; `BACKLOG.md`'s header still does, and `/backlog-migrate` can overwrite it with a stale value (regressed 55→52 on 2026-08-06). Verify with the commands under [Testing](#common-commands) before repeating a number from any doc |
 
 ---
 
