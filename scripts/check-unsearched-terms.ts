@@ -1,20 +1,25 @@
 /**
- * Check which inventory terms haven't been searched yet (2025 properties).
+ * Check which inventory terms haven't been searched yet for a tax year.
  * Usage: doppler run -- npx tsx scripts/check-unsearched-terms.ts
+ *        TCAD_YEAR=2026 doppler run -- npx tsx scripts/check-unsearched-terms.ts
  */
 
-import { MIN_TERM_LENGTH } from "../utils/constants";
+import { DEFAULT_TCAD_YEAR, MIN_TERM_LENGTH } from "../utils/constants";
 import { runMain } from "./lib/run-main";
 import { getSearchedTermSets } from "./lib/searched-terms";
 import { getAllSearchTerms } from "./utils/list-all-search-terms";
 
 async function check() {
+	const year = process.env.TCAD_YEAR
+		? parseInt(process.env.TCAD_YEAR, 10)
+		: DEFAULT_TCAD_YEAR;
 	const allTerms = getAllSearchTerms().all;
+	console.log(`Tax year: ${year}`);
 	console.log("Total inventory terms:", allTerms.length);
 
-	const { searched2025 } = await getSearchedTermSets();
+	const { searchedForYear } = await getSearchedTermSets(year);
 	const unsearched = allTerms.filter(
-		(t) => t.length >= MIN_TERM_LENGTH && !searched2025.has(t.toLowerCase()),
+		(t) => t.length >= MIN_TERM_LENGTH && !searchedForYear.has(t.toLowerCase()),
 	);
 
 	console.log("Searched:", allTerms.length - unsearched.length);
@@ -25,7 +30,7 @@ async function check() {
 			console.log(" ", t);
 		}
 	} else {
-		console.log("\nAll inventory terms have been searched for 2025.");
+		console.log(`\nAll inventory terms have been searched for ${year}.`);
 	}
 }
 

@@ -11,48 +11,52 @@ metrics), [`CLAUDE.md`](../CLAUDE.md) (architecture decisions).
 
 ---
 
-## Term sources, split by whether they read `year = 2026` D1 rows
+## Term sources, split by whether they read the year gap
 
-`scripts/lib/mine-2026-terms.ts` mines properties present for `year = 2026`
-with no `year = 2025` counterpart. Every query it exports shares this filter:
+`scripts/lib/mine-year-terms.ts` mines properties present for the *source*
+year with no counterpart in the *target* year. Every query it exports shares
+this filter, with both years supplied by the caller:
 
 ```
 FROM properties
-WHERE year = 2026
-AND property_id NOT IN (SELECT property_id FROM properties WHERE year = 2025)
+WHERE year = <sourceYear>
+AND property_id NOT IN (SELECT property_id FROM properties WHERE year = <targetYear>)
 ```
 
-**D1 currently holds only 2025 data** — every source below that depends on
-this filter, or on a direct `year = 2026` query, returns **zero** candidates
-until 2026 properties are actually scraped in.
+The target year is `TCAD_YEAR` (default 2025); the source year is resolved at
+runtime by `resolveSourceYear()` as the most-populated *other* year in D1. The
+direction therefore reverses on its own each roll season — 2026 seeded 2025's
+backfill, and 2025 seeds 2026's. An empty target year is the normal starting
+state, not a failure: the `NOT IN` matches nothing, so the candidate pool is
+the whole source year, and it narrows to the real gap as the target fills.
 
 ```
-┌─ 2026-REFERENCING ──────────────────────────────────────────────────────┐
+┌─ GAP-REFERENCING ───────────────────────────────────────────────────────┐
 │                                                                          │
-│ backfill-2025.ts → getTermsToBackfill()                                │
-│   └─ raw SQL: properties WHERE year = 2026                             │
+│ backfill.ts → getTermsToBackfill()                                │
+│   └─ raw SQL: properties WHERE year = <sourceYear>                     │
 │               GROUP BY search_term ORDER BY cnt DESC LIMIT 300 (direct)│
 │                                                                          │
-│ backfill-2025-proven.ts → getProvenTerms()                             │
+│ backfill-proven.ts → getProvenTerms()                             │
 │   └─ raw SQL: COUNT(DISTINCT property_id) per search_term,             │
-│               year=2026 vs year=2025, direct comparison                │
+│               sourceYear vs targetYear, direct comparison              │
 │                                                                          │
-│ backfill-2025-unsearched.ts → getUnsearchedTerms()                     │
-│   └─ mine-2026-terms.ts: mineOwnerFirstWords, mineEntityPhrases,       │
+│ backfill-unsearched.ts → getUnsearchedTerms()                     │
+│   └─ mine-year-terms.ts: mineOwnerFirstWords, mineEntityPhrases,       │
 │      mineStreetNames, mineTwoWordOwnerNames, mineDescriptionFirstWords │
 │                                                                          │
-│ backfill-2025-novel.ts → getNovelTerms()                               │
-│   └─ mine-2026-terms.ts: mineOwnerFirstWords, mineStreetNames,         │
+│ backfill-novel.ts → getNovelTerms()                               │
+│   └─ mine-year-terms.ts: mineOwnerFirstWords, mineStreetNames,         │
 │      mineDescriptionFirstWords, mineTwoWordOwnerNames                  │
 │                                                                          │
 │ enqueue-tail-terms.ts → getTailTerms()  —  PHASE 3 ONLY                │
-│   └─ mine-2026-terms.ts: mineOwnerFirstWords, mineStreetNames          │
-│      (Phases 1 & 2 of this same script do NOT reference 2026 —         │
+│   └─ mine-year-terms.ts: mineOwnerFirstWords, mineStreetNames          │
+│      (Phases 1 & 2 of this same script do NOT read the gap —           │
 │       see the other column)                                            │
 │                                                                          │
 └──────────────────────────────────────────────────────────────────────────┘
 
-┌─ NOT 2026-REFERENCING ────────────────────────────────────────────────────┐
+┌─ NOT GAP-REFERENCING ─────────────────────────────────────────────────────┐
 │  (static curated lists + year-agnostic search_term_analytics + pure gen)  │
 │                                                                            │
 │ enqueue-tail-terms.ts → getTailTerms()  —  PHASES 1 & 2                  │
@@ -72,7 +76,7 @@ until 2026 properties are actually scraped in.
 │           no year filter)                                               │
 │   Tier 5  generateCvcvBases() — pure generation, no DB query at all     │
 │                                                                            │
-│   ⟶ main() never touches `WHERE year = 2026`, in any tier               │
+│   ⟶ main() never touches the year gap, in any tier                      │
 │                                                                            │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -88,7 +92,7 @@ until 2026 properties are actually scraped in.
 ┌─ FILTER — scripts/lib/searched-terms.ts + backfill-utils.ts ─────────────┐
 │                                                                           │
 │ getSearchedTermSets()                                                    │
-│   → { allSearched, searched2025, successful, unsuccessful }             │
+│   → { allSearched, searchedForYear, successful, unsuccessful }             │
 │ getBlacklistedTermSet()                                                  │
 │   → zero-yield after 3+ searches                                         │
 │                                                                           │
@@ -105,12 +109,12 @@ until 2026 properties are actually scraped in.
                                  ▼
 ┌─ BATCH LOOP — scripts/lib/backfill-runner.ts: runBackfill(cfg) ──────────┐
 │                                                                           │
-│ while terms remain AND count < TARGET_2025_PROPERTY_COUNT:              │
-│   before = get2025Count()                                                │
+│ while terms remain AND count < targetPropertyCount(year):              │
+│   before = getPropertyCount(year)                                                │
 │   batch  = terms.slice(i, i + BATCH_SIZE)        // BATCH_SIZE = 20     │
 │     enqueue batch    ───────────────▶  (ENQUEUE, below)                 │
 │     wait for drain   ───────────────▶  (DRAIN, below)                   │
-│   after  = get2025Count();  gained = after - before                      │
+│   after  = getPropertyCount(year);  gained = after - before                      │
 │   gained == 0 for N consecutive batches (default 3; tail-terms/novel 5) │
 │     → stop early                                                         │
 │                                                                           │
@@ -161,7 +165,7 @@ until 2026 properties are actually scraped in.
 │  search_term_analytics    totalResults, successRate, avgResultsPerSearch│
 └───────────────────────────────┬──────────────────────────────────────-──┘
                                  │
-                                 │  get2025Count() / getSearchedTermSets()
+                                 │  getPropertyCount(year) / getSearchedTermSets()
                                  │  (via CLOUDFLARE_D1_TOKEN, HTTP)
                                  └──▶ loops back into the BATCH LOOP above
 ```
@@ -173,15 +177,22 @@ until 2026 properties are actually scraped in.
 - **The script never writes to D1 directly.** Its only two live touchpoints
   are `POST /scrape` (enqueue) and `GET /history` (poll for drain), plus
   read-only D1 queries (via `CLOUDFLARE_D1_TOKEN`) to measure
-  `get2025Count()` before/after each batch. All writes happen inside
+  `getPropertyCount(year)` before/after each batch. All writes happen inside
   `ScraperWorkflow`.
-- **`generate-next-200-terms.ts` never references `year = 2026`.** All five
-  tiers draw from static curated lists, the year-agnostic
-  `search_term_analytics` aggregate table, or pure CVCV generation.
+- **`generate-next-200-terms.ts` never reads the year gap.** All five tiers
+  draw from static curated lists, the year-agnostic `search_term_analytics`
+  aggregate table, or pure CVCV generation.
 - **`enqueue-tail-terms.ts` is mixed.** Phases 1 & 2 are year-agnostic
-  (analytics only); Phase 3 calls the same `mine-2026-terms.ts` miners as
-  `backfill-2025-unsearched.ts` / `backfill-2025-novel.ts`, so only Phase 3
-  inherits the "no 2026 data loaded yet" limitation.
+  (analytics only); Phase 3 calls the same `mine-year-terms.ts` miners as
+  `backfill-unsearched.ts` / `backfill-novel.ts`, so only Phase 3 depends on
+  another year being loaded.
+- **`search_term_analytics` has no year column**, so its `total_results`
+  counter aggregates every year ever scraped. It is a valid signal for
+  TCAD-side abundance (`max_results`) but NOT for per-year saturation: on a
+  fresh roll year the `unsuccessful` set flags the densest vocabulary as
+  exhausted. Year-scoped saturation comes from `getYearZeroYieldTerms(year)`,
+  which joins year-stamped `scrape_jobs` (migration 0005) against the year's
+  attributed properties.
 - **Prefix-based dedup throughout.** Because TCAD full-text search is
   prefix-matching, `isSupersetOfAny()` / `buildPrefixIndex()` skip any
   candidate that would only return a subset of an already-searched term's

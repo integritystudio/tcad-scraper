@@ -1,8 +1,8 @@
 /**
- * Backfill 2025 TCAD properties by enqueuing high-yield terms
- * that exist in 2026 data but not yet in 2025.
+ * Backfill a tax year by enqueuing high-yield terms, ordered
+ * proven → analytics → static → dense expansions → seed expansions.
  *
- * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/backfill-2025.ts
+ * Usage: TCAD_YEAR=2026 doppler run -- npx tsx scripts/backfill.ts
  */
 
 import {
@@ -17,10 +17,17 @@ import {
 } from "../utils/constants";
 import { BACKFILL_2025_STATIC_TERMS } from "./config/backfill-2025-static-terms";
 import { runBackfillMain } from "./lib/backfill-runner";
-import { createTermCollector } from "./lib/backfill-utils";
+import { createTermCollector, resolveSourceYear } from "./lib/backfill-utils";
 import { prisma } from "./lib/d1-prisma";
-import { getSearchedTermSets } from "./lib/searched-terms";
+import {
+	getSearchedTermSets,
+	getYearZeroYieldTerms,
+} from "./lib/searched-terms";
 import { TRUNCATION_BUG_ROOTS } from "./lib/terms/TRUNCATION_BUG_ROOTS";
+
+/** Terms attributed at least this many source-year properties are worth re-running. */
+const SOURCE_TERM_LIMIT = 300;
+const ANALYTICS_MIN_TOTAL_RESULTS = 500;
 
 async function getDenseExpansions(allSearched: Set<string>): Promise<string[]> {
 	const dense = await prisma.searchTermAnalytics.findMany({
@@ -89,24 +96,36 @@ async function getSeedExpansions(allSearched: Set<string>): Promise<string[]> {
 // Static high-yield terms — canonical source in config/backfill-2025-static-terms.ts
 const STATIC_TERMS = BACKFILL_2025_STATIC_TERMS;
 
-async function getTermsToBackfill(): Promise<string[]> {
-	const { searched2025, allSearched, successful, unsuccessful } =
-		await getSearchedTermSets();
+async function getTermsToBackfill(targetYear: number): Promise<string[]> {
+	const { searchedForYear, allSearched, successful } =
+		await getSearchedTermSets(targetYear);
 
-	// Source 1: High-yield 2026 terms not yet in 2025
-	const terms2026 = await prisma.$queryRaw<
-		Array<{ search_term: string; cnt: number }>
-	>`
-    SELECT search_term, COUNT(*) as cnt
-    FROM properties
-    WHERE year = 2026
-    GROUP BY search_term
-    ORDER BY cnt DESC
-    LIMIT 300`;
+	// Zero-yield exclusion is scoped to the year being filled. The analytics
+	// table's `unsuccessful` set is deliberately NOT used here: it counts new
+	// saves across every year at once, so on a fresh roll year it flags the
+	// densest, highest-value vocabulary (Maria, Thomas, Paul — thousands of
+	// TCAD matches each) as exhausted purely because 2025 had already
+	// captured them. See getYearZeroYieldTerms().
+	const zeroYield = await getYearZeroYieldTerms(targetYear);
+
+	// Source 1: terms proven on the source year, not yet run for this one
+	const sourceYear = await resolveSourceYear(targetYear);
+	const sourceTerms = sourceYear
+		? await prisma.$queryRaw<Array<{ search_term: string; cnt: number }>>`
+        SELECT search_term, COUNT(*) as cnt
+        FROM properties
+        WHERE year = ${sourceYear}
+        GROUP BY search_term
+        ORDER BY cnt DESC
+        LIMIT ${SOURCE_TERM_LIMIT}`
+		: [];
+	if (sourceYear) {
+		console.log(`  Source year for proven terms: ${sourceYear}`);
+	}
 
 	// Source 2: High-yield analytics terms
 	const analytics = await prisma.searchTermAnalytics.findMany({
-		where: { totalResults: { gt: 500 } },
+		where: { totalResults: { gt: ANALYTICS_MIN_TOTAL_RESULTS } },
 		orderBy: { totalResults: "desc" },
 		select: { searchTerm: true, totalResults: true },
 	});
@@ -118,12 +137,12 @@ async function getTermsToBackfill(): Promise<string[]> {
 	const seedExpansions = await getSeedExpansions(allSearched);
 
 	const { addTerm, result } = createTermCollector({
-		excluded: [searched2025, unsuccessful],
+		excluded: [searchedForYear, zeroYield],
 		supersetsOf: successful,
 	});
 
-	// Priority: proven 2026 > analytics > STATIC FULL TERMS > dense > seed expansions
-	for (const r of terms2026) addTerm(r.search_term);
+	// Priority: proven source-year > analytics > STATIC FULL TERMS > dense > seed expansions
+	for (const r of sourceTerms) addTerm(r.search_term);
 	for (const r of analytics) addTerm(r.searchTerm);
 	console.log(`  Known high-yield terms: ${result.length}`);
 	for (const t of STATIC_TERMS) addTerm(t);

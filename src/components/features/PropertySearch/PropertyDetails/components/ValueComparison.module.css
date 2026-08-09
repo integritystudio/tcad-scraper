@@ -100,10 +100,29 @@
 	overflow: hidden;
 }
 
+/*
+ * Width lives in the two modifiers rather than here, so neither has to
+ * out-cascade a base declaration — the three classes never declare the same
+ * property (see M43 on relying on source order for overrides).
+ */
 .barFill {
 	height: 100%;
 	background: var(--primary-500, #3b82f6);
 	transition: width 0.5s ease;
+}
+
+/* The appraised bar is the 100% reference the assessed bar is measured against. */
+.barFillFull {
+	width: 100%;
+}
+
+/*
+ * --bar-fill-percent is the only thing ValueComparison passes through the style
+ * attribute: a datum, not a style declaration. The 0% fallback keeps the bar
+ * empty rather than full if it is ever rendered without one.
+ */
+.barFillPartial {
+	width: var(--bar-fill-percent, 0%);
 }
 
 .chartValue {

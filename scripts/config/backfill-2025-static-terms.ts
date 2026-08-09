@@ -8,7 +8,7 @@
  *     (each term lives in exactly one list; verify with utils/list-curated-terms.ts,
  *     whose `duplicated` bucket must stay empty)
  *
- * Usage: imported by scripts/backfill-2025.ts as the STATIC_TERMS source.
+ * Usage: imported by scripts/backfill.ts as the STATIC_TERMS source.
  */
 
 export const BACKFILL_2025_STATIC_TERMS: readonly string[] = [

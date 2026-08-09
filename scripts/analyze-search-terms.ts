@@ -12,10 +12,11 @@
 
 import { pathToFileURL } from "node:url";
 import {
+	DEFAULT_TCAD_YEAR,
 	TARGET_2025_PROPERTY_COUNT,
 	THIRTY_DAY_LOOKBACK_MS,
 } from "../utils/constants";
-import { get2025Count } from "./lib/backfill-utils";
+import { getPropertyCount } from "./lib/backfill-utils";
 import { epochAgo, prisma } from "./lib/d1-prisma";
 import { getJobStats } from "./lib/job-stats";
 import logger from "./lib/logger";
@@ -186,7 +187,7 @@ export async function analyzeSearchTerms(): Promise<void> {
 
 	// 7. Property coverage analysis (2025 tax year, matching TARGET_2025_PROPERTY_COUNT)
 	logger.info("\n📊 Property Coverage:");
-	const propertyCount = await get2025Count();
+	const propertyCount = await getPropertyCount(DEFAULT_TCAD_YEAR);
 	logger.info(`   2025 properties in DB: ${propertyCount.toLocaleString()}`);
 	logger.info(`   Target: ${TARGET_2025_PROPERTY_COUNT.toLocaleString()}`);
 	if (propertyCount > TARGET_2025_PROPERTY_COUNT) {

@@ -7,6 +7,10 @@ import type { Prisma } from "@prisma/client";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { cache } from "hono/cache";
+import {
+	DEFAULT_TCAD_YEAR,
+	MAX_QUERY_LIMIT,
+} from "../../../../utils/constants";
 import { notFound, unavailable } from "../../../../utils/http-errors";
 import { TIME_MS } from "../../../../utils/units";
 import type { AppEnv } from "../bindings";
@@ -43,13 +47,19 @@ app.post(
 	apiKeyAuth,
 	validateBody(scrapeRequestSchema),
 	async (c) => {
-		const { searchTerm } = c.get("validatedBody") as { searchTerm: string };
-		const year = parseInt(c.env.TCAD_YEAR, 10) || 2025;
+		const { searchTerm, year: requestedYear } = c.get("validatedBody") as {
+			searchTerm: string;
+			year?: number;
+		};
+		// `|| DEFAULT` not `??` — parseInt yields NaN (not nullish) on a
+		// missing or malformed TCAD_YEAR var.
+		const year =
+			requestedYear ?? (parseInt(c.env.TCAD_YEAR, 10) || DEFAULT_TCAD_YEAR);
 
 		await c.env.SCRAPER_QUEUE.send({ searchTerm, year });
 
 		return c.json(
-			{ message: "Scrape job queued successfully", searchTerm },
+			{ message: "Scrape job queued successfully", searchTerm, year },
 			202,
 		);
 	},
@@ -151,14 +161,13 @@ const runNaturalLanguageSearch = async (
 			`AI query parsing failed, using keyword fallback: ${getErrorMessage(err)}`,
 		);
 		const { searchKeywordFallback } = await import("../lib/keyword-search");
-		// Still clamped: propertyFilterSchema allows an explicit limit up to 1000,
+		// Still clamped: the schema allows an explicit limit up to MAX_QUERY_LIMIT,
 		// which a single FTS page cannot serve.
-		const ftsLimit = Math.min(limit, FTS_MAX_PAGE_SIZE);
 		const fallback = await searchKeywordFallback(
 			prisma,
 			query,
 			DISPLAY_YEAR,
-			ftsLimit,
+			Math.min(limit, FTS_MAX_PAGE_SIZE),
 			offset,
 		);
 		whereClause = fallback.whereClause;
@@ -171,6 +180,16 @@ const runNaturalLanguageSearch = async (
 
 	const yearFilteredClause = { ...whereClause, year: DISPLAY_YEAR };
 
+	// Rows this request can actually serve. The FTS fallback returns a single
+	// SQL page, so it cannot honour a limit above FTS_MAX_PAGE_SIZE; every other
+	// path pages in Prisma at the requested limit. Reported as `pagination.limit`
+	// so a client paging on it steps by what it received — echoing the requested
+	// value instead skipped ranks FTS_MAX_PAGE_SIZE..limit-1 of every page (T15).
+	const effectiveLimit =
+		ftsPrecomputedTotal === undefined
+			? Math.min(limit, MAX_QUERY_LIMIT)
+			: Math.min(limit, FTS_MAX_PAGE_SIZE);
+
 	try {
 		// When the FTS fallback ran SQL pagination, the returned ids are already
 		// the correct page and the total was pre-computed — skip Prisma's count
@@ -180,7 +199,7 @@ const runNaturalLanguageSearch = async (
 				where: yearFilteredClause,
 				orderBy: orderBy || { scrapedAt: "desc" },
 				...(ftsPrecomputedTotal === undefined
-					? { skip: offset, take: Math.min(limit, 1000) }
+					? { skip: offset, take: effectiveLimit }
 					: {}),
 			}),
 			ftsPrecomputedTotal !== undefined
@@ -255,7 +274,7 @@ const runNaturalLanguageSearch = async (
 			data: properties.map(transformPropertyToSnakeCase),
 			pagination: {
 				total,
-				limit: Math.min(limit, 1000),
+				limit: effectiveLimit,
 				offset,
 				hasMore: offset + properties.length < total,
 			},

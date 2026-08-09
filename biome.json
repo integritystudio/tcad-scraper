@@ -49,11 +49,6 @@
 			}
 		}
 	},
-	"css": {
-		"parser": {
-			"cssModules": true
-		}
-	},
 	"javascript": {
 		"formatter": {
 			"quoteStyle": "double"
@@ -68,6 +63,14 @@
 		}
 	},
 	"overrides": [
+		{
+			"includes": ["**/*.module.css"],
+			"css": {
+				"parser": {
+					"cssModules": true
+				}
+			}
+		},
 		{
 			"includes": ["index.html"],
 			"linter": {

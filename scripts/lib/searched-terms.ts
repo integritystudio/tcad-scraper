@@ -1,13 +1,16 @@
 /** Shared utility for loading already-searched term sets across backfill and generation scripts. */
 
-import { RECENT_JOBS_LOOKBACK_MS } from "../../utils/constants";
+import {
+	DEFAULT_TCAD_YEAR,
+	RECENT_JOBS_LOOKBACK_MS,
+} from "../../utils/constants";
 import { epochAgo, prisma } from "./d1-prisma";
 
 export interface SearchedTermSets {
-	/** All analytics terms + year=2025 properties + recent jobs. Use as the general "already tried" gate. */
+	/** All analytics terms + the requested year's properties + recent jobs. Use as the general "already tried" gate. */
 	allSearched: Set<string>;
-	/** Properties from year=2025 + recent jobs. Use for year-specific deduplication. */
-	searched2025: Set<string>;
+	/** Properties from the requested year + recent jobs. Use for year-specific deduplication. */
+	searchedForYear: Set<string>;
 	/** Analytics terms that returned > 0 results. Use for superset filtering. */
 	successful: Set<string>;
 	/**
@@ -17,8 +20,17 @@ export interface SearchedTermSets {
 	 * step). Confirmed by audit (2026-08-07) that this reflects real
 	 * saturation, not broken data: e.g. "Maria" has thousands of TCAD
 	 * matches, but every one was already in D1 under another search term by
-	 * the time "Maria" itself completed. Safe to use as a backfill exclusion
-	 * filter for this reason — see its use in backfill-2025.ts.
+	 * the time "Maria" itself completed.
+	 *
+	 * IMPORTANT — this set is year-blind and must NOT gate a year that has
+	 * not been scraped yet. `search_term_analytics` has no year column
+	 * (`@@unique([searchTerm])`), so the counter aggregates every year ever
+	 * scraped. Saturation is a property of a (term, year) pair, not of a
+	 * term: "Maria" saved 0 new rows for 2025 precisely because 2025 was
+	 * already dense, and would save several thousand against an empty 2026.
+	 * Excluding these terms from a fresh year's backfill would skip exactly
+	 * its highest-yield vocabulary. Use `getYearYield(year)` for a
+	 * year-correct saturation signal.
 	 */
 	unsuccessful: Set<string>;
 }
@@ -26,8 +38,12 @@ export interface SearchedTermSets {
 /**
  * Load all already-searched term sets in a single parallel query.
  * Results are lower-cased for consistent comparison.
+ *
+ * @param year Tax year whose scraped properties define `searchedForYear`.
  */
-export async function getSearchedTermSets(): Promise<SearchedTermSets> {
+export async function getSearchedTermSets(
+	year: number = DEFAULT_TCAD_YEAR,
+): Promise<SearchedTermSets> {
 	const [analyticsRows, propTermRows, recentJobs] = await Promise.all([
 		prisma.searchTermAnalytics.findMany({
 			select: {
@@ -38,10 +54,14 @@ export async function getSearchedTermSets(): Promise<SearchedTermSets> {
 		}),
 		prisma.property.groupBy({
 			by: ["searchTerm"],
-			where: { year: 2025, searchTerm: { not: null } },
+			where: { year, searchTerm: { not: null } },
 		}),
+		// Scoped to `year` (migration 0005) so a run filling one roll year is
+		// not blocked by in-flight jobs for another. Rows predating 0005 were
+		// backfilled to 2025, so no job is silently year-less.
 		prisma.scrapeJob.findMany({
 			where: {
+				year,
 				startedAt: { gte: epochAgo(RECENT_JOBS_LOOKBACK_MS) },
 			},
 			select: { searchTerm: true },
@@ -66,22 +86,85 @@ export async function getSearchedTermSets(): Promise<SearchedTermSets> {
 		allSearched.add(lower);
 	}
 
-	const searched2025 = new Set<string>();
+	const searchedForYear = new Set<string>();
 	for (const r of propTermRows) {
 		if (r.searchTerm) {
 			const lower = r.searchTerm.toLowerCase();
-			searched2025.add(lower);
+			searchedForYear.add(lower);
 			allSearched.add(lower);
 		}
 	}
 
 	for (const j of recentJobs) {
 		const lower = j.searchTerm.toLowerCase();
-		searched2025.add(lower);
+		searchedForYear.add(lower);
 		allSearched.add(lower);
 	}
 
-	return { allSearched, searched2025, successful, unsuccessful };
+	return { allSearched, searchedForYear, successful, unsuccessful };
+}
+
+/**
+ * Distinct properties attributed to each search term for one tax year —
+ * the year-correct counterpart to the year-blind `successful`/`unsuccessful`
+ * sets above.
+ *
+ * `properties.search_term` records the term whose scrape wrote the row, so
+ * the counts partition the year's corpus: every property appears under
+ * exactly one term, and the terms with a non-zero count cover the year
+ * completely. That makes this both the per-year saturation signal and the
+ * ground truth the coverage optimizer plans against.
+ *
+ * Caveat: the attribution is first-writer-wins, not "the only term that
+ * matches". A property matched by ten terms is credited to one, so a term's
+ * count is a lower bound on what it would return from TCAD.
+ */
+export async function getYearYield(year: number): Promise<Map<string, number>> {
+	const rows = await prisma.$queryRaw<
+		Array<{ search_term: string | null; cnt: number | bigint }>
+	>`
+    SELECT search_term, COUNT(DISTINCT property_id) AS cnt
+    FROM properties
+    WHERE year = ${year} AND search_term IS NOT NULL
+    GROUP BY search_term
+    ORDER BY cnt DESC`;
+
+	const yields = new Map<string, number>();
+	for (const r of rows) {
+		if (r.search_term) yields.set(r.search_term, Number(r.cnt));
+	}
+	return yields;
+}
+
+/**
+ * Terms that completed a scrape for `year` and saved nothing for it — the
+ * year-scoped replacement for the year-blind `unsuccessful` set.
+ *
+ * `search_term_analytics` cannot answer this: it has one row per term across
+ * all years, so a term saturated in 2025 is indistinguishable from one that
+ * is saturated everywhere. Joining `scrape_jobs` (year-stamped since
+ * migration 0005) against the year's attributed properties gives the real
+ * per-year signal, and is safe to use as a backfill exclusion — the term was
+ * genuinely tried against this roll year and returned nothing new.
+ *
+ * Lower-cased for consistent comparison.
+ */
+export async function getYearZeroYieldTerms(
+	year: number,
+): Promise<Set<string>> {
+	const rows = await prisma.$queryRaw<Array<{ search_term: string }>>`
+    SELECT DISTINCT j.search_term AS search_term
+    FROM scrape_jobs j
+    LEFT JOIN (
+      SELECT LOWER(search_term) AS lterm, COUNT(*) AS cnt
+      FROM properties
+      WHERE year = ${year} AND search_term IS NOT NULL
+      GROUP BY LOWER(search_term)
+    ) p ON LOWER(j.search_term) = p.lterm
+    WHERE j.year = ${year}
+      AND j.status = 'completed'
+      AND COALESCE(p.cnt, 0) = 0`;
+	return new Set(rows.map((r) => r.search_term.toLowerCase()));
 }
 
 /** Failures before a zero-yield term is treated as a permanent dud. */
