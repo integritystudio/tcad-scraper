@@ -235,9 +235,28 @@ superstring/overlapping term before ranking — not yet implemented.
 ## Term Constraints (TCAD API)
 
 - 4+ characters minimum; 4-6 char terms are the volume sweet spot
-- Works: entity terms (Trust, LLC., Corp), single last names, street addresses, suburb/city names
+- Works: entity terms (Trust, LLC., Corp), single last names, street addresses, suburb/city names — but see the size ceiling below, which rules out the *largest* city names
 - Does NOT work: ZIP codes, compound names, numeric-only terms
 - Some terms trigger truncated JSON responses from TCAD (server-side bug) — see [`truncated-response-terms.md`](truncated-response-terms.md)
+
+### There is an upper size bound: oversized terms 504
+
+A term can be too *big* to search. TCAD's gateway times out and returns **504** before the first page comes back, so the job fails with no partial result.
+
+`austin` is the worked example. It has failed **every time it has been tried — 3 for 3** (2025-08-07, and twice on 2026-08-08), always `TCAD API returned 504`. It is not flaky and it is not worth retrying: roughly **165,580** rows in the 2025 data carry "austin" in owner name, address, or city, about **3× the largest term that has ever succeeded** (`llc.`, 53,899 matches).
+
+So the working range is bounded on both ends:
+
+| | Bound | Evidence |
+|---|---|---|
+| Lower | < 4 chars rejected | TCAD returns 500 |
+| Upper | somewhere between ~54k and ~166k matches | `llc.` (53,899) completes; `austin` (~165,580) 504s every time |
+
+The ceiling has not been measured precisely — no term between those two figures has been attempted. Treat ~50k matches as the largest safe target.
+
+**The trap: an oversized term looks *low*-value in analytics, not high.** `search_term_analytics.max_results` is only written on a *successful* search, so a term that has never completed sits at `max_results = 0` — indistinguishable at a glance from a term that genuinely matches nothing. `AUSTIN` shows `0`, and ranking candidates by `max_results` therefore buries it rather than flagging it as oversized. Before dismissing a zero, check `scrape_jobs` for that term: a row with `status='failed'` and a 504 means too big, not empty.
+
+**Recovering an oversized term:** decompose it, do not retry it. `austin` is a city/address token, so street-level fragments reach the same rows — the `[E|W ]<1-55> ST` grid completed all 165 jobs for 1,163 properties. `optimize-coverage.ts` performs this decomposition automatically and is the preferred route.
 
 ---
 
