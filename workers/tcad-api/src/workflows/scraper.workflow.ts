@@ -35,7 +35,11 @@ import { HttpStatus } from "../../../../utils/http-errors";
 import { DURATION_MS, TIME_MS } from "../../../../utils/units";
 import type { Env } from "../bindings";
 import { createPrisma } from "../db";
-import type { PropertyData, ScrapeParams } from "../types/property.types";
+import type {
+	FetchPageResult,
+	PropertyData,
+	ScrapeParams,
+} from "../types/property.types";
 import {
 	dedupeResultSchema,
 	fetchPageResultSchema,
@@ -104,6 +108,20 @@ async function updateMinMaxResults(
 	}
 }
 
+/** Marker carried by the 401 error so the run loop can recognise it. */
+export const TOKEN_EXPIRED_MARKER = "TOKEN_EXPIRED";
+
+/**
+ * Whether a failed page step was a token expiry.
+ *
+ * Matches on the message rather than `instanceof NonRetryableError`: the error
+ * crosses the Workflows step boundary, where it is serialised and rethrown, so
+ * the prototype does not survive but the message does.
+ */
+export function isTokenExpiredError(err: unknown): boolean {
+	return getErrorMessage(err).includes(TOKEN_EXPIRED_MARKER);
+}
+
 export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 	async run(event: WorkflowEvent<ScrapeParams>, step: WorkflowStep) {
 		const { searchTerm, year } = event.payload;
@@ -124,7 +142,7 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 			// row already exists at this point, so a failed fetch needs to
 			// reach mark-failed instead of leaving it stuck in "processing"
 			// until the 24h stale-job cron catches it.
-			const { token } = await step.do("get-token", async () => {
+			const fetchToken = async (): Promise<{ token: string }> => {
 				// Try KV cache first, fall back to token worker
 				// Phase 3: const cached = await this.env.TOKEN_CACHE.get("tcad-token");
 				const res = await fetch(this.env.TOKEN_WORKER_URL, {
@@ -139,7 +157,9 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 				// Phase 3: await this.env.TOKEN_CACHE.put("tcad-token", token, { expirationTtl: expiresIn - 30 });
 
 				return { token };
-			});
+			};
+
+			let token = (await step.do("get-token", fetchToken)).token;
 
 			// Step 3: Fetch properties from TCAD API — one checkpointed step per
 			// page (see class docstring for why). Each page is written to its
@@ -150,10 +170,16 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 			let totalFetchedSoFar = 0;
 			let totalApiResults = 0;
 			let page = 1;
+			/**
+			 * Bumped each time the token is refreshed mid-run, so the retry's
+			 * step names stay unique — Workflows keys checkpoints by name and
+			 * would otherwise replay the failed attempt's cached result.
+			 */
+			let tokenGeneration = 0;
 
-			while (page <= DEFAULT_QUERY_LIMIT) {
-				const pageResult = await step.do(
-					`fetch-page-${page}`,
+			const fetchPageStep = (label: string): Promise<FetchPageResult> =>
+				step.do(
+					label,
 					{
 						retries: { limit: 3, delay: "5 seconds", backoff: "exponential" },
 						timeout: "45 seconds",
@@ -174,6 +200,32 @@ export class ScraperWorkflow extends WorkflowEntrypoint<Env, ScrapeParams> {
 						});
 					},
 				);
+
+			while (page <= DEFAULT_QUERY_LIMIT) {
+				// A TCAD token lives 5 minutes, which a wide term outruns:
+				// "llc." needs 54 pages of ~1.9 MB each and failed outright on
+				// TOKEN_EXPIRED, saving nothing (2026-08-08). The step's own
+				// retries cannot help — they replay with the same captured
+				// token — so the job mints a fresh one and re-runs the page
+				// under a new step name. Without this, any term needing more
+				// than one token's lifetime of pagination is unscrapeable, and
+				// coverage is silently capped at whatever fits in 5 minutes.
+				let pageResult: FetchPageResult;
+				try {
+					pageResult = await fetchPageStep(`fetch-page-${page}`);
+				} catch (err) {
+					if (!isTokenExpiredError(err)) throw err;
+					tokenGeneration++;
+					console.log(
+						`Token expired on page ${page} of "${searchTerm}" — refreshing (generation ${tokenGeneration})`,
+					);
+					token = (
+						await step.do(`refresh-token-${tokenGeneration}`, fetchToken)
+					).token;
+					pageResult = await fetchPageStep(
+						`fetch-page-${page}-t${tokenGeneration}`,
+					);
+				}
 
 				totalPages++;
 				totalFetchedSoFar += pageResult.pageCount;
@@ -518,9 +570,11 @@ async function fetchTCADPropertiesPage(
 	});
 
 	if (res.status === HttpStatus.UNAUTHORIZED) {
-		// Retrying with the same (now-stale) token would fail identically —
-		// skip the step's retry budget and fail straight to mark-failed.
-		throw new NonRetryableError("TOKEN_EXPIRED");
+		// Non-retryable at the *step* level: the step would replay with the
+		// same captured token and fail identically. The run loop catches this
+		// marker, mints a fresh token, and re-runs the page under a new step
+		// name — see TOKEN_EXPIRED_MARKER.
+		throw new NonRetryableError(TOKEN_EXPIRED_MARKER);
 	}
 
 	if (
