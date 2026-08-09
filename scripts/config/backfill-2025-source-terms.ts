@@ -3,7 +3,7 @@
  *
  * Selection criteria:
  *   - All terms >= 4 characters (MIN_TERM_LENGTH)
- *   - No duplicates with batch-configs.ts, backfill-2025.ts STATIC_TERMS, or
+ *   - No duplicates with batch-configs.ts, backfill.ts STATIC_TERMS, or
  *     the lib/terms/ curated name/geo/entity lists (LAST_NAMES, FIRST_NAMES_*,
  *     STREET_GEOGRAPHIC, BUSINESS_ENTITY) — 38 terms already covered there
  *     were removed 2026-08-07

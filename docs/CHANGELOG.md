@@ -1,5 +1,24 @@
 ## Recent Updates
 
+### August 8, 2026 - Frontend Code Review & FTS Query Fixes
+
+- **FTS pagination ceiling**: Fixed 90-result ceiling that clamped pages 2+ in FTS fallback; `ftsQueryPage` now includes `LIMIT`/`OFFSET` + `COUNT(*)` in SQL
+- **FTS search columns**: Added secondary owner columns (`dba`, `name_secondary`) to virtual table with 9.0 BM25 weights; applied to production D1 (2026-08-08, 484K rows indexed)
+- **FTS limit reporting**: `runNaturalLanguageSearch` now reports actual `effectiveLimit` instead of requested limit, fixing client-side pagination skip
+- **Search race condition**: Fixed loading flag cleared by stale request finalization; checks `abortRef === current` before clearing
+- **Duplicate search POST**: `handleSearch()` now mirrors debounce path's dedup logic, preventing double-submission
+- **Pagination edge cases**: Fixed stale page number when results shrink, stale footer text implying incomplete results are complete
+- **Card layout**: Restored PropertyDetails below its toggle button (UI control flow)
+- **CSS specificity**: Moved Card rules into `@layer card` so consumer styles win by construction (hardens AttributionCard mobile padding fix)
+- **Falsy-zero guard**: ValueComparison chart now displays for zero assessed values (fixed `!assessedValue` check)
+- **Live-search debounce**: Verified 3-char minimum enforced, 1.5s debounce working, GET cache serving repeats
+- **Inline styles eliminated**: Moved ValueComparison bar widths and AnswerBox skeleton dimensions to CSS modules; `grep "style={{" src/` now empty outside tests
+- **CSS Modules lint**: Biome's `cssModules: true` scoped to `**/*.module.css` only; plain `.css` files now correctly reject `composes` declarations
+
+See [changelog/2026-08-08.md](changelog/2026-08-08.md) for full review details.
+
+---
+
 ### August 6, 2026 - Documentation Audit & Code Cleanup
 
 - **CI Coverage**: Added GitHub Actions jobs for `workers/tcad-api/` (TypeScript, vitest, dry-run deploy) and E2E tests (Playwright)

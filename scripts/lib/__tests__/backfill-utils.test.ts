@@ -11,7 +11,7 @@ vi.mock("../d1-prisma", () => ({
 import {
 	buildPrefixIndex,
 	createTermCollector,
-	get2025Count,
+	getPropertyCount,
 	isSupersetOfAny,
 } from "../backfill-utils";
 
@@ -19,16 +19,16 @@ beforeEach(() => {
 	vi.clearAllMocks();
 });
 
-describe("get2025Count", () => {
+describe("getPropertyCount", () => {
 	it("returns the count from the query result", async () => {
 		mockQueryRaw.mockResolvedValue([{ count: 12345 }]);
-		const result = await get2025Count();
+		const result = await getPropertyCount(2025);
 		expect(result).toBe(12345);
 	});
 
 	it("returns 0 when no properties exist", async () => {
 		mockQueryRaw.mockResolvedValue([{ count: 0 }]);
-		const result = await get2025Count();
+		const result = await getPropertyCount(2025);
 		expect(result).toBe(0);
 	});
 });

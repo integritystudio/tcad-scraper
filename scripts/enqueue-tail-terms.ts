@@ -3,20 +3,24 @@
  * high-yield terms have been exhausted.
  *
  * Three phases, each ordered by expected yield:
- *   Phase 1: Unscrapped analytics terms (proven yielders not yet searched for 2025)
+ *   Phase 1: Unscrapped analytics terms (proven yielders not yet searched for the target year)
  *   Phase 2: Analytics tail terms ranked by total_results DESC (diminishing returns)
- *   Phase 3: Owner-name mining from 2026-only properties (novel terms)
+ *   Phase 3: Owner-name mining from the year gap (novel terms)
  *
  * Uses the backfill-runner loop with adaptive zero-batch cutoff (default 5).
  *
- * Usage: TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts
- *        TCAD_YEAR=2025 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 2
+ * Usage: TCAD_YEAR=2026 doppler run -- npx tsx scripts/enqueue-tail-terms.ts
+ *        TCAD_YEAR=2026 doppler run -- npx tsx scripts/enqueue-tail-terms.ts --phase 2
  */
 
 import { runBackfillMain } from "./lib/backfill-runner";
-import { createTermCollector, mineAndAdd } from "./lib/backfill-utils";
+import {
+	createTermCollector,
+	mineAndAdd,
+	resolveSourceYear,
+} from "./lib/backfill-utils";
 import { prisma } from "./lib/d1-prisma";
-import { mineOwnerFirstWords, mineStreetNames } from "./lib/mine-2026-terms";
+import { mineOwnerFirstWords, mineStreetNames } from "./lib/mine-year-terms";
 import { getSearchedTermSets } from "./lib/searched-terms";
 
 const MAX_CONSECUTIVE_ZERO_BATCHES = 5;
@@ -42,10 +46,10 @@ function parsePhaseArg(): number | null {
 	return val >= 1 && val <= 3 ? val : null;
 }
 
-async function getTailTerms(): Promise<string[]> {
-	const { searched2025, successful } = await getSearchedTermSets();
+async function getTailTerms(targetYear: number): Promise<string[]> {
+	const { searchedForYear, successful } = await getSearchedTermSets(targetYear);
 	const collector = createTermCollector({
-		excluded: [searched2025],
+		excluded: [searchedForYear],
 		supersetsOf: successful,
 	});
 	const { addTerm, result, stats } = collector;
@@ -68,15 +72,26 @@ async function getTailTerms(): Promise<string[]> {
 		console.log(`    Added: ${result.length - prevCount} terms`);
 	}
 
-	// ── Phase 3: Owner-name mining from 2026-only properties ──────────
+	// ── Phase 3: Owner-name mining from the year gap ──────────────────
 	if (runPhase3) {
-		console.log("  Phase 3: Mining owner names from 2026-only properties...");
-		await mineAndAdd(collector, "owner first-words", () =>
-			mineOwnerFirstWords({ minCount: MIN_PROPS_PER_TERM }),
-		);
-		await mineAndAdd(collector, "street names", () =>
-			mineStreetNames({ minCount: MIN_PROPS_PER_TERM }),
-		);
+		const sourceYear = await resolveSourceYear(targetYear);
+		if (sourceYear === null) {
+			console.log("  Phase 3: skipped — no other tax year in D1 to mine.");
+		} else {
+			console.log(
+				`  Phase 3: Mining owner names from the ${sourceYear} → ${targetYear} gap...`,
+			);
+			// excludeAllNumeric: mined street numbers and numeric entity names
+			// ('1905', '4229') cannot be searched as bare terms, so enqueuing them
+			// only burns jobs.
+			const years = { sourceYear, targetYear, excludeAllNumeric: true };
+			await mineAndAdd(collector, "owner first-words", () =>
+				mineOwnerFirstWords({ ...years, minCount: MIN_PROPS_PER_TERM }),
+			);
+			await mineAndAdd(collector, "street names", () =>
+				mineStreetNames({ ...years, minCount: MIN_PROPS_PER_TERM }),
+			);
+		}
 	}
 
 	console.log(

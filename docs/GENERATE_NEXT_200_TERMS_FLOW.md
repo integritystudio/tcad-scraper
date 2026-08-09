@@ -304,6 +304,6 @@ the rest of `ENQUEUE_FLOW.md`: Workers API → `scrape_jobs` insert → CF Queue
   then re-scores and reorders (and can drop) that whole set against live
   `properties` match counts — a term can survive tier selection and still be
   dropped here if it has fewer than `YIELD_MIN_MATCHES` (5) in-DB hits.
-- **`--enqueue` is fire-and-forget**, unlike the `backfill-2025-*` scripts —
+- **`--enqueue` is fire-and-forget**, unlike the `backfill-*` scripts —
   no drain-wait, no before/after property-count comparison, no
   zero-yield-batch stopping condition.

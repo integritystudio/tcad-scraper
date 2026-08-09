@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { type CSSProperties, useMemo } from "react";
 import { useFormatting } from "../../../../../hooks";
 import styles from "./ValueComparison.module.css";
 
@@ -81,8 +81,7 @@ export const ValueComparison = ({
 										<div className={styles.chartLabel}>Appraised</div>
 										<div className={styles.barBackground}>
 											<div
-												className={styles.barFill}
-												style={{ width: "100%" }}
+												className={`${styles.barFill} ${styles.barFillFull}`}
 											/>
 										</div>
 										<div className={styles.chartValue}>100%</div>
@@ -92,8 +91,12 @@ export const ValueComparison = ({
 											<div className={styles.chartLabel}>Assessed</div>
 											<div className={styles.barBackground}>
 												<div
-													className={styles.barFill}
-													style={{ width: `${assessedPercentage}%` }}
+													className={`${styles.barFill} ${styles.barFillPartial}`}
+													style={
+														{
+															"--bar-fill-percent": `${assessedPercentage}%`,
+														} as CSSProperties
+													}
 												/>
 											</div>
 											<div className={styles.chartValue}>

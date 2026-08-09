@@ -22,16 +22,20 @@ vi.mock("../queue-utils", () => ({
 }));
 
 vi.mock("../backfill-utils", () => ({
-	get2025Count: () => mockGet2025Count(),
+	getPropertyCount: (...args: unknown[]) => mockGet2025Count(...args),
 }));
 
 vi.mock("../../../utils/constants", () => ({
-	TARGET_2025_PROPERTY_COUNT: 100,
+	DEFAULT_TCAD_YEAR: 2025,
+	TCAD_YEAR_MIN: 2000,
+	TCAD_YEAR_MAX: 2100,
+	targetPropertyCount: () => 100,
 }));
 
 import {
 	type BackfillConfig,
 	DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES,
+	resolveTargetYear,
 	runBackfill,
 } from "../backfill-runner";
 
@@ -39,7 +43,7 @@ import {
 const TEST_TARGET_COUNT = 100;
 const _TEST_BATCH_SIZE = 3;
 const EXPECTED_DEFAULT_MAX_ZERO_BATCHES = 3; // must match backfill-runner.ts
-const WRONG_YEAR = 2026;
+const OUT_OF_RANGE_YEAR = 12026;
 const BELOW_TARGET = 50;
 
 beforeEach(() => {
@@ -48,6 +52,31 @@ beforeEach(() => {
 	// enqueueBatch resolves to the terms the API accepted — default: all of them
 	mockEnqueueBatch.mockImplementation(async (terms: unknown) => terms);
 	mockWaitForQueueDrain.mockResolvedValue(undefined);
+});
+
+describe("resolveTargetYear", () => {
+	const DEFAULT_YEAR = 2025;
+	const OTHER_YEAR = 2026;
+
+	it("defaults to DEFAULT_TCAD_YEAR when TCAD_YEAR is unset", () => {
+		expect(resolveTargetYear()).toBe(DEFAULT_YEAR);
+	});
+
+	it("accepts any in-range year — the loop is no longer pinned to 2025", () => {
+		process.env.TCAD_YEAR = String(OTHER_YEAR);
+		expect(resolveTargetYear()).toBe(OTHER_YEAR);
+	});
+
+	it("exits rather than proceeding on a non-numeric TCAD_YEAR", () => {
+		process.env.TCAD_YEAR = "not-a-year";
+		const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
+			throw new Error("process.exit");
+		});
+
+		expect(() => resolveTargetYear()).toThrow("process.exit");
+		expect(exitSpy).toHaveBeenCalledWith(1);
+		exitSpy.mockRestore();
+	});
 });
 
 function makeCfg(overrides: Partial<BackfillConfig> = {}): BackfillConfig {
@@ -87,11 +116,11 @@ describe("runBackfill", () => {
 		await runBackfill(makeCfg());
 
 		expect(mockEnqueueBatch).toHaveBeenCalledTimes(1);
-		expect(mockEnqueueBatch).toHaveBeenCalledWith([
-			"alpha",
-			"bravo",
-			"charlie",
-		]);
+		expect(mockEnqueueBatch).toHaveBeenCalledWith(
+			["alpha", "bravo", "charlie"],
+			expect.anything(),
+			2025,
+		);
 		expect(mockWaitForQueueDrain).toHaveBeenCalledTimes(1);
 		expect(mockWaitForQueueDrain).toHaveBeenCalledWith(
 			["alpha", "bravo", "charlie"],
@@ -163,11 +192,15 @@ describe("runBackfill", () => {
 
 		await runBackfill(makeCfg());
 
-		expect(mockEnqueueBatch).toHaveBeenCalledWith(expect.any(Array));
+		expect(mockEnqueueBatch).toHaveBeenCalledWith(
+			expect.any(Array),
+			expect.anything(),
+			2025,
+		);
 	});
 
-	it("calls process.exit(1) when TCAD_YEAR is not 2025", async () => {
-		process.env.TCAD_YEAR = String(WRONG_YEAR);
+	it("calls process.exit(1) when TCAD_YEAR is outside the accepted range", async () => {
+		process.env.TCAD_YEAR = String(OUT_OF_RANGE_YEAR);
 		const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
 			throw new Error("process.exit");
 		});
@@ -190,12 +223,18 @@ describe("runBackfill", () => {
 
 		await runBackfill(makeCfg());
 
-		expect(mockEnqueueBatch).toHaveBeenNthCalledWith(1, [
-			"alpha",
-			"bravo",
-			"charlie",
-		]);
-		expect(mockEnqueueBatch).toHaveBeenNthCalledWith(2, ["delta", "echo"]);
+		expect(mockEnqueueBatch).toHaveBeenNthCalledWith(
+			1,
+			["alpha", "bravo", "charlie"],
+			expect.anything(),
+			2025,
+		);
+		expect(mockEnqueueBatch).toHaveBeenNthCalledWith(
+			2,
+			["delta", "echo"],
+			expect.anything(),
+			2025,
+		);
 	});
 
 	it("exports DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES as 3", () => {

@@ -69,12 +69,21 @@ export const truncateText = (text: string, maxLength: number): string => {
 	return `${text.slice(0, maxLength - 3)}...`;
 };
 
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
+export const MS_PER_MINUTE = 1000 * 60;
+export const MS_PER_HOUR = MS_PER_MINUTE * 60;
+export const MS_PER_DAY = MS_PER_HOUR * 24;
+
+/**
+ * Milliseconds elapsed between a date string and now. Callers that need more
+ * than one unit should call this once and divide, rather than combining
+ * daysSince() with their own Date.now() — that redoes the same subtraction and
+ * can straddle a tick, yielding units read from two different "now"s.
+ */
+export const elapsedMs = (dateString: string): number =>
+	Date.now() - new Date(dateString).getTime();
 
 /**
  * Number of whole days elapsed between a date string and now
  */
-export const daysSince = (dateString: string): number => {
-	const diffMs = Date.now() - new Date(dateString).getTime();
-	return Math.floor(diffMs / MS_PER_DAY);
-};
+export const daysSince = (dateString: string): number =>
+	Math.floor(elapsedMs(dateString) / MS_PER_DAY);

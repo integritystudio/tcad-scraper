@@ -3,8 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // queue-utils exits at import time without an API key, so the env must be set
 // before the module loads — hence the dynamic import instead of a static one.
 process.env.TCAD_API_KEY = "test-api-key";
-const { DRAIN_TIMEOUT_MS, POLL_INTERVAL_MS, enqueueBatch, waitForQueueDrain } =
-	await import("../queue-utils");
+const {
+	DRAIN_TIMEOUT_MS,
+	ENQUEUE_MAX_ATTEMPTS,
+	POLL_INTERVAL_MS,
+	enqueueBatch,
+	waitForQueueDrain,
+} = await import("../queue-utils");
 
 interface HistoryJob {
 	searchTerm: string;
@@ -274,6 +279,12 @@ describe("waitForQueueDrain", () => {
 });
 
 describe("enqueueBatch", () => {
+	/** Drive the retry backoff to completion under fake timers. */
+	async function settle<T>(pending: Promise<T>): Promise<T> {
+		await vi.runAllTimersAsync();
+		return pending;
+	}
+
 	it("POSTs each term to the scrape endpoint with the API key", async () => {
 		const fetchMock = vi.fn().mockResolvedValue(okResponse());
 		vi.stubGlobal("fetch", fetchMock);
@@ -293,16 +304,29 @@ describe("enqueueBatch", () => {
 		);
 	});
 
+	it("includes the year in the body only when one is supplied", async () => {
+		const fetchMock = vi.fn().mockResolvedValue(okResponse());
+		vi.stubGlobal("fetch", fetchMock);
+
+		await enqueueBatch(["Alpha"], { error: vi.fn() }, 2026);
+
+		expect(fetchMock.mock.calls[0][1].body).toBe(
+			JSON.stringify({ searchTerm: "Alpha", year: 2026 }),
+		);
+	});
+
 	it("returns only the terms the API accepted", async () => {
 		const logger = { error: vi.fn() };
 		const fetchMock = vi
 			.fn()
 			.mockResolvedValueOnce(okResponse())
-			.mockResolvedValueOnce(errorResponse(500, "Internal Server Error"))
+			.mockResolvedValueOnce(errorResponse(400, "Bad Request"))
 			.mockResolvedValueOnce(okResponse());
 		vi.stubGlobal("fetch", fetchMock);
 
-		const enqueued = await enqueueBatch(["Alpha", "Bravo", "Charlie"], logger);
+		const enqueued = await settle(
+			enqueueBatch(["Alpha", "Bravo", "Charlie"], logger),
+		);
 
 		expect(enqueued).toEqual(["Alpha", "Charlie"]);
 		expect(logger.error).toHaveBeenCalledWith(
@@ -310,16 +334,72 @@ describe("enqueueBatch", () => {
 		);
 	});
 
-	it("omits terms whose request throws and logs the error", async () => {
+	it("retries a transient 5xx and keeps the term when a later attempt succeeds", async () => {
+		const logger = { error: vi.fn() };
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(errorResponse(503, "Service Unavailable"))
+			.mockResolvedValueOnce(okResponse());
+		vi.stubGlobal("fetch", fetchMock);
+
+		const enqueued = await settle(enqueueBatch(["Alpha"], logger));
+
+		// A momentary 503 must not silently drop a term: for a coverage-planned
+		// set, the dropped term is the only one covering its block of properties.
+		expect(enqueued).toEqual(["Alpha"]);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	it("retries a 429 as transient", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(errorResponse(429, "Too Many Requests"))
+			.mockResolvedValueOnce(okResponse());
+		vi.stubGlobal("fetch", fetchMock);
+
+		const enqueued = await settle(enqueueBatch(["Alpha"], { error: vi.fn() }));
+
+		expect(enqueued).toEqual(["Alpha"]);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	it("does not retry a 4xx — it is deterministic, so retrying only triples the noise", async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(errorResponse(401, "Unauthorized"));
+		vi.stubGlobal("fetch", fetchMock);
+
+		const enqueued = await settle(enqueueBatch(["Alpha"], { error: vi.fn() }));
+
+		expect(enqueued).toEqual([]);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("retries a thrown network error up to the attempt limit, then reports exhaustion", async () => {
 		const logger = { error: vi.fn() };
 		const fetchMock = vi.fn().mockRejectedValue(new Error("network down"));
 		vi.stubGlobal("fetch", fetchMock);
 
-		const enqueued = await enqueueBatch(["Alpha"], logger);
+		const enqueued = await settle(enqueueBatch(["Alpha"], logger));
 
 		expect(enqueued).toEqual([]);
+		expect(fetchMock).toHaveBeenCalledTimes(ENQUEUE_MAX_ATTEMPTS);
 		expect(logger.error).toHaveBeenCalledWith(
 			expect.stringContaining("network down"),
 		);
+	});
+
+	it("names every exhausted term in one summary line so it is greppable in a long run", async () => {
+		const logger = { error: vi.fn() };
+		const fetchMock = vi.fn().mockResolvedValue(errorResponse(500, "Boom"));
+		vi.stubGlobal("fetch", fetchMock);
+
+		await settle(enqueueBatch(["Alpha", "Bravo"], logger));
+
+		const summary = logger.error.mock.calls
+			.map((c) => String(c[0]))
+			.find((line) => line.includes("Enqueue exhausted"));
+		expect(summary).toContain("Alpha");
+		expect(summary).toContain("Bravo");
 	});
 });

@@ -1,14 +1,22 @@
-/** Generic backfill loop shared by all backfill-2025* scripts. */
+/** Generic backfill loop shared by all backfill scripts. */
 
-import { TARGET_2025_PROPERTY_COUNT as TARGET_2025_COUNT } from "../../utils/constants";
-import { get2025Count } from "./backfill-utils";
+import {
+	DEFAULT_TCAD_YEAR,
+	TCAD_YEAR_MAX,
+	TCAD_YEAR_MIN,
+	targetPropertyCount,
+} from "../../utils/constants";
+import { getPropertyCount } from "./backfill-utils";
 import { BATCH_SIZE, enqueueBatch, waitForQueueDrain } from "./queue-utils";
 import { runMain } from "./run-main";
 
 export interface BackfillConfig {
-	/** Function that returns the terms to backfill */
-	getTerms: () => Promise<string[]>;
-	/** Display label for the header (e.g. "Proven 2026 Terms") */
+	/**
+	 * Terms to backfill. Receives the resolved target year so callers can mine
+	 * the gap against the year actually being filled.
+	 */
+	getTerms: (year: number) => Promise<string[]>;
+	/** Display label for the header (e.g. "Proven Gap Terms") */
 	label: string;
 	/** Max consecutive zero-result batches before stopping (default: 3) */
 	maxConsecutiveZeroBatches?: number;
@@ -16,32 +24,45 @@ export interface BackfillConfig {
 
 export const DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES = 3;
 
+/**
+ * Resolve the roll year to fill from TCAD_YEAR, or exit non-zero if it is
+ * unusable. Previously this pinned the value to 2025; a backfill now names its
+ * year, and every downstream count, target and enqueue is scoped to it.
+ */
+export function resolveTargetYear(): number {
+	if (!process.env.TCAD_YEAR) return DEFAULT_TCAD_YEAR;
+
+	const year = parseInt(process.env.TCAD_YEAR, 10);
+	if (!Number.isInteger(year) || year < TCAD_YEAR_MIN || year > TCAD_YEAR_MAX) {
+		console.error(
+			`ERROR: TCAD_YEAR is "${process.env.TCAD_YEAR}", must be an integer in ${TCAD_YEAR_MIN}-${TCAD_YEAR_MAX}.`,
+		);
+		const script = process.argv[1] ?? "<script>";
+		console.error(`Run with: TCAD_YEAR=2026 doppler run -- npx tsx ${script}`);
+		process.exit(1);
+	}
+	return year;
+}
+
 export async function runBackfill(cfg: BackfillConfig): Promise<void> {
 	const maxZero =
 		cfg.maxConsecutiveZeroBatches ?? DEFAULT_MAX_CONSECUTIVE_ZERO_BATCHES;
 
-	const tcadYear = process.env.TCAD_YEAR
-		? parseInt(process.env.TCAD_YEAR, 10)
-		: 2025;
-	if (tcadYear !== 2025) {
-		console.error(`ERROR: TCAD_YEAR is ${tcadYear}, must be 2025.`);
-		const script = process.argv[1] ?? "<script>";
-		console.error(`Run with: TCAD_YEAR=2025 doppler run -- npx tsx ${script}`);
-		process.exit(1);
-	}
+	const year = resolveTargetYear();
+	const target = targetPropertyCount(year);
 
-	let current = await get2025Count();
-	console.log(`\n=== 2025 Backfill (${cfg.label}) ===`);
-	console.log(`Current 2025 properties: ${current.toLocaleString()}`);
-	console.log(`Target: ${TARGET_2025_COUNT.toLocaleString()}`);
-	console.log(`Gap: ${(TARGET_2025_COUNT - current).toLocaleString()}\n`);
+	let current = await getPropertyCount(year);
+	console.log(`\n=== ${year} Backfill (${cfg.label}) ===`);
+	console.log(`Current ${year} properties: ${current.toLocaleString()}`);
+	console.log(`Target: ${target.toLocaleString()}`);
+	console.log(`Gap: ${(target - current).toLocaleString()}\n`);
 
-	if (current >= TARGET_2025_COUNT) {
+	if (current >= target) {
 		console.log("Already at target.");
 		return;
 	}
 
-	const allTerms = await cfg.getTerms();
+	const allTerms = await cfg.getTerms(year);
 	console.log(`\nTerms to backfill: ${allTerms.length}\n`);
 
 	if (allTerms.length === 0) {
@@ -53,10 +74,10 @@ export async function runBackfill(cfg: BackfillConfig): Promise<void> {
 	let consecutiveZeroBatches = 0;
 	let totalGained = 0;
 	for (let i = 0; i < allTerms.length; i += BATCH_SIZE) {
-		current = await get2025Count();
-		if (current >= TARGET_2025_COUNT) {
+		current = await getPropertyCount(year);
+		if (current >= target) {
 			console.log(
-				`\nTarget reached: ${current.toLocaleString()} >= ${TARGET_2025_COUNT.toLocaleString()}`,
+				`\nTarget reached: ${current.toLocaleString()} >= ${target.toLocaleString()}`,
 			);
 			break;
 		}
@@ -67,21 +88,21 @@ export async function runBackfill(cfg: BackfillConfig): Promise<void> {
 		console.log(`  Terms: ${batch.join(", ")}`);
 
 		const enqueuedAtMs = Date.now();
-		const enqueued = await enqueueBatch(batch);
+		const enqueued = await enqueueBatch(batch, console, year);
 		console.log(`  Enqueued: ${enqueued.length}/${batch.length}`);
 
 		if (enqueued.length > 0) {
 			await waitForQueueDrain(enqueued, enqueuedAtMs);
 		}
 
-		const newCount = await get2025Count();
+		const newCount = await getPropertyCount(year);
 		const gained = newCount - current;
 		totalGained += gained;
 		console.log(
-			`  2025 properties: ${newCount.toLocaleString()} (+${gained.toLocaleString()}) [session: +${totalGained.toLocaleString()}]`,
+			`  ${year} properties: ${newCount.toLocaleString()} (+${gained.toLocaleString()}) [session: +${totalGained.toLocaleString()}]`,
 		);
 		console.log(
-			`  Remaining: ${Math.max(0, TARGET_2025_COUNT - newCount).toLocaleString()}`,
+			`  Remaining: ${Math.max(0, target - newCount).toLocaleString()}`,
 		);
 
 		if (gained === 0) {
@@ -99,11 +120,11 @@ export async function runBackfill(cfg: BackfillConfig): Promise<void> {
 		console.log("");
 	}
 
-	const finalCount = await get2025Count();
+	const finalCount = await getPropertyCount(year);
 	console.log(`\n=== Done ===`);
-	console.log(`Final 2025 count: ${finalCount.toLocaleString()}`);
+	console.log(`Final ${year} count: ${finalCount.toLocaleString()}`);
 	console.log(`Session gained: +${totalGained.toLocaleString()}`);
-	console.log(`Target met: ${finalCount >= TARGET_2025_COUNT ? "YES" : "NO"}`);
+	console.log(`Target met: ${finalCount >= target ? "YES" : "NO"}`);
 }
 
 /** Standard entry point wrapper with error handling and cleanup. */

@@ -12,6 +12,15 @@ export const TCAD_API_URL =
 // SELECT ... WHERE property_id IN (...) probe fits D1's 100-param limit.
 export const UPSERT_CHUNK_SIZE = 50;
 
+// ── Deduped-rows KV chunking ────────────────────────────────────────
+// Rows per KV value in the workflow's deduplicate step. A single KV value is
+// capped at 25 MiB; the full 88-column TCAD capture runs ~1.7 KB per row, so
+// "blvd" (~17k rows for the 2026 roll) serialized to 28.8 MB and failed the
+// job outright (incident 2026-08-08). 2,000 rows is ~3.4 MB — an order of
+// magnitude of headroom, so a term matching several times wider than any seen
+// so far still fits.
+export const DEDUPE_KV_CHUNK_SIZE = 2_000;
+
 // ── D1 upsert micro-chunking ──────────────────────────────────────
 // D1 has a hard limit of 100 bound parameters per query.
 // 88 inserted columns per property row since the full TCAD capture

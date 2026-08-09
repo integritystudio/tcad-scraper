@@ -4,6 +4,11 @@
  */
 
 import { z } from "zod";
+import {
+	MAX_QUERY_LIMIT,
+	TCAD_YEAR_MAX,
+	TCAD_YEAR_MIN,
+} from "../../../../utils/constants";
 import { FTS_MAX_PAGE_SIZE } from "../utils/constants";
 
 const MIN_TERM_LENGTH = 4;
@@ -16,6 +21,13 @@ export const scrapeRequestSchema = z.object({
 			`Search term must be at least ${MIN_TERM_LENGTH} characters`,
 		)
 		.max(100),
+	/**
+	 * Tax year to scrape. Omit to use the deployment's TCAD_YEAR var. Present
+	 * so a backfill of one roll year can run without redeploying the Worker
+	 * with a changed global — TCAD serves several years concurrently, and
+	 * flipping TCAD_YEAR would also retarget the monitored-search cron.
+	 */
+	year: z.number().int().min(TCAD_YEAR_MIN).max(TCAD_YEAR_MAX).optional(),
 	userId: z.string().optional(),
 });
 
@@ -25,13 +37,17 @@ export const propertyFilterSchema = z.object({
 	propType: z.string().optional(),
 	minValue: z.coerce.number().optional(),
 	maxValue: z.coerce.number().optional(),
-	limit: z.coerce.number().min(1).max(1000).default(FTS_MAX_PAGE_SIZE),
+	limit: z.coerce
+		.number()
+		.min(1)
+		.max(MAX_QUERY_LIMIT)
+		.default(FTS_MAX_PAGE_SIZE),
 	offset: z.coerce.number().min(0).default(0),
 });
 
 export const naturalLanguageSearchSchema = z.object({
 	query: z.string().min(1).max(500),
-	limit: z.number().min(1).max(1000).optional(),
+	limit: z.number().min(1).max(MAX_QUERY_LIMIT).optional(),
 	offset: z.number().min(0).optional(),
 });
 
@@ -39,7 +55,7 @@ export const naturalLanguageSearchSchema = z.object({
 // strings, so the numeric bounds coerce.
 export const naturalLanguageSearchQuerySchema = z.object({
 	query: z.string().min(1).max(500),
-	limit: z.coerce.number().min(1).max(1000).optional(),
+	limit: z.coerce.number().min(1).max(MAX_QUERY_LIMIT).optional(),
 	offset: z.coerce.number().min(0).optional(),
 });
 
@@ -169,7 +185,14 @@ export const fetchResultSchema = z.object({
 });
 
 export const dedupeResultSchema = z.object({
-	kvKey: z.string(),
+	/**
+	 * Base key for the deduped rows; the actual values live at
+	 * `${kvKeyPrefix}:${i}` for i in [0, chunkCount). Chunked because a single
+	 * KV value is capped at 25 MiB and a high-match term exceeds it — "blvd"
+	 * produced 28.8 MB for the 2026 roll (incident 2026-08-08).
+	 */
+	kvKeyPrefix: z.string(),
+	chunkCount: z.number(),
 	count: z.number(),
 });
 
