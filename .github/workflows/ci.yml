@@ -35,8 +35,11 @@ jobs:
         run: npm run lint --if-present
         continue-on-error: true
 
-      - name: TypeScript Check (Root — src only)
-        run: npx tsc --noEmit
+      # Must target the leaf projects: the root tsconfig.json is solution-style
+      # (files: [] + references), so a bare `tsc --noEmit` resolves zero input
+      # files and passes unconditionally.
+      - name: TypeScript Check (Root — src + config files)
+        run: npm run typecheck
 
   # Job 2: Unit Tests (frontend)
   unit-tests:
