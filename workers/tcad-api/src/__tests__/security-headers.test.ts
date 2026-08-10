@@ -44,14 +44,15 @@ beforeEach(() => {
 });
 
 describe("security headers", () => {
-	it.each(
-		Object.entries(EXPECTED_SECURITY_HEADERS),
-	)("sets %s on a successful response", async (header, value) => {
-		const res = await app.request("/health", {}, TEST_ENV);
+	it.each(Object.entries(EXPECTED_SECURITY_HEADERS))(
+		"sets %s on a successful response",
+		async (header, value) => {
+			const res = await app.request("/health", {}, TEST_ENV);
 
-		expect(res.status).toBe(200);
-		expect(res.headers.get(header)).toBe(value);
-	});
+			expect(res.status).toBe(200);
+			expect(res.headers.get(header)).toBe(value);
+		},
+	);
 
 	it("sets security headers on 404 responses", async () => {
 		const res = await app.request("/nonexistent", {}, TEST_ENV);

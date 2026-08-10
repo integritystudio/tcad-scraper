@@ -153,7 +153,6 @@ export const AnswerBox = ({
 	};
 
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: section with role="status" is appropriate for this complex, dynamically-updated AI answer container
 		<section
 			className={`${styles.answerBox} ${getStateClass()}`}
 			aria-label={`AI-generated answer for "${searchQuery}"`}

@@ -239,9 +239,9 @@ async function runMonitoredSearches(env: Env): Promise<void> {
 
 // ── Export with Sentry wrapping ────────────────────────────────────
 
+export { ScraperWorkflow } from "./workflows/scraper.workflow";
 // Bare app exported for tests; production traffic uses the Sentry-wrapped default export
 export { app };
-export { ScraperWorkflow } from "./workflows/scraper.workflow";
 
 export default Sentry.withSentry(
 	(env: Env) => ({

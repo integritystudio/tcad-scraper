@@ -135,8 +135,8 @@ npx vitest run               # Frontend unit tests (a few seconds; `npm test` = 
 npm run test:coverage        # Frontend coverage report
 npm run test:e2e             # E2E; visual specs are macOS-only, so some skip on Linux CI
 cd workers/tcad-api && npm test        # Workers tests
-npx vitest run --dir scripts --config /dev/null  # Scripts tests
-npx vitest run --dir link-check --config /dev/null  # External links (weekly cron, not in the unit suite)
+npx vitest run --dir scripts --config scripts/vitest.config.ts  # Scripts tests
+npx vitest run --dir link-check --config link-check/vitest.config.ts  # External links (weekly cron, not in the unit suite)
 
 # Scraping (via Workers API)
 curl -X POST "https://api.alephatx.info/api/properties/scrape" \

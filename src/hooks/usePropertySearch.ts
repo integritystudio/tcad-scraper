@@ -100,7 +100,7 @@ export const usePropertySearch = (): UsePropertySearchReturn => {
 
 			const data: SearchResult = await response.json();
 
-			if (!data || !data.data || !data.pagination) {
+			if (!data?.data || !data.pagination) {
 				throw new Error("Received invalid data from server");
 			}
 

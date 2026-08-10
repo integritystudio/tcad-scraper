@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
  * URL is worth knowing about within a week; it is not worth blocking a merge.
  *
  * Run it directly with:
- *   npx vitest run --dir link-check --config /dev/null
+ *   npx vitest run --dir link-check --config link-check/vitest.config.ts
  */
 
 const EXTERNAL_URLS: Record<string, string> = {

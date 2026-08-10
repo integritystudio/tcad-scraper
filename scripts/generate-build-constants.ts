@@ -84,7 +84,7 @@ function buildConstantsFile(
  * Property count is approximate and should be updated periodically.
  *`
 			: ""
- }
+}
  * Generated: ${new Date().toISOString()}
  */
 
