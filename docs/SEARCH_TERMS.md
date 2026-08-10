@@ -144,6 +144,21 @@ TCAD_YEAR=2026 doppler run -- npx tsx scripts/optimize-coverage.ts --enqueue   #
 
 ## Running the Backfill
 
+### Pace bulk enqueues at ~2s per job
+
+**The token worker is the bottleneck, not TCAD or the queue.** Enqueue a large batch too fast and jobs fail with `Token worker returned 502` — our own service, collapsing under the concurrent workflows the queue spawns.
+
+Measured on 2026-08-09, same terms both times:
+
+| Enqueue rate | Jobs | Failed with 502 |
+|---|---|---|
+| 0.2s apart | 935 | **508 (54%)** |
+| **2s apart** | 508 | **0** |
+
+Nothing changed but the sleep between POSTs. Every one of those 508 terms was viable — they simply never got a token — and re-running them cleanly later recovered 284 properties.
+
+Two things follow. A 502 in `scrape_jobs.error` means *retry the term*, exactly like `TOKEN_EXPIRED`; it says nothing about the term's quality, so do not add it to any exclusion set. And a fast enqueue is a false economy: the 935-job run took minutes to submit and then wasted more than half its jobs, while the paced re-run submitted in ~17 minutes and lost none.
+
 Enqueue via the Workers API (`scripts/enqueue-terms.ts` was removed in the August 2026 scripts refactor, alongside the broader BullMQ/Express cleanup):
 
 ```bash
@@ -235,9 +250,65 @@ superstring/overlapping term before ranking — not yet implemented.
 ## Term Constraints (TCAD API)
 
 - 4+ characters minimum; 4-6 char terms are the volume sweet spot
-- Works: entity terms (Trust, LLC., Corp), single last names, street addresses, suburb/city names
+- Works: entity terms (Trust, LLC., Corp), single last names, street addresses, suburb/city names — but see the size ceiling below, which rules out the *largest* city names
 - Does NOT work: ZIP codes, compound names, numeric-only terms
 - Some terms trigger truncated JSON responses from TCAD (server-side bug) — see [`truncated-response-terms.md`](truncated-response-terms.md)
+
+### There is an upper size bound: oversized terms 504
+
+A term can be too *big* to search. TCAD's gateway times out and returns **504** before the first page comes back, so the job fails with no partial result.
+
+`austin` is the worked example. It has failed **every time it has been tried — 3 for 3** (2025-08-07, and twice on 2026-08-08), always `TCAD API returned 504`. It is not flaky and it is not worth retrying: roughly **165,580** rows in the 2025 data carry "austin" in owner name, address, or city, about **3× the largest term that has ever succeeded** (`llc.`, 53,899 matches).
+
+So the working range is bounded on both ends:
+
+| | Bound | Evidence |
+|---|---|---|
+| Lower | < 4 chars rejected | TCAD returns 500 |
+| Upper | somewhere between ~54k and ~166k matches | `llc.` (53,899) completes; `austin` (~165,580) 504s every time |
+
+The ceiling has not been measured precisely — no term between those two figures has been attempted. Treat ~50k matches as the largest safe target.
+
+**The trap: an oversized term looks *low*-value in analytics, not high.** `search_term_analytics.max_results` is only written on a *successful* search, so a term that has never completed sits at `max_results = 0` — indistinguishable at a glance from a term that genuinely matches nothing. `AUSTIN` shows `0`, and ranking candidates by `max_results` therefore buries it rather than flagging it as oversized. Before dismissing a zero, check `scrape_jobs` for that term: a row with `status='failed'` and a 504 means too big, not empty.
+
+**Recovering an oversized term:** decompose it, do not retry it. `austin` is a city/address token, so street-level fragments reach the same rows — the `[E|W ]<1-55> ST` grid completed all 165 jobs for 1,163 properties. `optimize-coverage.ts` performs this decomposition automatically and is the preferred route.
+
+### Only decompose a term that 504s
+
+Splitting a term into `<term> a` … `<term> z` pays **only when the parent timed out**. If the parent completed, its rows are already in D1 and every split returns them as updates, not inserts. Measured over 787 jobs on 2026-08-09:
+
+| Parent status | Jobs | New properties |
+|---|---|---|
+| **504'd** (`llc.`, `austin`) | 651 | **1,683** |
+| **Completed** (`trust`, `blvd`, `austin m`) | 136 | **0** |
+
+Not one property came from splitting a parent that had completed — 136 jobs against 129,000+ matches, all already held. The test is free: check `scrape_jobs.status` for the parent before spending 26 jobs on its letters.
+
+Depth decays fast, so stop early:
+
+| Level | Jobs | Properties | Per job |
+|---|---|---|---|
+| 1st — `austin a` | 131 | 1,197 | 9.1 |
+| 2nd — `austin aa` | 442 | 483 | 1.1 |
+| 3rd — `austin aua` | 78 | 3 | 0.04 |
+
+**Some terms cannot be decomposed at all.** `austin tx` resisted every attempt: appending a letter (`austin txa`) hits near-empty trigrams, and adding a third token (`austin tx a`) does not shrink the result set either — **26 of 26 jobs 504'd** both ways. "TX" is universal in this dataset, so there is no partition to find. When a token appears in essentially every row, splitting on it cannot help; abandon the term rather than going deeper.
+
+Token order also matters, and not uniformly. `trust a` returned 4,160 matches against `a trust`'s 749, so the two orders are *not* the same query — despite multi-word terms matching non-adjacently (see the `F M RD` note above, which is about adjacency, not order). But `llc &` (50,924) and `& llc` (50,926) came back near-identical. Try both orders on a term that matters; do not assume either way.
+
+### `&` searches tokens below the 4-character minimum
+
+The API rejects search terms under 4 characters, but `&` is discarded as a token — so pairing it with a short word reaches vocabulary that is otherwise unsearchable:
+
+| Term | Effectively searches | TCAD matches |
+|---|---|---|
+| `jr &` | `jr` | 9,462 (2025) / 9,344 (2026) |
+| `iv &` | `iv` | 763 / 1,305 |
+| `llc &` | `llc` | 50,924 |
+
+`jr &` yielded 11 new properties across both years, `iv &` one. Small, but generational suffixes are unreachable any other way.
+
+It also sidesteps a size problem: **`llc.` 504s for 2025 on all four attempts, yet bare `llc` via `llc &` completed** against 50,924 matches. The trailing period changes how TCAD sizes the query, so punctuation is worth varying before concluding a term is too big.
 
 ---
 
