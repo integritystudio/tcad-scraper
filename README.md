@@ -45,9 +45,9 @@ TCAD Scraper automates the collection and storage of property tax data from trav
 ## Key Features
 
 - **API-direct scraping** with automatic token refresh (Cloudflare cron → KV cache)
-- **5-step ScraperWorkflow** (token, fetch, dedup, upsert, analytics) on Cloudflare Workflows
+- **ScraperWorkflow** on Cloudflare Workflows (`create-job`, `get-token`, fetch-page, `deduplicate`, `upsert-properties`, `update-analytics`, plus a `mark-failed` error path)
 - **Smart search strategies**: weighted name/street patterns, dedup by property ID, coverage-driven term generation — see [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md)
-- **AI-powered search**: natural-language property queries via Claude AI
+- **AI-powered search**: natural-language property queries via Claude, falling back to xAI/Grok, then to an FTS5 keyword search over `properties_fts` when neither provider is reachable
 - **React 19 + Vite frontend**: expandable property cards, appraised-vs-assessed comparisons, data freshness badges, mobile-responsive, WCAG compliant — see the [PropertySearch guide](src/components/features/PropertySearch/README.md)
 - **Full Cloudflare stack**: Workers (Hono) API at `api.alephatx.info`; D1 database; KV token/response caches; Queues + Workflows for job processing; cron triggers. Frontend on GitHub Pages at `alephatx.info`. Sentry (`@sentry/cloudflare`) error tracking. Doppler secrets for local dev; `wrangler secret` in production. Prisma ORM (`@prisma/adapter-d1`) and Zod validation.
 
@@ -65,7 +65,7 @@ TCAD Scraper automates the collection and storage of property tax data from trav
                                ▼
                         ┌──────────────────┐
                         │ ScraperWorkflow  │
-                        │ (5 steps)        │
+                        │ (6 steps)        │
                         └──────────────────┘
                                │
                           ┌────┴────┐
@@ -78,7 +78,7 @@ TCAD Scraper automates the collection and storage of property tax data from trav
 ### Scraping Pipeline
 
 1. **Enqueue** — `POST /api/properties/scrape` or CLI scripts send `{ searchTerm, year }` to the Cloudflare Queue (`tcad-scraper-jobs`); the queue consumer creates a ScraperWorkflow instance
-2. **ScraperWorkflow** (5 steps) — get-token (token worker; KV cache read not yet wired in) → fetch-properties (paginated, 1000/page, max 100 pages) → deduplicate → upsert-properties (raw D1 `batch()` of multi-row `INSERT … ON CONFLICT` statements, chunks of 50) → update-analytics
+2. **ScraperWorkflow** (6 steps) — create-job → get-token (token worker; KV cache read not yet wired in) → fetch-properties (paginated, 1000/page, max 100 pages) → deduplicate → upsert-properties (raw D1 `batch()` of `INSERT … ON CONFLICT` statements, chunks of 50; one row per statement since the 88-column capture exceeds D1's 100-param limit at two) → update-analytics, with a `mark-failed` error path
 3. **Batch generation** (local CLI) — `generate-next-200-terms.ts` (5-tier priority), `enqueue-tail-terms.ts` (multi-phase tail optimizer), batch types in `scripts/config/batch-configs.ts`; all POST to the Workers API
 4. **Cron triggers** — token refresh (every 4 min), stale job cleanup (hourly), search term optimization (daily 3am — placeholder handler, not yet implemented), monitored searches (every 6 hr)
 
@@ -86,9 +86,10 @@ TCAD Scraper automates the collection and storage of property tax data from trav
 
 ```
 tcad-scraper/
-├── .github/workflows/    # CI/CD (ci, deploy, e2e, pr-checks, security)
+├── .github/workflows/    # CI/CD (ci, deploy, e2e, link-check, pr-checks, security)
 ├── docs/                  # All documentation (+ changelog/, repomix/, examples/)
 ├── e2e/                   # Playwright E2E tests (a11y, search, visual, mobile, …)
+├── link-check/            # External-link check (weekly cron, outside the unit suite)
 ├── scripts/               # CLI tools: batch enqueue, backfill, analysis (see scripts/README.md)
 ├── shared/                # Shared types (property.types, json-ld.utils)
 ├── src/                   # Frontend (React 19 + Vite): components/, hooks/, lib/, utils/
@@ -118,7 +119,7 @@ D1 conventions (rationale in [CLAUDE.md](CLAUDE.md#architecture-decisions)):
 - **Dates are epoch-millisecond strings** (`"1711773684000"`) — D1's JS binding corrupts ISO 8601 TEXT values
 - **Arrays are JSON-serialized strings** (e.g. `ScrapeJob.newPropertyIds`)
 
-**Scale**: 350K+ properties for tax year 2025 (live count via [`/health`](https://api.alephatx.info/health)). Coverage tiers, per-term yields, and scraping-rate metrics: [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md) and [docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json).
+**Scale**: ~484K properties for tax year 2025 and ~479K for 2026 (live count via [`/health`](https://api.alephatx.info/health)). Coverage tiers, per-term yields, and scraping-rate metrics: [docs/SEARCH_TERMS.md](docs/SEARCH_TERMS.md) and [docs/2025_BACKFILL_OPTIMIZATION.json](docs/2025_BACKFILL_OPTIMIZATION.json).
 
 ## Getting Started
 
@@ -146,15 +147,16 @@ npm run dev                                    # http://localhost:5174
 
 No external database is needed — D1 is configured in `workers/tcad-api/wrangler.toml`; `wrangler dev` creates a local SQLite file under `.wrangler/state/v3/d1/`.
 
-**Production secrets** (set from `workers/tcad-api/` via `npx wrangler secret put <NAME>`): `API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `SENTRY_DSN`, `TOKEN_WORKER_URL`, `TOKEN_WORKER_SECRET`.
+**Production secrets** (set from `workers/tcad-api/` via `npx wrangler secret put <NAME>`): `API_KEY`, `ANTHROPIC_API_KEY`, `XAI_API_KEY`, `SENTRY_DSN`, `TOKEN_WORKER_URL`, `TOKEN_WORKER_SECRET` (see `workers/tcad-api/src/bindings.d.ts`).
 
-**Testing** (full command reference in [CLAUDE.md](CLAUDE.md#common-commands)):
+**Testing** (full command reference in [CLAUDE.md](CLAUDE.md#common-commands)). Counts are deliberately not listed — run a suite to get its number:
 
 ```bash
-npx vitest run                                    # Frontend unit tests (141)
-npx vitest run --dir scripts --config /dev/null   # Scripts tests (85)
-cd workers/tcad-api && npm test                   # Workers tests (26)
-npm run test:e2e                                  # Playwright E2E (126)
+npx vitest run                                    # Frontend unit tests
+npx vitest run --dir scripts --config /dev/null   # Scripts tests
+cd workers/tcad-api && npm test                   # Workers tests
+npm run test:e2e                                  # Playwright E2E (visual specs are macOS-only)
+npx vitest run --dir link-check --config /dev/null  # External links (weekly cron, not in the unit suite)
 ```
 
 ## API Endpoints
