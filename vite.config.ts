@@ -20,7 +20,7 @@ export default defineConfig({
 		environment: "jsdom",
 		setupFiles: ["./src/setupTests.ts"],
 		css: { modules: { classNameStrategy: "non-scoped" } },
-		// Frontend tests only - scripts tests run via `vitest run --dir scripts --config /dev/null`
+		// Frontend tests only - scripts tests run via `vitest run --dir scripts --config scripts/vitest.config.ts`
 		include: ["src/**/__tests__/**/*.test.{ts,tsx}", "src/**/*.test.{ts,tsx}"],
 		exclude: ["**/node_modules/**"],
 		// Increased from default 5000ms — first render in each file can take

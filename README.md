@@ -153,10 +153,10 @@ No external database is needed — D1 is configured in `workers/tcad-api/wrangle
 
 ```bash
 npx vitest run                                    # Frontend unit tests
-npx vitest run --dir scripts --config /dev/null   # Scripts tests
+npx vitest run --dir scripts --config scripts/vitest.config.ts   # Scripts tests
 cd workers/tcad-api && npm test                   # Workers tests
 npm run test:e2e                                  # Playwright E2E (visual specs are macOS-only)
-npx vitest run --dir link-check --config /dev/null  # External links (weekly cron, not in the unit suite)
+npx vitest run --dir link-check --config link-check/vitest.config.ts  # External links (weekly cron, not in the unit suite)
 ```
 
 ## API Endpoints
