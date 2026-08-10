@@ -8,9 +8,14 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"resolveJsonModule": true,
+		// Explicit under TypeScript 7, which dropped ambient @types auto-inclusion.
+		// These are Node CLI scripts: process, Buffer, node:* imports throughout.
+		"types": ["node"],
 		"outDir": "../dist/scripts",
 		"rootDir": "..",
-		"baseUrl": ".",
+		// No baseUrl: removed in TypeScript 7 (TS5102). These paths were already
+		// relative to this file's directory under baseUrl ".", which is also how
+		// TS resolves them without it, so resolution is unchanged.
 		"paths": {
 			"@shared/*": ["../shared/*"],
 			"@prisma/client": ["../workers/tcad-api/node_modules/@prisma/client"]
