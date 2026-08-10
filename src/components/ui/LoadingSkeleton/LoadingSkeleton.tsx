@@ -17,7 +17,6 @@ export const LoadingSkeleton = ({
 }: LoadingSkeletonProps) => {
 	if (variant === "search") {
 		return (
-			// biome-ignore lint/a11y/useSemanticElements: role="status" on div is correct for loading skeletons
 			<div
 				className={styles.searchSkeleton}
 				role="status"
@@ -42,7 +41,6 @@ export const LoadingSkeleton = ({
 
 	if (variant === "card") {
 		return (
-			// biome-ignore lint/a11y/useSemanticElements: role="status" on div is correct for loading skeletons
 			<div
 				className={styles.cardsSkeleton}
 				role="status"
@@ -71,7 +69,6 @@ export const LoadingSkeleton = ({
 
 	// Default: full page skeleton
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: role="status" on div is correct for loading skeletons
 		<div
 			className={styles.pageSkeleton}
 			role="status"
