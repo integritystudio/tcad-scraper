@@ -144,6 +144,21 @@ TCAD_YEAR=2026 doppler run -- npx tsx scripts/optimize-coverage.ts --enqueue   #
 
 ## Running the Backfill
 
+### Pace bulk enqueues at ~2s per job
+
+**The token worker is the bottleneck, not TCAD or the queue.** Enqueue a large batch too fast and jobs fail with `Token worker returned 502` — our own service, collapsing under the concurrent workflows the queue spawns.
+
+Measured on 2026-08-09, same terms both times:
+
+| Enqueue rate | Jobs | Failed with 502 |
+|---|---|---|
+| 0.2s apart | 935 | **508 (54%)** |
+| **2s apart** | 508 | **0** |
+
+Nothing changed but the sleep between POSTs. Every one of those 508 terms was viable — they simply never got a token — and re-running them cleanly later recovered 284 properties.
+
+Two things follow. A 502 in `scrape_jobs.error` means *retry the term*, exactly like `TOKEN_EXPIRED`; it says nothing about the term's quality, so do not add it to any exclusion set. And a fast enqueue is a false economy: the 935-job run took minutes to submit and then wasted more than half its jobs, while the paced re-run submitted in ~17 minutes and lost none.
+
 Enqueue via the Workers API (`scripts/enqueue-terms.ts` was removed in the August 2026 scripts refactor, alongside the broader BullMQ/Express cleanup):
 
 ```bash
