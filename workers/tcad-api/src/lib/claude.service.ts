@@ -39,6 +39,10 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 // xAI exposes an OpenAI-compatible chat-completions surface, so the request
 // and response shapes below are unchanged from the previous OpenAI fallback.
 const XAI_API_URL = "https://api.x.ai/v1/chat/completions";
+// Measured Grok latency: 0.54 s–10.6 s across four calls; one hung past 300 s.
+// 20 s gives a comfortable margin over observed legitimate responses while
+// cutting off hangs before they consume the Worker's request budget.
+export const AI_PROVIDER_TIMEOUT_MS = 20_000;
 
 const SYSTEM_PROMPT = `You are a database query generator for a property search system. Convert the user's natural language query into Prisma query filters.
 
@@ -171,6 +175,7 @@ async function callAnthropicAPI(
 				{ role: "user", content: `${SYSTEM_PROMPT}\n\nUser query: "${query}"` },
 			],
 		}),
+		signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
 	});
 
 	if (!response.ok) {
@@ -227,6 +232,7 @@ async function callGrokAPI(
 			],
 			temperature: 0,
 		}),
+		signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
 	});
 
 	if (!response.ok) {
