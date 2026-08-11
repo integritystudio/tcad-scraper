@@ -8,6 +8,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MAX_QUERY_LIMIT } from "../../../../utils/constants";
 import { app } from "../index";
+import { parseNaturalLanguageQuery } from "../lib/claude.service";
 import { FTS_MAX_PAGE_SIZE } from "../utils/constants";
 
 const mockFindMany = vi.fn();
@@ -113,20 +114,72 @@ describe("POST /api/properties/search — keyword fallback", () => {
 		});
 	});
 
-	it("degrades to contains filters when the FTS table is unavailable", async () => {
+	// Defect 3: a degraded (keyword-fallback) response must not be cached for
+	// the full TTL. hono/cache skips cache.put() when the response carries
+	// Cache-Control: no-store, so the next request retries the AI providers
+	// rather than serving the stale fallback from the edge.
+	it("sets Cache-Control: no-store on GET /search fallback responses", async () => {
+		mockQueryRaw.mockImplementation((...args: unknown[]) => {
+			const sql = Array.from(args[0] as TemplateStringsArray).join("?");
+			return Promise.resolve(
+				sql.includes("COUNT(*)") ? [{ total: 1 }] : [{ id: "prop-1" }],
+			);
+		});
+
+		const res = await app.request(
+			"/api/properties/search?query=Oak%20Street",
+			{ method: "GET" },
+			TEST_ENV,
+		);
+
+		expect(res.status).toBe(200);
+		expect(res.headers.get("Cache-Control")).toContain("no-store");
+	});
+
+	// The counterpart to the no-store test above, and the reason it is not enough
+	// on its own: an unconditional c.header("Cache-Control", "no-store") satisfies
+	// that test while silently disabling the response cache for every successful
+	// search. Only the degraded path may opt out of caching.
+	it("leaves a successful AI response cacheable", async () => {
+		vi.mocked(parseNaturalLanguageQuery).mockResolvedValueOnce({
+			filters: {
+				whereClause: { city: { contains: "Austin" } },
+				explanation: "Properties in Austin",
+			},
+			provider: "anthropic",
+		});
+
+		const res = await app.request(
+			"/api/properties/search?query=properties%20in%20Austin",
+			{ method: "GET" },
+			TEST_ENV,
+		);
+
+		expect(res.status).toBe(200);
+		expect(res.headers.get("Cache-Control") ?? "").not.toContain("no-store");
+	});
+
+	it("degrades to tokenized contains filters when the FTS table is unavailable", async () => {
 		mockQueryRaw.mockRejectedValue(new Error("no such table: properties_fts"));
 
 		const res = await searchRequest();
 
 		expect(res.status).toBe(200);
+		// Tokens are lowercased signal words, AND'd across all seven text columns.
+		const colsFor = (t: string) => ({
+			OR: [
+				{ name: { contains: t } },
+				{ propertyAddress: { contains: t } },
+				{ city: { contains: t } },
+				{ description: { contains: t } },
+				{ ownerName: { contains: t } },
+				{ nameSecondary: { contains: t } },
+				{ dba: { contains: t } },
+			],
+		});
 		expect(capturedWhere).toMatchObject({
 			year: 2025,
-			OR: [
-				{ name: { contains: "Oak Street" } },
-				{ propertyAddress: { contains: "Oak Street" } },
-				{ city: { contains: "Oak Street" } },
-				{ description: { contains: "Oak Street" } },
-			],
+			AND: [colsFor("oak"), colsFor("street")],
 		});
 	});
 

@@ -46,6 +46,31 @@ export const UPSERT_MICRO_CHUNK_SIZE = Math.floor(
 const FTS_PAGE_ID_HEADROOM = 2;
 export const FTS_MAX_PAGE_SIZE = D1_MAX_BOUND_PARAMS - FTS_PAGE_ID_HEADROOM; // 98
 
+// ── Keyword-search OR relaxation ───────────────────────────────────
+// The keyword fallback relaxes an all-tokens AND match to an any-token OR
+// match when AND finds nothing. Measured against production D1, the OR
+// expression for "ten most valuable properties in Austin, TX" ("ten" OR
+// "most" OR "valuable" OR "austin" OR "tx") matched 172,464 of ~978k rows.
+// The COUNT for that set finished in 4.9s, but ranking it — ORDER BY
+// bm25(...) over all 172,464 rows — exceeded D1's per-query CPU budget when
+// run from inside the Worker ("D1 DB exceeded its CPU time limit and was
+// reset"); it only succeeded over the slower REST API path, in 6.6s.
+// FTS_OR_RELAX_MAX_MATCHES bounds how large an OR set keyword-search.ts will
+// ever hand to a bm25 ORDER BY, with an order-of-magnitude of margin below
+// the measured failure since the exact ceiling is unmeasured.
+export const FTS_OR_RELAX_MAX_MATCHES = 20_000;
+
+// Rows a `city =` match must carry before keyword-search.ts will treat a query
+// token as naming a city. The column is dirty: 391 distinct values for year
+// 2025, of which the tail is single-row typos ("WEST LAKE HLLS", "WESTLAKE ",
+// "`AUSTIN") plus a literal "TX" carrying 25 rows — so a token like "tx" in
+// "properties in Austin, TX" would otherwise resolve as the city and silently
+// narrow the answer to 25 unrelated rows. Real municipalities are far above
+// this (AUSTIN 157,677; PFLUGERVILLE 20,723; MANOR 5,883; LAGO VISTA 2,481).
+// A real city falling under the floor only costs the structured path, which
+// then reports the query as unsupported rather than answering it wrongly.
+export const CITY_MATCH_MIN_ROWS = 100;
+
 // ── Cache TTL ───────────────────────────────────────────────────────
 export const RESPONSE_CACHE_TTL_SECONDS = 300;
 export const TOKEN_CACHE_TTL_SECONDS = 270;
