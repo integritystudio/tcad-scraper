@@ -1,6 +1,6 @@
 # Backlog - Remaining Technical Debt
 
-**Last Updated**: 2026-08-11 (T17 and T18 opened from the `performIO` production incident triage; **T16, T17, T18 open**)
+**Last Updated**: 2026-08-11 (T17 implemented d827ce6; **T16, T18 open**)
 **Status**: All suites passing | TypeScript clean (root + workers) | Lint clean repo-wide — 0 errors, 0 warnings
 *(Test counts are deliberately not pinned here — they went stale within hours every time. Run the suites; commands are in [CLAUDE.md](../CLAUDE.md#common-commands).)*
 
@@ -13,7 +13,7 @@
 
 Fix: capture baselines on each OS (a CI job running `--update-snapshots` and uploading the PNGs as an artifact to commit) and drop the platform guard. Fonts and anti-aliasing differ enough between platforms that a darwin PNG cannot be reused, so each OS needs its own capture; the existing `maxDiffPixelRatio: 0.02` absorbs drift within a platform, not across them. Windows matters less than linux — CI runs ubuntu, so linux alone restores CI coverage. -- `e2e/visual.spec.ts`, `e2e/visual.spec.ts-snapshots/`
 
-#### T17: Anthropic is unfunded and the Grok fallback has no timeout
+#### ~~T17: Anthropic is unfunded and the Grok fallback has no timeout~~ [Done]
 **Priority**: P1 | **Source**: `performIO` production incident triage (2026-08-11)
 `ANTHROPIC_API_KEY` returns HTTP 400 `invalid_request_error` — "Your credit balance is too low to access the Anthropic API" — verified directly against the API on 2026-08-11. It is a **billing state, not an auth failure**: the key is valid, so rotating or re-setting it changes nothing and only adding credits does. It fails in 0.22s, so it costs no latency.
 
