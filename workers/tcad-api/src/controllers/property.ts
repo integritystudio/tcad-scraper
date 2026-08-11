@@ -140,6 +140,11 @@ const runNaturalLanguageSearch = async (
 	// should use this total instead of prisma.property.count, and must not
 	// apply skip/take to findMany (the page ids are already the correct page).
 	let ftsPrecomputedTotal: number | undefined;
+	// Tracks whether the response came from the keyword fallback rather than an
+	// AI provider. Used below to suppress caching on GET /search: a degraded
+	// response must not be served from the edge for the full TTL, since the AI
+	// providers may recover before the cache entry expires.
+	let wasDegraded = false;
 
 	try {
 		const { filters: parsed } = await parseNaturalLanguageQuery(
@@ -155,6 +160,7 @@ const runNaturalLanguageSearch = async (
 		answer = parsed.answer;
 		answerType = parsed.answerType;
 	} catch (err) {
+		wasDegraded = true;
 		// No AI provider reachable (e.g. exhausted credits on both Anthropic
 		// and xAI) — degrade to FTS5 keyword search instead of failing.
 		console.warn(
@@ -274,6 +280,13 @@ const runNaturalLanguageSearch = async (
 							}).format(statistics.totalValue)
 						: "$0",
 				);
+		}
+
+		// Prevent hono/cache from storing a degraded (keyword-fallback) response
+		// for the full TTL. The AI providers may recover before the cache entry
+		// expires; serving a no-store response lets the next request retry them.
+		if (wasDegraded) {
+			c.header("Cache-Control", "no-store");
 		}
 
 		return c.json({

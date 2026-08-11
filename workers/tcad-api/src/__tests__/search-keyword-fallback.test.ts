@@ -113,6 +113,28 @@ describe("POST /api/properties/search — keyword fallback", () => {
 		});
 	});
 
+	// Defect 3: a degraded (keyword-fallback) response must not be cached for
+	// the full TTL. hono/cache skips cache.put() when the response carries
+	// Cache-Control: no-store, so the next request retries the AI providers
+	// rather than serving the stale fallback from the edge.
+	it("sets Cache-Control: no-store on GET /search fallback responses", async () => {
+		mockQueryRaw.mockImplementation((...args: unknown[]) => {
+			const sql = Array.from(args[0] as TemplateStringsArray).join("?");
+			return Promise.resolve(
+				sql.includes("COUNT(*)") ? [{ total: 1 }] : [{ id: "prop-1" }],
+			);
+		});
+
+		const res = await app.request(
+			"/api/properties/search?query=Oak%20Street",
+			{ method: "GET" },
+			TEST_ENV,
+		);
+
+		expect(res.status).toBe(200);
+		expect(res.headers.get("Cache-Control")).toContain("no-store");
+	});
+
 	it("degrades to tokenized contains filters when the FTS table is unavailable", async () => {
 		mockQueryRaw.mockRejectedValue(new Error("no such table: properties_fts"));
 
