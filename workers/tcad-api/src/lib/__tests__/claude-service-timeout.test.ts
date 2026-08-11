@@ -7,7 +7,10 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AI_PROVIDER_TIMEOUT_MS, parseNaturalLanguageQuery } from "../claude.service";
+import {
+	AI_PROVIDER_TIMEOUT_MS,
+	parseNaturalLanguageQuery,
+} from "../claude.service";
 
 const FILTERS_JSON = JSON.stringify({
 	whereClause: { city: { contains: "Austin" } },
@@ -120,8 +123,14 @@ describe("provider timeout signal", () => {
 		await parseNaturalLanguageQuery("q", "sk-ant", "xai-key");
 
 		expect(AbortSignal.timeout).toHaveBeenCalledTimes(2);
-		expect(AbortSignal.timeout).toHaveBeenNthCalledWith(1, AI_PROVIDER_TIMEOUT_MS);
-		expect(AbortSignal.timeout).toHaveBeenNthCalledWith(2, AI_PROVIDER_TIMEOUT_MS);
+		expect(AbortSignal.timeout).toHaveBeenNthCalledWith(
+			1,
+			AI_PROVIDER_TIMEOUT_MS,
+		);
+		expect(AbortSignal.timeout).toHaveBeenNthCalledWith(
+			2,
+			AI_PROVIDER_TIMEOUT_MS,
+		);
 	});
 
 	it("propagates an abort error so the caller can fall back to keyword search", async () => {
@@ -129,23 +138,28 @@ describe("provider timeout signal", () => {
 		// immediately and mock fetch to reject when the signal is already aborted.
 		vi.spyOn(AbortSignal, "timeout").mockImplementation(() => {
 			const ctrl = new AbortController();
-			ctrl.abort(new DOMException("The operation was aborted.", "TimeoutError"));
+			ctrl.abort(
+				new DOMException("The operation was aborted.", "TimeoutError"),
+			);
 			return ctrl.signal;
 		});
 
 		vi.stubGlobal(
 			"fetch",
-			vi.fn((_url: unknown, init?: RequestInit) =>
-				new Promise<Response>((_resolve, reject) => {
-					const signal = init?.signal;
-					const abort = () =>
-						reject(new DOMException("The operation was aborted.", "AbortError"));
-					if (signal?.aborted) {
-						abort();
-					} else {
-						signal?.addEventListener("abort", abort);
-					}
-				}),
+			vi.fn(
+				(_url: unknown, init?: RequestInit) =>
+					new Promise<Response>((_resolve, reject) => {
+						const signal = init?.signal;
+						const abort = () =>
+							reject(
+								new DOMException("The operation was aborted.", "AbortError"),
+							);
+						if (signal?.aborted) {
+							abort();
+						} else {
+							signal?.addEventListener("abort", abort);
+						}
+					}),
 			),
 		);
 

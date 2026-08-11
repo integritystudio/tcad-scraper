@@ -67,4 +67,34 @@ describe("shouldFallbackToGrok", () => {
 
 		expect(shouldFallbackToGrok(error)).toBe(false);
 	});
+
+	// A slow Anthropic says nothing about Grok's health. Without these cases the
+	// timeout added for T17 would route a timed-out request straight to keyword
+	// search, skipping a healthy Grok.
+	it("falls back on the DOMException AbortSignal.timeout actually rejects with", async () => {
+		const signal = AbortSignal.timeout(1);
+		await new Promise((resolve) =>
+			signal.addEventListener("abort", resolve, { once: true }),
+		);
+
+		// signal.reason is the exact value fetch() rejects with on timeout.
+		expect(shouldFallbackToGrok(signal.reason)).toBe(true);
+	});
+
+	it("falls back on a TimeoutError carrying no status", () => {
+		const error = new DOMException(
+			"The operation was aborted due to timeout",
+			"TimeoutError",
+		);
+
+		expect(shouldFallbackToGrok(error)).toBe(true);
+	});
+
+	it("does not fall back on a caller-initiated AbortError", () => {
+		// Only AbortSignal.timeout() is treated as provider slowness; a manual
+		// abort means the caller gave up, so retrying against Grok is waste.
+		const error = new DOMException("This operation was aborted", "AbortError");
+
+		expect(shouldFallbackToGrok(error)).toBe(false);
+	});
 });

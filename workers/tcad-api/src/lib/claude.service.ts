@@ -278,7 +278,29 @@ const FALLBACK_STATUSES: readonly number[] = [
 // invalid_request_error ("Your credit balance is too low..."), not 402.
 const CREDIT_BALANCE_ERROR = /credit balance/i;
 
+// AbortSignal.timeout() rejects with a DOMException named "TimeoutError", which
+// carries no HTTP status and no matching message, so the status and message
+// checks below both miss it. DOMException is not reliably an Error subclass
+// across runtimes either, hence the structural name check ahead of the
+// instanceof guard.
+const TIMEOUT_ERROR_NAME = "TimeoutError";
+
+function isTimeoutError(error: unknown): boolean {
+	return (
+		typeof error === "object" &&
+		error !== null &&
+		(error as { name?: string }).name === TIMEOUT_ERROR_NAME
+	);
+}
+
 export function shouldFallbackToGrok(error: unknown): boolean {
+	// A timed-out Anthropic call says nothing about Grok's health, so it must
+	// still try Grok. Treating it as unrecoverable would drop the request to
+	// keyword search while a working AI provider sat unused — the exact
+	// inversion that funding the Anthropic account would expose (T17).
+	// Worst case both providers hang, costing 2x AI_PROVIDER_TIMEOUT_MS before
+	// the keyword fallback runs.
+	if (isTimeoutError(error)) return true;
 	if (!(error instanceof Error)) return false;
 	// Fallback on 400 (credit balance exhausted), 401 (unauthorized),
 	// 402 (payment required), 429 (rate limit)
