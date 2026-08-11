@@ -1,6 +1,9 @@
 import type { PrismaClient } from "@prisma/client";
 import { describe, expect, it } from "vitest";
-import { FTS_MAX_PAGE_SIZE } from "../../utils/constants";
+import {
+	FTS_MAX_PAGE_SIZE,
+	FTS_OR_RELAX_MAX_MATCHES,
+} from "../../utils/constants";
 import {
 	buildFtsMatchQuery,
 	buildKeywordSearchFilters,
@@ -305,13 +308,118 @@ describe("searchKeywordFallback", () => {
 			2025,
 		);
 
-		expect(pageMatches).toEqual([
-			'"zilker" AND "park" AND "trust"',
-			'"zilker" OR "park" OR "trust"',
-		]);
+		// Only the OR expression is ever ranked: the AND count came back 0, and
+		// ranking a match set already known to be empty is a wasted D1 query.
+		expect(pageMatches).toEqual(['"zilker" OR "park" OR "trust"']);
 		expect(result.whereClause).toEqual({ id: { in: ["p9"] } });
 		expect(result.explanation).toContain("matching any term");
 		expect(result.precomputedTotal).toBe(1);
+	});
+
+	it("still relaxes to a plain OR match when the OR set is at the safety bound", async () => {
+		// The bound is inclusive: a set exactly at FTS_OR_RELAX_MAX_MATCHES is
+		// still safe to rank in one query, with no per-token probing needed.
+		const rankedMatches: string[] = [];
+		const totals: Record<string, number> = {
+			'"foo" AND "bar"': 0,
+			'"foo" OR "bar"': FTS_OR_RELAX_MAX_MATCHES,
+		};
+		const prisma = {
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				const match = values[0] as string;
+				const isCount = sql.includes("COUNT(*)");
+				if (!isCount) rankedMatches.push(match);
+				if (isCount) return Promise.resolve([{ total: totals[match] ?? 0 }]);
+				return Promise.resolve(
+					match === '"foo" OR "bar"' ? [{ id: "p-or" }] : [],
+				);
+			},
+		} as unknown as PrismaClient;
+
+		const result = await searchKeywordFallback(prisma, "foo bar", 2025);
+
+		expect(result.whereClause).toEqual({ id: { in: ["p-or"] } });
+		expect(result.precomputedTotal).toBe(FTS_OR_RELAX_MAX_MATCHES);
+		expect(result.explanation).toContain("matching any term");
+		// Ranked exactly the AND attempt and the full OR set — no per-token
+		// counts were needed because the full set was already within budget.
+		// The AND count is 0, so it is never ranked — only the OR expression is.
+		expect(rankedMatches).toEqual(['"foo" OR "bar"']);
+	});
+
+	it("reports an over-threshold OR set as too broad instead of ranking a token subset", async () => {
+		// Keeping the rarest tokens was tried and reverted: in this corpus the
+		// frequent tokens carry the meaning, so it kept the noise and dropped the
+		// intent. It must now refuse outright, and must not spend a COUNT per
+		// token to decide (the count for "austin" alone measured 10.6s).
+		const rankedMatches: string[] = [];
+		const countedMatches: string[] = [];
+		const totals: Record<string, number> = {
+			'"common" AND "rare"': 0,
+			'"common" OR "rare"': 172_464, // the measured production failure
+		};
+		const prisma = {
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				const match = values[0] as string;
+				if (sql.includes("COUNT(*)")) {
+					countedMatches.push(match);
+					return Promise.resolve([{ total: totals[match] ?? 0 }]);
+				}
+				rankedMatches.push(match);
+				return Promise.resolve([]);
+			},
+		} as unknown as PrismaClient;
+
+		const result = await searchKeywordFallback(prisma, "common rare", 2025);
+
+		expect(result.whereClause).toEqual({ id: { in: [] } });
+		expect(result.precomputedTotal).toBe(0);
+		expect(result.explanation).toContain("172,464");
+		// Nothing ranked, and only the two combined expressions counted — no
+		// per-token probing.
+		expect(rankedMatches).toEqual([]);
+		expect(countedMatches).toEqual([
+			'"common" AND "rare"',
+			'"common" OR "rare"',
+		]);
+	});
+
+	it("returns an explicit empty result instead of a slow scan when every token individually exceeds the bound", async () => {
+		// Mirrors "austin"/"tx" in the real corpus: every candidate token is
+		// too broad on its own, so there is nothing left that is both safe to
+		// rank and worth returning. Must not fall through to the ~40s LIKE
+		// `contains` scan in the outer catch.
+		const rankedMatches: string[] = [];
+		const totals: Record<string, number> = {
+			'"huge" AND "massive"': 0,
+			'"huge" OR "massive"': 999_999,
+			'"huge"': 600_000,
+			'"massive"': 700_000,
+		};
+		const prisma = {
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				const match = values[0] as string;
+				const isCount = sql.includes("COUNT(*)");
+				if (!isCount) rankedMatches.push(match);
+				return Promise.resolve(isCount ? [{ total: totals[match] ?? 0 }] : []);
+			},
+		} as unknown as PrismaClient;
+
+		const result = await searchKeywordFallback(prisma, "huge massive", 2025);
+
+		expect(result.whereClause).toEqual({ id: { in: [] } });
+		expect(result.precomputedTotal).toBe(0);
+		expect(result.explanation).toContain("matched too many properties to rank");
+		expect(result.explanation).toContain("999,999");
+		expect(result.explanation).toContain(
+			FTS_OR_RELAX_MAX_MATCHES.toLocaleString(),
+		);
+		// Nothing was ever ranked: the AND count came back 0 so it was not
+		// ranked, and every OR candidate proved too broad on its own.
+		expect(rankedMatches).toEqual([]);
 	});
 
 	it("does not spend a second query relaxing a single token", async () => {
@@ -327,7 +435,8 @@ describe("searchKeywordFallback", () => {
 
 		const result = await searchKeywordFallback(prisma, "Pflugerville", 2025);
 
-		expect(pageMatches).toEqual(['"pflugerville"']);
+		// Counted, found empty, and never ranked — one query, not two.
+		expect(pageMatches).toEqual([]);
 		expect(result.whereClause).toEqual({ id: { in: [] } });
 		expect(result.precomputedTotal).toBe(0);
 	});
@@ -345,5 +454,33 @@ describe("buildKeywordSearchFilters", () => {
 			],
 		});
 		expect(result.explanation).toContain('"Oak Street"');
+	});
+});
+describe("searchKeywordFallback — AND-path breadth guard", () => {
+	it("refuses to rank a single broad token instead of tripping D1's CPU limit", async () => {
+		// "properties in Austin" reduces to the one token `"austin"`, which is
+		// its own AND expression at 171,187 rows. The OR guard never sees it,
+		// so the AND path has to count first too.
+		const ranked: string[] = [];
+		const prisma = {
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				if (sql.includes("COUNT(*)"))
+					return Promise.resolve([{ total: 171_187 }]);
+				ranked.push(values[0] as string);
+				return Promise.resolve([]);
+			},
+		} as unknown as PrismaClient;
+
+		const result = await searchKeywordFallback(
+			prisma,
+			"properties in Austin",
+			2025,
+		);
+
+		expect(ranked).toEqual([]);
+		expect(result.whereClause).toEqual({ id: { in: [] } });
+		expect(result.precomputedTotal).toBe(0);
+		expect(result.explanation).toContain("171,187");
 	});
 });

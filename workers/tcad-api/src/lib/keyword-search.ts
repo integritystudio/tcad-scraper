@@ -10,7 +10,11 @@
  */
 
 import type { PrismaClient } from "@prisma/client";
-import { FTS_MAX_PAGE_SIZE } from "../utils/constants";
+import {
+	FTS_MAX_PAGE_SIZE,
+	FTS_OR_RELAX_MAX_MATCHES,
+} from "../utils/constants";
+import { getErrorMessage } from "../utils/error-helpers";
 import type { SearchFilters } from "./claude.service";
 
 /**
@@ -216,10 +220,35 @@ export function buildKeywordSearchFilters(query: string): SearchFilters {
 }
 
 /**
- * Run one MATCH expression and return a ranked page of ids plus the true
- * total match count. Pagination happens in SQL (LIMIT/OFFSET) so the caller
- * does not need to fold a large id list into `id IN (...)` — avoiding D1's
- * 100-param bound limit (incident 2026-08-08). Both queries run in parallel.
+ * Run a COUNT-only MATCH query — no ORDER BY, no bm25 evaluation. This is
+ * the cheap side of the COUNT-vs-ranked asymmetry that relaxToOr relies on
+ * to decide whether a match is safe to rank before ever running the
+ * expensive form (see FTS_OR_RELAX_MAX_MATCHES, utils/constants.ts).
+ */
+async function ftsCount(
+	prisma: PrismaClient,
+	match: string,
+	year: number,
+	bounds: ValueBounds,
+): Promise<number> {
+	const countRows = await prisma.$queryRaw<Array<{ total: number }>>`
+		SELECT COUNT(*) AS total
+		FROM properties_fts f
+		JOIN properties p ON p.rowid = f.rowid
+		WHERE properties_fts MATCH ${match} AND p.year = ${year}
+		  AND (${bounds.min} IS NULL OR p.appraised_value > ${bounds.min})
+		  AND (${bounds.max} IS NULL OR p.appraised_value < ${bounds.max})
+	`;
+	// COUNT(*) may return a BigInt from some D1 bindings.
+	return Number(countRows[0]?.total ?? 0);
+}
+
+/**
+ * Run the ranked, paginated MATCH query — the expensive form. Callers must
+ * already know `match`'s row count is safe to rank (the AND-required match,
+ * which is always at least as selective as any OR relaxation of the same
+ * tokens; or an OR match already checked against FTS_OR_RELAX_MAX_MATCHES
+ * via ftsCount) before calling this.
  *
  * Bounds are applied inside SQL rather than in the returned where clause so
  * they narrow the set *before* LIMIT — filtering top-ranked ids afterwards
@@ -230,48 +259,88 @@ export function buildKeywordSearchFilters(query: string): SearchFilters {
  * bm25()'s first argument must be the FTS table *name*, not the `f` alias —
  * D1 rejects `bm25(f, ...)` with "no such column: f".
  */
-async function ftsQueryPage(
+async function ftsRankedIds(
 	prisma: PrismaClient,
 	match: string,
 	year: number,
 	bounds: ValueBounds,
 	limit: number,
 	offset: number,
-): Promise<FtsPage> {
-	const [pageRows, countRows] = await Promise.all([
-		prisma.$queryRaw<Array<{ id: string }>>`
-			SELECT p.id
-			FROM properties_fts f
-			JOIN properties p ON p.rowid = f.rowid
-			WHERE properties_fts MATCH ${match} AND p.year = ${year}
-			  AND (${bounds.min} IS NULL OR p.appraised_value > ${bounds.min})
-			  AND (${bounds.max} IS NULL OR p.appraised_value < ${bounds.max})
-			ORDER BY bm25(
-				properties_fts,
-				${FTS_BM25_WEIGHTS.name},
-				${FTS_BM25_WEIGHTS.propertyAddress},
-				${FTS_BM25_WEIGHTS.city},
-				${FTS_BM25_WEIGHTS.description},
-				${FTS_BM25_WEIGHTS.ownerName},
-				${FTS_BM25_WEIGHTS.nameSecondary},
-				${FTS_BM25_WEIGHTS.dba}
-			)
-			LIMIT ${limit} OFFSET ${offset}
-		`,
-		prisma.$queryRaw<Array<{ total: number }>>`
-			SELECT COUNT(*) AS total
-			FROM properties_fts f
-			JOIN properties p ON p.rowid = f.rowid
-			WHERE properties_fts MATCH ${match} AND p.year = ${year}
-			  AND (${bounds.min} IS NULL OR p.appraised_value > ${bounds.min})
-			  AND (${bounds.max} IS NULL OR p.appraised_value < ${bounds.max})
-		`,
-	]);
-	return {
-		ids: pageRows.map((r) => r.id),
-		// COUNT(*) may return a BigInt from some D1 bindings.
-		total: Number(countRows[0]?.total ?? 0),
-	};
+): Promise<string[]> {
+	const pageRows = await prisma.$queryRaw<Array<{ id: string }>>`
+		SELECT p.id
+		FROM properties_fts f
+		JOIN properties p ON p.rowid = f.rowid
+		WHERE properties_fts MATCH ${match} AND p.year = ${year}
+		  AND (${bounds.min} IS NULL OR p.appraised_value > ${bounds.min})
+		  AND (${bounds.max} IS NULL OR p.appraised_value < ${bounds.max})
+		ORDER BY bm25(
+			properties_fts,
+			${FTS_BM25_WEIGHTS.name},
+			${FTS_BM25_WEIGHTS.propertyAddress},
+			${FTS_BM25_WEIGHTS.city},
+			${FTS_BM25_WEIGHTS.description},
+			${FTS_BM25_WEIGHTS.ownerName},
+			${FTS_BM25_WEIGHTS.nameSecondary},
+			${FTS_BM25_WEIGHTS.dba}
+		)
+		LIMIT ${limit} OFFSET ${offset}
+	`;
+	return pageRows.map((r) => r.id);
+}
+
+type RelaxOutcome =
+	| { mode: "or"; page: FtsPage }
+	| { mode: "too-broad"; matchCount: number };
+
+/**
+ * Relax an AND match that returned nothing to OR, without ever handing D1 an
+ * unrankable set. Measured against production D1, the OR expression for
+ * "ten most valuable properties in Austin, TX" ("ten" OR "most" OR "valuable"
+ * OR "austin" OR "tx") matched 172,464 of ~978k rows: the COUNT for that set
+ * finished in 4.9s, but ranking it — ORDER BY bm25(...) over all 172,464
+ * rows — failed with "D1 DB exceeded its CPU time limit and was reset" when
+ * run from inside the Worker (it only succeeded over the slower REST API
+ * path, in 6.6s). So the full OR set is counted first — the cheap form, with
+ * no bm25 — and only ranked if that count is within FTS_OR_RELAX_MAX_MATCHES.
+ *
+ * Past the bound it reports too-broad rather than ranking a subset of the
+ * tokens. Dropping the least-frequent tokens was tried and reverted: in this
+ * corpus the frequent tokens are the meaningful ones, so it kept the noise and
+ * discarded the intent — for the query above it retained "valuable" (0 rows),
+ * "most" (30) and "ten" (82) while dropping "austin" (171,187), then ranked
+ * ~2,800 rows containing the literal token "ten" and presented them as the ten
+ * most valuable properties in Austin. Junk that looks like an answer is worse
+ * than a stated refusal. It also cost a COUNT per token to decide, and the
+ * count for "austin" alone measured 10.6s.
+ *
+ * Superlative phrasings never reach here at all — searchKeywordFallback
+ * answers those with a structured city-plus-ordering query instead.
+ */
+async function relaxToOr(
+	prisma: PrismaClient,
+	searchText: string,
+	year: number,
+	bounds: ValueBounds,
+	limit: number,
+	offset: number,
+): Promise<RelaxOutcome> {
+	const fullOrMatch = buildFtsMatchQuery(searchText, "OR");
+	const fullOrTotal = await ftsCount(prisma, fullOrMatch, year, bounds);
+
+	if (fullOrTotal > FTS_OR_RELAX_MAX_MATCHES) {
+		return { mode: "too-broad", matchCount: fullOrTotal };
+	}
+
+	const ids = await ftsRankedIds(
+		prisma,
+		fullOrMatch,
+		year,
+		bounds,
+		limit,
+		offset,
+	);
+	return { mode: "or", page: { ids, total: fullOrTotal } };
 }
 
 /**
@@ -303,21 +372,32 @@ export async function searchKeywordFallback(
 		};
 	}
 
+	const boundsSuffix = hasBounds(bounds) ? `, ${describeBounds(bounds)}` : "";
+
 	const requireAll = buildFtsMatchQuery(searchText, "AND");
 	if (!requireAll) {
 		return buildKeywordSearchFilters(query);
 	}
-	const boundsSuffix = hasBounds(bounds) ? `, ${describeBounds(bounds)}` : "";
 	try {
-		let page = await ftsQueryPage(
-			prisma,
-			requireAll,
-			year,
-			bounds,
-			limit,
-			offset,
-		);
-		let relaxed = false;
+		// Count before ranking on this path too, not just the OR relax below: a
+		// single broad token is its own AND expression, so "properties in Austin"
+		// arrives here as `"austin"` — 171,187 rows — and ranking that trips the
+		// same CPU limit the OR guard was added for.
+		const andTotal = await ftsCount(prisma, requireAll, year, bounds);
+		if (andTotal > FTS_OR_RELAX_MAX_MATCHES) {
+			return {
+				whereClause: { id: { in: [] } },
+				precomputedTotal: 0,
+				explanation: `Keyword search for "${query.trim()}" matched too many properties to rank (${andTotal.toLocaleString()}, over the ${FTS_OR_RELAX_MAX_MATCHES.toLocaleString()}-row limit) — try a more specific term (AI search unavailable)`,
+			};
+		}
+		const andPage: FtsPage = {
+			ids:
+				andTotal === 0
+					? []
+					: await ftsRankedIds(prisma, requireAll, year, bounds, limit, offset),
+			total: andTotal,
+		};
 
 		// Requiring every token is far more selective — measured on production
 		// D1, "oak street" matches 14 rows as AND against 12,153 as OR, so an
@@ -325,30 +405,47 @@ export async function searchKeywordFallback(
 		// plausible queries ("zilker park trust") match nothing as AND, so relax
 		// to OR rather than returning empty. Only worth a second query when
 		// there is more than one token to relax.
-		if (page.total === 0 && matchTokens(searchText).length > 1) {
-			page = await ftsQueryPage(
-				prisma,
-				buildFtsMatchQuery(searchText, "OR"),
-				year,
-				bounds,
-				limit,
-				offset,
-			);
-			relaxed = true;
+		if (andPage.total !== 0 || matchTokens(searchText).length <= 1) {
+			return {
+				whereClause: { id: { in: andPage.ids } },
+				explanation: `Keyword search for "${query.trim()}" across owner names, DBA, address, city, and description${boundsSuffix} — matching all terms (AI search unavailable)`,
+				precomputedTotal: andPage.total,
+			};
 		}
 
-		const matchNote = relaxed
-			? "matching any term, as no property matched all of them"
-			: "matching all terms";
+		const outcome = await relaxToOr(
+			prisma,
+			searchText,
+			year,
+			bounds,
+			limit,
+			offset,
+		);
+
+		if (outcome.mode === "too-broad") {
+			// Every token, even alone, matched more rows than can be safely
+			// ranked. Returning zero here is a deliberate, cheap answer: the
+			// catch block's LIKE `contains` fallback below costs ~40s and, on
+			// this exact class of query, also returns 0 rows — there is
+			// nothing to gain by falling through to it.
+			return {
+				whereClause: { id: { in: [] } },
+				explanation: `Keyword search for "${query.trim()}" matched too many properties to rank (${outcome.matchCount.toLocaleString()}, over the ${FTS_OR_RELAX_MAX_MATCHES.toLocaleString()}-row limit) — try a more specific term (AI search unavailable)`,
+				precomputedTotal: 0,
+			};
+		}
+
+		const matchNote = "matching any term, as no property matched all of them";
+
 		return {
-			whereClause: { id: { in: page.ids } },
+			whereClause: { id: { in: outcome.page.ids } },
 			explanation: `Keyword search for "${query.trim()}" across owner names, DBA, address, city, and description${boundsSuffix} — ${matchNote} (AI search unavailable)`,
-			precomputedTotal: page.total,
+			precomputedTotal: outcome.page.total,
 		};
 	} catch (err) {
 		// FTS table absent or MATCH rejected — degrade once more to LIKE.
 		console.warn(
-			`FTS5 keyword search unavailable, using contains filters: ${err instanceof Error ? err.message : String(err)}`,
+			`FTS5 keyword search unavailable, using contains filters: ${getErrorMessage(err)}`,
 		);
 		return buildKeywordSearchFilters(query);
 	}

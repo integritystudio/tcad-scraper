@@ -46,6 +46,20 @@ export const UPSERT_MICRO_CHUNK_SIZE = Math.floor(
 const FTS_PAGE_ID_HEADROOM = 2;
 export const FTS_MAX_PAGE_SIZE = D1_MAX_BOUND_PARAMS - FTS_PAGE_ID_HEADROOM; // 98
 
+// ── Keyword-search OR relaxation ───────────────────────────────────
+// The keyword fallback relaxes an all-tokens AND match to an any-token OR
+// match when AND finds nothing. Measured against production D1, the OR
+// expression for "ten most valuable properties in Austin, TX" ("ten" OR
+// "most" OR "valuable" OR "austin" OR "tx") matched 172,464 of ~978k rows.
+// The COUNT for that set finished in 4.9s, but ranking it — ORDER BY
+// bm25(...) over all 172,464 rows — exceeded D1's per-query CPU budget when
+// run from inside the Worker ("D1 DB exceeded its CPU time limit and was
+// reset"); it only succeeded over the slower REST API path, in 6.6s.
+// FTS_OR_RELAX_MAX_MATCHES bounds how large an OR set keyword-search.ts will
+// ever hand to a bm25 ORDER BY, with an order-of-magnitude of margin below
+// the measured failure since the exact ceiling is unmeasured.
+export const FTS_OR_RELAX_MAX_MATCHES = 20_000;
+
 // ── Cache TTL ───────────────────────────────────────────────────────
 export const RESPONSE_CACHE_TTL_SECONDS = 300;
 export const TOKEN_CACHE_TTL_SECONDS = 270;
