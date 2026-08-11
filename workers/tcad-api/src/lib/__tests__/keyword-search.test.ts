@@ -444,19 +444,42 @@ describe("searchKeywordFallback", () => {
 });
 
 describe("buildKeywordSearchFilters", () => {
-	it("builds contains filters over the four free-text fields", () => {
+	it("tokenizes the query and ANDs per-token OR clauses across all seven text columns", () => {
 		const result = buildKeywordSearchFilters("  Oak Street  ");
-		expect(result.whereClause).toEqual({
+		const colsFor = (t: string) => ({
 			OR: [
-				{ name: { contains: "Oak Street" } },
-				{ propertyAddress: { contains: "Oak Street" } },
-				{ city: { contains: "Oak Street" } },
-				{ description: { contains: "Oak Street" } },
+				{ name: { contains: t } },
+				{ propertyAddress: { contains: t } },
+				{ city: { contains: t } },
+				{ description: { contains: t } },
+				{ ownerName: { contains: t } },
+				{ nameSecondary: { contains: t } },
+				{ dba: { contains: t } },
 			],
 		});
+		expect(result.whereClause).toEqual({
+			AND: [colsFor("oak"), colsFor("street")],
+		});
+		// Explanation cites the original (un-lowercased) query.
 		expect(result.explanation).toContain('"Oak Street"');
 	});
+
+	it("produces a single OR clause (no AND wrapper) for a one-token query", () => {
+		const result = buildKeywordSearchFilters("Austin");
+		expect(result.whereClause).toEqual({
+			OR: [
+				{ name: { contains: "austin" } },
+				{ propertyAddress: { contains: "austin" } },
+				{ city: { contains: "austin" } },
+				{ description: { contains: "austin" } },
+				{ ownerName: { contains: "austin" } },
+				{ nameSecondary: { contains: "austin" } },
+				{ dba: { contains: "austin" } },
+			],
+		});
+	});
 });
+
 describe("extractSortIntent", () => {
 	it.each([
 		["ten most valuable properties in Austin", "desc"],

@@ -113,20 +113,27 @@ describe("POST /api/properties/search — keyword fallback", () => {
 		});
 	});
 
-	it("degrades to contains filters when the FTS table is unavailable", async () => {
+	it("degrades to tokenized contains filters when the FTS table is unavailable", async () => {
 		mockQueryRaw.mockRejectedValue(new Error("no such table: properties_fts"));
 
 		const res = await searchRequest();
 
 		expect(res.status).toBe(200);
+		// Tokens are lowercased signal words, AND'd across all seven text columns.
+		const colsFor = (t: string) => ({
+			OR: [
+				{ name: { contains: t } },
+				{ propertyAddress: { contains: t } },
+				{ city: { contains: t } },
+				{ description: { contains: t } },
+				{ ownerName: { contains: t } },
+				{ nameSecondary: { contains: t } },
+				{ dba: { contains: t } },
+			],
+		});
 		expect(capturedWhere).toMatchObject({
 			year: 2025,
-			OR: [
-				{ name: { contains: "Oak Street" } },
-				{ propertyAddress: { contains: "Oak Street" } },
-				{ city: { contains: "Oak Street" } },
-				{ description: { contains: "Oak Street" } },
-			],
+			AND: [colsFor("oak"), colsFor("street")],
 		});
 	});
 

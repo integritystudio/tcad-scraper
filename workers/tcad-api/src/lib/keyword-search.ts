@@ -217,22 +217,56 @@ export function buildFtsMatchQuery(
 }
 
 export function buildKeywordSearchFilters(query: string): SearchFilters {
-	const term = query.trim();
 	const bounds = extractValueBounds(query);
-	const textClause = {
-		OR: [
-			{ name: { contains: term } },
-			{ propertyAddress: { contains: term } },
-			{ city: { contains: term } },
-			{ description: { contains: term } },
-		],
-	};
+	const stripped = stripValuePhrases(query);
+	const tokens = extractSignalTokens(stripped);
+	// Fall back to all alphanumeric tokens if stopword removal emptied the query,
+	// then to the raw trimmed string so a weak search still beats no search.
+	const matchTerms =
+		tokens.length > 0
+			? tokens
+			: (stripped.toLowerCase().match(/[a-z0-9]+/g) ?? [query.trim()]);
+
+	const columnContains = (t: string) => [
+		{ name: { contains: t } },
+		{ propertyAddress: { contains: t } },
+		{ city: { contains: t } },
+		{ description: { contains: t } },
+		{ ownerName: { contains: t } },
+		{ nameSecondary: { contains: t } },
+		{ dba: { contains: t } },
+	];
+
+	// AND across tokens (every token must appear in at least one column), each
+	// token OR'd across all text columns so the match is not column-specific.
+	//
+	// This narrows the *result set*, not the scan: `contains` compiles to
+	// LIKE '%x%', which no index can drive, so the plan stays
+	// "SEARCH properties USING INDEX properties_year_idx (year=?)" and visits
+	// every row of the roll year either way. Measured on production D1, this
+	// shape costs more than the single-literal one it replaced — "oak street"
+	// (2 tokens x 7 columns) took 6.8s against 379ms — because each row is
+	// tested against 14 LIKEs instead of 4. It is bought deliberately: the old
+	// form matched the whole sentence verbatim and so returned 0 rows for any
+	// natural-language query, while this returns the 64 that actually match.
+	// Cost tracks the *first* token's selectivity, not the token count, since
+	// SQLite short-circuits the AND — a rare leading token is cheap
+	// ("zilker park trust" ran in 325ms).
+	//
+	// Reaching this at all means FTS5 is unavailable, which is rare; if it
+	// stops being rare, this needs an indexed strategy, not a wider LIKE.
+	const perTokenClauses = matchTerms.map((t) => ({ OR: columnContains(t) }));
+	const textClause =
+		perTokenClauses.length === 1
+			? perTokenClauses[0]
+			: { AND: perTokenClauses };
+
 	const suffix = hasBounds(bounds) ? `, ${describeBounds(bounds)}` : "";
 	return {
 		whereClause: hasBounds(bounds)
 			? { AND: [textClause, boundsWhereClause(bounds)] }
 			: textClause,
-		explanation: `Keyword search for "${term}" across owner name, address, city, and description${suffix} (AI search unavailable)`,
+		explanation: `Keyword search for "${query.trim()}" across owner names, DBA, address, city, and description${suffix} (AI search unavailable; FTS5 unavailable)`,
 	};
 }
 
