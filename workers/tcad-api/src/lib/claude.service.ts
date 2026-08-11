@@ -39,9 +39,12 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 // xAI exposes an OpenAI-compatible chat-completions surface, so the request
 // and response shapes below are unchanged from the previous OpenAI fallback.
 const XAI_API_URL = "https://api.x.ai/v1/chat/completions";
+// Total budget for parseNaturalLanguageQuery, shared across both providers
+// rather than granted per call: a per-call timeout lets a slow Anthropic spend
+// the full budget and *then* hand a slow Grok another one, so the keyword
+// fallback would not start until 2x this value had elapsed.
 // Measured Grok latency: 0.54 s–10.6 s across four calls; one hung past 300 s.
-// 20 s gives a comfortable margin over observed legitimate responses while
-// cutting off hangs before they consume the Worker's request budget.
+// 20 s clears the observed maximum with margin while bounding the whole parse.
 export const AI_PROVIDER_TIMEOUT_MS = 20_000;
 
 const SYSTEM_PROMPT = `You are a database query generator for a property search system. Convert the user's natural language query into Prisma query filters.
@@ -137,10 +140,16 @@ export async function parseNaturalLanguageQuery(
 	anthropicKey: string,
 	grokKey?: string,
 ): Promise<ParsedQuery> {
+	// One deadline for the whole parse, both providers sharing it. If Anthropic
+	// burns the entire budget, Grok inherits an already-aborted signal and its
+	// fetch rejects at once, so the caller reaches the keyword fallback after
+	// AI_PROVIDER_TIMEOUT_MS total instead of twice that.
+	const signal = AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS);
+
 	// Try Anthropic first
 	try {
 		return {
-			...(await callAnthropicAPI(query, anthropicKey)),
+			...(await callAnthropicAPI(query, anthropicKey, signal)),
 			provider: "anthropic",
 		};
 	} catch (err) {
@@ -150,7 +159,10 @@ export async function parseNaturalLanguageQuery(
 			console.warn(
 				`Anthropic API failed (${errorMessage}), falling back to Grok`,
 			);
-			return { ...(await callGrokAPI(query, grokKey)), provider: "grok" };
+			return {
+				...(await callGrokAPI(query, grokKey, signal)),
+				provider: "grok",
+			};
 		}
 		// Otherwise rethrow the original error
 		throw err;
@@ -160,6 +172,7 @@ export async function parseNaturalLanguageQuery(
 async function callAnthropicAPI(
 	query: string,
 	apiKey: string,
+	signal: AbortSignal,
 ): Promise<ProviderResult> {
 	const response = await fetch(ANTHROPIC_API_URL, {
 		method: "POST",
@@ -175,7 +188,7 @@ async function callAnthropicAPI(
 				{ role: "user", content: `${SYSTEM_PROMPT}\n\nUser query: "${query}"` },
 			],
 		}),
-		signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
+		signal,
 	});
 
 	if (!response.ok) {
@@ -216,6 +229,7 @@ async function callAnthropicAPI(
 async function callGrokAPI(
 	query: string,
 	apiKey: string,
+	signal: AbortSignal,
 ): Promise<ProviderResult> {
 	const response = await fetch(XAI_API_URL, {
 		method: "POST",
@@ -232,7 +246,7 @@ async function callGrokAPI(
 			],
 			temperature: 0,
 		}),
-		signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
+		signal,
 	});
 
 	if (!response.ok) {

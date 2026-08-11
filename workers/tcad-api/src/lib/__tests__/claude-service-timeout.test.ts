@@ -2,8 +2,10 @@
  * Contract for T17: both provider fetch calls carry an AbortSignal so a hung
  * provider fails into the keyword fallback instead of burning the request budget.
  *
- * Implementation in callAnthropicAPI / callGrokAPI passes
- * AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS) to each fetch.
+ * parseNaturalLanguageQuery creates ONE AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS)
+ * and hands the same instance to both providers, so the budget bounds the whole
+ * parse rather than each call — a slow Anthropic followed by a slow Grok must
+ * cost one timeout, not two.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -110,7 +112,7 @@ describe("provider timeout signal", () => {
 		expect(grokSignal).toBeInstanceOf(AbortSignal);
 	});
 
-	it("calls AbortSignal.timeout twice when both providers are called", async () => {
+	it("creates the timeout once, not once per provider", async () => {
 		vi.spyOn(AbortSignal, "timeout").mockReturnValue(AbortSignal.abort());
 		vi.stubGlobal(
 			"fetch",
@@ -122,15 +124,70 @@ describe("provider timeout signal", () => {
 
 		await parseNaturalLanguageQuery("q", "sk-ant", "xai-key");
 
-		expect(AbortSignal.timeout).toHaveBeenCalledTimes(2);
-		expect(AbortSignal.timeout).toHaveBeenNthCalledWith(
-			1,
-			AI_PROVIDER_TIMEOUT_MS,
+		// Two timeouts would mean Grok gets a fresh budget after Anthropic has
+		// already spent one, doubling the worst case before keyword search runs.
+		expect(AbortSignal.timeout).toHaveBeenCalledTimes(1);
+		expect(AbortSignal.timeout).toHaveBeenCalledWith(AI_PROVIDER_TIMEOUT_MS);
+	});
+
+	it("hands both providers the same signal instance", async () => {
+		const signals: Array<AbortSignal | null | undefined> = [];
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockImplementationOnce(async (_url: unknown, init?: RequestInit) => {
+					signals.push(init?.signal);
+					return anthropicCreditExhausted();
+				})
+				.mockImplementationOnce(async (_url: unknown, init?: RequestInit) => {
+					signals.push(init?.signal);
+					return grokOk();
+				}),
 		);
-		expect(AbortSignal.timeout).toHaveBeenNthCalledWith(
-			2,
-			AI_PROVIDER_TIMEOUT_MS,
+
+		await parseNaturalLanguageQuery("q", "sk-ant", "xai-key");
+
+		expect(signals).toHaveLength(2);
+		expect(signals[0]).toBeInstanceOf(AbortSignal);
+		expect(signals[1]).toBe(signals[0]);
+	});
+
+	it("does not grant Grok a fresh budget after Anthropic exhausts it", async () => {
+		// Every timeout() call yields a *distinct* signal, so a per-call
+		// implementation would hand Grok an un-aborted one and this would fail.
+		const controllers: AbortController[] = [];
+		vi.spyOn(AbortSignal, "timeout").mockImplementation(() => {
+			const ctrl = new AbortController();
+			controllers.push(ctrl);
+			return ctrl.signal;
+		});
+
+		let grokWaited = false;
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockImplementationOnce(async (_url: unknown, init?: RequestInit) => {
+					// Anthropic burns the whole deadline.
+					controllers[0].abort(
+						new DOMException("The operation was aborted.", "TimeoutError"),
+					);
+					throw init?.signal?.reason;
+				})
+				.mockImplementationOnce(async (_url: unknown, init?: RequestInit) => {
+					if (!init?.signal?.aborted) {
+						grokWaited = true;
+						return grokOk();
+					}
+					throw init.signal.reason;
+				}),
 		);
+
+		await expect(
+			parseNaturalLanguageQuery("q", "sk-ant", "xai-key"),
+		).rejects.toThrow(/aborted/i);
+		expect(grokWaited).toBe(false);
 	});
 
 	it("propagates an abort error so the caller can fall back to keyword search", async () => {
