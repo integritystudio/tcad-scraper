@@ -101,9 +101,6 @@ export const DENSE_MAX_BASE_LENGTH = 6;
 export const SEED_MIN_SUCCESS_RATE = 0.5;
 export const SEED_MIN_AVG_RESULTS = 100;
 
-// ── Time ────────────────────────────────────────────────────────────
-export const MS_PER_MINUTE = TIME_MS.MINUTE;
-
 // ── Retention ───────────────────────────────────────────────────────
 export const SCRAPE_JOB_RETENTION_DAYS = DAYS_PER_MONTH;
 export const QUEUE_RETENTION_DAYS = DAYS_PER_WEEK;

@@ -3,6 +3,8 @@
  * Consolidates all formatting logic in one place
  */
 
+import { TIME_MS } from "../../utils/units";
+
 /**
  * Format a number as US currency
  * Handles null, undefined, and NaN values gracefully
@@ -69,9 +71,9 @@ export const truncateText = (text: string, maxLength: number): string => {
 	return `${text.slice(0, maxLength - 3)}...`;
 };
 
-export const MS_PER_MINUTE = 1000 * 60;
-export const MS_PER_HOUR = MS_PER_MINUTE * 60;
-export const MS_PER_DAY = MS_PER_HOUR * 24;
+export const MS_PER_MINUTE = TIME_MS.MINUTE;
+export const MS_PER_HOUR = TIME_MS.HOUR;
+export const MS_PER_DAY = TIME_MS.DAY;
 
 /**
  * Milliseconds elapsed between a date string and now. Callers that need more

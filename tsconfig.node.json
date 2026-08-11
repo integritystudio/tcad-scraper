@@ -2,6 +2,9 @@
 	"compilerOptions": {
 		"target": "ES2022",
 		"lib": ["ES2023"],
+		// Explicit under TypeScript 7, which dropped ambient @types auto-inclusion.
+		// vite.config.ts and playwright.config.ts both read process.env.
+		"types": ["node"],
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"skipLibCheck": true,

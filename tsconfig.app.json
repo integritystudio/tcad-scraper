@@ -3,6 +3,10 @@
 		"target": "ES2022",
 		"useDefineForClassFields": true,
 		"lib": ["ES2023", "DOM", "DOM.Iterable"],
+		// TypeScript 7 no longer auto-includes every @types package as an ambient
+		// global, so `node` must be named: the tests under src/**/__tests__ use
+		// node:fs, node:path, process and global.
+		"types": ["node"],
 		"module": "ESNext",
 		"skipLibCheck": true,
 		"moduleResolution": "bundler",
