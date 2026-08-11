@@ -8,6 +8,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MAX_QUERY_LIMIT } from "../../../../utils/constants";
 import { app } from "../index";
+import { parseNaturalLanguageQuery } from "../lib/claude.service";
 import { FTS_MAX_PAGE_SIZE } from "../utils/constants";
 
 const mockFindMany = vi.fn();
@@ -133,6 +134,29 @@ describe("POST /api/properties/search — keyword fallback", () => {
 
 		expect(res.status).toBe(200);
 		expect(res.headers.get("Cache-Control")).toContain("no-store");
+	});
+
+	// The counterpart to the no-store test above, and the reason it is not enough
+	// on its own: an unconditional c.header("Cache-Control", "no-store") satisfies
+	// that test while silently disabling the response cache for every successful
+	// search. Only the degraded path may opt out of caching.
+	it("leaves a successful AI response cacheable", async () => {
+		vi.mocked(parseNaturalLanguageQuery).mockResolvedValueOnce({
+			filters: {
+				whereClause: { city: { contains: "Austin" } },
+				explanation: "Properties in Austin",
+			},
+			provider: "anthropic",
+		});
+
+		const res = await app.request(
+			"/api/properties/search?query=properties%20in%20Austin",
+			{ method: "GET" },
+			TEST_ENV,
+		);
+
+		expect(res.status).toBe(200);
+		expect(res.headers.get("Cache-Control") ?? "").not.toContain("no-store");
 	});
 
 	it("degrades to tokenized contains filters when the FTS table is unavailable", async () => {

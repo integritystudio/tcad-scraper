@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import {
+	CITY_MATCH_MIN_ROWS,
 	FTS_MAX_PAGE_SIZE,
 	FTS_OR_RELAX_MAX_MATCHES,
 } from "../../utils/constants";
@@ -652,5 +653,132 @@ describe("searchKeywordFallback — AND-path breadth guard", () => {
 		expect(result.whereClause).toEqual({ id: { in: [] } });
 		expect(result.precomputedTotal).toBe(0);
 		expect(result.explanation).toContain("171,187");
+	});
+});
+
+describe("searchKeywordFallback — regression guards", () => {
+	// The AND guard is `andTotal > FTS_OR_RELAX_MAX_MATCHES`. The over-bound
+	// case is covered above; without this, flipping that to `>=` would refuse a
+	// set that is exactly rankable and no test would notice.
+	it("still ranks an AND match sitting exactly on the safety bound", async () => {
+		const ranked: string[] = [];
+		const prisma = {
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				if (sql.includes("COUNT(*)")) {
+					return Promise.resolve([{ total: FTS_OR_RELAX_MAX_MATCHES }]);
+				}
+				ranked.push(values[0] as string);
+				return Promise.resolve([{ id: "p1" }]);
+			},
+		} as unknown as PrismaClient;
+
+		const result = await searchKeywordFallback(prisma, "oak street", 2025);
+
+		expect(ranked).toEqual(['"oak" AND "street"']);
+		expect(result.whereClause).toEqual({ id: { in: ["p1"] } });
+		expect(result.precomputedTotal).toBe(FTS_OR_RELAX_MAX_MATCHES);
+	});
+
+	// Regression for the production incident. The city-resolves case is covered
+	// above; this is the variant where the subject resolves to no city, so the
+	// structured path cannot answer it either. It must still refuse rather than
+	// fall through to ranking the 172,464-row OR set that reset the connection.
+	it("refuses the query that tripped D1's CPU limit, without ranking, when no city resolves", async () => {
+		const ranked: string[] = [];
+		const prisma = {
+			property: { count: () => Promise.resolve(0) },
+			$queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) => {
+				const sql = Array.from(strings).join("?");
+				if (sql.includes("COUNT(*)"))
+					return Promise.resolve([{ total: 172_464 }]);
+				ranked.push(values[0] as string);
+				return Promise.resolve([]);
+			},
+		} as unknown as PrismaClient;
+
+		const result = await searchKeywordFallback(
+			prisma,
+			"ten most valuable properties in Austin, TX",
+			2025,
+		);
+
+		expect(ranked).toEqual([]);
+		expect(result.whereClause).toEqual({ id: { in: [] } });
+		expect(result.precomputedTotal).toBe(0);
+		expect(result.explanation).toContain("does not name a city");
+	});
+});
+
+describe("resolveCityFilter — CITY_MATCH_MIN_ROWS floor", () => {
+	const cityPrisma = (rows: number) =>
+		({
+			property: { count: () => Promise.resolve(rows) },
+			$queryRaw: () => Promise.resolve([]),
+		}) as unknown as PrismaClient;
+
+	// The floor exists to reject the literal 25-row city "TX" and the tail of
+	// single-row typos. The highest-count-wins test above cannot exercise it,
+	// because AUSTIN outranks TX on count whether or not the floor is applied —
+	// deleting the floor entirely would leave that test green.
+	it("rejects a sole city candidate that sits below the floor", async () => {
+		const result = await searchKeywordFallback(
+			cityPrisma(CITY_MATCH_MIN_ROWS - 1),
+			"most valuable properties in Tx",
+			2025,
+		);
+
+		expect(result.whereClause).toEqual({ id: { in: [] } });
+		expect(result.precomputedTotal).toBe(0);
+		expect(result.explanation).toContain("does not name a city");
+	});
+
+	it("accepts a city candidate sitting exactly on the floor", async () => {
+		const result = await searchKeywordFallback(
+			cityPrisma(CITY_MATCH_MIN_ROWS),
+			"most valuable properties in Manor",
+			2025,
+		);
+
+		expect(result.whereClause).toEqual({ city: "MANOR" });
+		expect(result.orderBy).toEqual({ appraisedValue: "desc" });
+	});
+});
+
+describe("buildKeywordSearchFilters — regression guards", () => {
+	/** Every distinct value handed to a `contains` filter, at any depth. */
+	const containsValues = (clause: unknown): string[] => {
+		const out: string[] = [];
+		const walk = (node: unknown) => {
+			if (Array.isArray(node)) return node.forEach(walk);
+			if (node && typeof node === "object") {
+				for (const [k, v] of Object.entries(node)) {
+					if (k === "contains") out.push(v as string);
+					else walk(v);
+				}
+			}
+		};
+		walk(clause);
+		return [...new Set(out)];
+	};
+
+	// The original defect: the whole sentence became one LIKE '%...%' pattern,
+	// which cannot match any row and guaranteed a full scan returning 0.
+	it("never uses the whole query as a single contains pattern", async () => {
+		const query = "ten most valuable properties in Austin, TX";
+		const values = containsValues(buildKeywordSearchFilters(query).whereClause);
+
+		expect(values).not.toContain(query);
+		expect(values).toEqual(["austin", "tx"]);
+	});
+
+	// Stopword removal can empty the token set; the fallback must degrade to the
+	// raw tokens, not back to the whole sentence.
+	it("falls back to raw tokens when every token is a stopword", () => {
+		const query = "show me all the properties";
+		const values = containsValues(buildKeywordSearchFilters(query).whereClause);
+
+		expect(values).not.toContain(query);
+		expect(values).toEqual(["show", "me", "all", "the", "properties"]);
 	});
 });
