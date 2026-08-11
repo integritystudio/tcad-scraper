@@ -11,6 +11,7 @@
 
 import type { PrismaClient } from "@prisma/client";
 import {
+	CITY_MATCH_MIN_ROWS,
 	FTS_MAX_PAGE_SIZE,
 	FTS_OR_RELAX_MAX_MATCHES,
 } from "../utils/constants";
@@ -40,6 +41,22 @@ const QUERY_STOPWORDS = new Set([
 	"is",
 	"are",
 	"than",
+	// Superlative and quantity words. These describe an *ordering*, which
+	// extractSortIntent below turns into an orderBy, and they carry essentially
+	// no text signal of their own: measured against production D1 for year
+	// 2025, "valuable" matches 0 rows, "most" 30 and "ten" 82, against
+	// "austin"'s 171,187. Leaving them in is what made the OR relaxation keep
+	// them and drop "austin" — ranking ~2,800 rows containing the literal token
+	// "ten" and presenting that as the ten most valuable properties in Austin.
+	"ten",
+	"most",
+	"least",
+	"valuable",
+	"expensive",
+	"highest",
+	"lowest",
+	"cheapest",
+	"priciest",
 ]);
 
 /**
@@ -289,6 +306,112 @@ async function ftsRankedIds(
 	return pageRows.map((r) => r.id);
 }
 
+/**
+ * Superlative phrasings that ask for an *ordering* rather than a text match.
+ * Longest-first within each direction so "least expensive" is not read as
+ * "expensive". Only value superlatives are listed: "largest"/"biggest" are
+ * ambiguous between appraised value and acreage, so they are deliberately
+ * absent and fall through to the text path rather than being guessed at.
+ */
+const DESC_SORT_PHRASES = [
+	"most valuable",
+	"most expensive",
+	"highest appraised",
+	"highest valued",
+	"highest value",
+	"top value",
+	"priciest",
+] as const;
+
+const ASC_SORT_PHRASES = [
+	"least valuable",
+	"least expensive",
+	"lowest appraised",
+	"lowest valued",
+	"lowest value",
+	"cheapest",
+] as const;
+
+type SortDirection = "asc" | "desc";
+
+interface SortIntent {
+	direction: SortDirection;
+	/** The matched phrase, removed from the text before tokenizing the subject. */
+	phrase: string;
+}
+
+/**
+ * Recognize "the ten most valuable properties in Austin" as an ordering over
+ * appraisedValue rather than as words to match. Keyword search cannot answer a
+ * superlative at all — the answer is not the rows containing these words, it is
+ * the rows ranked by a column — so detecting it is what lets the fallback
+ * synthesize a real query instead of returning bm25 noise.
+ */
+export function extractSortIntent(query: string): SortIntent | null {
+	const lower = query.toLowerCase();
+	for (const phrase of DESC_SORT_PHRASES) {
+		if (lower.includes(phrase)) return { direction: "desc", phrase };
+	}
+	for (const phrase of ASC_SORT_PHRASES) {
+		if (lower.includes(phrase)) return { direction: "asc", phrase };
+	}
+	return null;
+}
+
+/**
+ * Remove the matched superlative so it cannot be mistaken for part of the
+ * subject. Case-insensitive because extractSortIntent matched against a
+ * lowercased copy while the caller still holds the original text.
+ */
+function stripSortPhrase(text: string, phrase: string): string {
+	const index = text.toLowerCase().indexOf(phrase);
+	if (index === -1) return text;
+	return `${text.slice(0, index)} ${text.slice(index + phrase.length)}`;
+}
+
+/**
+ * Candidate city names from the subject tokens: each token, plus each adjacent
+ * pair, since several Travis County municipalities are two words (DEL VALLE,
+ * LAGO VISTA, CEDAR PARK) and would never match a single-token equality.
+ */
+function cityCandidates(tokens: string[]): string[] {
+	const candidates = tokens.map((t) => t.toUpperCase());
+	for (let i = 0; i + 1 < tokens.length; i++) {
+		candidates.push(`${tokens[i]} ${tokens[i + 1]}`.toUpperCase());
+	}
+	return candidates;
+}
+
+/**
+ * Resolve which subject token names a city, by equality against the indexed
+ * `city` column. Equality is the whole point: `city = 'AUSTIN'` uses
+ * properties_city_appraised_value_idx and returned the top 10 by value in 8.9ms
+ * on production D1, while `city LIKE 'AUSTIN%'` cannot use that index at all
+ * (SQLite will not drive a BINARY-collation index from a case-insensitive LIKE)
+ * and took 5,323ms for the same rows — a ~600x difference.
+ *
+ * The highest-count candidate wins rather than the first: "Austin, TX" offers
+ * both "AUSTIN" (157,187 rows) and "TX" (25), and the larger is the one the
+ * user named. CITY_MATCH_MIN_ROWS then rejects typo and artifact values.
+ */
+async function resolveCityFilter(
+	prisma: PrismaClient,
+	tokens: string[],
+	year: number,
+): Promise<{ city: string; rows: number } | null> {
+	if (tokens.length === 0) return null;
+	const counted = await Promise.all(
+		cityCandidates(tokens).map(async (city) => ({
+			city,
+			rows: await prisma.property.count({ where: { year, city } }),
+		})),
+	);
+	const viable = counted
+		.filter((c) => c.rows >= CITY_MATCH_MIN_ROWS)
+		.sort((a, b) => b.rows - a.rows);
+	return viable[0] ?? null;
+}
+
 type RelaxOutcome =
 	| { mode: "or"; page: FtsPage }
 	| { mode: "too-broad"; matchCount: number };
@@ -373,6 +496,49 @@ export async function searchKeywordFallback(
 	}
 
 	const boundsSuffix = hasBounds(bounds) ? `, ${describeBounds(bounds)}` : "";
+
+	// A superlative is an ordering, not a text match, so answer it with a real
+	// query: `city = ? ORDER BY appraised_value` over the composite index. The
+	// text path cannot answer it even in principle — bm25 ranks by term
+	// relevance, not by value — and trying produced the exact failure this
+	// branch exists to prevent.
+	const sort = extractSortIntent(query);
+	if (sort) {
+		const orderBy = { appraisedValue: sort.direction };
+		const ordering = sort.direction === "desc" ? "most" : "least";
+		const subjectTokens = extractSignalTokens(
+			stripSortPhrase(searchText, sort.phrase),
+		);
+		const city = await resolveCityFilter(prisma, subjectTokens, year);
+		if (city) {
+			return {
+				whereClause: hasBounds(bounds)
+					? { AND: [{ city: city.city }, boundsWhereClause(bounds)] }
+					: { city: city.city },
+				orderBy,
+				explanation: `Properties in ${city.city} ordered by appraised value, ${ordering} valuable first${boundsSuffix} (AI search unavailable)`,
+			};
+		}
+		if (subjectTokens.length === 0) {
+			// "the ten most valuable properties" — no subject to narrow by, so
+			// order the whole roll year. Still a real answer to the question.
+			return {
+				whereClause: hasBounds(bounds) ? boundsWhereClause(bounds) : {},
+				orderBy,
+				explanation: `All properties ordered by appraised value, ${ordering} valuable first${boundsSuffix} (AI search unavailable)`,
+			};
+		}
+		// A superlative over a subject that is not a city — "most valuable
+		// properties on Congress Ave". Ranking the subject's text matches by
+		// bm25 would answer a different question, and ordering a single 98-row
+		// FTS page by value would report "most valuable" over an arbitrary
+		// slice. Say so instead of inventing an answer.
+		return {
+			whereClause: { id: { in: [] } },
+			precomputedTotal: 0,
+			explanation: `Cannot answer "${query.trim()}" without AI search: ranking by appraised value is only supported for a city or the whole roll, and "${subjectTokens.join(" ")}" does not name a city (AI search unavailable)`,
+		};
+	}
 
 	const requireAll = buildFtsMatchQuery(searchText, "AND");
 	if (!requireAll) {

@@ -171,7 +171,13 @@ const runNaturalLanguageSearch = async (
 			offset,
 		);
 		whereClause = fallback.whereClause;
-		orderBy = undefined;
+		// The fallback sets orderBy when it recognized a superlative and
+		// synthesized a structured query ("most valuable in Austin" ->
+		// city = ? ORDER BY appraised_value DESC). Discarding it here would drop
+		// the ordering that *is* the answer, leaving an unordered page of the
+		// city. Undefined on the text-match paths, where the caller's default
+		// applies.
+		orderBy = fallback.orderBy;
 		explanation = fallback.explanation;
 		answer = undefined;
 		answerType = undefined;

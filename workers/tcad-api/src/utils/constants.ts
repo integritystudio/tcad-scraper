@@ -60,6 +60,17 @@ export const FTS_MAX_PAGE_SIZE = D1_MAX_BOUND_PARAMS - FTS_PAGE_ID_HEADROOM; // 
 // the measured failure since the exact ceiling is unmeasured.
 export const FTS_OR_RELAX_MAX_MATCHES = 20_000;
 
+// Rows a `city =` match must carry before keyword-search.ts will treat a query
+// token as naming a city. The column is dirty: 391 distinct values for year
+// 2025, of which the tail is single-row typos ("WEST LAKE HLLS", "WESTLAKE ",
+// "`AUSTIN") plus a literal "TX" carrying 25 rows — so a token like "tx" in
+// "properties in Austin, TX" would otherwise resolve as the city and silently
+// narrow the answer to 25 unrelated rows. Real municipalities are far above
+// this (AUSTIN 157,677; PFLUGERVILLE 20,723; MANOR 5,883; LAGO VISTA 2,481).
+// A real city falling under the floor only costs the structured path, which
+// then reports the query as unsupported rather than answering it wrongly.
+export const CITY_MATCH_MIN_ROWS = 100;
+
 // ── Cache TTL ───────────────────────────────────────────────────────
 export const RESPONSE_CACHE_TTL_SECONDS = 300;
 export const TOKEN_CACHE_TTL_SECONDS = 270;
