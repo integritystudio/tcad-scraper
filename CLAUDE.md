@@ -40,7 +40,7 @@ All secrets via Doppler (local dev) + `wrangler secret` (Workers). **Doppler pro
 - `src/db.ts` - Prisma + D1 connection (`PrismaD1` adapter)
 - `src/lib/claude.service.ts` - Natural language search (Anthropic primary, **xAI/Grok** fallback via `XAI_API_URL`; query capped at 500 chars via Zod) + `sanitizeWhereClause`
 - `src/lib/keyword-search.ts` - FTS5 keyword fallback, used when **neither** AI provider is reachable (e.g. both unfunded). Matches `properties_fts` (migrations 0002 + 0004) with bm25 column weights, pages in SQL, and degrades once more to LIKE `contains` if the virtual table is missing
-- `src/utils/constants.ts` - TCAD_API_URL, chunk sizes, timeouts, D1 micro-chunk config
+- `src/utils/constants.ts` - TCAD_API_URL, chunk sizes, D1 micro-chunk config, FTS page/relax bounds, cache TTLs. **No request timeouts live here** despite the name suggesting it — those are module-local (`AI_PROVIDER_TIMEOUT_MS` in `lib/claude.service.ts`, an inline literal in `index.ts`), and the only shared one is `API_CLIENT_TIMEOUT_MS` in the repo-root `utils/constants.ts`. This line claimed "timeouts" until 2026-08-11 and sent a reviewer to the wrong file
 - `src/utils/epoch-dates.ts` - `nowEpoch()`, `epochToISO()`, `dateToEpoch()` — D1 date workaround
 - `src/utils/json-array.ts` - `serializeIds()`/`deserializeIds()` for JSON-serialized arrays
 - `src/utils/` also has `error-helpers.ts` (`getErrorMessage()`) and `property-transformers.ts`
