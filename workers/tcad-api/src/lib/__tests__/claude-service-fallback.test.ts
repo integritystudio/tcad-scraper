@@ -1,8 +1,12 @@
 /**
- * Contract for shouldFallbackToGrok: the Grok fallback fires only for
- * Anthropic failures that a different provider could actually cure —
- * auth/billing/rate-limit statuses, plus the credit-balance case Anthropic
- * reports as HTTP 400 invalid_request_error instead of 402.
+ * Contract for shouldFallbackToGrok: the Grok fallback fires for two kinds of
+ * Anthropic failure, and nothing else.
+ *
+ * 1. Anthropic specifically rejected the request and another provider might
+ *    not — auth/billing/rate-limit statuses, plus the credit-balance case
+ *    Anthropic reports as HTTP 400 invalid_request_error instead of 402.
+ * 2. No answer came back at all — a timeout, which says nothing about Grok's
+ *    health and so is worth retrying rather than treating as terminal.
  */
 
 import { describe, expect, it } from "vitest";

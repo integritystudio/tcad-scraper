@@ -42,7 +42,9 @@ const XAI_API_URL = "https://api.x.ai/v1/chat/completions";
 // Total budget for parseNaturalLanguageQuery, shared across both providers
 // rather than granted per call: a per-call timeout lets a slow Anthropic spend
 // the full budget and *then* hand a slow Grok another one, so the keyword
-// fallback would not start until 2x this value had elapsed.
+// fallback would not start until 2x this value had elapsed. Sharing one signal
+// means an exhausted budget aborts Grok's fetch immediately, capping the whole
+// parse at this value.
 // Measured Grok latency: 0.54 s–10.6 s across four calls; one hung past 300 s.
 // 20 s clears the observed maximum with margin while bounding the whole parse.
 export const AI_PROVIDER_TIMEOUT_MS = 20_000;
@@ -140,10 +142,7 @@ export async function parseNaturalLanguageQuery(
 	anthropicKey: string,
 	grokKey?: string,
 ): Promise<ParsedQuery> {
-	// One deadline for the whole parse, both providers sharing it. If Anthropic
-	// burns the entire budget, Grok inherits an already-aborted signal and its
-	// fetch rejects at once, so the caller reaches the keyword fallback after
-	// AI_PROVIDER_TIMEOUT_MS total instead of twice that.
+	// One deadline shared by both providers — see AI_PROVIDER_TIMEOUT_MS.
 	const signal = AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS);
 
 	// Try Anthropic first
@@ -294,9 +293,11 @@ const CREDIT_BALANCE_ERROR = /credit balance/i;
 
 // AbortSignal.timeout() rejects with a DOMException named "TimeoutError", which
 // carries no HTTP status and no matching message, so the status and message
-// checks below both miss it. DOMException is not reliably an Error subclass
-// across runtimes either, hence the structural name check ahead of the
-// instanceof guard.
+// checks below both miss it. The check is structural rather than a property
+// read off Error because DOMException is not guaranteed to subclass Error in
+// every runtime, and the suite runs under Node while production is workerd —
+// so a wrong assumption here would fail silently in production and still pass
+// CI. Six lines of insurance against an untestable difference.
 const TIMEOUT_ERROR_NAME = "TimeoutError";
 
 function isTimeoutError(error: unknown): boolean {
@@ -308,12 +309,13 @@ function isTimeoutError(error: unknown): boolean {
 }
 
 export function shouldFallbackToGrok(error: unknown): boolean {
-	// A timed-out Anthropic call says nothing about Grok's health, so it must
-	// still try Grok. Treating it as unrecoverable would drop the request to
-	// keyword search while a working AI provider sat unused — the exact
-	// inversion that funding the Anthropic account would expose (T17).
-	// Worst case both providers hang, costing 2x AI_PROVIDER_TIMEOUT_MS before
-	// the keyword fallback runs.
+	// Two distinct reasons to try Grok: Anthropic specifically rejected this
+	// request (billing/auth/rate-limit — another account may not have the same
+	// problem), or we got no answer at all (a timeout says nothing about Grok's
+	// health, so it is worth trying). Under the shared deadline a timed-out
+	// Anthropic leaves no budget, so Grok's fetch aborts at once and the caller
+	// still reaches the keyword fallback — but the predicate stays correct if a
+	// per-provider reserve is ever added.
 	if (isTimeoutError(error)) return true;
 	if (!(error instanceof Error)) return false;
 	// Fallback on 400 (credit balance exhausted), 401 (unauthorized),
