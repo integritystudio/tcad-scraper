@@ -15,14 +15,19 @@
 		"@prisma/adapter-d1": "^6.6.0",
 		"@prisma/client": "^6.6.0",
 		"@sentry/cloudflare": "^10.35.0",
-		"hono": "^4.7.0",
+		"hono": "^4.13.1",
 		"zod": "^3.24.0"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20260301.0",
+		"@cloudflare/workers-types": "^4.20260702.1",
 		"prisma": "^6.6.0",
 		"typescript": "^7.0.2",
 		"vitest": "^4.1.10",
-		"wrangler": "^4.0.0"
+		"wrangler": "^4.107.1"
+	},
+	"//overrides": "miniflare pins sharp and undici at versions with open advisories, and the wrangler release that fixes them requires @cloudflare/workers-types v5, which @prisma/adapter-d1 still constrains to v4. Dev-only (miniflare never reaches the Workers runtime); drop these once wrangler can move.",
+	"overrides": {
+		"sharp": "^0.35.3",
+		"undici": "^7.29.0"
 	}
 }
